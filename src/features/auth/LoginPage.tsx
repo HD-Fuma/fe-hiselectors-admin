@@ -1,10 +1,18 @@
 import { ChevronRight, CircleAlert, LockKeyhole, UserRound } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { findRequirementCoverage } from "../../app/requirementCoverage";
 import { QrBadge } from "./QrBadge";
 import "../../styles/login.css";
 
 export function LoginPage() {
+  const location = useLocation();
+  const requirement = findRequirementCoverage(location.pathname, location.search);
+
   return (
-    <main className="partners-login">
+    <main
+      className="partners-login"
+      data-requirement-rows={requirement?.rows.join(",")}
+    >
       <div className="partners-login__layout">
         <section
           className="partners-login__card"
