@@ -1698,3 +1698,127 @@
 .fuma-performance-content-table .hsas-dense-table {
   min-width: 1108px;
 }
+
+.fuma-operations-search .hsas-search-panel__fields {
+  grid-template-columns: repeat(3, minmax(190px, 1fr));
+}
+
+.fuma-operations-guide {
+  margin: -3px 0 0;
+  padding-left: 14px;
+  color: #666e72;
+  font-size: 11px;
+}
+
+.fuma-operations-guide::before {
+  margin-right: 5px;
+  color: var(--hsas-teal-dark);
+  content: "•";
+}
+
+.fuma-operation-person {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--hsas-space-8);
+}
+
+.fuma-operation-person strong {
+  overflow: hidden;
+  color: #3f474b;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-operation-person > span:not(.hsas-visually-hidden) {
+  color: var(--hsas-text-muted);
+  font-size: 10px;
+}
+
+.fuma-settlement-table .hsas-dense-table {
+  min-width: 966px;
+}
+
+.fuma-settlement-amount-input {
+  height: 23px;
+  text-align: right;
+}
+
+.fuma-operations-period-filter {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--hsas-space-4);
+  color: #4a5155;
+  font-weight: 700;
+}
+
+.fuma-operations-period-filter > div {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(130px, 1fr) auto minmax(130px, 1fr);
+  align-items: center;
+  gap: var(--hsas-space-4);
+}
+
+.fuma-operations-period-filter > div > span {
+  color: var(--hsas-text-muted);
+  font-weight: 400;
+}
+
+.fuma-notice-search .hsas-search-panel__fields {
+  grid-template-columns: minmax(220px, 1fr) minmax(190px, 0.7fr) minmax(360px, 1.2fr);
+}
+
+.fuma-notice-table .hsas-dense-table {
+  min-width: 972px;
+}
+
+.fuma-table-actions {
+  display: inline-flex;
+  gap: var(--hsas-space-4);
+}
+
+.fuma-notice-editor__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fuma-notice-editor__form > .hsas-form-row:nth-child(odd) {
+  border-right: 1px solid var(--hsas-border);
+}
+
+.fuma-notice-editor__form > .hsas-form-row:first-child,
+.fuma-notice-editor__form > .hsas-form-row:last-child {
+  grid-column: 1 / -1;
+  border-right: 0;
+}
+
+.fuma-notice-editor__textarea {
+  min-height: 72px;
+  padding: 7px;
+  resize: none;
+}
+
+.fuma-notice-editor__footer {
+  display: flex;
+  min-height: 39px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hsas-space-12);
+  padding: 6px var(--hsas-space-8);
+  border-top: 1px solid var(--hsas-border);
+  background: #f7f8f8;
+}
+
+.fuma-notice-editor__footer p {
+  margin: 0;
+  color: var(--hsas-text-muted);
+  font-size: 11px;
+}
+
+.fuma-notice-editor__footer > div {
+  display: flex;
+  gap: var(--hsas-space-4);
+}
