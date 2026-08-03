@@ -7,20 +7,30 @@ import {
   CreatorListPage,
   ProposalHistoryPage,
 } from "../features/creators/CreatorPages";
+import {
+  CohortManagementPage,
+  QualificationManagementPage,
+  SelectorOverviewPage,
+} from "../features/selectors/SelectorPages";
 import { ADMIN_ROUTES, DEFAULT_ADMIN_ROUTE } from "./navigation";
 
 function adminRouteElement(path: string, title: string, screenCode: string) {
-  if (path === "/creators") {
-    return <CreatorListPage />;
+  switch (path) {
+    case "/creators":
+      return <CreatorListPage />;
+    case "/creators/:creatorId":
+      return <CreatorDetailPage />;
+    case "/proposals":
+      return <ProposalHistoryPage />;
+    case "/cohorts":
+      return <CohortManagementPage />;
+    case "/selectors":
+      return <SelectorOverviewPage />;
+    case "/selectors/qualifications":
+      return <QualificationManagementPage />;
+    default:
+      return <PlaceholderPage title={title} screenCode={screenCode} />;
   }
-  if (path === "/creators/:creatorId") {
-    return <CreatorDetailPage />;
-  }
-  if (path === "/proposals") {
-    return <ProposalHistoryPage />;
-  }
-
-  return <PlaceholderPage title={title} screenCode={screenCode} />;
 }
 
 const adminRouteObjects: RouteObject[] = ADMIN_ROUTES.map((route) => ({

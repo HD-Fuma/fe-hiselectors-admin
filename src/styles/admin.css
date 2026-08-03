@@ -768,6 +768,13 @@
   color: var(--hsas-text-muted);
 }
 
+.fuma-result-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--hsas-space-4);
+  margin-left: auto;
+}
+
 .fuma-wide-table {
   overflow: hidden;
 }
@@ -857,6 +864,25 @@
 
 .fuma-content-section > .hsas-dense-table-wrap {
   border-top: 0;
+}
+
+.fuma-qualification-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fuma-qualification-form > .hsas-form-row:nth-child(odd) {
+  border-right: 1px solid var(--hsas-border);
+}
+
+.fuma-qualification-section__actions {
+  display: flex;
+  min-height: 39px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 6px var(--hsas-space-8);
+  border-top: 1px solid var(--hsas-border);
+  background: #f7f8f8;
 }
 
 .fuma-ai-summary {
