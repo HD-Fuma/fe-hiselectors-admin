@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import { Button, TextInput } from "./Controls";
-import { DenseTable, type DenseTableColumn } from "./DenseTable";
+import { DenseTable, type DenseTableColumn, type DenseTableProps } from "./DenseTable";
 import { EmptyState } from "./EmptyState";
 import { FormRow, type FormRowProps } from "./FormRow";
 import { ImageTile, type ImageTileProps } from "./ImageTile";
@@ -30,20 +33,40 @@ test("renders a form row label, required marker, control, and help text", () => 
     </FormRow>,
   );
 
+  expect(screen.getByRole("group", { name: "Product code" })).toBeInTheDocument();
   expect(screen.getByText("Product code")).toBeInTheDocument();
-  expect(screen.getByText("required")).toHaveClass("hsas-visually-hidden");
+  expect(screen.getByText("필수")).toHaveClass("hsas-visually-hidden");
   expect(screen.getByText("Use the OMS product code.")).toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: "Product code value" })).toBeInTheDocument();
 });
 
-test("uses the visible form-row label as the control's accessible name", () => {
-  render(
-    <FormRow label="Owner">
-      <TextInput />
-    </FormRow>,
+test("names and describes a stable multi-control form group", () => {
+  const row = (
+    <FormRow label="Date range" help="Choose the campaign start and end dates.">
+      <div>
+        <TextInput aria-label="Start date" required />
+        <TextInput aria-label="End date" />
+      </div>
+    </FormRow>
   );
 
-  expect(screen.getByRole("textbox", { name: "Owner" })).toBeInTheDocument();
+  const { rerender } = render(row);
+  const group = screen.getByRole("group", { name: "Date range" });
+  const labelledBy = group.getAttribute("aria-labelledby");
+  const describedBy = group.getAttribute("aria-describedby");
+
+  expect(group).toHaveAccessibleDescription("Choose the campaign start and end dates.");
+  expect(document.getElementById(labelledBy!)).toHaveTextContent("Date range");
+  expect(document.getElementById(describedBy!)).toHaveTextContent(
+    "Choose the campaign start and end dates.",
+  );
+  expect(screen.getByRole("textbox", { name: "Start date" })).toBeRequired();
+  expect(screen.getByRole("textbox", { name: "End date" })).not.toBeRequired();
+
+  rerender(row);
+  const rerenderedGroup = screen.getByRole("group", { name: "Date range" });
+  expect(rerenderedGroup).toHaveAttribute("aria-labelledby", labelledBy);
+  expect(rerenderedGroup).toHaveAttribute("aria-describedby", describedBy);
 });
 
 test("renders search fields and actions inside an accessible search landmark", () => {
@@ -53,12 +76,12 @@ test("renders search fields and actions inside an accessible search landmark", (
     </SearchPanel>,
   );
 
-  const search = screen.getByRole("search", { name: "Search filters" });
+  const search = screen.getByRole("search", { name: "검색 조건" });
   expect(within(search).getByRole("textbox", { name: "Search term" })).toBeInTheDocument();
   expect(within(search).getByRole("button", { name: "Search" })).toBeInTheDocument();
 });
 
-test("marks the active section tab as selected", () => {
+test("marks the active static section without interactive tab semantics", () => {
   render(
     <SectionTabs
       activeId="media"
@@ -69,20 +92,21 @@ test("marks the active section tab as selected", () => {
     />,
   );
 
-  expect(screen.getByRole("tablist", { name: "Sections" })).toBeInTheDocument();
-  expect(screen.getByRole("tab", { name: "Media" })).toHaveAttribute("aria-selected", "true");
-  expect(screen.getByRole("tab", { name: "Details" })).toHaveAttribute(
-    "aria-selected",
-    "false",
-  );
+  const navigation = screen.getByRole("navigation", { name: "섹션" });
+  expect(within(navigation).getByText("Media")).toHaveAttribute("aria-current", "page");
+  expect(within(navigation).getByText("Details")).not.toHaveAttribute("aria-current");
+  expect(within(navigation).queryByRole("tab")).not.toBeInTheDocument();
+  expect(within(navigation).queryByRole("button")).not.toBeInTheDocument();
 });
 
 test("shows the current page, total pages, and page size", () => {
   render(<Pagination page={2} totalPages={7} pageSize={25} />);
 
-  const pagination = screen.getByRole("navigation", { name: "Pagination" });
-  expect(within(pagination).getByText("Page 2 of 7")).toBeInTheDocument();
-  expect(within(pagination).getByText("25 per page")).toBeInTheDocument();
+  const pagination = screen.getByRole("navigation", { name: "페이지 이동" });
+  expect(within(pagination).getByText("2 / 7 페이지")).toBeInTheDocument();
+  expect(within(pagination).getByText("페이지당 25개")).toBeInTheDocument();
+  expect(within(pagination).getByRole("button", { name: "이전 페이지" })).toBeDisabled();
+  expect(within(pagination).getByRole("button", { name: "다음 페이지" })).toBeDisabled();
 });
 
 test("renders an image with alt text or an empty upload tile with actions", () => {
@@ -98,7 +122,7 @@ test("renders an image with alt text or an empty upload tile with actions", () =
     "/product-thumbnail.png",
   );
   const emptyTile = screen.getByRole("group", { name: "Additional product image" });
-  expect(within(emptyTile).getByText("Upload image")).toBeInTheDocument();
+  expect(within(emptyTile).getByText("이미지 등록")).toBeInTheDocument();
   expect(within(emptyTile).getByRole("button", { name: "Add image" })).toBeInTheDocument();
 });
 
@@ -131,6 +155,53 @@ test("renders modal content and actions only while open", () => {
   expect(within(dialog).getByRole("button", { name: "Confirm" })).toBeInTheDocument();
 });
 
+test("isolates the background, traps focus, and restores focus when a modal closes", async () => {
+  const user = userEvent.setup();
+  const modalState = (open: boolean) => (
+    <>
+      <button data-testid="modal-trigger" type="button">
+        Open modal
+      </button>
+      <Modal
+        actions={
+          <>
+            <Button>Cancel</Button>
+            <Button variant="primary">Confirm</Button>
+          </>
+        }
+        open={open}
+        title="Approve product"
+      >
+        <TextInput aria-label="Approval reason" />
+      </Modal>
+    </>
+  );
+  const { rerender } = render(modalState(false));
+  const trigger = screen.getByTestId("modal-trigger");
+  const backgroundRoot = trigger.parentElement!;
+  trigger.focus();
+
+  rerender(modalState(true));
+
+  const dialog = screen.getByRole("dialog", { name: "Approve product" });
+  const firstControl = within(dialog).getByRole("textbox", { name: "Approval reason" });
+  const lastControl = within(dialog).getByRole("button", { name: "Confirm" });
+  expect(firstControl).toHaveFocus();
+  expect(backgroundRoot).toHaveAttribute("aria-hidden", "true");
+  expect(backgroundRoot).toHaveAttribute("inert");
+
+  await user.tab({ shift: true });
+  expect(lastControl).toHaveFocus();
+  await user.tab();
+  expect(firstControl).toHaveFocus();
+
+  rerender(modalState(false));
+
+  expect(trigger).toHaveFocus();
+  expect(backgroundRoot).not.toHaveAttribute("aria-hidden");
+  expect(backgroundRoot).not.toHaveAttribute("inert");
+});
+
 test("renders an empty-state title and description", () => {
   render(<EmptyState title="No products found" description="Change the filters and search again." />);
 
@@ -146,26 +217,106 @@ interface ProductRow {
 }
 
 const productColumns: DenseTableColumn<ProductRow>[] = [
-  { key: "code", header: "Code", width: 90 },
-  { key: "name", header: "Product name" },
+  { id: "code", key: "code", header: "Code", width: 90 },
+  { id: "name", key: "name", header: "Product name" },
   {
+    id: "status",
     key: "status",
     header: "Status",
     align: "center",
-    render: (row) => <StatusPill status={row.status}>{row.status}</StatusPill>,
+    render: (row) => <StatusPill tone={row.status}>{row.status}</StatusPill>,
   },
 ];
 
 // @ts-expect-error Dense table keys must identify a property on the typed row.
-const invalidProductColumns: DenseTableColumn<ProductRow>[] = [{ key: "missing", header: "Missing" }];
+const invalidProductColumns: DenseTableColumn<ProductRow>[] = [{ id: "missing", key: "missing", header: "Missing" }];
+// @ts-expect-error Dense table columns require an explicit stable identity.
+const invalidColumnWithoutId: DenseTableColumn<ProductRow> = { key: "name", header: "Name" };
+// @ts-expect-error Dense table row identity must be provided by an accessor.
+const invalidStringRowKey: DenseTableProps<ProductRow> = { columns: productColumns, rowKey: "id", rows: [] };
 void invalidProductColumns;
+void invalidColumnWithoutId;
+void invalidStringRowKey;
+
+interface ReorderedRow {
+  id: string;
+  name: string;
+}
+
+function StatefulIdentityCell({ rowId }: { rowId: string }) {
+  const [mountedRowId] = useState(rowId);
+  return <span data-testid={`identity-${rowId}`}>{mountedRowId}</span>;
+}
+
+const derivedColumns: DenseTableColumn<ReorderedRow>[] = [
+  {
+    id: "identity",
+    header: "Identity",
+    render: (row) => <StatefulIdentityCell rowId={row.id} />,
+  },
+  {
+    id: "actions",
+    header: "Actions",
+    render: (row) => <span>Inspect {row.name}</span>,
+  },
+];
+
+test("preserves row identity through reordering and supports unique derived columns", () => {
+  const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const firstRows: ReorderedRow[] = [
+    { id: "row-a", name: "Alpha" },
+    { id: "row-b", name: "Beta" },
+  ];
+
+  try {
+    const { rerender } = render(
+      <DenseTable columns={derivedColumns} rowKey={(row) => row.id} rows={firstRows} />,
+    );
+
+    rerender(
+      <DenseTable
+        columns={derivedColumns}
+        rowKey={(row) => row.id}
+        rows={[firstRows[1], firstRows[0]]}
+      />,
+    );
+
+    expect(screen.getByTestId("identity-row-a")).toHaveTextContent("row-a");
+    expect(screen.getByTestId("identity-row-b")).toHaveTextContent("row-b");
+    expect(screen.getByText("Inspect Alpha")).toBeInTheDocument();
+    expect(screen.getByText("Inspect Beta")).toBeInTheDocument();
+    expect(consoleError).not.toHaveBeenCalled();
+  } finally {
+    consoleError.mockRestore();
+  }
+});
+
+test("renders boolean data using Korean defaults", () => {
+  const columns: DenseTableColumn<{ id: number; enabled: boolean }>[] = [
+    { id: "enabled", key: "enabled", header: "사용 여부" },
+  ];
+
+  render(
+    <DenseTable
+      columns={columns}
+      rowKey={(row) => row.id}
+      rows={[
+        { id: 1, enabled: true },
+        { id: 2, enabled: false },
+      ]}
+    />,
+  );
+
+  expect(screen.getByRole("cell", { name: "예" })).toBeInTheDocument();
+  expect(screen.getByRole("cell", { name: "아니오" })).toBeInTheDocument();
+});
 
 test("renders typed table columns, rows, custom cells, and a footer", () => {
   render(
     <DenseTable
       columns={productColumns}
       footer="1 product"
-      rowKey="id"
+      rowKey={(row) => row.id}
       rows={[{ id: 101, code: "P-001", name: "FUMA sample", status: "approved" }]}
     />,
   );
@@ -182,7 +333,7 @@ test("renders a table-specific empty message when there are no rows", () => {
     <DenseTable
       columns={productColumns}
       emptyMessage="No matching products."
-      rowKey="id"
+      rowKey={(row) => row.id}
       rows={[]}
     />,
   );
@@ -191,7 +342,7 @@ test("renders a table-specific empty message when there are no rows", () => {
 });
 
 test("uses the HSAS empty-result copy when no table message is supplied", () => {
-  render(<DenseTable columns={productColumns} rowKey="id" rows={[]} />);
+  render(<DenseTable columns={productColumns} rowKey={(row) => row.id} rows={[]} />);
 
   expect(screen.getByRole("cell", { name: "조회 결과가 없습니다." })).toBeInTheDocument();
 });

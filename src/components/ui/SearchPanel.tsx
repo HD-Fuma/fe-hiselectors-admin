@@ -7,7 +7,7 @@ export interface SearchPanelProps {
 
 export function SearchPanel({ actions, children }: SearchPanelProps) {
   return (
-    <section aria-label="Search filters" className="hsas-search-panel" role="search">
+    <section aria-label="검색 조건" className="hsas-search-panel" role="search">
       <div className="hsas-search-panel__fields">{children}</div>
       {actions ? <div className="hsas-search-panel__actions">{actions}</div> : null}
     </section>

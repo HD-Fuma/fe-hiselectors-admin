@@ -231,8 +231,11 @@
 }
 
 .hsas-section-tabs__tab {
+  display: inline-flex;
   min-width: 84px;
   height: 30px;
+  align-items: center;
+  justify-content: center;
   padding: 0 var(--hsas-space-12);
   border: 1px solid var(--hsas-border);
   border-bottom: 0;
@@ -333,11 +336,6 @@
   min-height: 33px;
   padding: 3px;
   border-top: 1px solid var(--hsas-border);
-}
-
-.hsas-image-tile__actions .hsas-button {
-  min-width: 0;
-  flex: 1;
 }
 
 .hsas-image-tile__action {

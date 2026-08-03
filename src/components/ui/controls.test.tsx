@@ -1,6 +1,20 @@
 import { render, screen } from "@testing-library/react";
-import { Button, Checkbox, SegmentedControl, Select, TextInput } from "./Controls";
-import { StatusPill } from "./StatusPill";
+import {
+  Button,
+  Checkbox,
+  SegmentedControl,
+  Select,
+  TextInput,
+  type SegmentedControlProps,
+} from "./Controls";
+import { StatusPill, type StatusPillProps } from "./StatusPill";
+
+// @ts-expect-error Segmented controls use the documented value/options vocabulary.
+const invalidSegmentedAliases: SegmentedControlProps = { activeId: "yes", items: [] };
+// @ts-expect-error Status pills use tone rather than the removed status alias.
+const invalidStatusAlias: StatusPillProps = { status: "approved" };
+void invalidSegmentedAliases;
+void invalidStatusAlias;
 
 describe("HSAS controls", () => {
   test("renders the primary button treatment", () => {
@@ -47,11 +61,11 @@ describe("HSAS controls", () => {
     render(
       <SegmentedControl
         ariaLabel="Display mode"
-        activeId="list"
-        items={[
-          { id: "list", label: "List" },
-          { id: "grid", label: "Grid" },
+        options={[
+          { value: "list", label: "List" },
+          { value: "grid", label: "Grid" },
         ]}
+        value="list"
       />,
     );
 
@@ -67,7 +81,7 @@ describe("HSAS controls", () => {
 });
 
 test("renders the approved status treatment", () => {
-  render(<StatusPill status="approved">Approved</StatusPill>);
+  render(<StatusPill tone="approved">Approved</StatusPill>);
 
   expect(screen.getByText("Approved")).toHaveClass(
     "hsas-status-pill",
@@ -106,4 +120,5 @@ test("supports the documented compact option props and utility classes", () => {
     "aria-pressed",
     "true",
   );
+  expect(screen.getByRole("group", { name: "선택 옵션" })).toBeInTheDocument();
 });

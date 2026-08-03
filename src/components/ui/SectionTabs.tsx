@@ -10,25 +10,22 @@ export interface SectionTabsProps {
 
 export function SectionTabs({ activeId, items }: SectionTabsProps) {
   return (
-    <div aria-label="Sections" className="hsas-section-tabs" role="tablist">
+    <nav aria-label="섹션" className="hsas-section-tabs">
       {items.map((item) => {
         const isActive = item.id === activeId;
 
         return (
-          <button
-            aria-selected={isActive}
+          <span
+            aria-current={isActive ? "page" : undefined}
             className={`hsas-section-tabs__tab${
               isActive ? " hsas-section-tabs__tab--active" : ""
             }`}
             key={item.id}
-            role="tab"
-            tabIndex={isActive ? 0 : -1}
-            type="button"
           >
             {item.label}
-          </button>
+          </span>
         );
       })}
-    </div>
+    </nav>
   );
 }

@@ -1,17 +1,15 @@
 import type { HTMLAttributes } from "react";
 
 export interface StatusPillProps extends HTMLAttributes<HTMLSpanElement> {
-  status?: "approved" | "pending" | "rejected" | "neutral";
   tone?: "approved" | "pending" | "rejected" | "neutral";
 }
 
-export function StatusPill({ className, status, tone, ...props }: StatusPillProps) {
-  const resolvedTone = tone ?? status ?? "neutral";
+export function StatusPill({ className, tone = "neutral", ...props }: StatusPillProps) {
   const classes = [
     "hsas-status-pill",
     "status-pill",
-    `hsas-status-pill--${resolvedTone}`,
-    `status-pill--${resolvedTone}`,
+    `hsas-status-pill--${tone}`,
+    `status-pill--${tone}`,
     className,
   ]
     .filter(Boolean)

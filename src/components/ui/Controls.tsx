@@ -85,46 +85,32 @@ export function Checkbox({ className, label, ...props }: CheckboxProps) {
   );
 }
 
-export interface SegmentedControlItem {
-  id: string;
-  label: ReactNode;
-}
-
 export interface SegmentedControlOption {
   value: string;
   label: ReactNode;
 }
 
 export interface SegmentedControlProps {
-  activeId?: string;
   ariaLabel?: string;
-  items?: SegmentedControlItem[];
-  value?: string;
-  options?: SegmentedControlOption[];
+  value: string;
+  options: SegmentedControlOption[];
   onChange?: (id: string) => void;
 }
 
 export function SegmentedControl({
-  activeId,
-  ariaLabel = "Options",
-  items = [],
+  ariaLabel = "선택 옵션",
   value,
   options,
   onChange,
 }: SegmentedControlProps) {
-  const selectedId = value ?? activeId;
-  const normalizedItems = options
-    ? options.map((option) => ({ id: option.value, label: option.label }))
-    : items;
-
   return (
     <div
       aria-label={ariaLabel}
       className="hsas-segmented-control ui-segmented-control"
       role="group"
     >
-      {normalizedItems.map((item) => {
-        const isActive = item.id === selectedId;
+      {options.map((option) => {
+        const isActive = option.value === value;
 
         return (
           <button
@@ -135,11 +121,11 @@ export function SegmentedControl({
               isActive && "hsas-segmented-control__item--active",
               isActive && "ui-segmented-control__item--active",
             )}
-            key={item.id}
-            onClick={() => onChange?.(item.id)}
+            key={option.value}
+            onClick={() => onChange?.(option.value)}
             type="button"
           >
-            {item.label}
+            {option.label}
           </button>
         );
       })}

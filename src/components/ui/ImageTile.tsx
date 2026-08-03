@@ -18,7 +18,7 @@ export function ImageTile({ actions, alt, empty = false, src }: ImageTileProps) 
             <span aria-hidden="true" className="hsas-image-tile__placeholder-icon">
               +
             </span>
-            <span>Upload image</span>
+            <span>이미지 등록</span>
           </div>
         )}
       </div>

@@ -1,7 +1,8 @@
 import { isValidElement, type CSSProperties, type Key, type ReactNode } from "react";
 
 export interface DenseTableColumn<T> {
-  key: keyof T;
+  id: string;
+  key?: keyof T;
   header: ReactNode;
   width?: CSSProperties["width"];
   align?: "left" | "center" | "right";
@@ -11,7 +12,7 @@ export interface DenseTableColumn<T> {
 export interface DenseTableProps<T extends object> {
   columns: DenseTableColumn<T>[];
   rows: T[];
-  rowKey: keyof T | ((row: T, index: number) => Key);
+  rowKey: (row: T) => Key;
   emptyMessage?: ReactNode;
   footer?: ReactNode;
 }
@@ -24,7 +25,7 @@ function cellValue<T extends object>(row: T, key: keyof T): ReactNode {
   }
 
   if (typeof value === "boolean") {
-    return value ? "Yes" : "No";
+    return value ? "예" : "아니오";
   }
 
   if (isValidElement(value)) {
@@ -32,19 +33,6 @@ function cellValue<T extends object>(row: T, key: keyof T): ReactNode {
   }
 
   return String(value);
-}
-
-function resolvedRowKey<T extends object>(
-  row: T,
-  rowKey: DenseTableProps<T>["rowKey"],
-  index: number,
-): Key {
-  if (typeof rowKey === "function") {
-    return rowKey(row, index);
-  }
-
-  const value = row[rowKey];
-  return typeof value === "string" || typeof value === "number" ? value : index;
 }
 
 export function DenseTable<T extends object>({
@@ -62,7 +50,7 @@ export function DenseTable<T extends object>({
             {columns.map((column) => (
               <th
                 className={`hsas-dense-table__cell--${column.align ?? "left"}`}
-                key={String(column.key)}
+                key={column.id}
                 scope="col"
                 style={{ width: column.width }}
               >
@@ -79,14 +67,18 @@ export function DenseTable<T extends object>({
               </td>
             </tr>
           ) : (
-            rows.map((row, rowIndex) => (
-              <tr key={resolvedRowKey(row, rowKey, rowIndex)}>
+            rows.map((row) => (
+              <tr key={rowKey(row)}>
                 {columns.map((column) => (
                   <td
                     className={`hsas-dense-table__cell--${column.align ?? "left"}`}
-                    key={String(column.key)}
+                    key={column.id}
                   >
-                    {column.render ? column.render(row) : cellValue(row, column.key)}
+                    {column.render
+                      ? column.render(row)
+                      : column.key == null
+                        ? null
+                        : cellValue(row, column.key)}
                   </td>
                 ))}
               </tr>
