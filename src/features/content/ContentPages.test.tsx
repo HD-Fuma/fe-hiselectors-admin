@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { renderRoute } from "../../test/renderRoute";
 
 function expectColumnHeaders(region: HTMLElement, names: string[]) {
@@ -122,6 +122,52 @@ describe("content review queue", () => {
     expect(screen.getByText("선택된 콘텐츠가 없습니다.")).toBeInTheDocument();
     expect(screen.getByText("검수할 콘텐츠를 선택해 주세요.")).toBeInTheDocument();
     expectButton(screen.getByRole("button", { name: "선택 콘텐츠 검수" }), true);
+  });
+
+  test("resets fixture-derived selection across same-router query transitions", async () => {
+    const { router } = renderRoute("/content/reviews");
+
+    let queue = screen.getByRole("region", { name: "콘텐츠 검수 대기열" });
+    let checkboxes = within(queue).getAllByRole("checkbox");
+    expect(checkboxes.map((checkbox) => (checkbox as HTMLInputElement).checked)).toEqual([
+      true,
+      false,
+      false,
+    ]);
+
+    fireEvent.click(checkboxes[1]);
+    expect(checkboxes.map((checkbox) => (checkbox as HTMLInputElement).checked)).toEqual([
+      true,
+      true,
+      false,
+    ]);
+
+    await act(async () => {
+      await router.navigate("/content/reviews?fixture=no-selection");
+    });
+
+    queue = screen.getByRole("region", { name: "콘텐츠 검수 대기열" });
+    checkboxes = within(queue).getAllByRole("checkbox");
+    expect(checkboxes.map((checkbox) => (checkbox as HTMLInputElement).checked)).toEqual([
+      false,
+      false,
+      false,
+    ]);
+    expect(screen.getByText("선택된 콘텐츠가 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("검수할 콘텐츠를 선택해 주세요.")).toBeInTheDocument();
+    expectButton(screen.getByRole("button", { name: "선택 콘텐츠 검수" }), true);
+
+    await act(async () => {
+      await router.navigate("/content/reviews");
+    });
+
+    queue = screen.getByRole("region", { name: "콘텐츠 검수 대기열" });
+    checkboxes = within(queue).getAllByRole("checkbox");
+    expect(checkboxes.map((checkbox) => (checkbox as HTMLInputElement).checked)).toEqual([
+      true,
+      false,
+      false,
+    ]);
   });
 });
 

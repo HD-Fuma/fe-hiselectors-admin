@@ -217,6 +217,7 @@ export function ContentReviewListPage() {
         <div
           aria-label="콘텐츠 검수 대기열"
           className="fuma-wide-table fuma-content-review-table"
+          key={noSelection ? "no-selection" : "default-selection"}
           role="region"
         >
           <DenseTable
