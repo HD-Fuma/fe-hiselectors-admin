@@ -26,6 +26,11 @@ import {
   ContentReviewListPage,
   ContentViolationPage,
 } from "../features/content/ContentPages";
+import {
+  ContentPerformancePage,
+  CreatorPerformancePage,
+  PerformanceDashboardPage,
+} from "../features/performance/PerformancePages";
 import { ADMIN_ROUTES, DEFAULT_ADMIN_ROUTE } from "./navigation";
 
 function adminRouteElement(path: string, title: string, screenCode: string) {
@@ -58,6 +63,12 @@ function adminRouteElement(path: string, title: string, screenCode: string) {
       return <ContentReviewDetailPage />;
     case "/content/violations":
       return <ContentViolationPage />;
+    case "/performance":
+      return <PerformanceDashboardPage />;
+    case "/performance/creators":
+      return <CreatorPerformancePage />;
+    case "/performance/contents":
+      return <ContentPerformancePage />;
     default:
       return <PlaceholderPage title={title} screenCode={screenCode} />;
   }

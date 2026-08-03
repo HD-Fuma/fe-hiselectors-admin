@@ -1595,3 +1595,106 @@
 .fuma-violation-penalty span {
   color: #9b3737;
 }
+
+.fuma-performance-search .hsas-search-panel__fields {
+  grid-template-columns: 160px minmax(280px, 1fr) minmax(350px, 1.2fr);
+}
+
+.fuma-performance-search:has(input[type="text"]) .hsas-search-panel__fields {
+  grid-template-columns: minmax(210px, 0.9fr) 160px minmax(280px, 1.2fr);
+}
+
+.fuma-performance-search:has(input[type="text"]) .fuma-performance-period-filter {
+  grid-column: span 2;
+}
+
+.fuma-performance-period-filter {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--hsas-space-4);
+  color: #4a5155;
+  font-weight: 700;
+}
+
+.fuma-performance-period-filter > div {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(135px, 1fr) auto minmax(135px, 1fr);
+  align-items: center;
+  gap: var(--hsas-space-4);
+}
+
+.fuma-performance-period-filter > div > span {
+  color: var(--hsas-text-muted);
+  font-weight: 400;
+}
+
+.fuma-metric-strip {
+  display: grid;
+  min-width: 0;
+  min-height: 49px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid #aeb7bb;
+  border-top: 2px solid var(--hsas-teal);
+  background: var(--hsas-surface);
+}
+
+.fuma-metric-strip__item {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(92px, 1fr) auto;
+  align-items: center;
+  gap: var(--hsas-space-8);
+  padding: 7px var(--hsas-space-12);
+  border-right: 1px solid var(--hsas-border);
+}
+
+.fuma-metric-strip__item:last-child {
+  border-right: 0;
+}
+
+.fuma-metric-strip dt,
+.fuma-metric-strip dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.fuma-metric-strip dt {
+  color: #596166;
+  font-weight: 700;
+}
+
+.fuma-metric-strip dd {
+  color: var(--hsas-teal-dark);
+  font-size: 17px;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.fuma-performance-results {
+  min-width: 0;
+}
+
+.fuma-performance-results .hsas-pagination {
+  min-height: 27px;
+}
+
+.fuma-performance-campaign-table .hsas-dense-table {
+  min-width: 750px;
+}
+
+.fuma-performance-selector-table .hsas-dense-table {
+  min-width: 730px;
+}
+
+.fuma-performance-creator-table .hsas-dense-table {
+  min-width: 1037px;
+}
+
+.fuma-performance-content-table .hsas-dense-table {
+  min-width: 1108px;
+}
