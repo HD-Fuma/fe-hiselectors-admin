@@ -1,0 +1,43 @@
+html {
+  color: var(--hsas-text);
+  background: var(--hsas-background);
+  font-family: var(--hsas-font-family);
+  font-size: var(--hsas-font-size-body);
+  line-height: var(--hsas-line-height-body);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--hsas-background);
+}
+
+button,
+input,
+select,
+textarea {
+  color: inherit;
+  font: inherit;
+}
+
+button,
+label,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--hsas-teal);
+  outline-offset: 1px;
+}
+
+img {
+  max-width: 100%;
+}

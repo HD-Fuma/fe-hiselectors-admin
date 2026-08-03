@@ -1,0 +1,52 @@
+:root {
+  --hsas-teal: #168f78;
+  --hsas-teal-accent: #249f8e;
+  --hsas-teal-dark: #0f7562;
+  --hsas-teal-soft: #e8f4f1;
+  --hsas-nav: #333333;
+  --hsas-icon-rail: #3c3c3c;
+  --hsas-nav-dark: #282828;
+
+  --hsas-background: #f7f7f8;
+  --hsas-surface: #ffffff;
+  --hsas-surface-muted: #f7f8f8;
+  --hsas-border: #d8dcdd;
+  --hsas-border-dark: #aeb5b9;
+  --hsas-text: #24282b;
+  --hsas-text-muted: #8a8f91;
+  --hsas-text-inverse: #ffffff;
+
+  --hsas-status-approved: #137763;
+  --hsas-status-approved-bg: #e5f3ef;
+  --hsas-status-approved-border: #8cc7ba;
+  --hsas-status-pending: #8a6507;
+  --hsas-status-pending-bg: #fff6d8;
+  --hsas-status-pending-border: #ddc777;
+  --hsas-status-rejected: #a13d3d;
+  --hsas-status-rejected-bg: #f9eaea;
+  --hsas-status-rejected-border: #d9a1a1;
+  --hsas-status-neutral: #596166;
+  --hsas-status-neutral-bg: #eef0f1;
+  --hsas-status-neutral-border: #bdc3c6;
+
+  --hsas-font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", Arial, sans-serif;
+  --hsas-font-size-body: 12px;
+  --hsas-line-height-body: 1.45;
+
+  --hsas-rail-width: 40px;
+  --hsas-menu-width: 205px;
+  --hsas-top-bar-height: 38px;
+  --hsas-control-height: 27px;
+  --rail-width: 40px;
+  --menu-width: 205px;
+  --topbar-height: 38px;
+  --control-height: 27px;
+  --font-body: 12px;
+  --hsas-radius-square: 0;
+  --hsas-radius: 2px;
+
+  --hsas-space-4: 4px;
+  --hsas-space-8: 8px;
+  --hsas-space-12: 12px;
+  --hsas-space-16: 16px;
+}
