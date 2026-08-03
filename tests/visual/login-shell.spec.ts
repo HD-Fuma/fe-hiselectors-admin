@@ -38,6 +38,30 @@ test("matches the Partners login geometry", async ({ page }) => {
   expect(quickLinksBox!.x).toBeGreaterThan(cardBox!.x + cardBox!.width);
 });
 
+test("keeps static login credentials out of browser history", async ({ page }) => {
+  await page.setViewportSize({ width: 1869, height: 942 });
+  await page.goto("/login");
+  await waitForStablePage(page);
+  const loginUrl = page.url();
+
+  await page.getByPlaceholder("ID를 입력하세요.").fill("review-user");
+  await page.getByPlaceholder("비밀번호를 입력하세요.").fill("review-secret");
+  await page.getByRole("button", { name: "로그인" }).click();
+
+  expect(page.url()).toBe(loginUrl);
+  await expect(page.getByText("Partners")).toBeVisible();
+});
+
+test("keeps the login card inside a narrow viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 460, height: 760 });
+  await page.goto("/login");
+  await waitForStablePage(page);
+
+  const cardBox = await page.locator('[data-login-part="card"]').boundingBox();
+  expect(cardBox).not.toBeNull();
+  expect(cardBox!.x).toBeGreaterThanOrEqual(0);
+});
+
 test("locks the legacy administrator shell geometry", async ({ page }) => {
   await page.setViewportSize({ width: 1310, height: 741 });
   await page.goto("/creators");

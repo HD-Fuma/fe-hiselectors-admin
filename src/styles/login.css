@@ -270,6 +270,10 @@
     overflow-x: auto;
   }
 
+  .partners-login__layout {
+    transform: translate(0, 7px);
+  }
+
   .partners-login__quick-links {
     display: none;
   }

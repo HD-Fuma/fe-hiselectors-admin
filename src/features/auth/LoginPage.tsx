@@ -22,7 +22,11 @@ export function LoginPage() {
             <p className="partners-login__subtitle">더현대Hi 협력사 업무지원시스템</p>
           </header>
 
-          <form className="partners-login__form" action="/login" aria-label="협력사 로그인">
+          <form
+            className="partners-login__form"
+            aria-label="협력사 로그인"
+            onSubmit={(event) => event.preventDefault()}
+          >
             <label className="partners-login__field">
               <span className="hsas-visually-hidden">아이디</span>
               <UserRound className="partners-login__field-icon" aria-hidden="true" />
