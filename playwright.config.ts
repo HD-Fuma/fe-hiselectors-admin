@@ -13,6 +13,7 @@ export default defineConfig({
   testDir: "./tests/visual",
   outputDir: "test-results/playwright",
   fullyParallel: false,
+  retries: 0,
   workers: 1,
   use: {
     baseURL,
@@ -23,6 +24,8 @@ export default defineConfig({
     contextOptions: {
       reducedMotion: "reduce",
     },
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
   },
   webServer: {
     command: `npm run dev -- --host 127.0.0.1 --port ${port} --strictPort`,

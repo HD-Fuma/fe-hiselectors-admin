@@ -12,6 +12,7 @@ export function LoginPage() {
     <main
       className="partners-login"
       data-requirement-rows={requirement?.rows.join(",")}
+      data-visual-contract="login"
     >
       <div className="partners-login__layout">
         <section

@@ -117,6 +117,7 @@ export function MegaMenu({ activeGroup, onClose }: MegaMenuProps) {
         aria-modal="true"
         aria-labelledby="hsas-mega-menu-title"
         data-ui="mega-menu"
+        data-visual-contract="mega-menu"
         ref={dialogRef}
         tabIndex={-1}
       >

@@ -114,6 +114,7 @@ export function Modal({ actions, children, open, title }: ModalProps) {
         aria-labelledby={titleId}
         aria-modal="true"
         className="hsas-modal"
+        data-visual-contract="modal"
         ref={dialogRef}
         role="dialog"
         tabIndex={-1}

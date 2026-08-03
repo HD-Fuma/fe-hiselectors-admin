@@ -38,6 +38,7 @@ export function AppShell() {
       data-shell-part="root"
       data-testid="admin-shell"
       data-ui="admin-shell"
+      data-visual-contract="admin-shell"
     >
       <IconRail onOpenMegaMenu={() => setIsMegaMenuRequested(true)} />
       <MyMenu activeRoute={activeRoute} currentPath={location.pathname} />

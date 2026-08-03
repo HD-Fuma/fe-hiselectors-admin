@@ -197,7 +197,7 @@ export function ContentReviewListPage() {
   const noSelection = searchParams.get("fixture") === "no-selection";
 
   return (
-    <section className="fuma-page">
+    <section className="fuma-page" data-visual-contract="content-review">
       <PageHeader screenCode="CT101" title="콘텐츠 검수" />
       <div className="fuma-page__body">
         <QueueFilters />
@@ -371,7 +371,7 @@ export function ContentReviewDetailPage() {
   const content = findContentReviewFixture(contentId);
 
   return (
-    <section className="fuma-page">
+    <section className="fuma-page" data-visual-contract="content-review">
       <PageHeader screenCode="CT102" title="콘텐츠 검수 상세" />
       <div className="fuma-page__body">
         {content ? (

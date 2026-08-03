@@ -64,7 +64,7 @@ export function DenseTable<T extends object>({
   rows,
 }: DenseTableProps<T>) {
   return (
-    <div className="hsas-dense-table-wrap">
+    <div className="hsas-dense-table-wrap" data-visual-contract="dense-table">
       <table className="hsas-dense-table">
         <thead>
           <tr>

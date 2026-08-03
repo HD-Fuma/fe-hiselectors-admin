@@ -357,7 +357,8 @@
   inset: 0;
   display: grid;
   place-items: center;
-  padding: var(--hsas-space-16);
+  padding: var(--hsas-space-16) var(--hsas-space-16) var(--hsas-space-16)
+    calc(var(--hsas-rail-width) + var(--hsas-menu-width) + var(--hsas-space-16));
   background: rgb(20 25 28 / 48%);
 }
 
@@ -647,23 +648,26 @@
   position: fixed;
   z-index: 20;
   inset: 0;
-  display: grid;
-  place-items: center;
-  padding: var(--hsas-space-16);
-  background: rgb(0 0 0 / 46%);
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  background: #f8f8fa;
 }
 
 .hsas-mega-menu {
+  width: 100vw;
+  height: 100vh;
   border: 1px solid var(--hsas-teal-dark);
   background: var(--hsas-surface);
-  box-shadow: 0 4px 16px rgb(0 0 0 / 28%);
+  box-shadow: none;
 }
 
 .hsas-mega-menu__title-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--hsas-space-8) var(--hsas-space-12);
+  height: 25px;
+  padding: 0 var(--hsas-space-12);
   background: var(--hsas-teal);
   color: var(--hsas-text-inverse);
 }
@@ -683,6 +687,8 @@
 
 .hsas-mega-menu__body {
   display: flex;
+  min-height: calc(100vh - 25px);
+  background: #f8f8fa;
 }
 
 .hsas-mega-menu__groups,
@@ -693,22 +699,27 @@
 }
 
 .hsas-mega-menu__groups {
+  width: 141px;
+  flex: 0 0 141px;
   border-right: 1px solid var(--hsas-border);
-  background: var(--hsas-surface-muted);
+  background: var(--hsas-surface);
 }
 
 .hsas-mega-menu__group {
+  min-height: 28px;
   padding: var(--hsas-space-8) var(--hsas-space-12);
   text-align: left;
 }
 
 .hsas-mega-menu__group--active {
-  background: var(--hsas-teal-soft);
-  color: var(--hsas-teal-dark);
+  background: #f1f3f3;
+  color: var(--hsas-text);
   font-weight: 700;
 }
 
 .hsas-mega-menu__group-title {
+  padding-bottom: var(--hsas-space-8);
+  border-bottom: 1px solid #50575a;
   margin-bottom: var(--hsas-space-8);
   font-size: 13px;
 }
@@ -718,6 +729,13 @@
   padding: var(--hsas-space-8);
   color: var(--hsas-text);
   text-decoration: none;
+}
+
+.hsas-mega-menu__children {
+  width: 222px;
+  flex: 0 0 222px;
+  align-self: flex-start;
+  background: var(--hsas-surface);
 }
 
 .fuma-page,
@@ -1275,7 +1293,7 @@
 }
 
 .fuma-campaign-modal-table .hsas-dense-table-wrap {
-  min-height: 124px;
+  min-height: 205px;
   overflow-x: auto;
   border-top: 0;
   background: var(--hsas-surface);
@@ -1283,6 +1301,12 @@
 
 .fuma-campaign-modal-table .hsas-dense-table {
   min-width: 785px;
+}
+
+.fuma-campaign-modal-table .hsas-dense-table td {
+  height: 29px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .fuma-campaign-product-modal .hsas-pagination {
@@ -1737,6 +1761,12 @@
 
 .fuma-settlement-table .hsas-dense-table {
   min-width: 1000px;
+}
+
+.fuma-settlement-table .hsas-dense-table td {
+  height: 29px;
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 .fuma-settlement-amount-input {
