@@ -2,13 +2,26 @@ import { render, screen, within } from "@testing-library/react";
 import { Button, TextInput } from "./Controls";
 import { DenseTable, type DenseTableColumn } from "./DenseTable";
 import { EmptyState } from "./EmptyState";
-import { FormRow } from "./FormRow";
-import { ImageTile } from "./ImageTile";
+import { FormRow, type FormRowProps } from "./FormRow";
+import { ImageTile, type ImageTileProps } from "./ImageTile";
 import { Modal } from "./Modal";
 import { Pagination } from "./Pagination";
 import { SearchPanel } from "./SearchPanel";
-import { SectionTabs } from "./SectionTabs";
+import { SectionTabs, type SectionTabsProps } from "./SectionTabs";
 import { StatusPill } from "./StatusPill";
+
+// @ts-expect-error Form-row labels are text-only contracts.
+const invalidFormRowLabel: FormRowProps = { children: "field", label: 42 };
+// @ts-expect-error Form-row help is a text-only contract.
+const invalidFormRowHelp: FormRowProps = { children: "field", help: 42, label: "Label" };
+// @ts-expect-error Section-tab labels are text-only contracts.
+const invalidSectionTabLabel: SectionTabsProps = { activeId: "details", items: [{ id: "details", label: 42 }] };
+// @ts-expect-error Image-tile actions must be string labels.
+const invalidImageTileActions: ImageTileProps = { actions: [42], alt: "Product image" };
+void invalidFormRowLabel;
+void invalidFormRowHelp;
+void invalidSectionTabLabel;
+void invalidImageTileActions;
 
 test("renders a form row label, required marker, control, and help text", () => {
   render(
@@ -76,7 +89,7 @@ test("renders an image with alt text or an empty upload tile with actions", () =
   render(
     <>
       <ImageTile alt="Product thumbnail" src="/product-thumbnail.png" />
-      <ImageTile alt="Additional product image" empty actions={<Button>Add image</Button>} />
+      <ImageTile alt="Additional product image" empty actions={["Add image"]} />
     </>,
   );
 

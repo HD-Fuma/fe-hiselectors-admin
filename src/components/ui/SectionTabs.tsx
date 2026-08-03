@@ -1,8 +1,6 @@
-import type { ReactNode } from "react";
-
 export interface SectionTabItem {
   id: string;
-  label: ReactNode;
+  label: string;
 }
 
 export interface SectionTabsProps {

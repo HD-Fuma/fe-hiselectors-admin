@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
 export interface FormRowProps {
-  label: ReactNode;
+  label: string;
   required?: boolean;
-  help?: ReactNode;
+  help?: string;
   children: ReactNode;
 }
 

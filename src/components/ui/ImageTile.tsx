@@ -1,14 +1,8 @@
-import type { ReactNode } from "react";
-
 export interface ImageTileProps {
   alt: string;
   src?: string;
   empty?: boolean;
-  actions?: ReactNode;
-}
-
-function areStringActions(actions: ReactNode): actions is string[] {
-  return Array.isArray(actions) && actions.every((action) => typeof action === "string");
+  actions?: string[];
 }
 
 export function ImageTile({ actions, alt, empty = false, src }: ImageTileProps) {
@@ -30,17 +24,15 @@ export function ImageTile({ actions, alt, empty = false, src }: ImageTileProps) 
       </div>
       {actions ? (
         <div className="hsas-image-tile__actions">
-          {areStringActions(actions)
-            ? actions.map((action, index) => (
-                <button
-                  className="hsas-image-tile__action"
-                  key={`${action}-${index}`}
-                  type="button"
-                >
-                  {action}
-                </button>
-              ))
-            : actions}
+          {actions.map((action, index) => (
+            <button
+              className="hsas-image-tile__action"
+              key={`${action}-${index}`}
+              type="button"
+            >
+              {action}
+            </button>
+          ))}
         </div>
       ) : null}
     </div>
