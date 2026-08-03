@@ -1,13 +1,22 @@
 import { isValidElement, type CSSProperties, type Key, type ReactNode } from "react";
 
-export interface DenseTableColumn<T> {
-  id: string;
-  key?: keyof T;
+interface DenseTableColumnBase {
   header: ReactNode;
   width?: CSSProperties["width"];
   align?: "left" | "center" | "right";
-  render?: (row: T) => ReactNode;
 }
+
+export type DenseTableColumn<T> =
+  | (DenseTableColumnBase & {
+      key: keyof T;
+      id?: string;
+      render?: (row: T) => ReactNode;
+    })
+  | (DenseTableColumnBase & {
+      id: string;
+      key?: never;
+      render: (row: T) => ReactNode;
+    });
 
 export interface DenseTableProps<T extends object> {
   columns: DenseTableColumn<T>[];
@@ -35,6 +44,18 @@ function cellValue<T extends object>(row: T, key: keyof T): ReactNode {
   return String(value);
 }
 
+function columnIdentity<T>(column: DenseTableColumn<T>) {
+  return column.id ?? String(column.key);
+}
+
+function renderedCell<T extends object>(column: DenseTableColumn<T>, row: T) {
+  if (column.render) {
+    return column.render(row);
+  }
+
+  return column.key === undefined ? null : cellValue(row, column.key);
+}
+
 export function DenseTable<T extends object>({
   columns,
   emptyMessage = "조회 결과가 없습니다.",
@@ -50,7 +71,7 @@ export function DenseTable<T extends object>({
             {columns.map((column) => (
               <th
                 className={`hsas-dense-table__cell--${column.align ?? "left"}`}
-                key={column.id}
+                key={columnIdentity(column)}
                 scope="col"
                 style={{ width: column.width }}
               >
@@ -72,13 +93,9 @@ export function DenseTable<T extends object>({
                 {columns.map((column) => (
                   <td
                     className={`hsas-dense-table__cell--${column.align ?? "left"}`}
-                    key={column.id}
+                    key={columnIdentity(column)}
                   >
-                    {column.render
-                      ? column.render(row)
-                      : column.key == null
-                        ? null
-                        : cellValue(row, column.key)}
+                    {renderedCell(column, row)}
                   </td>
                 ))}
               </tr>

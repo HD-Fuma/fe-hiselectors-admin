@@ -230,12 +230,15 @@ const productColumns: DenseTableColumn<ProductRow>[] = [
 
 // @ts-expect-error Dense table keys must identify a property on the typed row.
 const invalidProductColumns: DenseTableColumn<ProductRow>[] = [{ id: "missing", key: "missing", header: "Missing" }];
-// @ts-expect-error Dense table columns require an explicit stable identity.
-const invalidColumnWithoutId: DenseTableColumn<ProductRow> = { key: "name", header: "Name" };
+// @ts-expect-error A derived column requires both a stable id and a render function.
+const invalidDerivedWithoutRender: DenseTableColumn<ProductRow> = { id: "actions", header: "Actions" };
+// @ts-expect-error A derived column render function still requires a stable id.
+const invalidDerivedWithoutId: DenseTableColumn<ProductRow> = { header: "Actions", render: () => "View" };
 // @ts-expect-error Dense table row identity must be provided by an accessor.
 const invalidStringRowKey: DenseTableProps<ProductRow> = { columns: productColumns, rowKey: "id", rows: [] };
 void invalidProductColumns;
-void invalidColumnWithoutId;
+void invalidDerivedWithoutRender;
+void invalidDerivedWithoutId;
 void invalidStringRowKey;
 
 interface ReorderedRow {
@@ -285,6 +288,26 @@ test("preserves row identity through reordering and supports unique derived colu
     expect(screen.getByTestId("identity-row-b")).toHaveTextContent("row-b");
     expect(screen.getByText("Inspect Alpha")).toBeInTheDocument();
     expect(screen.getByText("Inspect Beta")).toBeInTheDocument();
+    expect(consoleError).not.toHaveBeenCalled();
+  } finally {
+    consoleError.mockRestore();
+  }
+});
+
+test("renders a key-only data column using the data key as its stable identity", () => {
+  const columns: DenseTableColumn<ProductRow>[] = [{ key: "name", header: "Product name" }];
+  const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+  try {
+    render(
+      <DenseTable
+        columns={columns}
+        rowKey={(row) => row.id}
+        rows={[{ id: 202, code: "P-002", name: "Key-only product", status: "pending" }]}
+      />,
+    );
+
+    expect(screen.getByRole("cell", { name: "Key-only product" })).toBeInTheDocument();
     expect(consoleError).not.toHaveBeenCalled();
   } finally {
     consoleError.mockRestore();
