@@ -79,7 +79,13 @@ describe("creator detail", () => {
     expect(screen.getByText("김서연")).toBeInTheDocument();
     expect(screen.getByText("뷰티 / 패션")).toBeInTheDocument();
     expect(screen.getByText("128,400")).toBeInTheDocument();
-    expectColumnHeaders(["플랫폼", "채널", "평균 조회 수", "평균 반응 수"]);
+    expectColumnHeaders([
+      "플랫폼",
+      "채널",
+      "팔로워·구독자",
+      "평균 조회 수",
+      "평균 반응 수",
+    ]);
     expect(screen.getByText("@seo.yeon")).toBeInTheDocument();
     expect(screen.getByText("서연의 옷장")).toBeInTheDocument();
     expect(screen.getByText("48,200")).toBeInTheDocument();
@@ -154,6 +160,7 @@ describe("proposal history", () => {
     for (const name of ["대상", "채널", "발송 방식", "발송 시각", "상태", "발송 안내"]) {
       expect(within(results).getByRole("columnheader", { name })).toBeInTheDocument();
     }
+    expect(within(results).queryByRole("columnheader", { name: "제안 ID" })).not.toBeInTheDocument();
     expect(within(results).getAllByText("Instagram DM")).toHaveLength(2);
     expect(within(results).getAllByText("이메일")).toHaveLength(2);
     expect(within(results).getAllByText("수동")).toHaveLength(2);
@@ -163,6 +170,13 @@ describe("proposal history", () => {
     }
     expect(within(results).getAllByText(/Meta 정책상 자동 선접촉이 불가합니다/)).toHaveLength(2);
     expect(within(results).getByText("2026-08-03 10:24")).toBeInTheDocument();
+
+    const seoyeonRow = within(results).getByRole("row", { name: /김서연 \(cr-001\)/ });
+    expect(within(seoyeonRow).getByText("Instagram DM")).toBeInTheDocument();
+    expect(within(seoyeonRow).getByText("수동")).toBeInTheDocument();
+    expect(within(seoyeonRow).getByText("2026-08-03 10:24")).toBeInTheDocument();
+    expect(within(seoyeonRow).getByText("발송 완료")).toBeInTheDocument();
+    expect(within(seoyeonRow).getByText(/Meta 정책상 자동 선접촉이 불가합니다/)).toBeInTheDocument();
   });
 
   test("renders the explicit empty proposal fixture", () => {

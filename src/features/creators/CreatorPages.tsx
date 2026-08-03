@@ -370,7 +370,6 @@ export function CreatorDetailPage() {
 }
 
 const PROPOSAL_COLUMNS: DenseTableColumn<ProposalFixture>[] = [
-  { key: "id", header: "제안 ID", width: 82 },
   {
     id: "target",
     header: "대상",
