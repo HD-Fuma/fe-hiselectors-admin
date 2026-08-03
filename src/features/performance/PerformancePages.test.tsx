@@ -1,6 +1,13 @@
 import { screen, within } from "@testing-library/react";
 import { renderRoute } from "../../test/renderRoute";
-import { formatCount, formatRate } from "./fixtures";
+import {
+  CAMPAIGN_PERFORMANCE,
+  CONTENT_INFLUENCE,
+  CREATOR_INFLUENCE,
+  SELECTOR_PERFORMANCE,
+  formatCount,
+  formatRate,
+} from "./fixtures";
 
 const COHORT_OPTIONS = "전체3기2기";
 const CAMPAIGN_OPTIONS =
@@ -38,6 +45,70 @@ test("formats zero, thousands, and conversion rates for dense analytics tables",
   expect(formatRate(829, 24820)).toBe("3.34%");
 });
 
+test("keeps campaign totals equal to canonical content attribution", () => {
+  for (const campaign of CAMPAIGN_PERFORMANCE) {
+    const attributedContent = CONTENT_INFLUENCE.filter(
+      (content) => content.campaignId === campaign.id,
+    );
+    const clicks = attributedContent.reduce(
+      (total, content) => total + content.clicks,
+      0,
+    );
+    const conversions = attributedContent.reduce(
+      (total, content) => total + content.conversions,
+      0,
+    );
+
+    expect(clicks, `${campaign.id} 클릭 합계`).toBe(campaign.clicks);
+    expect(conversions, `${campaign.id} 구매 전환 합계`).toBe(
+      campaign.conversions,
+    );
+  }
+});
+
+test("keeps creator and selector totals equal to their canonical content groups", () => {
+  for (const creator of CREATOR_INFLUENCE) {
+    const attributedContent = CONTENT_INFLUENCE.filter(
+      (content) => content.creatorId === creator.id,
+    );
+
+    expect(
+      attributedContent.reduce((total, content) => total + content.conversions, 0),
+      `${creator.id} 구매 전환 합계`,
+    ).toBe(creator.conversions);
+    expect(
+      attributedContent.reduce((total, content) => total + content.views, 0),
+      `${creator.id} 조회 합계`,
+    ).toBe(creator.views);
+    expect(
+      attributedContent.reduce((total, content) => total + content.likes, 0),
+      `${creator.id} 좋아요 합계`,
+    ).toBe(creator.likes);
+    expect(
+      attributedContent.reduce((total, content) => total + content.comments, 0),
+      `${creator.id} 댓글 합계`,
+    ).toBe(creator.comments);
+  }
+
+  for (const selector of SELECTOR_PERFORMANCE) {
+    const attributedContent = CONTENT_INFLUENCE.filter(
+      (content) => content.selectorId === selector.id,
+    );
+
+    expect(
+      attributedContent.reduce(
+        (total, content) => total + content.clicks,
+        0,
+      ),
+      `${selector.id} 클릭 합계`,
+    ).toBe(selector.clicks);
+    expect(
+      attributedContent.reduce((total, content) => total + content.conversions, 0),
+      `${selector.id} 구매 전환 합계`,
+    ).toBe(selector.conversions);
+  }
+});
+
 test("renders the exact dashboard metrics and campaign and selector performance tables", () => {
   renderRoute("/performance");
 
@@ -69,17 +140,20 @@ test("renders the exact dashboard metrics and campaign and selector performance 
     "전환율",
   ]);
   const firstCampaign = within(campaigns).getByRole("row", {
-    name: /cp-001 2026 가을 골프웨어 셀렉션 시작 전 0 0 0.00%/,
+    name: /cp-001 2026 가을 골프웨어 셀렉션 시작 전 14,060 370 2.63%/,
   });
   expect(within(firstCampaign).getByText("시작 전")).toHaveClass(
     "hsas-status-pill--pending",
   );
   const activeCampaign = within(campaigns).getByRole("row", {
-    name: /cp-002 여름 바캉스 스타일링 진행 중 24,820 829 3.34%/,
+    name: /cp-002 여름 바캉스 스타일링 진행 중 25,020 975 3.90%/,
   });
   expect(within(activeCampaign).getByText("진행 중")).toHaveClass(
     "hsas-status-pill--approved",
   );
+  expect(within(campaigns).getByRole("row", {
+    name: /cp-003 초여름 패션 리뷰 종료 3,120 54 1.73%/,
+  })).toBeInTheDocument();
 
   expect(screen.getByText("셀렉터스별 성과", { selector: "strong" })).toBeInTheDocument();
   expect(screen.getByText("총 4건")).toBeInTheDocument();
@@ -132,10 +206,10 @@ test("renders creator influence filters and exact engagement metrics", () => {
     "댓글",
   ]);
   expect(within(results).getByRole("row", {
-    name: /cr-001 김서연 3기 Instagram \/ YouTube 2026 가을 골프웨어 셀렉션 428 79,600 4,860 363/,
+    name: /cr-001 김서연 3기 Instagram \/ YouTube 2개 캠페인 428 110,400 8,860 586/,
   })).toBeInTheDocument();
   expect(within(results).getByRole("row", {
-    name: /cr-004 오하늘 2기 Instagram 초여름 패션 리뷰 711 154,200 11,920 940/,
+    name: /cr-004 오하늘 2기 Instagram 여름 바캉스 스타일링 711 154,200 11,920 940/,
   })).toBeInTheDocument();
   expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
 });
