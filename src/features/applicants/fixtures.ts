@@ -21,6 +21,11 @@ export interface ApplicantDeliveryRecord {
   sentAt: string;
 }
 
+export type ApplicantDeliveryRecords = readonly [
+  primaryDelivery: ApplicantDeliveryRecord,
+  ...fallbackDeliveries: ApplicantDeliveryRecord[],
+];
+
 export interface ApplicantFixture extends ApplicantMetric {
   id: string;
   name: string;
@@ -33,8 +38,7 @@ export interface ApplicantFixture extends ApplicantMetric {
   failedCriteria: string[];
   internalReason: string;
   reviewNote: string;
-  deliveries: ApplicantDeliveryRecord[];
-  deliveryStatus: DeliveryStatus;
+  deliveries: ApplicantDeliveryRecords;
 }
 
 export const APPLICANTS: readonly ApplicantFixture[] = [
@@ -80,7 +84,6 @@ export const APPLICANTS: readonly ApplicantFixture[] = [
         sentAt: "-",
       },
     ],
-    deliveryStatus: "전송 대기",
   },
   {
     id: "ap-002",
@@ -124,7 +127,6 @@ export const APPLICANTS: readonly ApplicantFixture[] = [
         sentAt: "2026-08-03 10:38",
       },
     ],
-    deliveryStatus: "전송 완료",
   },
   {
     id: "ap-003",
@@ -172,7 +174,6 @@ export const APPLICANTS: readonly ApplicantFixture[] = [
         sentAt: "2026-08-03 11:08",
       },
     ],
-    deliveryStatus: "전송 실패",
   },
   {
     id: "ap-004",
@@ -216,14 +217,9 @@ export const APPLICANTS: readonly ApplicantFixture[] = [
         sentAt: "2026-08-02 09:21",
       },
     ],
-    deliveryStatus: "전송 완료",
   },
 ];
 
-export function findApplicantFixture(applicantId: string | undefined, fixture: string | null) {
-  if (fixture === "auto-rejected") {
-    return APPLICANTS.find((applicant) => applicant.id === "ap-003");
-  }
-
+export function findApplicantFixture(applicantId: string | undefined) {
   return APPLICANTS.find((applicant) => applicant.id === applicantId);
 }

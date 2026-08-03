@@ -158,15 +158,19 @@ const APPLICANT_COLUMNS: DenseTableColumn<ApplicantFixture>[] = [
     ),
   },
   {
-    key: "deliveryStatus",
+    id: "deliveryStatus",
     header: "결과 전송",
     width: 84,
     align: "center",
-    render: (applicant) => (
-      <StatusPill tone={deliveryStatusTone(applicant.deliveryStatus)}>
-        {applicant.deliveryStatus}
-      </StatusPill>
-    ),
+    render: (applicant) => {
+      const [primaryDelivery] = applicant.deliveries;
+
+      return (
+        <StatusPill tone={deliveryStatusTone(primaryDelivery.status)}>
+          {primaryDelivery.status}
+        </StatusPill>
+      );
+    },
   },
   {
     id: "detail",
@@ -308,8 +312,14 @@ function SnsMetrics({ applicant }: { applicant: ApplicantFixture }) {
   );
 }
 
-function AutoRejectionDetails({ applicant }: { applicant: ApplicantFixture }) {
-  if (!applicant.autoRejected) {
+function AutoRejectionDetails({
+  applicant,
+  showDetails,
+}: {
+  applicant: ApplicantFixture;
+  showDetails: boolean;
+}) {
+  if (!showDetails) {
     return null;
   }
 
@@ -331,7 +341,13 @@ function AutoRejectionDetails({ applicant }: { applicant: ApplicantFixture }) {
   );
 }
 
-function ReviewSection({ applicant }: { applicant: ApplicantFixture }) {
+function ReviewSection({
+  applicant,
+  showAutoRejectionDetails,
+}: {
+  applicant: ApplicantFixture;
+  showAutoRejectionDetails: boolean;
+}) {
   return (
     <section
       aria-labelledby="applicant-review-title"
@@ -340,7 +356,7 @@ function ReviewSection({ applicant }: { applicant: ApplicantFixture }) {
       <header className="fuma-content-section__header">
         <h2 id="applicant-review-title">심사 처리</h2>
       </header>
-      <AutoRejectionDetails applicant={applicant} />
+      <AutoRejectionDetails applicant={applicant} showDetails={showAutoRejectionDetails} />
       <div className="fuma-applicant-review__form">
         <FormRow label="자동 반려 여부">
           <StatusPill tone={applicant.autoRejected ? "rejected" : "neutral"}>
@@ -397,7 +413,7 @@ function DeliverySection({ applicant }: { applicant: ApplicantFixture }) {
       <DenseTable
         columns={DELIVERY_COLUMNS}
         rowKey={(delivery) => `${delivery.channel}-${delivery.recipient}`}
-        rows={applicant.deliveries}
+        rows={[...applicant.deliveries]}
       />
       <div className="fuma-applicant-delivery__footer">
         <p>
@@ -420,7 +436,9 @@ const DETAIL_TABS = [
 export function ApplicantDetailPage() {
   const { applicantId } = useParams();
   const [searchParams] = useSearchParams();
-  const applicant = findApplicantFixture(applicantId, searchParams.get("fixture"));
+  const applicant = findApplicantFixture(applicantId);
+  const showAutoRejectionDetails =
+    applicant?.id === "ap-003" && searchParams.get("fixture") === "auto-rejected";
 
   return (
     <section className="fuma-page">
@@ -435,7 +453,11 @@ export function ApplicantDetailPage() {
             <BasicInformation applicant={applicant} />
             <SnsMetrics applicant={applicant} />
             <AiSummaryPanel report={applicant.aiReport} />
-            <ReviewSection applicant={applicant} />
+            <ReviewSection
+              applicant={applicant}
+              key={`${applicant.id}-${showAutoRejectionDetails}`}
+              showAutoRejectionDetails={showAutoRejectionDetails}
+            />
             <DeliverySection applicant={applicant} />
           </>
         ) : (

@@ -1,5 +1,6 @@
-import { screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { renderRoute } from "../../test/renderRoute";
+import { APPLICANTS } from "./fixtures";
 
 function expectColumnHeaders(region: HTMLElement, names: string[]) {
   for (const name of names) {
@@ -118,6 +119,13 @@ describe("applicant review list", () => {
 
     expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
     expect(screen.getByText("페이지당 20개")).toBeInTheDocument();
+  });
+
+  test("derives each list delivery status from a non-empty primary delivery record", () => {
+    for (const applicant of APPLICANTS) {
+      expect(applicant.deliveries[0]).toBeDefined();
+      expect(applicant).not.toHaveProperty("deliveryStatus");
+    }
   });
 });
 
@@ -255,6 +263,54 @@ describe("applicant detail review", () => {
     expectStatusTone(emailRow, "전송 완료", "approved");
     expect(within(emailRow).getByText("2026-08-03 11:08")).toBeInTheDocument();
     expect(within(delivery).getByRole("button", { name: "심사 결과 전송" })).toBeInTheDocument();
+  });
+
+  test("does not let the automatic-rejection fixture query replace a different applicant identity", () => {
+    renderRoute("/applicants/ap-001?fixture=auto-rejected");
+
+    const basic = screen.getByRole("region", { name: "기본 정보" });
+    expect(within(basic).getByText("ap-001")).toBeInTheDocument();
+    expect(within(basic).getByText("김민지")).toBeInTheDocument();
+    expect(within(basic).queryByText("윤소라")).not.toBeInTheDocument();
+
+    const review = screen.getByRole("region", { name: "심사 처리" });
+    expectStatusTone(review, "비해당", "neutral");
+    expect(
+      within(review).queryByRole("heading", { name: "정량 기준 미충족" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("keeps a missing applicant missing even when the automatic-rejection fixture query is present", () => {
+    renderRoute("/applicants/missing?fixture=auto-rejected");
+
+    expect(screen.getByRole("heading", { name: "대상을 찾을 수 없습니다" })).toBeInTheDocument();
+    expect(screen.getByText("요청한 지원자 정보를 확인할 수 없습니다.")).toBeInTheDocument();
+    expect(screen.queryByText("윤소라")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
+  });
+
+  test("resets editable-looking review fields when the same router moves to another applicant", async () => {
+    const { router } = renderRoute("/applicants/ap-001");
+
+    const initialReview = screen.getByRole("region", { name: "심사 처리" });
+    fireEvent.change(within(initialReview).getByRole("textbox", { name: "내부 검토 의견" }), {
+      target: { value: "관리자가 임시로 편집한 값" },
+    });
+    fireEvent.change(within(initialReview).getByRole("combobox", { name: "반려 사유(내부)" }), {
+      target: { value: "기타" },
+    });
+
+    await act(async () => {
+      await router.navigate("/applicants/ap-003?fixture=auto-rejected");
+    });
+
+    const nextReview = screen.getByRole("region", { name: "심사 처리" });
+    expect(within(nextReview).getByRole("textbox", { name: "내부 검토 의견" })).toHaveValue(
+      "자동 반려 기준과 수집 지표를 확인했습니다.",
+    );
+    expect(within(nextReview).getByRole("combobox", { name: "반려 사유(내부)" })).toHaveValue(
+      "정량 기준 미충족",
+    );
   });
 
   test("keeps the detail frame and hides applicant actions for an unknown record", () => {
