@@ -1,6 +1,6 @@
 import { ChevronRight, CircleAlert, LockKeyhole, UserRound } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import { findRequirementCoverage } from "../../app/requirementCoverage";
+import { findRequirementCoverage } from "../../app/requirementRows";
 import { QrBadge } from "./QrBadge";
 import "../../styles/login.css";
 

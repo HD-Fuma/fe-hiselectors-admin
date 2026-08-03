@@ -1,14 +1,30 @@
+import type { NonEmptyReadonlyArray } from "./requirementRows";
+
+export { findRequirementCoverage } from "./requirementRows";
+
 export type RequirementPrimaryRole =
   | { role: "main"; name?: never }
   | { role: "heading"; name: string };
 
-export type NonEmptyReadonlyArray<T> = readonly [T, ...T[]];
+export type RequirementControlRole = "checkbox" | "combobox" | "textbox";
+
+export interface RequirementControlExpectation {
+  name: string;
+  role?: RequirementControlRole;
+}
+
+export interface RequirementTableExpectation {
+  region: string;
+  columns: NonEmptyReadonlyArray<string>;
+}
 
 export interface AdminRequirementCoverageCase {
   route: string;
   rows: NonEmptyReadonlyArray<number>;
   expectedTexts: NonEmptyReadonlyArray<string>;
   expectedActions: NonEmptyReadonlyArray<string>;
+  expectedControls?: NonEmptyReadonlyArray<RequirementControlExpectation>;
+  expectedTables?: NonEmptyReadonlyArray<RequirementTableExpectation>;
   primaryRole: RequirementPrimaryRole;
 }
 
@@ -34,6 +50,18 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
       "최근 활동일",
     ],
     expectedActions: ["조회", "초기화"],
+    expectedControls: [
+      { role: "textbox", name: "키워드" },
+      { role: "combobox", name: "카테고리" },
+      { role: "combobox", name: "티어" },
+      { role: "combobox", name: "플랫폼" },
+    ],
+    expectedTables: [
+      {
+        region: "크리에이터 목록",
+        columns: ["이름", "팔로워·구독자", "콘텐츠 수", "최근 활동일"],
+      },
+    ],
     primaryRole: { role: "heading", name: "크리에이터 풀" },
   },
   {
@@ -55,6 +83,16 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     rows: [9, 10],
     expectedTexts: ["대상", "채널", "발송 방식", "발송 시각", "상태"],
     expectedActions: ["조회", "초기화"],
+    expectedControls: [
+      { role: "combobox", name: "채널" },
+      { role: "combobox", name: "상태" },
+    ],
+    expectedTables: [
+      {
+        region: "제안 이력 목록",
+        columns: ["대상", "채널", "발송 방식", "발송 시각", "상태"],
+      },
+    ],
     primaryRole: { role: "heading", name: "제안 이력 관리" },
   },
   {
@@ -77,6 +115,17 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
       "최근 활동일",
     ],
     expectedActions: ["조회", "초기화"],
+    expectedControls: [
+      { role: "textbox", name: "셀렉터스명" },
+      { role: "combobox", name: "기수" },
+      { role: "combobox", name: "활동 상태" },
+    ],
+    expectedTables: [
+      {
+        region: "셀렉터스 목록",
+        columns: ["SNS", "활동 상태", "콘텐츠 수", "위반 횟수", "클릭", "전환"],
+      },
+    ],
     primaryRole: { role: "heading", name: "기수별 셀렉터스 현황" },
   },
   {
@@ -105,6 +154,26 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
       "심사 상태",
     ],
     expectedActions: ["조회", "초기화"],
+    expectedControls: [
+      { role: "textbox", name: "검색어" },
+      { role: "combobox", name: "SNS 채널" },
+      { role: "combobox", name: "심사 상태" },
+      { role: "combobox", name: "자동 반려" },
+      { role: "combobox", name: "결과 전송" },
+    ],
+    expectedTables: [
+      {
+        region: "지원자 목록",
+        columns: [
+          "지원자 ID",
+          "SNS 채널",
+          "팔로워·구독자",
+          "콘텐츠 수",
+          "최근 활동일",
+          "심사 상태",
+        ],
+      },
+    ],
     primaryRole: { role: "heading", name: "지원자 심사" },
   },
   {
@@ -162,6 +231,28 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
       "처리 상태",
     ],
     expectedActions: ["선택 콘텐츠 검수"],
+    expectedControls: [
+      { role: "textbox", name: "콘텐츠/작성자" },
+      { role: "combobox", name: "기수" },
+      { role: "combobox", name: "검수 유형" },
+      { role: "combobox", name: "플랫폼" },
+      { role: "combobox", name: "검수 상태" },
+      { role: "combobox", name: "처리 상태" },
+    ],
+    expectedTables: [
+      {
+        region: "콘텐츠 검수 대기열",
+        columns: [
+          "검수 유형",
+          "작성자",
+          "기수",
+          "플랫폼",
+          "AI 상태",
+          "검수 상태",
+          "처리 상태",
+        ],
+      },
+    ],
     primaryRole: { role: "heading", name: "콘텐츠 검수" },
   },
   {
@@ -233,6 +324,17 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
       "누적 패널티",
     ],
     expectedActions: ["김서연 위반사항 안내", "김서연 패널티 부여"],
+    expectedControls: [
+      { role: "combobox", name: "기수" },
+      { role: "combobox", name: "위반 유형" },
+      { role: "combobox", name: "처리 상태" },
+    ],
+    expectedTables: [
+      {
+        region: "위반 콘텐츠 목록",
+        columns: ["안내 문구", "안내 상태", "누적 패널티"],
+      },
+    ],
     primaryRole: { role: "heading", name: "위반 콘텐츠 관리" },
   },
   {
@@ -240,6 +342,22 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     rows: [30],
     expectedTexts: ["캠페인명", "셀렉터스", "클릭 수", "구매 전환 수", "전환율"],
     expectedActions: ["조회", "초기화"],
+    expectedControls: [
+      { role: "combobox", name: "기수" },
+      { role: "combobox", name: "캠페인" },
+      { name: "집계 시작일" },
+      { name: "집계 종료일" },
+    ],
+    expectedTables: [
+      {
+        region: "캠페인별 성과",
+        columns: ["캠페인명", "클릭 수", "구매 전환 수", "전환율"],
+      },
+      {
+        region: "셀렉터스별 성과",
+        columns: ["셀렉터스", "클릭 수", "구매 전환 수", "전환율"],
+      },
+    ],
     primaryRole: { role: "heading", name: "관리자 성과 대시보드" },
   },
   {
@@ -247,6 +365,17 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     rows: [31],
     expectedTexts: ["구매 전환 수", "조회 수", "좋아요", "댓글"],
     expectedActions: ["조회", "초기화"],
+    expectedControls: [
+      { role: "textbox", name: "크리에이터명" },
+      { role: "combobox", name: "기수" },
+      { role: "combobox", name: "캠페인" },
+    ],
+    expectedTables: [
+      {
+        region: "크리에이터 영향력",
+        columns: ["구매 전환 수", "조회 수", "좋아요", "댓글"],
+      },
+    ],
     primaryRole: { role: "heading", name: "크리에이터 영향력 분석" },
   },
   {
@@ -254,6 +383,17 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     rows: [32],
     expectedTexts: ["구매 전환 수", "조회 수", "좋아요", "댓글"],
     expectedActions: ["조회", "초기화"],
+    expectedControls: [
+      { role: "textbox", name: "콘텐츠/작성자" },
+      { role: "combobox", name: "기수" },
+      { role: "combobox", name: "캠페인" },
+    ],
+    expectedTables: [
+      {
+        region: "콘텐츠 영향력",
+        columns: ["구매 전환 수", "조회 수", "좋아요", "댓글"],
+      },
+    ],
     primaryRole: { role: "heading", name: "콘텐츠 영향력 분석" },
   },
   {
@@ -269,6 +409,27 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
       "지급 상태",
     ],
     expectedActions: ["김서연 지급액 수정", "김서연 지급 확정"],
+    expectedControls: [
+      { name: "귀속월" },
+      { role: "textbox", name: "셀렉터스" },
+      { role: "combobox", name: "수정 가능 여부" },
+      { role: "combobox", name: "확정 상태" },
+      { role: "combobox", name: "지급 상태" },
+    ],
+    expectedTables: [
+      {
+        region: "정산 지급 목록",
+        columns: [
+          "귀속월",
+          "셀렉터스",
+          "예상액",
+          "확정액",
+          "수정 가능 여부",
+          "확정 상태",
+          "지급 상태",
+        ],
+      },
+    ],
     primaryRole: { role: "heading", name: "정산 지급 관리" },
   },
   {
@@ -283,25 +444,3 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     primaryRole: { role: "heading", name: "공지사항 관리" },
   },
 ] as const satisfies readonly AdminRequirementCoverageCase[];
-
-function canonicalRequirementRoute(route: string) {
-  const [pathname, rawSearch = ""] = route.split("?", 2);
-  const search = new URLSearchParams(rawSearch);
-  search.sort();
-  const query = search.toString();
-
-  return query ? `${pathname}?${query}` : pathname;
-}
-
-export function findRequirementCoverage(pathname: string, search = "") {
-  const route = canonicalRequirementRoute(`${pathname}${search}`);
-  const exactMatch = ADMIN_REQUIREMENT_COVERAGE.find(
-    (item) => canonicalRequirementRoute(item.route) === route,
-  );
-
-  if (exactMatch) return exactMatch;
-
-  return ADMIN_REQUIREMENT_COVERAGE.find(
-    (item) => !item.route.includes("?") && item.route === pathname,
-  );
-}

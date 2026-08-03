@@ -1,6 +1,6 @@
 import { RotateCw, Star } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import { findRequirementCoverage } from "../../app/requirementCoverage";
+import { findRequirementCoverage } from "../../app/requirementRows";
 
 interface PageHeaderProps {
   title: string;
