@@ -2,10 +2,10 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderRoute } from "../../test/renderRoute";
 
-test("renderRoute renders the existing login route", () => {
+test("renderRoute renders the Partners login route", () => {
   renderRoute("/login");
 
-  expect(screen.getByRole("main")).toHaveTextContent("FUMA");
+  expect(screen.getByRole("main")).toHaveTextContent("더현대Hi 협력사 업무지원시스템");
 });
 
 test("renders the administrator shell and its structural controls", () => {

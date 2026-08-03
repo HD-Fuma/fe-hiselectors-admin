@@ -487,17 +487,21 @@
 
 .hsas-admin-shell {
   display: flex;
+  min-width: 1280px;
+  min-height: 100vh;
   background: var(--hsas-background);
 }
 
 .hsas-admin-shell__workspace {
-  flex: 1;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .hsas-admin-shell__topbar {
   display: flex;
+  height: var(--hsas-top-bar-height);
   align-items: center;
-  padding: var(--hsas-space-8) var(--hsas-space-12);
+  padding: 0 var(--hsas-space-12);
   border-bottom: 1px solid var(--hsas-border);
   background: var(--hsas-surface);
 }
@@ -508,6 +512,8 @@
 
 .hsas-icon-rail {
   display: flex;
+  width: var(--hsas-rail-width);
+  flex: 0 0 var(--hsas-rail-width);
   flex-direction: column;
   background: var(--hsas-icon-rail);
 }
@@ -523,11 +529,26 @@
 }
 
 .hsas-icon-rail__button {
-  padding: var(--hsas-space-4);
+  display: grid;
+  width: var(--hsas-rail-width);
+  height: var(--hsas-rail-width);
+  padding: 0;
+  place-items: center;
   color: var(--hsas-text-inverse);
 }
 
+.hsas-icon-rail__button:nth-of-type(3) {
+  margin-top: auto;
+}
+
+.hsas-icon-rail__button svg {
+  width: 20px;
+  height: 20px;
+}
+
 .hsas-my-menu {
+  width: var(--hsas-menu-width);
+  flex: 0 0 var(--hsas-menu-width);
   padding: var(--hsas-space-12);
   background: var(--hsas-nav);
   color: var(--hsas-text-inverse);

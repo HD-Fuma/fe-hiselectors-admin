@@ -9,5 +9,9 @@ interface AppProps {
 export function App({ initialEntries }: AppProps) {
   const [router] = useState(() => createAppRouter(initialEntries));
 
-  return <RouterProvider router={router} />;
+  return (
+    <div data-app-ready="true">
+      <RouterProvider router={router} />
+    </div>
+  );
 }

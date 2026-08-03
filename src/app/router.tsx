@@ -1,6 +1,7 @@
 import { createBrowserRouter, createMemoryRouter, type RouteObject } from "react-router-dom";
 import { AppShell } from "../components/shell/AppShell";
 import { PlaceholderPage } from "../components/shell/PlaceholderPage";
+import { LoginPage } from "../features/auth/LoginPage";
 import { ADMIN_ROUTES, DEFAULT_ADMIN_ROUTE } from "./navigation";
 
 const adminRouteObjects: RouteObject[] = ADMIN_ROUTES.map((route) => ({
@@ -11,7 +12,7 @@ const adminRouteObjects: RouteObject[] = ADMIN_ROUTES.map((route) => ({
 const routes: RouteObject[] = [
   {
     path: "/login",
-    element: <main>FUMA</main>,
+    element: <LoginPage />,
   },
   {
     path: "/",
