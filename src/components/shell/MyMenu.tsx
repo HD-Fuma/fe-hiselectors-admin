@@ -7,9 +7,10 @@ import {
 
 interface MyMenuProps {
   activeRoute: AdminRouteMeta;
+  currentPath: string;
 }
 
-export function MyMenu({ activeRoute }: MyMenuProps) {
+export function MyMenu({ activeRoute, currentPath }: MyMenuProps) {
   const group = NAV_GROUPS.find(({ id }) => id === activeRoute.group);
   const menuItems = getGroupMenuItems(activeRoute.group);
 
@@ -27,14 +28,20 @@ export function MyMenu({ activeRoute }: MyMenuProps) {
           </h2>
           <ul className="hsas-my-menu__list">
             {menuItems.map((item) => {
-              const isCurrent = item.menuLabel === activeRoute.menuLabel;
+              const isSectionSelected = item.menuLabel === activeRoute.menuLabel;
+              const isCurrentPage = item.path === currentPath;
 
               return (
                 <li key={item.menuLabel}>
                   <Link
-                    className={isCurrent ? "hsas-my-menu__link hsas-my-menu__link--active" : "hsas-my-menu__link"}
+                    className={
+                      isSectionSelected
+                        ? "hsas-my-menu__link hsas-my-menu__link--active"
+                        : "hsas-my-menu__link"
+                    }
                     to={item.path}
-                    aria-current={isCurrent ? "page" : undefined}
+                    aria-current={isCurrentPage ? "page" : undefined}
+                    data-section-selected={isSectionSelected ? "true" : undefined}
                   >
                     {item.menuLabel}
                   </Link>
