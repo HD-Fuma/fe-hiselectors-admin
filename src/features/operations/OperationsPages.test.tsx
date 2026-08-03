@@ -65,20 +65,24 @@ describe("settlement payment management", () => {
     const kim = within(results).getByRole("row", { name: /st-001.*김서연/ });
     expect(within(kim).getByText("sl-001")).toBeInTheDocument();
     expect(within(kim).getByText("486,000원")).toBeInTheDocument();
-    expect(within(kim).getByRole("textbox", { name: "김서연 지급액 수정" }))
+    expect(within(kim).getByRole("textbox", { name: "김서연 확정액" }))
       .toBeEnabled();
-    expect(within(kim).getByRole("textbox", { name: "김서연 지급액 수정" }))
+    expect(within(kim).getByRole("textbox", { name: "김서연 확정액" }))
       .toHaveValue("486,000원");
     expect(within(kim).getByText("가능")).toHaveClass("hsas-status-pill--approved");
     expect(within(kim).getByText("미확정")).toHaveClass("hsas-status-pill--pending");
     expect(within(kim).getByText("지급 전")).toHaveClass("hsas-status-pill--neutral");
+    expect(within(kim).getByRole("button", { name: "김서연 지급액 수정" })).toBeEnabled();
+    expectButtonType(kim, "김서연 지급액 수정");
     expect(within(kim).getByRole("button", { name: "김서연 지급 확정" })).toBeEnabled();
     expectButtonType(kim, "김서연 지급 확정");
 
     const park = within(results).getByRole("row", { name: /st-002.*박도윤/ });
     expect(within(park).getByText("352,000원")).toBeInTheDocument();
-    expect(within(park).getByRole("textbox", { name: "박도윤 지급액 수정" }))
+    expect(within(park).getByRole("textbox", { name: "박도윤 확정액" }))
       .toHaveValue("340,000원");
+    expect(within(park).getByRole("button", { name: "박도윤 지급액 수정" }))
+      .toBeEnabled();
     expect(within(park).getByRole("button", { name: "박도윤 지급 확정" })).toBeEnabled();
 
     const lee = within(results).getByRole("row", { name: /st-003.*이지아/ });
@@ -86,7 +90,9 @@ describe("settlement payment management", () => {
     expect(within(lee).getByText("확정", { selector: ".hsas-status-pill" }))
       .toHaveClass("hsas-status-pill--approved");
     expect(within(lee).getByText("지급 대기")).toHaveClass("hsas-status-pill--pending");
-    expect(within(lee).getByRole("textbox", { name: "이지아 지급액 수정" }))
+    expect(within(lee).getByRole("textbox", { name: "이지아 확정액" }))
+      .toBeDisabled();
+    expect(within(lee).getByRole("button", { name: "이지아 지급액 수정" }))
       .toBeDisabled();
     expect(within(lee).getByRole("button", { name: "이지아 지급 확정" }))
       .toBeDisabled();
@@ -94,7 +100,9 @@ describe("settlement payment management", () => {
     const oh = within(results).getByRole("row", { name: /st-004.*오하늘/ });
     expect(within(oh).getByText("2026-07")).toBeInTheDocument();
     expect(within(oh).getByText("지급 완료")).toHaveClass("hsas-status-pill--approved");
-    expect(within(oh).getByRole("textbox", { name: "오하늘 지급액 수정" }))
+    expect(within(oh).getByRole("textbox", { name: "오하늘 확정액" }))
+      .toBeDisabled();
+    expect(within(oh).getByRole("button", { name: "오하늘 지급액 수정" }))
       .toBeDisabled();
     expect(within(oh).getByRole("button", { name: "오하늘 지급 확정" }))
       .toBeDisabled();
@@ -175,6 +183,7 @@ describe("system notice management", () => {
     expect(title).toHaveValue("8월 셀렉터스 활동 안내");
     expect(title).toBeRequired();
     expect(within(editor).getByRole("combobox", { name: "대상" })).toHaveValue("전체");
+    expect(within(editor).getByRole("combobox", { name: "대상" })).toBeRequired();
     expect(within(editor).getByDisplayValue("2026-08-01")).toBeRequired();
     expect(within(editor).getByDisplayValue("2026-08-31")).toBeRequired();
     expect(within(editor).getByRole("combobox", { name: "게시 상태" }))

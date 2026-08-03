@@ -131,7 +131,7 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SettlementFixture>[] = [
       const canConfirm = settlement.editable && settlement.confirmationStatus === "미확정";
       return (
         <TextInput
-          aria-label={`${settlement.selectorName} 지급액 수정`}
+          aria-label={`${settlement.selectorName} 확정액`}
           className="fuma-settlement-amount-input"
           defaultValue={formatWon(settlement.confirmedAmount)}
           disabled={!canConfirm}
@@ -176,19 +176,28 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SettlementFixture>[] = [
   {
     id: "management",
     header: "관리",
-    width: 78,
+    width: 112,
     align: "center",
     render: (settlement) => {
       const canConfirm = settlement.editable && settlement.confirmationStatus === "미확정";
       return (
-        <Button
-          aria-label={`${settlement.selectorName} 지급 확정`}
-          className="fuma-table-action"
-          disabled={!canConfirm}
-          variant="primary"
-        >
-          확정
-        </Button>
+        <div className="fuma-table-actions">
+          <Button
+            aria-label={`${settlement.selectorName} 지급액 수정`}
+            className="fuma-table-action"
+            disabled={!canConfirm}
+          >
+            수정
+          </Button>
+          <Button
+            aria-label={`${settlement.selectorName} 지급 확정`}
+            className="fuma-table-action"
+            disabled={!canConfirm}
+            variant="primary"
+          >
+            확정
+          </Button>
+        </div>
       );
     },
   },
@@ -319,7 +328,7 @@ function NoticeEditor() {
             required
           />
         </FormRow>
-        <FormRow label="대상">
+        <FormRow label="대상" required>
           <Select
             aria-label="대상"
             defaultValue="전체"
@@ -328,6 +337,7 @@ function NoticeEditor() {
               { label: "3기 셀렉터스", value: "3기" },
               { label: "2기 셀렉터스", value: "2기" },
             ]}
+            required
           />
         </FormRow>
         <FormRow label="게시 시작일" required>
