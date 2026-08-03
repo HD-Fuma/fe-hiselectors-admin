@@ -1288,3 +1288,310 @@
 .fuma-campaign-product-modal .hsas-pagination {
   min-height: 24px;
 }
+
+.fuma-content-review-table .hsas-dense-table {
+  min-width: 1080px;
+}
+
+.fuma-content-selection-guide,
+.fuma-violation-guide {
+  margin: -3px 0 0;
+  padding-left: 14px;
+  color: #666e72;
+  font-size: 11px;
+}
+
+.fuma-content-selection-guide::before,
+.fuma-violation-guide::before {
+  margin-right: 5px;
+  color: var(--hsas-teal-dark);
+  content: "•";
+}
+
+.fuma-content-status-toolbar {
+  display: flex;
+  min-height: 31px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--hsas-space-8);
+  padding: 4px var(--hsas-space-8);
+  border: 1px solid var(--hsas-border);
+  background: #f3f5f5;
+}
+
+.fuma-content-status-toolbar > span:not(.hsas-status-pill) {
+  color: #626a6e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.fuma-content-comparison {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hsas-space-8);
+}
+
+.fuma-content-snapshot {
+  min-width: 0;
+  border: 1px solid var(--hsas-border);
+  background: var(--hsas-surface);
+}
+
+.fuma-content-snapshot__header {
+  display: flex;
+  min-height: 33px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hsas-space-8);
+  padding: 6px var(--hsas-space-8);
+  border-bottom: 1px solid var(--hsas-border);
+  background: #e9eeed;
+}
+
+.fuma-content-snapshot__header strong {
+  color: #3f474b;
+}
+
+.fuma-content-snapshot__meta {
+  display: flex;
+  overflow: hidden;
+  gap: var(--hsas-space-4);
+  color: #667075;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-content-snapshot__meta time::before {
+  margin-right: var(--hsas-space-4);
+  content: "·";
+}
+
+.fuma-content-snapshot__body {
+  display: grid;
+  gap: var(--hsas-space-8);
+  padding: var(--hsas-space-8);
+}
+
+.fuma-content-snapshot > .hsas-empty-state {
+  min-height: 443px;
+  border: 0;
+}
+
+.fuma-editor-frame {
+  min-width: 0;
+  border: 1px solid #d6dadd;
+  background: var(--hsas-surface);
+}
+
+.fuma-editor-frame__toolbar {
+  border-bottom: 1px solid #d8dcdd;
+  background: #f2f4f4;
+  color: #a1a8ab;
+  font-size: 10px;
+  user-select: none;
+}
+
+.fuma-editor-frame__toolbar-row {
+  display: flex;
+  min-height: 23px;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 5px;
+  border-bottom: 1px solid #e3e6e8;
+}
+
+.fuma-editor-frame__toolbar-row:last-child {
+  border-bottom: 0;
+}
+
+.fuma-editor-frame__toolbar-row span {
+  height: 17px;
+  padding: 1px 5px;
+  border-right: 1px solid #dfe3e4;
+  line-height: 15px;
+}
+
+.fuma-editor-frame__source {
+  min-height: 158px;
+  margin: 0;
+  padding: var(--hsas-space-8);
+  overflow: auto;
+  color: #4a5054;
+  font-family: "Malgun Gothic", "맑은 고딕", monospace;
+  font-size: 11px;
+  line-height: 17px;
+  white-space: pre-wrap;
+}
+
+.fuma-content-snapshot__urls {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 52px minmax(0, 1fr);
+  border: 1px solid #e0e3e5;
+  background: #fafbfb;
+}
+
+.fuma-content-snapshot__urls > strong {
+  padding: 6px var(--hsas-space-8);
+  border-right: 1px solid #e0e3e5;
+  background: #f1f3f4;
+}
+
+.fuma-content-snapshot__urls ul {
+  min-width: 0;
+  margin: 0;
+  padding: 5px 8px 5px 24px;
+}
+
+.fuma-content-snapshot__urls li {
+  overflow-wrap: anywhere;
+}
+
+.fuma-media-tiles {
+  min-width: 0;
+}
+
+.fuma-media-tiles__summary {
+  display: flex;
+  min-height: 25px;
+  align-items: center;
+  gap: var(--hsas-space-8);
+  color: #4a5155;
+}
+
+.fuma-media-tiles__summary span {
+  color: var(--hsas-text-muted);
+  font-size: 11px;
+}
+
+.fuma-media-tiles__track {
+  display: flex;
+  min-width: 0;
+  gap: var(--hsas-space-4);
+  overflow-x: auto;
+  padding-bottom: var(--hsas-space-4);
+}
+
+.fuma-media-tile {
+  width: 132px;
+  flex: 0 0 132px;
+  margin: 0;
+  border: 1px solid var(--hsas-border);
+  background: var(--hsas-surface);
+}
+
+.fuma-media-tile__visual {
+  display: block;
+  width: 130px;
+  height: 104px;
+}
+
+.fuma-media-tile figcaption {
+  display: flex;
+  height: 22px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  border-top: 1px solid var(--hsas-border);
+  color: #5b6367;
+  font-size: 10px;
+}
+
+.fuma-content-change-strip {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  border: 1px solid #b7cbc6;
+  background: #f0f7f5;
+}
+
+.fuma-content-change-strip > strong {
+  align-self: stretch;
+  display: flex;
+  min-width: 106px;
+  align-items: center;
+  padding: 0 var(--hsas-space-12);
+  border-right: 1px solid #b7cbc6;
+  color: var(--hsas-teal-dark);
+}
+
+.fuma-content-change-strip ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hsas-space-8) 24px;
+  margin: 0;
+  padding: 5px 12px 5px 28px;
+}
+
+.fuma-content-change-strip li::marker {
+  color: var(--hsas-teal);
+}
+
+.fuma-content-ai-summary__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+  min-height: 94px;
+}
+
+.fuma-content-ai-summary__body > p,
+.fuma-content-ai-summary__body > div {
+  margin: 0;
+  padding: var(--hsas-space-12);
+}
+
+.fuma-content-ai-summary__body > p {
+  border-right: 1px solid var(--hsas-border);
+  line-height: 19px;
+}
+
+.fuma-content-ai-summary__body strong {
+  color: #4a5155;
+}
+
+.fuma-content-ai-summary__body ul {
+  margin: var(--hsas-space-4) 0 0;
+  padding-left: 18px;
+}
+
+.fuma-content-review-actions {
+  display: flex;
+  min-height: 43px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--hsas-space-12);
+  padding: 7px var(--hsas-space-8);
+  border: 1px solid var(--hsas-border);
+  background: #f7f8f8;
+}
+
+.fuma-content-review-actions > strong {
+  margin-right: auto;
+  color: #4a5155;
+}
+
+.fuma-content-review-actions > div {
+  display: flex;
+  gap: var(--hsas-space-4);
+}
+
+.fuma-violation-table .hsas-dense-table {
+  min-width: 1220px;
+}
+
+.fuma-violation-penalty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--hsas-space-4);
+  font-size: 11px;
+}
+
+.fuma-violation-penalty strong {
+  color: #3e464a;
+}
+
+.fuma-violation-penalty span {
+  color: #9b3737;
+}

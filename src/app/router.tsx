@@ -21,6 +21,11 @@ import {
   CampaignEditPage,
   CampaignListPage,
 } from "../features/campaigns/CampaignPages";
+import {
+  ContentReviewDetailPage,
+  ContentReviewListPage,
+  ContentViolationPage,
+} from "../features/content/ContentPages";
 import { ADMIN_ROUTES, DEFAULT_ADMIN_ROUTE } from "./navigation";
 
 function adminRouteElement(path: string, title: string, screenCode: string) {
@@ -47,6 +52,12 @@ function adminRouteElement(path: string, title: string, screenCode: string) {
       return <CampaignCreatePage />;
     case "/campaigns/:campaignId/edit":
       return <CampaignEditPage />;
+    case "/content/reviews":
+      return <ContentReviewListPage />;
+    case "/content/reviews/:contentId":
+      return <ContentReviewDetailPage />;
+    case "/content/violations":
+      return <ContentViolationPage />;
     default:
       return <PlaceholderPage title={title} screenCode={screenCode} />;
   }
