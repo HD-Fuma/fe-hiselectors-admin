@@ -9,6 +9,7 @@ import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill
 import {
   COHORTS,
   QUALIFICATIONS,
+  SELECTED_QUALIFICATION,
   SELECTORS,
   type CohortFixture,
   type QualificationFixture,
@@ -306,7 +307,11 @@ const QUALIFICATION_COLUMNS: DenseTableColumn<QualificationFixture>[] = [
   },
 ];
 
-function ManualQualificationSection() {
+function ManualQualificationSection({
+  qualification,
+}: {
+  qualification: QualificationFixture;
+}) {
   return (
     <section
       aria-labelledby="manual-qualification-title"
@@ -317,28 +322,37 @@ function ManualQualificationSection() {
       </header>
       <div className="fuma-qualification-form">
         <FormRow label="선택 셀렉터스">
-          <TextInput aria-label="선택 셀렉터스" readOnly value="이지아 (sl-003)" />
+          <TextInput
+            aria-label="선택 셀렉터스"
+            readOnly
+            value={`${qualification.name} (${qualification.selectorId})`}
+          />
         </FormRow>
         <FormRow label="현재 자격">
-          <StatusPill tone="rejected">박탈</StatusPill>
+          <StatusPill tone={selectorStatusTone(qualification.currentStatus)}>
+            {qualification.currentStatus}
+          </StatusPill>
         </FormRow>
         <FormRow label="변경 자격">
           <Select
             aria-label="변경 자격"
-            defaultValue="활동 중"
+            defaultValue={qualification.proposedStatus}
             options={QUALIFICATION_CHANGE_OPTIONS}
           />
         </FormRow>
         <FormRow label="차기 기수 제한">
-          <Checkbox defaultChecked label="차기 기수 참여 제한" />
+          <Checkbox
+            defaultChecked={qualification.nextCohortRestricted}
+            label="차기 기수 참여 제한"
+          />
         </FormRow>
         <FormRow label="블랙리스트">
-          <Checkbox defaultChecked label="블랙리스트 등록" />
+          <Checkbox defaultChecked={qualification.blacklisted} label="블랙리스트 등록" />
         </FormRow>
         <FormRow label="변경 사유">
           <TextInput
             aria-label="변경 사유"
-            defaultValue="위반 콘텐츠 삭제 및 소명 확인"
+            defaultValue={qualification.changeReason}
             placeholder="변경 사유를 입력하세요."
           />
         </FormRow>
@@ -389,7 +403,7 @@ export function QualificationManagementPage() {
             rows={QUALIFICATIONS}
           />
         </div>
-        <ManualQualificationSection />
+        <ManualQualificationSection qualification={SELECTED_QUALIFICATION} />
         <Pagination page={1} pageSize={20} totalPages={1} />
       </div>
     </section>

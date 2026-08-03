@@ -1,10 +1,15 @@
 import { screen, within } from "@testing-library/react";
 import { renderRoute } from "../../test/renderRoute";
+import { QUALIFICATIONS, SELECTED_QUALIFICATION } from "./fixtures";
 
 function expectColumnHeaders(region: HTMLElement, names: string[]) {
   for (const name of names) {
     expect(within(region).getByRole("columnheader", { name })).toBeInTheDocument();
   }
+}
+
+function expectStatusTone(row: HTMLElement, label: string, tone: string) {
+  expect(within(row).getByText(label)).toHaveClass(`hsas-status-pill--${tone}`);
 }
 
 describe("cohort management", () => {
@@ -50,6 +55,7 @@ describe("cohort management", () => {
     expect(within(fourthRow).getByText("2026-08-10 ~ 2026-08-24")).toBeInTheDocument();
     expect(within(fourthRow).getByText("2026-09-01 ~ 2026-11-30")).toBeInTheDocument();
     expect(within(fourthRow).getByText("모집 예정")).toBeInTheDocument();
+    expectStatusTone(fourthRow, "모집 예정", "pending");
     expect(within(fourthRow).getByText("0")).toBeInTheDocument();
     expect(within(fourthRow).getByRole("button", { name: "4기 수정" })).toHaveAttribute(
       "type",
@@ -60,12 +66,14 @@ describe("cohort management", () => {
     expect(within(thirdRow).getByText("2026-07-20 ~ 2026-08-10")).toBeInTheDocument();
     expect(within(thirdRow).getByText("2026-08-17 ~ 2026-11-16")).toBeInTheDocument();
     expect(within(thirdRow).getByText("모집 중")).toBeInTheDocument();
+    expectStatusTone(thirdRow, "모집 중", "approved");
     expect(within(thirdRow).getByText("38")).toBeInTheDocument();
 
     const secondRow = within(results).getByRole("row", { name: /2기/ });
     expect(within(secondRow).getByText("2026-03-01 ~ 2026-03-15")).toBeInTheDocument();
     expect(within(secondRow).getByText("2026-04-01 ~ 2026-06-30")).toBeInTheDocument();
     expect(within(secondRow).getByText("마감")).toBeInTheDocument();
+    expectStatusTone(secondRow, "마감", "neutral");
     expect(within(secondRow).getByText("54")).toBeInTheDocument();
     expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
     expect(screen.getByText("페이지당 20개")).toBeInTheDocument();
@@ -120,21 +128,25 @@ describe("selector overview", () => {
     ]) {
       expect(within(seoyeonRow).getByText(value)).toBeInTheDocument();
     }
+    expectStatusTone(seoyeonRow, "활동 중", "approved");
 
     const doyoonRow = within(results).getByRole("row", { name: /박도윤/ });
     for (const value of ["3기", "YouTube", "경고", "11", "2", "7,640", "206", "2026-08-01"]) {
       expect(within(doyoonRow).getByText(value)).toBeInTheDocument();
     }
+    expectStatusTone(doyoonRow, "경고", "pending");
 
     const jiaRow = within(results).getByRole("row", { name: /이지아/ });
     for (const value of ["2기", "Instagram", "박탈", "7", "3", "3,120", "54", "2026-07-18"]) {
       expect(within(jiaRow).getByText(value)).toBeInTheDocument();
     }
+    expectStatusTone(jiaRow, "박탈", "rejected");
 
     const haneulRow = within(results).getByRole("row", { name: /오하늘/ });
     for (const value of ["2기", "Instagram", "수료", "24", "0", "18,600", "711", "2026-07-31"]) {
       expect(within(haneulRow).getByText(value)).toBeInTheDocument();
     }
+    expectStatusTone(haneulRow, "수료", "neutral");
     expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
   });
 });
@@ -175,6 +187,8 @@ describe("selector qualification management", () => {
     for (const value of ["박도윤 (sl-002)", "3기", "경고", "2회", "-", "미등록", "없음"]) {
       expect(within(doyoonRow).getByText(value)).toBeInTheDocument();
     }
+    expectStatusTone(doyoonRow, "미등록", "neutral");
+    expectStatusTone(doyoonRow, "없음", "neutral");
 
     const jiaRow = within(results).getByRole("row", { name: /이지아/ });
     for (const value of [
@@ -188,6 +202,8 @@ describe("selector qualification management", () => {
     ]) {
       expect(within(jiaRow).getByText(value)).toBeInTheDocument();
     }
+    expectStatusTone(jiaRow, "등록", "rejected");
+    expectStatusTone(jiaRow, "참여 제한", "rejected");
     expect(within(jiaRow).getByRole("button", { name: "이지아 자격 선택" })).toHaveAttribute(
       "type",
       "button",
@@ -198,27 +214,34 @@ describe("selector qualification management", () => {
       expect(within(haneulRow).getByText(value)).toBeInTheDocument();
     }
 
+    expect(QUALIFICATIONS).toContain(SELECTED_QUALIFICATION);
+    expect(SELECTED_QUALIFICATION).toMatchObject({
+      selectorId: "sl-003",
+      name: "이지아",
+      proposedStatus: "활동 중",
+      changeReason: "위반 콘텐츠 삭제 및 소명 확인",
+    });
     const manualSection = screen.getByRole("region", { name: "수동 자격 관리" });
     expect(within(manualSection).getByRole("textbox", { name: "선택 셀렉터스" })).toHaveValue(
-      "이지아 (sl-003)",
+      `${SELECTED_QUALIFICATION.name} (${SELECTED_QUALIFICATION.selectorId})`,
     );
     expect(within(manualSection).getByRole("textbox", { name: "선택 셀렉터스" })).toHaveAttribute(
       "readonly",
     );
     expect(within(manualSection).getByRole("group", { name: "현재 자격" })).toHaveTextContent(
-      "박탈",
+      SELECTED_QUALIFICATION.currentStatus,
     );
     expect(within(manualSection).getByRole("combobox", { name: "변경 자격" })).toHaveValue(
-      "활동 중",
+      SELECTED_QUALIFICATION.proposedStatus,
     );
     expect(
       within(manualSection).getByRole("checkbox", { name: "차기 기수 참여 제한" }),
-    ).toBeChecked();
+    ).toHaveProperty("checked", SELECTED_QUALIFICATION.nextCohortRestricted);
     expect(
       within(manualSection).getByRole("checkbox", { name: "블랙리스트 등록" }),
-    ).toBeChecked();
+    ).toHaveProperty("checked", SELECTED_QUALIFICATION.blacklisted);
     expect(within(manualSection).getByRole("textbox", { name: "변경 사유" })).toHaveValue(
-      "위반 콘텐츠 삭제 및 소명 확인",
+      SELECTED_QUALIFICATION.changeReason,
     );
     expect(within(manualSection).getByRole("textbox", { name: "변경 사유" })).toHaveAttribute(
       "placeholder",

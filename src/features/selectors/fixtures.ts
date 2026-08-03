@@ -25,10 +25,12 @@ export interface QualificationFixture {
   name: string;
   cohort: string;
   currentStatus: SelectorFixture["status"];
+  proposedStatus: SelectorFixture["status"];
   penaltyCount: number;
   revocationReason: string;
   blacklisted: boolean;
   nextCohortRestricted: boolean;
+  changeReason: string;
 }
 
 export const COHORTS: CohortFixture[] = [
@@ -109,35 +111,47 @@ export const SELECTORS: SelectorFixture[] = [
   },
 ];
 
+const DOYOON_QUALIFICATION: QualificationFixture = {
+  selectorId: "sl-002",
+  name: "박도윤",
+  cohort: "3기",
+  currentStatus: "경고",
+  proposedStatus: "경고",
+  penaltyCount: 2,
+  revocationReason: "-",
+  blacklisted: false,
+  nextCohortRestricted: false,
+  changeReason: "패널티 2회 경고 상태 유지",
+};
+
+export const SELECTED_QUALIFICATION: QualificationFixture = {
+  selectorId: "sl-003",
+  name: "이지아",
+  cohort: "2기",
+  currentStatus: "박탈",
+  proposedStatus: "활동 중",
+  penaltyCount: 3,
+  revocationReason: "콘텐츠 운영 기준 위반 3회 누적",
+  blacklisted: true,
+  nextCohortRestricted: true,
+  changeReason: "위반 콘텐츠 삭제 및 소명 확인",
+};
+
+const HANEUL_QUALIFICATION: QualificationFixture = {
+  selectorId: "sl-004",
+  name: "오하늘",
+  cohort: "2기",
+  currentStatus: "수료",
+  proposedStatus: "수료",
+  penaltyCount: 0,
+  revocationReason: "-",
+  blacklisted: false,
+  nextCohortRestricted: false,
+  changeReason: "2기 활동 기간 종료",
+};
+
 export const QUALIFICATIONS: QualificationFixture[] = [
-  {
-    selectorId: "sl-002",
-    name: "박도윤",
-    cohort: "3기",
-    currentStatus: "경고",
-    penaltyCount: 2,
-    revocationReason: "-",
-    blacklisted: false,
-    nextCohortRestricted: false,
-  },
-  {
-    selectorId: "sl-003",
-    name: "이지아",
-    cohort: "2기",
-    currentStatus: "박탈",
-    penaltyCount: 3,
-    revocationReason: "콘텐츠 운영 기준 위반 3회 누적",
-    blacklisted: true,
-    nextCohortRestricted: true,
-  },
-  {
-    selectorId: "sl-004",
-    name: "오하늘",
-    cohort: "2기",
-    currentStatus: "수료",
-    penaltyCount: 0,
-    revocationReason: "-",
-    blacklisted: false,
-    nextCohortRestricted: false,
-  },
+  DOYOON_QUALIFICATION,
+  SELECTED_QUALIFICATION,
+  HANEUL_QUALIFICATION,
 ];
