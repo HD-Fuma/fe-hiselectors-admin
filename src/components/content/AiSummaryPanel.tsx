@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { StatusPill } from "../ui/StatusPill";
 
 export interface AiSummaryReport {
@@ -13,11 +14,12 @@ interface AiSummaryPanelProps {
 
 export function AiSummaryPanel({ report }: AiSummaryPanelProps) {
   const isReady = report.status === "ready";
+  const titleId = useId();
 
   return (
-    <section aria-labelledby="creator-ai-summary-title" className="fuma-content-section">
+    <section aria-labelledby={titleId} className="fuma-content-section">
       <header className="fuma-content-section__header">
-        <h2 id="creator-ai-summary-title">AI 요약 리포트</h2>
+        <h2 id={titleId}>AI 요약 리포트</h2>
         <StatusPill tone={isReady ? "approved" : "pending"}>
           {isReady ? "생성 완료" : "생성 대기"}
         </StatusPill>

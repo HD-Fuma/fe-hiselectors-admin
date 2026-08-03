@@ -16,7 +16,7 @@ export interface AiReportFixture {
   evidence: string[];
 }
 
-export interface CreatorFixture {
+interface CreatorBaseFixture {
   id: string;
   name: string;
   platforms: string[];
@@ -28,9 +28,29 @@ export interface CreatorFixture {
   channels: CreatorChannelFixture[];
   aiReport: AiReportFixture;
   proposalStatus: ProposalStatus | "미제안";
-  availableProposalChannels: ProposalChannel[];
-  email?: string;
 }
+
+export type CreatorProposalContact =
+  | {
+      availableProposalChannels: readonly ["Instagram DM"];
+      email?: never;
+    }
+  | {
+      availableProposalChannels: readonly ["이메일"];
+      email: string;
+    }
+  | {
+      availableProposalChannels: readonly ["Instagram DM", "이메일"];
+      email: string;
+    };
+
+export type InstagramOnlyCreatorFixture = CreatorBaseFixture &
+  Extract<CreatorProposalContact, { availableProposalChannels: readonly ["Instagram DM"] }>;
+
+export type EmailCreatorFixture = CreatorBaseFixture &
+  Exclude<CreatorProposalContact, { availableProposalChannels: readonly ["Instagram DM"] }>;
+
+export type CreatorFixture = InstagramOnlyCreatorFixture | EmailCreatorFixture;
 
 export interface ProposalFixture {
   id: string;

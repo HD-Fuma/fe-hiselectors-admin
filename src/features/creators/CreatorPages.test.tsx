@@ -1,5 +1,10 @@
 import { screen, within } from "@testing-library/react";
 import { renderRoute } from "../../test/renderRoute";
+import type { CreatorProposalContact } from "./fixtures";
+
+// @ts-expect-error An email proposal channel requires a usable email address.
+const invalidEmailContact: CreatorProposalContact = { availableProposalChannels: ["이메일"] };
+void invalidEmailContact;
 
 function expectColumnHeaders(names: string[]) {
   for (const name of names) {
@@ -52,6 +57,12 @@ describe("creator pool", () => {
     expect(screen.getByText("미제안")).toBeInTheDocument();
     expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
     expect(screen.getByText("페이지당 20개")).toBeInTheDocument();
+
+    const results = screen.getByRole("region", { name: "크리에이터 목록" });
+    const seoyeonRow = within(results).getByRole("row", { name: /cr-001 김서연/ });
+    expect(
+      within(seoyeonRow).getByRole("button", { name: "김서연 상세 보기" }),
+    ).toBeInTheDocument();
   });
 
   test("renders the explicit empty creator fixture", () => {
@@ -127,6 +138,21 @@ describe("creator detail", () => {
     expect(screen.queryByText("최근 30일 평균 조회 수 48,200회")).not.toBeInTheDocument();
   });
 
+  test("renders only declared proposal channels for an Instagram-only creator", () => {
+    renderRoute("/creators/cr-004");
+
+    const proposals = screen.getByRole("region", { name: "영입 제안" });
+    expect(
+      within(proposals).getByRole("button", { name: "Instagram DM 제안 발송" }),
+    ).toBeInTheDocument();
+    expect(within(proposals).getByRole("heading", { name: "Instagram DM" })).toBeInTheDocument();
+    expect(
+      within(proposals).queryByRole("button", { name: "이메일 제안 발송" }),
+    ).not.toBeInTheDocument();
+    expect(within(proposals).queryByRole("heading", { name: "이메일" })).not.toBeInTheDocument();
+    expect(proposals).not.toHaveTextContent("undefined");
+  });
+
   test("keeps the detail frame and shows a missing-record state", () => {
     renderRoute("/creators/missing");
 
@@ -185,6 +211,7 @@ describe("proposal history", () => {
     expect(screen.getByRole("heading", { name: "제안 이력 관리" })).toBeInTheDocument();
     expect(screen.getByText("총 0건")).toBeInTheDocument();
     expect(screen.getByText("등록된 제안 이력이 없습니다.")).toBeInTheDocument();
-    expect(screen.queryByText("pr-001")).not.toBeInTheDocument();
+    const results = screen.getByRole("region", { name: "제안 이력 목록" });
+    expect(within(results).queryByText(/김서연/)).not.toBeInTheDocument();
   });
 });

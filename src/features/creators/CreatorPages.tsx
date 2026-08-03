@@ -16,6 +16,7 @@ import {
   PROPOSALS,
   type CreatorChannelFixture,
   type CreatorFixture,
+  type EmailCreatorFixture,
   type ProposalFixture,
   type ProposalStatus,
 } from "./fixtures";
@@ -151,7 +152,11 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
     header: "상세",
     width: 60,
     align: "center",
-    render: () => <Button className="fuma-table-action">보기</Button>,
+    render: (creator) => (
+      <Button aria-label={`${creator.name} 상세 보기`} className="fuma-table-action">
+        보기
+      </Button>
+    ),
   },
 ];
 
@@ -276,46 +281,58 @@ function ProposalMethod({
   );
 }
 
+function hasEmailProposalChannel(creator: CreatorFixture): creator is EmailCreatorFixture {
+  return creator.availableProposalChannels.at(-1) === "이메일";
+}
+
 function ProposalMethods({ creator }: { creator: CreatorFixture }) {
+  const hasInstagramProposalChannel =
+    creator.availableProposalChannels[0] === "Instagram DM";
+  const hasEmailProposal = hasEmailProposalChannel(creator);
+
   return (
     <section aria-labelledby="creator-proposal-title" className="fuma-content-section">
       <header className="fuma-content-section__header">
         <h2 id="creator-proposal-title">영입 제안</h2>
       </header>
       <div className="fuma-proposal-methods">
-        <ProposalMethod buttonLabel="Instagram DM 제안 발송" title="Instagram DM">
-          <dl>
-            <div>
-              <dt>발송 방식</dt>
-              <dd>수동</dd>
-            </div>
-            <div>
-              <dt>발송 상태</dt>
-              <dd>
-                <StatusPill tone="approved">발송 가능</StatusPill>
-              </dd>
-            </div>
-          </dl>
-          <p className="fuma-proposal-method__note">{META_MANUAL_SEND_NOTE}</p>
-        </ProposalMethod>
-        <ProposalMethod buttonLabel="이메일 제안 발송" title="이메일">
-          <dl>
-            <div>
-              <dt>이메일</dt>
-              <dd>{creator.email}</dd>
-            </div>
-            <div>
-              <dt>발송 방식</dt>
-              <dd>자동</dd>
-            </div>
-            <div>
-              <dt>자동 발송 상태</dt>
-              <dd>
-                <StatusPill tone="approved">발송 가능</StatusPill>
-              </dd>
-            </div>
-          </dl>
-        </ProposalMethod>
+        {hasInstagramProposalChannel ? (
+          <ProposalMethod buttonLabel="Instagram DM 제안 발송" title="Instagram DM">
+            <dl>
+              <div>
+                <dt>발송 방식</dt>
+                <dd>수동</dd>
+              </div>
+              <div>
+                <dt>발송 상태</dt>
+                <dd>
+                  <StatusPill tone="approved">발송 가능</StatusPill>
+                </dd>
+              </div>
+            </dl>
+            <p className="fuma-proposal-method__note">{META_MANUAL_SEND_NOTE}</p>
+          </ProposalMethod>
+        ) : null}
+        {hasEmailProposal ? (
+          <ProposalMethod buttonLabel="이메일 제안 발송" title="이메일">
+            <dl>
+              <div>
+                <dt>이메일</dt>
+                <dd>{creator.email}</dd>
+              </div>
+              <div>
+                <dt>발송 방식</dt>
+                <dd>자동</dd>
+              </div>
+              <div>
+                <dt>자동 발송 상태</dt>
+                <dd>
+                  <StatusPill tone="approved">발송 가능</StatusPill>
+                </dd>
+              </div>
+            </dl>
+          </ProposalMethod>
+        ) : null}
       </div>
     </section>
   );
