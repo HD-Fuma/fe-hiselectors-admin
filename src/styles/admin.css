@@ -1775,17 +1775,12 @@
   min-width: 972px;
 }
 
-.fuma-table-actions {
-  display: inline-flex;
-  gap: var(--hsas-space-4);
-}
-
 .fuma-notice-editor__form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.fuma-notice-editor__form > .hsas-form-row:nth-child(odd) {
+.fuma-notice-editor__form > .hsas-form-row:nth-child(even) {
   border-right: 1px solid var(--hsas-border);
 }
 
