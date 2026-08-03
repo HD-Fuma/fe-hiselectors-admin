@@ -3,6 +3,10 @@ import { AppShell } from "../components/shell/AppShell";
 import { PlaceholderPage } from "../components/shell/PlaceholderPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import {
+  ApplicantDetailPage,
+  ApplicantListPage,
+} from "../features/applicants/ApplicantPages";
+import {
   CreatorDetailPage,
   CreatorListPage,
   ProposalHistoryPage,
@@ -28,6 +32,10 @@ function adminRouteElement(path: string, title: string, screenCode: string) {
       return <SelectorOverviewPage />;
     case "/selectors/qualifications":
       return <QualificationManagementPage />;
+    case "/applicants":
+      return <ApplicantListPage />;
+    case "/applicants/:applicantId":
+      return <ApplicantDetailPage />;
     default:
       return <PlaceholderPage title={title} screenCode={screenCode} />;
   }

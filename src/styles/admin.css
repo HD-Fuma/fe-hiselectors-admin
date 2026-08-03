@@ -1000,3 +1000,96 @@
   align-self: center;
   justify-self: center;
 }
+
+.fuma-applicant-list-table .hsas-dense-table {
+  min-width: 1167px;
+}
+
+.fuma-detail-toolbar {
+  display: flex;
+  min-height: 27px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.fuma-applicant-review__form {
+  display: grid;
+}
+
+.fuma-applicant-review__textarea {
+  min-height: 62px;
+  padding: 6px 7px;
+  line-height: 18px;
+  resize: vertical;
+}
+
+.fuma-auto-rejection {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+  border-bottom: 1px solid var(--hsas-border);
+  background: #fffafa;
+}
+
+.fuma-auto-rejection__criteria {
+  padding: var(--hsas-space-8) var(--hsas-space-12);
+  border-right: 1px solid var(--hsas-border);
+}
+
+.fuma-auto-rejection__criteria h3 {
+  margin: 0;
+  color: #8c3434;
+  font-size: 12px;
+}
+
+.fuma-auto-rejection__criteria ul {
+  margin: var(--hsas-space-4) 0 0;
+  padding-left: 18px;
+  color: #5a4747;
+}
+
+.fuma-auto-rejection__reason {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  align-items: stretch;
+  margin: 0;
+}
+
+.fuma-auto-rejection__reason dt,
+.fuma-auto-rejection__reason dd {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: var(--hsas-space-8) var(--hsas-space-12);
+}
+
+.fuma-auto-rejection__reason dt {
+  background: #f7eeee;
+  color: #5a4747;
+  font-weight: 700;
+}
+
+.fuma-applicant-section__actions,
+.fuma-applicant-delivery__footer {
+  display: flex;
+  min-height: 39px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--hsas-space-4);
+  padding: 6px var(--hsas-space-8);
+  border-top: 1px solid var(--hsas-border);
+  background: #f7f8f8;
+}
+
+.fuma-applicant-delivery > .hsas-dense-table-wrap {
+  border-top: 0;
+}
+
+.fuma-applicant-delivery .hsas-dense-table {
+  min-width: 620px;
+}
+
+.fuma-applicant-delivery__footer p {
+  margin: 0 auto 0 0;
+  color: var(--hsas-text-muted);
+  font-size: 11px;
+}
