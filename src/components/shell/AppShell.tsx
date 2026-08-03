@@ -40,19 +40,21 @@ export function AppShell() {
       data-ui="admin-shell"
       data-visual-contract="admin-shell"
     >
-      <IconRail onOpenMegaMenu={() => setIsMegaMenuRequested(true)} />
-      <MyMenu activeRoute={activeRoute} currentPath={location.pathname} />
-      <div className="hsas-admin-shell__workspace">
-        <header className="hsas-admin-shell__topbar" data-shell-part="topbar">
-          <strong>FUMA 관리자 시스템</strong>
-        </header>
-        <WorkTabs
-          activeRoute={activeRoute}
-          currentPath={`${location.pathname}${location.search}`}
-        />
-        <main className="hsas-admin-shell__content" data-shell-part="content">
-          <Outlet />
-        </main>
+      <header className="hsas-admin-shell__topbar" data-shell-part="topbar">
+        <strong>FUMA 관리자 시스템</strong>
+      </header>
+      <div className="hsas-admin-shell__body">
+        <IconRail onOpenMegaMenu={() => setIsMegaMenuRequested(true)} />
+        <MyMenu activeRoute={activeRoute} currentPath={location.pathname} />
+        <div className="hsas-admin-shell__workspace">
+          <WorkTabs
+            activeRoute={activeRoute}
+            currentPath={`${location.pathname}${location.search}`}
+          />
+          <main className="hsas-admin-shell__content" data-shell-part="content">
+            <Outlet />
+          </main>
+        </div>
       </div>
       {isMegaMenuOpen ? (
         <MegaMenu activeGroup={activeRoute.group} onClose={closeMegaMenu} />

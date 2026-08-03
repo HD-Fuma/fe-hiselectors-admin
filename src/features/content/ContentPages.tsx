@@ -371,7 +371,10 @@ export function ContentReviewDetailPage() {
   const content = findContentReviewFixture(contentId);
 
   return (
-    <section className="fuma-page" data-visual-contract="content-review">
+    <section
+      className="fuma-page fuma-content-review-detail"
+      data-visual-contract="content-review"
+    >
       <PageHeader screenCode="CT102" title="콘텐츠 검수 상세" />
       <div className="fuma-page__body">
         {content ? (
