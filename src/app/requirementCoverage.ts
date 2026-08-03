@@ -2,11 +2,13 @@ export type RequirementPrimaryRole =
   | { role: "main"; name?: never }
   | { role: "heading"; name: string };
 
+export type NonEmptyReadonlyArray<T> = readonly [T, ...T[]];
+
 export interface AdminRequirementCoverageCase {
   route: string;
-  rows: readonly number[];
-  expectedTexts: readonly string[];
-  expectedActions: readonly string[];
+  rows: NonEmptyReadonlyArray<number>;
+  expectedTexts: NonEmptyReadonlyArray<string>;
+  expectedActions: NonEmptyReadonlyArray<string>;
   primaryRole: RequirementPrimaryRole;
 }
 

@@ -1,6 +1,36 @@
 import { screen } from "@testing-library/react";
 import { renderRoute } from "../test/renderRoute";
-import { ADMIN_REQUIREMENT_COVERAGE } from "./requirementCoverage";
+import {
+  ADMIN_REQUIREMENT_COVERAGE,
+  type AdminRequirementCoverageCase,
+} from "./requirementCoverage";
+
+void ({
+  route: "/type-check/empty-rows",
+  // @ts-expect-error requirement row metadata must never be empty
+  rows: [],
+  expectedTexts: ["필드"],
+  expectedActions: ["액션"],
+  primaryRole: { role: "main" },
+} satisfies AdminRequirementCoverageCase);
+
+void ({
+  route: "/type-check/empty-texts",
+  rows: [1],
+  // @ts-expect-error visible requirement coverage must never be empty
+  expectedTexts: [],
+  expectedActions: ["액션"],
+  primaryRole: { role: "main" },
+} satisfies AdminRequirementCoverageCase);
+
+void ({
+  route: "/type-check/empty-actions",
+  rows: [1],
+  expectedTexts: ["필드"],
+  // @ts-expect-error action requirement coverage must never be empty
+  expectedActions: [],
+  primaryRole: { role: "main" },
+} satisfies AdminRequirementCoverageCase);
 
 const REQUIRED_ROUTES = [
   "/login",
@@ -43,6 +73,18 @@ describe("admin requirement route coverage", () => {
     expect(new Set(ADMIN_REQUIREMENT_COVERAGE.map(({ route }) => route)).size).toBe(
       ADMIN_REQUIREMENT_COVERAGE.length,
     );
+
+    for (const requirement of ADMIN_REQUIREMENT_COVERAGE) {
+      expect(requirement.rows.length, `${requirement.route}: rows`).toBeGreaterThan(0);
+      expect(
+        requirement.expectedTexts.length,
+        `${requirement.route}: expectedTexts`,
+      ).toBeGreaterThan(0);
+      expect(
+        requirement.expectedActions.length,
+        `${requirement.route}: expectedActions`,
+      ).toBeGreaterThan(0);
+    }
   });
 
   test.each(ADMIN_REQUIREMENT_COVERAGE)(
