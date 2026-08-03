@@ -1093,3 +1093,198 @@
   color: var(--hsas-text-muted);
   font-size: 11px;
 }
+
+.fuma-campaign-period-filter {
+  display: grid;
+  min-width: 350px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hsas-space-8);
+  grid-column: span 2;
+}
+
+.fuma-campaign-status-filter {
+  display: grid;
+  min-width: 292px;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--hsas-space-4);
+  grid-column: span 2;
+  color: #4a5155;
+  font-weight: 700;
+}
+
+.fuma-campaign-status-filter .hsas-segmented-control {
+  min-width: 0;
+}
+
+.fuma-campaign-status-filter .hsas-segmented-control__item {
+  min-width: 54px;
+  flex: 1;
+  padding-inline: 6px;
+}
+
+.fuma-campaign-rule-guide {
+  margin: -2px 0 0;
+  padding-left: 14px;
+  color: #666e72;
+  font-size: 11px;
+}
+
+.fuma-campaign-rule-guide::before {
+  margin-right: 5px;
+  color: var(--hsas-teal-dark);
+  content: "•";
+}
+
+.fuma-campaign-list-table .hsas-dense-table {
+  min-width: 1114px;
+}
+
+.fuma-table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--hsas-space-4);
+}
+
+.fuma-campaign-form-section {
+  max-width: 990px;
+}
+
+.fuma-campaign-form {
+  display: grid;
+}
+
+.fuma-campaign-name-input {
+  max-width: 590px;
+}
+
+.fuma-campaign-date-range {
+  display: flex;
+  max-width: 390px;
+  align-items: center;
+  gap: var(--hsas-space-8);
+}
+
+.fuma-campaign-date-range .hsas-control {
+  min-width: 150px;
+}
+
+.fuma-readonly-field {
+  display: inline-flex;
+  min-width: 170px;
+  min-height: var(--hsas-control-height);
+  align-items: center;
+  padding: 0 7px;
+  border: 1px solid var(--hsas-border);
+  background: #f1f3f4;
+  color: #555d61;
+}
+
+.fuma-campaign-product-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--hsas-space-12);
+}
+
+.fuma-campaign-product-summary strong {
+  min-width: 104px;
+  color: #4a5155;
+}
+
+.fuma-campaign-selected-products {
+  max-width: 990px;
+}
+
+.fuma-campaign-selected-products .fuma-content-section__header span {
+  color: var(--hsas-text-muted);
+}
+
+.fuma-campaign-selected-products > .hsas-dense-table-wrap {
+  border-top: 0;
+}
+
+.fuma-campaign-form__actions {
+  display: flex;
+  max-width: 990px;
+  min-height: 41px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--hsas-space-4);
+  padding: 6px var(--hsas-space-8);
+  border: 1px solid var(--hsas-border);
+  background: #f7f8f8;
+}
+
+.fuma-campaign-modal-search .hsas-search-panel {
+  align-items: center;
+  gap: var(--hsas-space-8);
+  padding: var(--hsas-space-12);
+}
+
+.fuma-campaign-modal-search .hsas-search-panel__fields {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--hsas-space-4) var(--hsas-space-8);
+}
+
+.fuma-campaign-modal-search .fuma-filter-field {
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 3px;
+}
+
+.fuma-campaign-modal-search .fuma-filter-field > span {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.fuma-campaign-modal-checks {
+  display: flex;
+  min-height: var(--hsas-control-height);
+  align-items: center;
+  gap: var(--hsas-space-12);
+  grid-column: span 2;
+}
+
+.fuma-campaign-modal-checks .hsas-checkbox {
+  min-height: var(--hsas-control-height);
+  font-size: 11px;
+}
+
+.fuma-campaign-modal__search-button {
+  min-width: 58px;
+  height: 49px;
+  border-color: #202426;
+  background: #303436;
+  color: var(--hsas-text-inverse);
+  line-height: 47px;
+}
+
+.fuma-campaign-modal__search-button:hover:not(:disabled) {
+  border-color: #111415;
+  background: #25282a;
+}
+
+.fuma-campaign-product-modal {
+  display: grid;
+  gap: var(--hsas-space-8);
+}
+
+.fuma-campaign-modal-table {
+  min-width: 0;
+}
+
+.fuma-campaign-modal-table .hsas-dense-table-wrap {
+  min-height: 124px;
+  overflow-x: auto;
+  border-top: 0;
+  background: var(--hsas-surface);
+}
+
+.fuma-campaign-modal-table .hsas-dense-table {
+  min-width: 785px;
+}
+
+.fuma-campaign-product-modal .hsas-pagination {
+  min-height: 24px;
+}

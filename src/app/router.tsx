@@ -16,6 +16,11 @@ import {
   QualificationManagementPage,
   SelectorOverviewPage,
 } from "../features/selectors/SelectorPages";
+import {
+  CampaignCreatePage,
+  CampaignEditPage,
+  CampaignListPage,
+} from "../features/campaigns/CampaignPages";
 import { ADMIN_ROUTES, DEFAULT_ADMIN_ROUTE } from "./navigation";
 
 function adminRouteElement(path: string, title: string, screenCode: string) {
@@ -36,6 +41,12 @@ function adminRouteElement(path: string, title: string, screenCode: string) {
       return <ApplicantListPage />;
     case "/applicants/:applicantId":
       return <ApplicantDetailPage />;
+    case "/campaigns":
+      return <CampaignListPage />;
+    case "/campaigns/new":
+      return <CampaignCreatePage />;
+    case "/campaigns/:campaignId/edit":
+      return <CampaignEditPage />;
     default:
       return <PlaceholderPage title={title} screenCode={screenCode} />;
   }
