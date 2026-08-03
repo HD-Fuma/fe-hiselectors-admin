@@ -241,6 +241,7 @@ function CampaignForm({ campaign, mode }: CampaignFormProps) {
               className="fuma-campaign-name-input"
               defaultValue={campaign?.name ?? ""}
               placeholder="캠페인명을 입력하세요."
+              required
             />
           </FormRow>
           <FormRow
@@ -252,12 +253,14 @@ function CampaignForm({ campaign, mode }: CampaignFormProps) {
               <TextInput
                 aria-label="시작일"
                 defaultValue={campaign?.startDate ?? ""}
+                required
                 type="date"
               />
               <span aria-hidden="true">~</span>
               <TextInput
                 aria-label="종료일"
                 defaultValue={campaign?.endDate ?? ""}
+                required
                 type="date"
               />
             </div>
@@ -265,7 +268,12 @@ function CampaignForm({ campaign, mode }: CampaignFormProps) {
           <FormRow label="상품 선택" required>
             <div className="fuma-campaign-product-summary">
               <strong>선택된 상품 {products.length}개</strong>
-              <Button variant="primary">상품 선택</Button>
+              <span className="hsas-visually-hidden" id="campaign-product-required">
+                필수 항목
+              </span>
+              <Button aria-describedby="campaign-product-required" variant="primary">
+                상품 선택
+              </Button>
             </div>
           </FormRow>
         </div>
@@ -317,7 +325,7 @@ export function CampaignEditPage() {
       <PageHeader screenCode="CP103" title="캠페인 수정" />
       <div className="fuma-page__body">
         {campaign ? (
-          <CampaignForm campaign={campaign} mode="edit" />
+          <CampaignForm campaign={campaign} key={campaign.id} mode="edit" />
         ) : (
           <EmptyState
             description="요청한 캠페인 정보를 확인할 수 없습니다."

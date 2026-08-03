@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { renderRoute } from "../../test/renderRoute";
 
 const FIRST_PRODUCT_NAME =
@@ -130,17 +130,19 @@ describe("campaign create and edit forms", () => {
 
     const name = screen.getByRole("textbox", { name: "캠페인명" });
     expect(name).toHaveValue("");
+    expect(name).toBeRequired();
     expect(name).toHaveAttribute("placeholder", "캠페인명을 입력하세요.");
     expect(screen.getByLabelText("시작일")).toHaveValue("");
+    expect(screen.getByLabelText("시작일")).toBeRequired();
     expect(screen.getByLabelText("종료일")).toHaveValue("");
+    expect(screen.getByLabelText("종료일")).toBeRequired();
     expect(
       screen.getByText("캠페인 종료 시 셀렉터스 공유 링크 수정이 필요합니다."),
     ).toBeInTheDocument();
     expect(screen.getByText("선택된 상품 0개")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "상품 선택" })).toHaveAttribute(
-      "type",
-      "button",
-    );
+    const selectProducts = screen.getByRole("button", { name: "상품 선택" });
+    expect(selectProducts).toHaveAttribute("type", "button");
+    expect(selectProducts).toHaveAccessibleDescription("필수 항목");
 
     const products = screen.getByRole("region", { name: "선택 상품" });
     expectColumnHeaders(products, ["상품코드", "상품명", "삭제"]);
@@ -176,6 +178,33 @@ describe("campaign create and edit forms", () => {
     expect(screen.getByRole("button", { name: "저장" })).toHaveAttribute("type", "button");
     expect(screen.getByRole("button", { name: "취소" })).toHaveAttribute("type", "button");
     expect(screen.queryByRole("button", { name: "등록" })).not.toBeInTheDocument();
+  });
+
+  test("resets uncontrolled edit fields when the router changes campaign identity", async () => {
+    const { router } = renderRoute("/campaigns/cp-001/edit");
+
+    fireEvent.change(screen.getByRole("textbox", { name: "캠페인명" }), {
+      target: { value: "사용자 임시 캠페인명" },
+    });
+    fireEvent.change(screen.getByLabelText("시작일"), {
+      target: { value: "2026-01-01" },
+    });
+    fireEvent.change(screen.getByLabelText("종료일"), {
+      target: { value: "2026-01-31" },
+    });
+
+    await act(async () => {
+      await router.navigate("/campaigns/cp-002/edit");
+    });
+
+    expect(screen.getByText("cp-002")).toBeInTheDocument();
+    expect(screen.getByText("진행 중")).toHaveClass("hsas-status-pill--approved");
+    expect(screen.getByRole("textbox", { name: "캠페인명" })).toHaveValue(
+      "여름 바캉스 스타일링",
+    );
+    expect(screen.getByLabelText("시작일")).toHaveValue("2026-07-15");
+    expect(screen.getByLabelText("종료일")).toHaveValue("2026-08-31");
+    expect(screen.getByText("선택된 상품 3개")).toBeInTheDocument();
   });
 
   test("renders a bounded missing state without leaking edit controls", () => {
