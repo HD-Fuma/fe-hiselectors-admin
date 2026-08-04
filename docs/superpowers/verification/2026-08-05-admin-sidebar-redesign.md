@@ -22,7 +22,7 @@
 | `npm test -- --run --maxWorkers=1` | test file 15/15, test 147/147 통과, 실패 0건, 98.89s |
 | `npm run build` | exit 0, TypeScript build와 Vite production build 성공, 1,832 modules transformed |
 | `FUMA_VISUAL_PORT=4174 npm run test:visual` | 15/15 통과, 실패 0건, 1.2m |
-| `git diff --check` | exit 0, 출력 없음 |
+| `git diff --check 4d5e1ec43baad2af23162045137e5cc07d85c3a1...f9f6f8f2832c5c36c318a66929ca5352afa18ba3` | exit 0, 출력 없음 |
 
 금지 참조 guard는 다음 wrapper와 호출을 그대로 사용했다.
 
@@ -41,6 +41,8 @@ no_matches -n 'IconRail|MyMenu|MegaMenu|hsas-icon-rail|hsas-my-menu|hsas-mega-me
 ```
 
 wrapper는 `rg`가 일치를 찾은 exit 0을 실패로 바꾸고, 일치가 없는 exit 1만 성공으로 바꾸며, 검색 자체의 오류인 exit 2 이상은 그대로 전달한다. 실제 실행에서는 두 검색 모두 내부 exit 1이었다.
+
+diff whitespace 검사는 빈 현재 worktree가 아니라 애플리케이션 구현 기준부터 브라우저 진단 보강 커밋까지의 고정 범위를 대상으로 실행했다. 위 범위 명령은 exit 0이었고 출력은 없었다.
 
 Playwright의 공유 진단 fixture는 테스트 이동 전에 브라우저 context 정책을 설치한다. HTTP 요청은 `context.route`로 제한하므로 팝업의 첫 탐색도 검사하며, Playwright context의 service worker는 `serviceWorkers: "block"`으로 차단했다. WebSocket은 이동 전에 `context.routeWebSocket`을 설치해 동일 hostname과 유효 port의 `ws:`/`wss:` 연결만 `connectToServer()`로 이어 준다. 그 밖의 연결은 별도 `externalWebSockets` 진단 배열에 기록한 뒤 닫는다. 초기 page와 `context`에서 새로 열린 팝업 page 모두에 console error, page error, request failure 수집기를 연결했다. 새 15-test 시각 실행에서 console errors, page errors, request failures, external requests, external WebSockets는 모두 빈 배열이었고, URL 정책 unit test 3건은 위 147건에 포함된다.
 
