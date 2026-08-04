@@ -508,6 +508,7 @@
   position: sticky;
   z-index: 10;
   top: 0;
+  left: 0;
   display: grid;
   width: var(--hsas-sidebar-width);
   height: 100dvh;
@@ -561,7 +562,7 @@
   padding: var(--hsas-space-12);
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-color: #53615e transparent;
+  scrollbar-color: var(--hsas-sidebar-scrollbar) transparent;
   scrollbar-width: thin;
 }
 
@@ -576,7 +577,7 @@
 .hsas-admin-sidebar__navigation::-webkit-scrollbar-thumb {
   border: 2px solid var(--hsas-sidebar-background);
   border-radius: 999px;
-  background: #53615e;
+  background: var(--hsas-sidebar-scrollbar);
 }
 
 .hsas-admin-sidebar__group + .hsas-admin-sidebar__group {
@@ -630,14 +631,20 @@
 }
 
 .hsas-admin-sidebar__link:focus-visible {
-  outline: 2px solid var(--hsas-teal-accent);
+  outline-color: var(--hsas-teal-accent);
   outline-offset: -2px;
+  outline-style: solid;
+  outline-width: 2px;
 }
 
 .hsas-admin-sidebar__link--active {
   background: var(--hsas-sidebar-active);
   color: var(--hsas-text-inverse);
   font-weight: 700;
+}
+
+.hsas-admin-sidebar__link--active:focus-visible {
+  outline-color: var(--hsas-sidebar-focus-active);
 }
 
 .hsas-admin-sidebar__link--active::before {
@@ -694,7 +701,7 @@
 }
 
 .hsas-admin-topbar__account-role {
-  color: var(--hsas-text-muted);
+  color: #596166;
   font-size: 10px;
 }
 

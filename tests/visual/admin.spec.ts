@@ -258,22 +258,38 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
   expect(activeState.fontWeight).toBeGreaterThanOrEqual(700);
   expectApprox(activeState.markerWidth, 3, 0.25);
 
-  await hoverLink.hover();
-  await expect(hoverLink).toHaveCSS("background-color", "rgb(44, 56, 53)");
-  await page.mouse.move(1439, 899);
   await page.keyboard.press("Tab");
   await expect(activeLink).toBeFocused();
-  await page.keyboard.press("Tab");
-  await expect(hoverLink).toBeFocused();
-  const focusState = await hoverLink.evaluate((element) => {
+  await expect(activeLink).toHaveCSS("outline-color", "rgb(255, 255, 255)");
+  const activeFocusState = await activeLink.evaluate((element) => {
     const styles = getComputedStyle(element);
     return {
+      focusVisible: element.matches(":focus-visible"),
       outlineStyle: styles.outlineStyle,
       outlineWidth: Number.parseFloat(styles.outlineWidth),
     };
   });
+  expect(activeFocusState.focusVisible).toBe(true);
+  expect(activeFocusState.outlineStyle).toBe("solid");
+  expect(activeFocusState.outlineWidth).toBeGreaterThanOrEqual(2);
+  await page.keyboard.press("Tab");
+  await expect(hoverLink).toBeFocused();
+  await expect(hoverLink).toHaveCSS("outline-color", "rgb(36, 159, 142)");
+  const focusState = await hoverLink.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      focusVisible: element.matches(":focus-visible"),
+      outlineStyle: styles.outlineStyle,
+      outlineWidth: Number.parseFloat(styles.outlineWidth),
+    };
+  });
+  expect(focusState.focusVisible).toBe(true);
   expect(focusState.outlineStyle).not.toBe("none");
   expect(focusState.outlineWidth).toBeGreaterThanOrEqual(2);
+
+  await hoverLink.hover();
+  await expect(hoverLink).toHaveCSS("background-color", "rgb(44, 56, 53)");
+  await page.mouse.move(1439, 899);
 
   await expectKeyTextBounds(sidebar, [
     "크리에이터",
@@ -414,6 +430,43 @@ test("campaign product modal visual checkpoint", async ({ page }, testInfo) => {
     "취소",
   ]);
   await page.screenshot({ path: "test-results/visual/campaign-modal.png" });
+});
+
+test("keeps campaign product modal centered after horizontal scroll", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 762, height: 577 });
+  await openCheckpoint(page, "/campaigns/new?fixture=product-modal", testInfo);
+
+  const sidebar = page.locator('[data-shell-part="sidebar"]');
+  const backdrop = page.locator(".hsas-modal-backdrop");
+  const modal = page.getByRole("dialog", { name: "상품 선택" });
+  await expect(modal).toBeVisible();
+
+  await page.evaluate(() => window.scrollTo({ left: 200 }));
+  await expect.poll(() => page.evaluate(() => window.scrollX)).toBeGreaterThanOrEqual(190);
+
+  const viewport = page.viewportSize();
+  const [sidebarBox, backdropBox, modalBox] = await Promise.all([
+    sidebar.boundingBox(),
+    backdrop.boundingBox(),
+    modal.boundingBox(),
+  ]);
+  expect(viewport).not.toBeNull();
+  expect(sidebarBox).not.toBeNull();
+  expect(backdropBox).not.toBeNull();
+  expect(modalBox).not.toBeNull();
+  await expect(sidebar).toHaveCSS("position", "sticky");
+  await expect(sidebar).toHaveCSS("left", "0px");
+  expectApprox(sidebarBox!.x, 0, 1);
+  expectApprox(sidebarBox!.x + sidebarBox!.width, 248, 3);
+  expectApprox(backdropBox!.x, 0, 1);
+  expectApprox(backdropBox!.width, viewport!.width, 1);
+
+  const visibleWorkspaceCenter =
+    (sidebarBox!.x + sidebarBox!.width + viewport!.width) / 2;
+  const modalCenter = modalBox!.x + modalBox!.width / 2;
+  expect(Math.abs(modalCenter - visibleWorkspaceCenter)).toBeLessThanOrEqual(16);
 });
 
 test("edited content review visual checkpoint", async ({ page }, testInfo) => {

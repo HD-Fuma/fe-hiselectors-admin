@@ -15,6 +15,8 @@
   --hsas-sidebar-border: rgb(255 255 255 / 8%);
   --hsas-sidebar-row-height: 34px;
   --hsas-sidebar-radius: 6px;
+  --hsas-sidebar-focus-active: #fff;
+  --hsas-sidebar-scrollbar: #72827e;
 
   --hsas-background: #f7f7f8;
   --hsas-surface: #ffffff;
