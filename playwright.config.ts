@@ -23,6 +23,7 @@ export default defineConfig({
     deviceScaleFactor: 1,
     contextOptions: {
       reducedMotion: "reduce",
+      serviceWorkers: "block",
     },
     screenshot: "only-on-failure",
     video: "retain-on-failure",
