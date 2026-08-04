@@ -2,33 +2,47 @@
 
 - 검증일: 2026-08-05 (Asia/Seoul)
 - 브랜치: `codex/fuma-admin-ui`
-- 검증 기준 HEAD: `4d5e1ec43baad2af23162045137e5cc07d85c3a1`
+- 검증 대상 커밋: `f9f6f8f2832c5c36c318a66929ca5352afa18ba3`
+- 애플리케이션 구현 기준: `4d5e1ec43baad2af23162045137e5cc07d85c3a1`
 - 권위 있는 설계 기준: [FUMA 관리자 단일 사이드바 개편 디자인 명세](../specs/2026-08-05-admin-sidebar-redesign-design.md)
 - Playwright 자동 검증 URL: `http://127.0.0.1:4174`
 - 지속형 수동 검증 URL: `http://127.0.0.1:5173/creators`, `http://127.0.0.1:5173/login`
 
+이 기록은 위 검증 대상 커밋에서 새로 실행한 결과를 적는다. 이후 문서만 수정하는 기록 커밋은 검증 대상으로 소급해 주장하지 않는다.
+
 ## 자동 검증 결과
 
-아래 결과는 문서와 로그인 진단 보강 후 새로 실행한 값이다.
+아래 결과는 공유 브라우저 진단 정책을 보강한 검증 대상 커밋에서 새로 실행한 값이다. 호스트 부하와 무관하게 재현 가능한 전체 실행을 위해 Vitest는 단일 worker로 실행했으며 테스트 범위는 줄이지 않았다.
 
 | 명령 | 결과 |
 | --- | --- |
-| production source 금지 참조 guard | exit 0, 일치 0건 |
-| test 금지 참조 guard | exit 0, 일치 0건 |
+| production source 금지 참조 guard | wrapper exit 0, 내부 `rg` exit 1, 일치 0건 |
+| test 금지 참조 guard | wrapper exit 0, 내부 `rg` exit 1, 일치 0건 |
 | `npm run lint` | exit 0, ESLint 오류·경고 출력 없음 |
-| `npm test -- --run` | test file 14/14, test 144/144 통과, 실패 0건 |
+| `npm test -- --run --maxWorkers=1` | test file 15/15, test 147/147 통과, 실패 0건, 98.89s |
 | `npm run build` | exit 0, TypeScript build와 Vite production build 성공, 1,832 modules transformed |
-| `FUMA_VISUAL_PORT=4174 npm run test:visual` | 15/15 통과, 실패 0건, 7.2s |
+| `FUMA_VISUAL_PORT=4174 npm run test:visual` | 15/15 통과, 실패 0건, 1.2m |
 | `git diff --check` | exit 0, 출력 없음 |
 
-금지 참조 guard는 다음 두 명령을 그대로 사용했다.
+금지 참조 guard는 다음 wrapper와 호출을 그대로 사용했다.
 
-```text
-! rg -n "IconRail|MyMenu|MegaMenu|hsas-icon-rail|hsas-my-menu|hsas-mega-menu|fixture=mega-menu|현재 화면 즐겨찾기|메뉴 편집|hsas-rail-width|hsas-menu-width|hsas-top-bar-height|--rail-width|--menu-width|--topbar-height" src --glob '!**/*.test.ts' --glob '!**/*.test.tsx'
-! rg -n "IconRail|MyMenu|MegaMenu|hsas-icon-rail|hsas-my-menu|hsas-mega-menu|fixture=mega-menu|hsas-rail-width|hsas-menu-width|hsas-top-bar-height|--rail-width|--menu-width|--topbar-height" tests
+```sh
+no_matches() {
+  rg "$@"
+  rg_status=$?
+  case "$rg_status" in
+    0) return 1 ;;
+    1) return 0 ;;
+    *) return "$rg_status" ;;
+  esac
+}
+no_matches -n 'IconRail|MyMenu|MegaMenu|hsas-icon-rail|hsas-my-menu|hsas-mega-menu|fixture=mega-menu|현재 화면 즐겨찾기|메뉴 편집|hsas-rail-width|hsas-menu-width|hsas-top-bar-height|--rail-width|--menu-width|--topbar-height' src --glob '!**/*.test.ts' --glob '!**/*.test.tsx' || exit $?
+no_matches -n 'IconRail|MyMenu|MegaMenu|hsas-icon-rail|hsas-my-menu|hsas-mega-menu|fixture=mega-menu|hsas-rail-width|hsas-menu-width|hsas-top-bar-height|--rail-width|--menu-width|--topbar-height' tests || exit $?
 ```
 
-첫 시각 테스트 시도는 제한된 sandbox에서 Vite가 `127.0.0.1:4174`를 열지 못해 `listen EPERM`으로 종료되었다. 같은 명령에 로컬 서버 bind 권한을 부여해 다시 실행한 최종 결과가 위의 15/15다. 테스트별 browser diagnostics는 console error, page error, failed request, 허용 origin 밖의 external request를 모두 빈 배열로 확인했다.
+wrapper는 `rg`가 일치를 찾은 exit 0을 실패로 바꾸고, 일치가 없는 exit 1만 성공으로 바꾸며, 검색 자체의 오류인 exit 2 이상은 그대로 전달한다. 실제 실행에서는 두 검색 모두 내부 exit 1이었다.
+
+Playwright의 공유 진단 fixture는 테스트 이동 전에 브라우저 context 정책을 설치한다. HTTP 요청은 `context.route`로 제한하므로 팝업의 첫 탐색도 검사하며, Playwright context의 service worker는 `serviceWorkers: "block"`으로 차단했다. WebSocket은 이동 전에 `context.routeWebSocket`을 설치해 동일 hostname과 유효 port의 `ws:`/`wss:` 연결만 `connectToServer()`로 이어 준다. 그 밖의 연결은 별도 `externalWebSockets` 진단 배열에 기록한 뒤 닫는다. 초기 page와 `context`에서 새로 열린 팝업 page 모두에 console error, page error, request failure 수집기를 연결했다. 새 15-test 시각 실행에서 console errors, page errors, request failures, external requests, external WebSockets는 모두 빈 배열이었고, URL 정책 unit test 3건은 위 147건에 포함된다.
 
 ## 지속형 서버 preflight
 
@@ -66,7 +80,7 @@ Playwright의 fresh 자동 캡처와 5173 서버의 수동 상태 캡처를 이�
 - `더현대Hi | Partners`, ID/비밀번호, `아이디 저장`, 로그인·계정 지원 버튼, `신규입점문의`, `광고신청/안내`, QR과 `파트너스 APP 다운로드`가 유지되었다.
 - 관리자 셸 root는 0개였으며 로그인에 사이드바가 렌더되지 않았다.
 
-수동 browser probe의 console error, page error, request failure, external request도 모두 0건이었다.
+수동 browser probe의 console error, page error, request failure, external request도 모두 0건이었다. 자동 검증에서는 context 단위 요청·WebSocket 정책과 초기·팝업 page 진단까지 추가로 확인했다.
 
 ## 대비 확인
 

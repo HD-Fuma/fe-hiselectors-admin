@@ -2,6 +2,8 @@
 
 > **역사 기록 · 현재 기준 아님:** 이 문서는 2026-08-04 당시의 아이콘 레일·마이메뉴·전체 메뉴 오버레이 기반 셸을 검증한 결과를 변경 없이 보존한다. 현재 관리자 셸의 권위 있는 설계 기준은 [2026-08-05 단일 사이드바 개편 명세](../specs/2026-08-05-admin-sidebar-redesign-design.md)이며, 최신 검증 결과는 [2026-08-05 관리자 사이드바 개편 검증 기록](./2026-08-05-admin-sidebar-redesign.md)을 따른다.
 
+> 아래 체크포인트 표의 캡처명은 당시 실행의 역사적 라벨일 뿐이다. `test-results/`는 gitignore 대상이고 이후 실행마다 덮어쓸 수 있으므로 안정적인 현재 파일이나 링크로 해석하지 않는다.
+
 검증일: 2026-08-04 (Asia/Seoul)
 
 대상: React + TypeScript 정적 관리자 UI
@@ -30,15 +32,15 @@
 
 | 캡처 | 경로 · 뷰포트 | 기준 이미지 | 관측 치수 | 판정 |
 | --- | --- | --- | --- | --- |
-| [login.png](../../../test-results/visual/login.png) | `/login` · 1869×942 | `hsas-09-current-login.png` (주 기준), `hsas-05-legacy-login.png` (색상 맥락) | 카드 460×570px, 문서 폭 1869px | 통과 |
-| [creators.png](../../../test-results/visual/creators.png) | `/creators` · 1310×741 | `hsas-01-product-register.png`, `hsas-03-product-edit-table.png` | 상단 바 x=0·w=1310·h=38px, 레일/메뉴 y=38px·w=40/205px, 컨트롤 27px, 행 29px | 통과 |
-| [creators-1440.png](../../../test-results/visual/creators-1440.png) | `/creators` · 1440×900 | `hsas-01-product-register.png`, `hsas-03-product-edit-table.png` | 상단 바 x=0·w=1440·h=38px, 레일/메뉴 y=38px, 문서 폭 1440px | 통과 |
-| [applicant-detail.png](../../../test-results/visual/applicant-detail.png) | `/applicants/ap-001` · 1318×742 | `hsas-07-basic-form.png`, `hsas-03-product-edit-table.png` | 공통 셸 40/205/38px, 컨트롤 27px, 밀도형 행 29px | 통과 |
-| [campaign-modal.png](../../../test-results/visual/campaign-modal.png) | `/campaigns/new?fixture=product-modal` · 1316×741 | `hsas-02-product-search-modal.png` | 모달 820×531px, x=371px, y=105px, 제목 바 36px, 컨트롤 27px, 행 29px | 통과 |
-| [content-edited.png](../../../test-results/visual/content-edited.png) | `/content/reviews/ct-003?fixture=edited` · 1316×735 | `hsas-06-editor-source.png`, `hsas-04-image-upload.png` | 기본 정보 99px, 비교 영역 y=327~634px, 미디어 하단 최대 y=633px, 변경 요약 y=644~682px | 통과 |
-| [mega-menu.png](../../../test-results/visual/mega-menu.png) | `/?fixture=mega-menu` · 762×577 | `hsas-08-mega-menu.png` | 메뉴 762×577px, 제목 바 25px, 1열 141px, 2열 222px, 문서 폭 1280px | 통과 |
-| [performance.png](../../../test-results/visual/performance.png) | `/performance` · 1316×742 | `hsas-03-product-edit-table.png`, `hsas-07-basic-form.png` | 공통 셸 40/205/38px, 지표 띠 49px, 컨트롤 27px, 행 29px | 통과 |
-| [settlements.png](../../../test-results/visual/settlements.png) | `/settlements` · 1316×742 | `hsas-03-product-edit-table.png`, `hsas-07-basic-form.png` | 공통 셸 40/205/38px, 컨트롤 27px, 행 29px | 통과 |
+| `login.png` | `/login` · 1869×942 | `hsas-09-current-login.png` (주 기준), `hsas-05-legacy-login.png` (색상 맥락) | 카드 460×570px, 문서 폭 1869px | 통과 |
+| `creators.png` | `/creators` · 1310×741 | `hsas-01-product-register.png`, `hsas-03-product-edit-table.png` | 상단 바 x=0·w=1310·h=38px, 레일/메뉴 y=38px·w=40/205px, 컨트롤 27px, 행 29px | 통과 |
+| `creators-1440.png` | `/creators` · 1440×900 | `hsas-01-product-register.png`, `hsas-03-product-edit-table.png` | 상단 바 x=0·w=1440·h=38px, 레일/메뉴 y=38px, 문서 폭 1440px | 통과 |
+| `applicant-detail.png` | `/applicants/ap-001` · 1318×742 | `hsas-07-basic-form.png`, `hsas-03-product-edit-table.png` | 공통 셸 40/205/38px, 컨트롤 27px, 밀도형 행 29px | 통과 |
+| `campaign-modal.png` | `/campaigns/new?fixture=product-modal` · 1316×741 | `hsas-02-product-search-modal.png` | 모달 820×531px, x=371px, y=105px, 제목 바 36px, 컨트롤 27px, 행 29px | 통과 |
+| `content-edited.png` | `/content/reviews/ct-003?fixture=edited` · 1316×735 | `hsas-06-editor-source.png`, `hsas-04-image-upload.png` | 기본 정보 99px, 비교 영역 y=327~634px, 미디어 하단 최대 y=633px, 변경 요약 y=644~682px | 통과 |
+| `mega-menu.png` | `/?fixture=mega-menu` · 762×577 | `hsas-08-mega-menu.png` | 메뉴 762×577px, 제목 바 25px, 1열 141px, 2열 222px, 문서 폭 1280px | 통과 |
+| `performance.png` | `/performance` · 1316×742 | `hsas-03-product-edit-table.png`, `hsas-07-basic-form.png` | 공통 셸 40/205/38px, 지표 띠 49px, 컨트롤 27px, 행 29px | 통과 |
+| `settlements.png` | `/settlements` · 1316×742 | `hsas-03-product-edit-table.png`, `hsas-07-basic-form.png` | 공통 셸 40/205/38px, 컨트롤 27px, 행 29px | 통과 |
 
 ## 원본 대비 확인 결과
 
