@@ -109,8 +109,16 @@ const routes: RouteObject[] = [
   },
 ];
 
-export function createAppRouter(initialEntries?: string[]) {
+function normalizeBrowserBasename(baseUrl: string) {
+  const path = baseUrl.replace(/^\/+|\/+$/g, "");
+  return path ? `/${path}` : "/";
+}
+
+export function createAppRouter(
+  initialEntries?: string[],
+  browserBasename = normalizeBrowserBasename(import.meta.env.BASE_URL),
+) {
   return initialEntries
     ? createMemoryRouter(routes, { initialEntries })
-    : createBrowserRouter(routes);
+    : createBrowserRouter(routes, { basename: browserBasename });
 }
