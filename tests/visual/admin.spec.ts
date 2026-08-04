@@ -138,25 +138,35 @@ async function expectFullyInViewport(page: Page, locator: Locator) {
 
 async function expectAdminGeometry(page: Page, viewportWidth: number) {
   const root = page.locator('[data-shell-part="root"]');
-  const rail = page.locator('[data-shell-part="rail"]');
-  const menu = page.locator('[data-shell-part="menu"]');
+  const sidebar = page.locator('[data-shell-part="sidebar"]');
+  const workspace = page.locator(".hsas-admin-shell__workspace");
   const topbar = page.locator('[data-shell-part="topbar"]');
-  const [rootBox, railBox, menuBox, topbarBox] = await Promise.all([
+  const content = page.locator('[data-shell-part="content"]');
+  const viewport = page.viewportSize();
+  const [rootBox, sidebarBox, workspaceBox, topbarBox, contentBox] = await Promise.all([
     root.boundingBox(),
-    rail.boundingBox(),
-    menu.boundingBox(),
+    sidebar.boundingBox(),
+    workspace.boundingBox(),
     topbar.boundingBox(),
+    content.boundingBox(),
   ]);
 
-  for (const box of [rootBox, railBox, menuBox, topbarBox]) expect(box).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  for (const box of [rootBox, sidebarBox, workspaceBox, topbarBox, contentBox]) {
+    expect(box).not.toBeNull();
+  }
   expect(rootBox!.width).toBeGreaterThanOrEqual(1280);
-  expectApprox(railBox!.width, 40, 2);
-  expectApprox(menuBox!.width, 205, 3);
-  expectApprox(topbarBox!.height, 38, 2);
-  expectApprox(topbarBox!.x, rootBox!.x, 1);
-  expectApprox(topbarBox!.width, rootBox!.width, 2);
-  expectApprox(railBox!.y, topbarBox!.y + topbarBox!.height, 2);
-  expectApprox(menuBox!.y, topbarBox!.y + topbarBox!.height, 2);
+  expectApprox(sidebarBox!.width, 248, 3);
+  expectApprox(sidebarBox!.x, rootBox!.x, 1);
+  expectApprox(sidebarBox!.y, 0, 1);
+  expectApprox(sidebarBox!.height, viewport!.height, 2);
+  expectApprox(workspaceBox!.x, sidebarBox!.x + sidebarBox!.width, 1);
+  expectApprox(workspaceBox!.width, rootBox!.width - sidebarBox!.width, 2);
+  expectApprox(topbarBox!.height, 44, 2);
+  expectApprox(topbarBox!.x, sidebarBox!.x + sidebarBox!.width, 1);
+  expectApprox(topbarBox!.width, workspaceBox!.width, 2);
+  expectApprox(contentBox!.x, workspaceBox!.x, 1);
+  expectApprox(contentBox!.width, workspaceBox!.width, 2);
 
   const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(scrollWidth).toBeGreaterThanOrEqual(viewportWidth);
@@ -236,6 +246,59 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
   await expectAdminGeometry(page, 1440);
   await expectControlAndDenseRowGeometry(page);
   await expectPageHeaderTextBounds(page, "크리에이터 풀", "CR101");
+  const sidebar = page.locator('[data-shell-part="sidebar"]');
+  const navigation = sidebar.getByRole("navigation", { name: "관리자 메뉴" });
+  const activeLink = navigation.getByRole("link", { name: "크리에이터 목록" });
+  const hoverLink = navigation.getByRole("link", { name: "제안 이력" });
+  await expect(activeLink).toHaveCSS("background-color", "rgb(17, 111, 96)");
+  const activeState = await activeLink.evaluate((element) => ({
+    fontWeight: Number.parseInt(getComputedStyle(element).fontWeight, 10),
+    markerWidth: Number.parseFloat(getComputedStyle(element, "::before").width),
+  }));
+  expect(activeState.fontWeight).toBeGreaterThanOrEqual(700);
+  expectApprox(activeState.markerWidth, 3, 0.25);
+
+  await hoverLink.hover();
+  await expect(hoverLink).toHaveCSS("background-color", "rgb(44, 56, 53)");
+  await page.mouse.move(1439, 899);
+  await page.keyboard.press("Tab");
+  await expect(activeLink).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(hoverLink).toBeFocused();
+  const focusState = await hoverLink.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      outlineStyle: styles.outlineStyle,
+      outlineWidth: Number.parseFloat(styles.outlineWidth),
+    };
+  });
+  expect(focusState.outlineStyle).not.toBe("none");
+  expect(focusState.outlineWidth).toBeGreaterThanOrEqual(2);
+
+  await expectKeyTextBounds(sidebar, [
+    "크리에이터",
+    "크리에이터 목록",
+    "제안 이력",
+    "셀렉터스",
+    "기수 관리",
+    "셀렉터스 현황",
+    "자격 관리",
+    "지원자",
+    "지원자 목록",
+    "캠페인",
+    "캠페인 관리",
+    "콘텐츠",
+    "콘텐츠 검수",
+    "위반 관리",
+    "성과",
+    "성과 대시보드",
+    "크리에이터 분석",
+    "콘텐츠 분석",
+    "정산",
+    "정산 관리",
+    "시스템",
+    "공지사항",
+  ]);
   await expectKeyTextBounds(page.getByRole("region", { name: "크리에이터 목록" }), [
     "ID",
     "플랫폼",
@@ -283,14 +346,46 @@ test("campaign product modal visual checkpoint", async ({ page }, testInfo) => {
   await expect(page.locator('[data-visual-contract="admin-shell"]')).toBeVisible();
   await expect(page.locator('[data-visual-contract="modal"]')).toBeVisible();
   const modal = page.getByRole("dialog", { name: "상품 선택" });
+  const backdrop = page.locator(".hsas-modal-backdrop");
+  const sidebar = page.locator('[data-shell-part="sidebar"]');
+  const workspace = page.locator(".hsas-admin-shell__workspace");
+  const topbar = page.locator('[data-shell-part="topbar"]');
   await expect(modal.locator('[data-visual-contract="dense-table"]')).toBeVisible();
   await expectAdminGeometry(page, 1316);
-  const [modalBox, titleBarBox] = await Promise.all([
+  const [modalBox, titleBarBox, backdropBox, sidebarBox, workspaceBox] = await Promise.all([
     modal.boundingBox(),
     modal.locator(".hsas-modal__header").boundingBox(),
+    backdrop.boundingBox(),
+    sidebar.boundingBox(),
+    workspace.boundingBox(),
   ]);
   expect(modalBox).not.toBeNull();
   expect(titleBarBox).not.toBeNull();
+  expect(backdropBox).not.toBeNull();
+  expect(sidebarBox).not.toBeNull();
+  expect(workspaceBox).not.toBeNull();
+  expectApprox(backdropBox!.x, 0, 1);
+  expectApprox(backdropBox!.y, 0, 1);
+  expectApprox(backdropBox!.width, 1316, 1);
+  expectApprox(backdropBox!.height, 741, 1);
+  const backdropStyles = await backdrop.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      paddingLeft: Number.parseFloat(styles.paddingLeft),
+      zIndex: Number.parseInt(styles.zIndex, 10),
+    };
+  });
+  const [sidebarZIndex, topbarZIndex] = await Promise.all(
+    [sidebar, topbar].map((locator) =>
+      locator.evaluate((element) => {
+        const zIndex = getComputedStyle(element).zIndex;
+        return zIndex === "auto" ? 0 : Number.parseInt(zIndex, 10);
+      }),
+    ),
+  );
+  expectApprox(backdropStyles.paddingLeft, 264, 2);
+  expect(backdropStyles.zIndex).toBeGreaterThan(sidebarZIndex);
+  expect(backdropStyles.zIndex).toBeGreaterThan(topbarZIndex);
   expectApprox(modalBox!.width, 820, 24);
   expectApprox(titleBarBox!.height, 32, 4);
   const [modalControlBox, modalRowBox] = await Promise.all([
@@ -301,7 +396,7 @@ test("campaign product modal visual checkpoint", async ({ page }, testInfo) => {
   expect(modalRowBox).not.toBeNull();
   expectApprox(modalControlBox!.height, 27, 3);
   expectApprox(modalRowBox!.height, 27, 4);
-  const workspaceCenter = 245 + (1316 - 245) / 2;
+  const workspaceCenter = workspaceBox!.x + workspaceBox!.width / 2;
   expect(Math.abs(modalBox!.x + modalBox!.width / 2 - workspaceCenter)).toBeLessThanOrEqual(16);
   await expectKeyTextBounds(modal, [
     "상품 선택",
@@ -390,46 +485,6 @@ test("edited content review visual checkpoint", async ({ page }, testInfo) => {
     await expectFullyInViewport(page, locator);
   }
   await page.screenshot({ path: "test-results/visual/content-edited.png" });
-});
-
-test("mega menu visual checkpoint", async ({ page }, testInfo) => {
-  await page.setViewportSize({ width: 762, height: 577 });
-  await openCheckpoint(page, "/?fixture=mega-menu", testInfo);
-
-  await expect(page.locator('[data-visual-contract="admin-shell"]')).toBeAttached();
-  const megaMenu = page.locator('[data-visual-contract="mega-menu"]');
-  await expect(megaMenu).toBeVisible();
-  const [megaMenuBox, titleBarBox] = await Promise.all([
-    megaMenu.boundingBox(),
-    megaMenu.locator(".hsas-mega-menu__title-bar").boundingBox(),
-  ]);
-  expect(megaMenuBox).not.toBeNull();
-  expect(titleBarBox).not.toBeNull();
-  expectApprox(megaMenuBox!.x, 0, 1);
-  expectApprox(megaMenuBox!.y, 0, 1);
-  expectApprox(megaMenuBox!.width, 762, 1);
-  expectApprox(megaMenuBox!.height, 577, 1);
-  expectApprox(titleBarBox!.height, 25, 2);
-  const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-  expect(scrollWidth).toBeGreaterThanOrEqual(1280);
-  expect(scrollWidth).toBeLessThanOrEqual(1284);
-  await expectKeyTextBounds(megaMenu.locator(".hsas-mega-menu__title-bar"), ["전체메뉴"]);
-  await expectKeyTextBounds(megaMenu.locator(".hsas-mega-menu__groups"), [
-    "크리에이터",
-    "셀렉터스",
-    "지원자",
-    "캠페인",
-    "콘텐츠",
-    "성과",
-    "정산",
-    "시스템",
-  ]);
-  await expectKeyTextBounds(megaMenu.locator(".hsas-mega-menu__children"), [
-    "크리에이터",
-    "크리에이터 목록",
-    "제안 이력",
-  ]);
-  await page.screenshot({ path: "test-results/visual/mega-menu.png" });
 });
 
 test("performance visual checkpoint", async ({ page }, testInfo) => {

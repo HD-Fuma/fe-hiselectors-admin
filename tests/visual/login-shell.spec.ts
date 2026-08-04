@@ -62,42 +62,52 @@ test("keeps the login card inside a narrow viewport", async ({ page }) => {
   expect(cardBox!.x).toBeGreaterThanOrEqual(0);
 });
 
-test("locks the legacy administrator shell geometry", async ({ page }) => {
+test("locks the administrator shell geometry", async ({ page }) => {
   await page.setViewportSize({ width: 1310, height: 741 });
   await page.goto("/creators");
   await waitForStablePage(page);
 
   const root = page.locator('[data-shell-part="root"]');
-  const rail = page.locator('[data-shell-part="rail"]');
-  const menu = page.locator('[data-shell-part="menu"]');
+  const sidebar = page.locator('[data-shell-part="sidebar"]');
+  const workspace = page.locator(".hsas-admin-shell__workspace");
   const topbar = page.locator('[data-shell-part="topbar"]');
   const content = page.locator('[data-shell-part="content"]');
+  const brand = sidebar.locator(".hsas-admin-sidebar__brand");
+  const navigation = sidebar.getByRole("navigation", { name: "관리자 메뉴" });
 
   await expect(root).toBeVisible();
-  await expect(rail).toBeVisible();
-  await expect(menu).toBeVisible();
+  await expect(sidebar).toBeVisible();
+  await expect(workspace).toBeVisible();
   await expect(topbar).toBeVisible();
   await expect(content).toBeVisible();
+  await expect(brand).toBeVisible();
+  await expect(navigation.getByRole("link")).toHaveCount(14);
   await page.screenshot({ path: "test-results/visual/admin-shell-reference.png" });
 
-  const [rootBox, railBox, menuBox, topbarBox, contentBox] = await Promise.all([
+  const [rootBox, sidebarBox, workspaceBox, topbarBox, contentBox] = await Promise.all([
     root.boundingBox(),
-    rail.boundingBox(),
-    menu.boundingBox(),
+    sidebar.boundingBox(),
+    workspace.boundingBox(),
     topbar.boundingBox(),
     content.boundingBox(),
   ]);
 
-  for (const box of [rootBox, railBox, menuBox, topbarBox, contentBox]) {
+  for (const box of [rootBox, sidebarBox, workspaceBox, topbarBox, contentBox]) {
     expect(box).not.toBeNull();
   }
 
-  expect(railBox!.width).toBeGreaterThanOrEqual(38);
-  expect(railBox!.width).toBeLessThanOrEqual(42);
-  expect(menuBox!.width).toBeGreaterThanOrEqual(202);
-  expect(menuBox!.width).toBeLessThanOrEqual(208);
-  expect(topbarBox!.height).toBeGreaterThanOrEqual(36);
-  expect(topbarBox!.height).toBeLessThanOrEqual(40);
+  expect(sidebarBox!.width).toBeGreaterThanOrEqual(245);
+  expect(sidebarBox!.width).toBeLessThanOrEqual(251);
+  expect(Math.abs(sidebarBox!.x - rootBox!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(sidebarBox!.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(sidebarBox!.height - 741)).toBeLessThanOrEqual(2);
+  expect(topbarBox!.height).toBeGreaterThanOrEqual(42);
+  expect(topbarBox!.height).toBeLessThanOrEqual(46);
+  expect(
+    Math.abs(topbarBox!.x - (sidebarBox!.x + sidebarBox!.width)),
+  ).toBeLessThanOrEqual(1);
+  expect(Math.abs(workspaceBox!.x - topbarBox!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(contentBox!.x - workspaceBox!.x)).toBeLessThanOrEqual(1);
 
   const rootMinimumWidth = await root.evaluate((element) =>
     Number.parseFloat(getComputedStyle(element).minWidth),
@@ -105,6 +115,70 @@ test("locks the legacy administrator shell geometry", async ({ page }) => {
   expect(rootMinimumWidth).toBeGreaterThanOrEqual(1280);
   expect(rootBox!.width).toBeGreaterThanOrEqual(1280);
   expect(
-    Math.abs(contentBox!.width - (rootBox!.width - railBox!.width - menuBox!.width)),
+    Math.abs(workspaceBox!.width - (rootBox!.width - sidebarBox!.width)),
   ).toBeLessThanOrEqual(3);
+  expect(
+    Math.abs(contentBox!.width - workspaceBox!.width),
+  ).toBeLessThanOrEqual(3);
+});
+
+test("keeps sidebar navigation scroll independent from the page", async ({ page }) => {
+  await page.setViewportSize({ width: 1310, height: 741 });
+  await page.goto("/creators");
+  await waitForStablePage(page);
+
+  const sidebar = page.locator('[data-shell-part="sidebar"]');
+  const brand = sidebar.locator(".hsas-admin-sidebar__brand");
+  const navigation = sidebar.getByRole("navigation", { name: "관리자 메뉴" });
+  const links = navigation.getByRole("link");
+  const finalLink = navigation.getByRole("link", { name: "공지사항" });
+
+  await expect(brand).toBeVisible();
+  await expect(links).toHaveCount(14);
+  await expect(sidebar).toHaveCSS("position", "sticky");
+  await expect(sidebar).toHaveCSS("top", "0px");
+  await expect(navigation).toHaveCSS("overflow-y", "auto");
+
+  const navigationSize = await navigation.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+  }));
+  expect(navigationSize.scrollHeight).toBeGreaterThan(navigationSize.clientHeight);
+
+  const brandBoxBefore = await brand.boundingBox();
+  const windowScrollBefore = await page.evaluate(() => window.scrollY);
+  expect(brandBoxBefore).not.toBeNull();
+
+  await navigation.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect.poll(() => navigation.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await expect(finalLink).toBeInViewport();
+
+  const brandBoxAfter = await brand.boundingBox();
+  const windowScrollAfter = await page.evaluate(() => window.scrollY);
+  expect(brandBoxAfter).not.toBeNull();
+  expect(windowScrollAfter).toBe(windowScrollBefore);
+  expect(Math.abs(brandBoxAfter!.y - brandBoxBefore!.y)).toBeLessThanOrEqual(1);
+});
+
+test("keeps the narrow administrator shell horizontally scrollable", async ({ page }) => {
+  await page.setViewportSize({ width: 762, height: 577 });
+  await page.goto("/creators");
+  await waitForStablePage(page);
+
+  const root = page.locator('[data-shell-part="root"]');
+  const rootBox = await root.boundingBox();
+  expect(rootBox).not.toBeNull();
+  expect(rootBox!.width).toBeGreaterThanOrEqual(1280);
+
+  const documentWidth = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(documentWidth.scrollWidth).toBeGreaterThanOrEqual(1280);
+  expect(documentWidth.scrollWidth).toBeGreaterThan(documentWidth.clientWidth);
+
+  await page.evaluate(() => window.scrollTo({ left: 200 }));
+  expect(await page.evaluate(() => window.scrollX)).toBeGreaterThan(0);
 });

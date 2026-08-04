@@ -3,9 +3,18 @@
   --hsas-teal-accent: #249f8e;
   --hsas-teal-dark: #0f7562;
   --hsas-teal-soft: #e8f4f1;
-  --hsas-nav: #333333;
-  --hsas-icon-rail: #3c3c3c;
-  --hsas-nav-dark: #282828;
+
+  --hsas-sidebar-width: 248px;
+  --hsas-topbar-height: 44px;
+  --hsas-sidebar-background: #202826;
+  --hsas-sidebar-surface: #27312f;
+  --hsas-sidebar-text: #c9d2cf;
+  --hsas-sidebar-heading: #82918d;
+  --hsas-sidebar-active: #116f60;
+  --hsas-sidebar-hover: #2c3835;
+  --hsas-sidebar-border: rgb(255 255 255 / 8%);
+  --hsas-sidebar-row-height: 34px;
+  --hsas-sidebar-radius: 6px;
 
   --hsas-background: #f7f7f8;
   --hsas-surface: #ffffff;
@@ -33,13 +42,7 @@
   --hsas-font-size-body: 12px;
   --hsas-line-height-body: 1.45;
 
-  --hsas-rail-width: 40px;
-  --hsas-menu-width: 205px;
-  --hsas-top-bar-height: 38px;
   --hsas-control-height: 27px;
-  --rail-width: 40px;
-  --menu-width: 205px;
-  --topbar-height: 38px;
   --control-height: 27px;
   --font-body: 12px;
   --hsas-radius-square: 0;
