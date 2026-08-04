@@ -1,6 +1,23 @@
 import { screen, within } from "@testing-library/react";
 import { renderRoute } from "../../test/renderRoute";
 
+const expectedSidebarLinks = [
+  ["크리에이터 목록", "/creators"],
+  ["제안 이력", "/proposals"],
+  ["기수 관리", "/cohorts"],
+  ["셀렉터스 현황", "/selectors"],
+  ["자격 관리", "/selectors/qualifications"],
+  ["지원자 목록", "/applicants"],
+  ["캠페인 관리", "/campaigns"],
+  ["콘텐츠 검수", "/content/reviews"],
+  ["위반 관리", "/content/violations"],
+  ["성과 대시보드", "/performance"],
+  ["크리에이터 분석", "/performance/creators"],
+  ["콘텐츠 분석", "/performance/contents"],
+  ["정산 관리", "/settlements"],
+  ["공지사항", "/system/notices"],
+] as const;
+
 test("renderRoute renders the Partners login route", () => {
   renderRoute("/login");
 
@@ -18,10 +35,14 @@ test("renders the complete administrator navigation in one sidebar", () => {
 
   expect(sidebarQueries.getByText("FUMA")).toBeInTheDocument();
   expect(sidebarQueries.getByText("ADMIN CONSOLE")).toBeInTheDocument();
-  expect(
-    sidebarQueries.getAllByRole("navigation", { name: "관리자 메뉴" }),
-  ).toHaveLength(1);
+  expect(screen.getAllByRole("navigation", { name: "관리자 메뉴" })).toHaveLength(1);
   expect(within(navigation).getAllByRole("link")).toHaveLength(14);
+  for (const [label, href] of expectedSidebarLinks) {
+    expect(within(navigation).getByRole("link", { name: label })).toHaveAttribute(
+      "href",
+      href,
+    );
+  }
 
   for (const groupLabel of [
     "크리에이터",
@@ -43,6 +64,20 @@ test("renders the complete administrator navigation in one sidebar", () => {
     "aria-current",
     "page",
   );
+});
+
+test("treats a trailing-slash direct route as the current exact page", () => {
+  renderRoute("/creators/");
+
+  const navigation = screen.getByRole("navigation", { name: "관리자 메뉴" });
+  const menuLink = within(navigation).getByRole("link", {
+    name: "크리에이터 목록",
+  });
+
+  expect(menuLink).toHaveClass("hsas-admin-sidebar__link--active");
+  expect(menuLink).toHaveAttribute("data-section-selected", "true");
+  expect(menuLink).toHaveAttribute("data-route-exact", "true");
+  expect(menuLink).toHaveAttribute("aria-current", "page");
 });
 
 test("preserves visual fixture query state in the active work tab", () => {
@@ -283,13 +318,24 @@ test.each(routeCases)(
       name: "관리자 메뉴",
     });
     expect(navigation).toHaveAttribute("data-selected-group", group);
+    expect(
+      navigation.querySelectorAll('[data-section-selected="true"]'),
+    ).toHaveLength(1);
+    expect(navigation.querySelectorAll('[aria-current="page"]')).toHaveLength(
+      routeIsExact ? 1 : 0,
+    );
+    expect(navigation.querySelectorAll('[data-route-exact="true"]')).toHaveLength(
+      routeIsExact ? 1 : 0,
+    );
+
     const menuLink = within(navigation).getByRole("link", { name: menuLabel });
     expect(menuLink).toHaveClass("hsas-admin-sidebar__link--active");
-    expect(menuLink).toHaveAttribute("aria-current", "page");
     expect(menuLink).toHaveAttribute("data-section-selected", "true");
     if (routeIsExact) {
+      expect(menuLink).toHaveAttribute("aria-current", "page");
       expect(menuLink).toHaveAttribute("data-route-exact", "true");
     } else {
+      expect(menuLink).not.toHaveAttribute("aria-current");
       expect(menuLink).not.toHaveAttribute("data-route-exact");
     }
   },

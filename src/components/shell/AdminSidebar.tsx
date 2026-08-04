@@ -9,7 +9,7 @@ import {
   WalletCards,
   type LucideIcon,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, matchPath } from "react-router-dom";
 import {
   NAV_GROUPS,
   getGroupMenuItems,
@@ -64,7 +64,8 @@ export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
                   const isSectionSelected =
                     item.group === activeRoute.group &&
                     item.menuLabel === activeRoute.menuLabel;
-                  const isRouteExact = item.path === currentPath;
+                  const isRouteExact =
+                    matchPath({ path: item.path, end: true }, currentPath) != null;
 
                   return (
                     <li key={item.menuLabel}>
@@ -75,7 +76,9 @@ export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
                             : "hsas-admin-sidebar__link"
                         }
                         to={item.path}
-                        aria-current={isSectionSelected ? "page" : undefined}
+                        aria-current={
+                          isSectionSelected && isRouteExact ? "page" : undefined
+                        }
                         data-section-selected={
                           isSectionSelected ? "true" : undefined
                         }

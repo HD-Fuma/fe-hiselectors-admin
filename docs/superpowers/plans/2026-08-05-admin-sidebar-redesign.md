@@ -29,9 +29,9 @@
 
 - [ ] **Step 1: Write failing sidebar and route-activation tests**
 
-Update `AppShell.test.tsx` before production code. Require a `sidebar` shell part. Scope every first-cycle query with `within(shell.querySelector('[data-shell-part="sidebar"]')!)`; inside that sidebar, assert one `navigation[name="관리자 메뉴"]`, exactly 14 links, and headings for 크리에이터, 셀렉터스, 지원자, 캠페인, 콘텐츠, 성과, 정산, 시스템. Require the brand (`FUMA`, `ADMIN CONSOLE`). It is acceptable for legacy navigation to coexist temporarily during this first cycle.
+Update `AppShell.test.tsx` before production code. Require a `sidebar` shell part. Assert exactly one global `navigation[name="관리자 메뉴"]`; inside that sidebar, assert exactly 14 links, their explicit label-to-href mapping, and headings for 크리에이터, 셀렉터스, 지원자, 캠페인, 콘텐츠, 성과, 정산, 시스템. Require the brand (`FUMA`, `ADMIN CONSOLE`). It is acceptable for legacy navigation to coexist temporarily during this first cycle.
 
-Rename the route table's `menuIsCurrentPage` field to `routeIsExact`. For every route require `hsas-admin-sidebar__link--active`, `data-section-selected="true"`, and `aria-current="page"`. Require `data-route-exact="true"` for direct menu routes and require that attribute to be absent for detail, new, and edit routes.
+Rename the route table's `menuIsCurrentPage` field to `routeIsExact`. For every route require exactly one `data-section-selected="true"` link and require that link to have `hsas-admin-sidebar__link--active`. Direct menu routes must have exactly one `aria-current="page"` link and one `data-route-exact="true"` link. Detail, new, and edit routes keep their parent link selected but must have neither `aria-current` nor `data-route-exact`. Add a trailing-slash direct-route case proving `/creators/` remains exact.
 
 Representative assertion:
 
@@ -66,7 +66,7 @@ const GROUP_ICONS: Record<NavGroup, LucideIcon> = {
 
 The component accepts `activeRoute: AdminRouteMeta` and `currentPath: string`. Render an aside with `data-shell-part="sidebar"`, a non-interactive brand, and one `nav` labelled `관리자 메뉴`. Iterate `NAV_GROUPS`, label each section with its heading, and render `getGroupMenuItems(group.id)`.
 
-Set `hsas-admin-sidebar__link--active`, `data-section-selected="true"`, and `aria-current="page"` when both group and menu label match `activeRoute`. Set `data-route-exact="true"` only when `item.path === currentPath`.
+Set `hsas-admin-sidebar__link--active` and `data-section-selected="true"` when both group and menu label match `activeRoute`. Resolve exact routes with React Router `matchPath({ path: item.path, end: true }, currentPath)` so equivalent trailing-slash URLs are handled robustly, and set `data-route-exact="true"` for that exact match. Set `aria-current="page"` only when the link is both selected and exact.
 
 Mount `AdminSidebar` in `AppShell` for this first GREEN cycle without removing the legacy rail/menu yet; the next RED/GREEN cycle owns the shell simplification.
 
