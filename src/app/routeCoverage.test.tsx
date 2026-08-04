@@ -408,13 +408,4 @@ describe("deterministic fixture route states", () => {
 
     expect(screen.getByRole("dialog", { name: "상품 선택" })).toBeInTheDocument();
   });
-
-  test("renders the mega-menu fixture as a modal overlay", () => {
-    renderRoute("/?fixture=mega-menu");
-
-    expect(screen.getByRole("dialog", { name: "전체메뉴" })).toHaveAttribute(
-      "aria-modal",
-      "true",
-    );
-  });
 });

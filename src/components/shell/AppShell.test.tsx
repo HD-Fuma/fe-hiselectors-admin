@@ -1,5 +1,4 @@
 import { screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { renderRoute } from "../../test/renderRoute";
 
 test("renderRoute renders the Partners login route", () => {
@@ -8,22 +7,35 @@ test("renderRoute renders the Partners login route", () => {
   expect(screen.getByRole("main")).toHaveTextContent("더현대Hi 협력사 업무지원시스템");
 });
 
-test("renders the administrator shell and its structural controls", () => {
+test("renders the complete administrator navigation in one sidebar", () => {
   renderRoute("/creators");
 
-  expect(screen.getByText("FUMA 관리자 시스템")).toBeInTheDocument();
-  expect(screen.getByText("마이메뉴")).toBeInTheDocument();
-  expect(screen.getByRole("navigation", { name: "관리자 메뉴" })).toBeInTheDocument();
-
   const shell = screen.getByTestId("admin-shell");
-  expect(shell).toHaveAttribute("data-shell-part", "root");
-  for (const part of ["rail", "menu", "topbar", "work-tabs", "content"]) {
-    expect(shell.querySelector(`[data-shell-part="${part}"]`)).toBeInTheDocument();
-  }
+  const sidebar = shell.querySelector('[data-shell-part="sidebar"]');
+  expect(sidebar).toBeInTheDocument();
+  const sidebarQueries = within(sidebar as HTMLElement);
+  const navigation = sidebarQueries.getByRole("navigation", { name: "관리자 메뉴" });
 
-  const rail = within(shell.querySelector('[data-shell-part="rail"]') as HTMLElement);
-  for (const controlName of ["즐겨찾기", "전체메뉴", "메뉴 편집", "설정", "로그아웃"]) {
-    expect(rail.getByRole("button", { name: controlName })).toBeInTheDocument();
+  expect(sidebarQueries.getByText("FUMA")).toBeInTheDocument();
+  expect(sidebarQueries.getByText("ADMIN CONSOLE")).toBeInTheDocument();
+  expect(
+    sidebarQueries.getAllByRole("navigation", { name: "관리자 메뉴" }),
+  ).toHaveLength(1);
+  expect(within(navigation).getAllByRole("link")).toHaveLength(14);
+
+  for (const groupLabel of [
+    "크리에이터",
+    "셀렉터스",
+    "지원자",
+    "캠페인",
+    "콘텐츠",
+    "성과",
+    "정산",
+    "시스템",
+  ]) {
+    expect(
+      within(navigation).getByRole("heading", { name: groupLabel }),
+    ).toBeInTheDocument();
   }
 
   const workTabs = screen.getByRole("navigation", { name: "작업 탭" });
@@ -43,85 +55,62 @@ test("preserves visual fixture query state in the active work tab", () => {
   );
 });
 
-test("opens the deterministic two-level full menu fixture", () => {
-  renderRoute("/?fixture=mega-menu");
+test("renders only the unified administrator shell parts", () => {
+  renderRoute("/creators");
 
-  const dialog = screen.getByRole("dialog", { name: "전체메뉴" });
-  expect(dialog).toBeInTheDocument();
-
-  const groupNavigation = within(dialog).getByRole("navigation", { name: "전체메뉴 업무군" });
-  for (const groupLabel of [
-    "크리에이터",
-    "셀렉터스",
-    "지원자",
-    "캠페인",
-    "콘텐츠",
-    "성과",
-    "정산",
-    "시스템",
-  ]) {
-    expect(within(groupNavigation).getByRole("button", { name: groupLabel })).toBeInTheDocument();
+  const shell = screen.getByTestId("admin-shell");
+  expect(shell).toHaveAttribute("data-shell-part", "root");
+  for (const part of ["sidebar", "topbar", "work-tabs", "content"]) {
+    expect(shell.querySelector(`[data-shell-part="${part}"]`)).toBeInTheDocument();
   }
-
-  const childNavigation = within(dialog).getByRole("navigation", { name: "전체메뉴 하위 메뉴" });
-  expect(within(childNavigation).getByRole("link", { name: "크리에이터 목록" })).toBeInTheDocument();
-  expect(within(childNavigation).getByRole("link", { name: "제안 이력" })).toBeInTheDocument();
+  expect(shell.querySelector('[data-shell-part="rail"]')).not.toBeInTheDocument();
 });
 
-test("opens the full menu from the rail, focuses it, and isolates the shell", async () => {
-  const user = userEvent.setup();
-  renderRoute("/creators");
+test.each([
+  ["/creators", "크리에이터 / 크리에이터 풀"],
+  ["/campaigns/new", "캠페인 / 캠페인 등록"],
+])("renders the exact administrator context for %s", (path, context) => {
+  renderRoute(path);
+
   const shell = screen.getByTestId("admin-shell");
-
-  await user.click(screen.getByRole("button", { name: "전체메뉴" }));
-
-  const dialog = screen.getByRole("dialog", { name: "전체메뉴" });
-  expect(within(dialog).getByRole("button", { name: "전체메뉴 닫기" })).toHaveFocus();
-  expect(shell).toHaveAttribute("aria-hidden", "true");
-  expect(shell).toHaveAttribute("inert");
+  const topbar = shell.querySelector('[data-shell-part="topbar"]');
+  expect(topbar).toBeInTheDocument();
+  expect(within(topbar as HTMLElement).getByText(context)).toBeInTheDocument();
 });
 
-test("contains forward and backward tab focus inside the full menu", async () => {
-  const user = userEvent.setup();
+test("keeps the administrator identity and utility controls in the topbar only", () => {
   renderRoute("/creators");
 
-  await user.click(screen.getByRole("button", { name: "전체메뉴" }));
-
-  const dialog = screen.getByRole("dialog", { name: "전체메뉴" });
-  const firstControl = within(dialog).getByRole("button", { name: "전체메뉴 닫기" });
-  const lastControl = within(dialog).getByRole("link", { name: "제안 이력" });
-  expect(firstControl).toHaveFocus();
-
-  await user.tab({ shift: true });
-  expect(lastControl).toHaveFocus();
-  await user.tab();
-  expect(firstControl).toHaveFocus();
-});
-
-test("Escape closes the full menu, restores the shell, and returns focus to its trigger", async () => {
-  const user = userEvent.setup();
-  renderRoute("/creators");
   const shell = screen.getByTestId("admin-shell");
-  const trigger = screen.getByRole("button", { name: "전체메뉴" });
+  const topbar = shell.querySelector('[data-shell-part="topbar"]');
+  expect(topbar).toBeInTheDocument();
+  const topbarQueries = within(topbar as HTMLElement);
 
-  await user.click(trigger);
-  await user.keyboard("{Escape}");
-
-  expect(screen.queryByRole("dialog", { name: "전체메뉴" })).not.toBeInTheDocument();
-  expect(shell).not.toHaveAttribute("aria-hidden");
-  expect(shell).not.toHaveAttribute("inert");
-  expect(trigger).toHaveFocus();
+  expect(topbarQueries.getByText("관리자")).toBeInTheDocument();
+  expect(topbarQueries.getByText("FUMA 운영자")).toBeInTheDocument();
+  expect(topbarQueries.getByRole("button", { name: "설정" })).toBeInTheDocument();
+  expect(topbarQueries.getByRole("button", { name: "로그아웃" })).toBeInTheDocument();
+  expect(within(shell).getAllByRole("button", { name: "설정" })).toHaveLength(1);
+  expect(within(shell).getAllByRole("button", { name: "로그아웃" })).toHaveLength(1);
 });
 
-test("closing the deterministic full-menu fixture removes its query state", async () => {
-  const user = userEvent.setup();
-  const { router } = renderRoute("/?fixture=mega-menu");
+test("does not render icon-rail navigation controls", () => {
+  renderRoute("/creators");
 
-  await user.click(screen.getByRole("button", { name: "전체메뉴 닫기" }));
+  const shell = screen.getByTestId("admin-shell");
+  for (const controlName of ["즐겨찾기", "전체메뉴", "메뉴 편집"]) {
+    expect(
+      within(shell).queryByRole("button", { name: controlName }),
+    ).not.toBeInTheDocument();
+  }
+});
 
-  expect(screen.queryByRole("dialog", { name: "전체메뉴" })).not.toBeInTheDocument();
-  expect(router.state.location.pathname).toBe("/");
-  expect(router.state.location.search).toBe("");
+test("does not render a favorite control for the current screen", () => {
+  renderRoute("/creators");
+
+  expect(
+    screen.queryByRole("button", { name: "현재 화면 즐겨찾기" }),
+  ).not.toBeInTheDocument();
 });
 
 const routeCases = [
@@ -131,7 +120,7 @@ const routeCases = [
     menuLabel: "크리에이터 목록",
     title: "크리에이터 풀",
     screenCode: "CR101",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
   {
     path: "/creators/cr-001",
@@ -139,7 +128,7 @@ const routeCases = [
     menuLabel: "크리에이터 목록",
     title: "크리에이터 상세",
     screenCode: "CR102",
-    menuIsCurrentPage: false,
+    routeIsExact: false,
   },
   {
     path: "/proposals",
@@ -147,7 +136,7 @@ const routeCases = [
     menuLabel: "제안 이력",
     title: "제안 이력 관리",
     screenCode: "CR201",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
   {
     path: "/cohorts",
@@ -155,7 +144,7 @@ const routeCases = [
     menuLabel: "기수 관리",
     title: "셀렉터스 기수 관리",
     screenCode: "SL101",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
   {
     path: "/selectors",
@@ -163,7 +152,7 @@ const routeCases = [
     menuLabel: "셀렉터스 현황",
     title: "기수별 셀렉터스 현황",
     screenCode: "SL201",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
   {
     path: "/selectors/qualifications",
@@ -171,7 +160,7 @@ const routeCases = [
     menuLabel: "자격 관리",
     title: "셀렉터스 자격 관리",
     screenCode: "SL301",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
   {
     path: "/applicants",
@@ -179,7 +168,7 @@ const routeCases = [
     menuLabel: "지원자 목록",
     title: "지원자 심사",
     screenCode: "AP101",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
   {
     path: "/applicants/ap-001",
@@ -187,7 +176,7 @@ const routeCases = [
     menuLabel: "지원자 목록",
     title: "지원자 상세 심사",
     screenCode: "AP102",
-    menuIsCurrentPage: false,
+    routeIsExact: false,
   },
   {
     path: "/campaigns",
@@ -195,7 +184,7 @@ const routeCases = [
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
     screenCode: "CP101",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
   {
     path: "/campaigns/new",
@@ -203,7 +192,7 @@ const routeCases = [
     menuLabel: "캠페인 관리",
     title: "캠페인 등록",
     screenCode: "CP102",
-    menuIsCurrentPage: false,
+    routeIsExact: false,
   },
   {
     path: "/campaigns/cp-001/edit",
@@ -211,7 +200,7 @@ const routeCases = [
     menuLabel: "캠페인 관리",
     title: "캠페인 수정",
     screenCode: "CP103",
-    menuIsCurrentPage: false,
+    routeIsExact: false,
   },
   {
     path: "/content/reviews",
@@ -219,7 +208,7 @@ const routeCases = [
     menuLabel: "콘텐츠 검수",
     title: "콘텐츠 검수",
     screenCode: "CT101",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
   {
     path: "/content/reviews/ct-001",
@@ -227,7 +216,7 @@ const routeCases = [
     menuLabel: "콘텐츠 검수",
     title: "콘텐츠 검수 상세",
     screenCode: "CT102",
-    menuIsCurrentPage: false,
+    routeIsExact: false,
   },
   {
     path: "/content/violations",
@@ -235,7 +224,7 @@ const routeCases = [
     menuLabel: "위반 관리",
     title: "위반 콘텐츠 관리",
     screenCode: "CT201",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
   {
     path: "/performance",
@@ -243,7 +232,7 @@ const routeCases = [
     menuLabel: "성과 대시보드",
     title: "관리자 성과 대시보드",
     screenCode: "PF101",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
   {
     path: "/performance/creators",
@@ -251,7 +240,7 @@ const routeCases = [
     menuLabel: "크리에이터 분석",
     title: "크리에이터 영향력 분석",
     screenCode: "PF201",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
   {
     path: "/performance/contents",
@@ -259,7 +248,7 @@ const routeCases = [
     menuLabel: "콘텐츠 분석",
     title: "콘텐츠 영향력 분석",
     screenCode: "PF202",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
   {
     path: "/settlements",
@@ -267,7 +256,7 @@ const routeCases = [
     menuLabel: "정산 관리",
     title: "정산 지급 관리",
     screenCode: "ST101",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
   {
     path: "/system/notices",
@@ -275,28 +264,34 @@ const routeCases = [
     menuLabel: "공지사항",
     title: "공지사항 관리",
     screenCode: "SY101",
-    menuIsCurrentPage: true,
+    routeIsExact: true,
   },
 ] as const;
 
 test.each(routeCases)(
   "$path renders $screenCode with its selected group and menu item",
-  ({ path, group, menuLabel, title, screenCode, menuIsCurrentPage }) => {
+  ({ path, group, menuLabel, title, screenCode, routeIsExact }) => {
     renderRoute(path);
 
     expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     expect(screen.getByText(screenCode)).toBeInTheDocument();
 
-    const navigation = screen.getByRole("navigation", { name: "관리자 메뉴" });
+    const shell = screen.getByTestId("admin-shell");
+    const sidebar = shell.querySelector('[data-shell-part="sidebar"]');
+    expect(sidebar).toBeInTheDocument();
+    const navigation = within(sidebar as HTMLElement).getByRole("navigation", {
+      name: "관리자 메뉴",
+    });
     expect(navigation).toHaveAttribute("data-selected-group", group);
     const menuLink = within(navigation).getByRole("link", { name: menuLabel });
-    expect(menuLink).toHaveClass("hsas-my-menu__link--active");
-    if (menuIsCurrentPage) {
-      expect(menuLink).toHaveAttribute("aria-current", "page");
-    } else {
-      expect(menuLink).not.toHaveAttribute("aria-current");
-    }
+    expect(menuLink).toHaveClass("hsas-admin-sidebar__link--active");
+    expect(menuLink).toHaveAttribute("aria-current", "page");
     expect(menuLink).toHaveAttribute("data-section-selected", "true");
+    if (routeIsExact) {
+      expect(menuLink).toHaveAttribute("data-route-exact", "true");
+    } else {
+      expect(menuLink).not.toHaveAttribute("data-route-exact");
+    }
   },
 );
 
