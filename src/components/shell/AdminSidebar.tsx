@@ -7,7 +7,6 @@ import {
   LogOut,
   Megaphone,
   Settings,
-  Settings2,
   UsersRound,
   WalletCards,
   type LucideIcon,
@@ -31,7 +30,6 @@ const GROUP_ICONS: Record<NavGroup, LucideIcon> = {
   content: FileSearch,
   performance: BarChart3,
   settlements: WalletCards,
-  system: Settings2,
 };
 
 interface AdminSidebarProps {

@@ -136,10 +136,10 @@ test("keeps sidebar navigation scroll independent from the page", async ({ page 
   const brand = sidebar.locator(".hsas-admin-sidebar__brand");
   const navigation = sidebar.getByRole("navigation", { name: "관리자 메뉴" });
   const links = navigation.getByRole("link");
-  const finalLink = navigation.getByRole("link", { name: "공지사항" });
+  const finalLink = navigation.getByRole("link", { name: "정산 관리" });
 
   await expect(brand).toBeVisible();
-  await expect(links).toHaveCount(14);
+  await expect(links).toHaveCount(13);
   await expect(sidebar).toHaveCSS("position", "sticky");
   await expect(sidebar).toHaveCSS("top", "0px");
   await expect(navigation).toHaveCSS("overflow-y", "auto");

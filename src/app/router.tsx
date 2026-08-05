@@ -34,7 +34,6 @@ import {
   PerformanceDashboardPage,
 } from "../features/performance/PerformancePages";
 import {
-  NoticeManagementPage,
   SettlementManagementPage,
 } from "../features/operations/OperationsPages";
 import { ADMIN_ROUTES, DEFAULT_ADMIN_ROUTE } from "./navigation";
@@ -81,8 +80,6 @@ function adminRouteElement(path: string, title: string, screenCode: string) {
       return <ContentPerformancePage />;
     case "/settlements":
       return <SettlementManagementPage />;
-    case "/system/notices":
-      return <NoticeManagementPage />;
     default:
       return <PlaceholderPage title={title} screenCode={screenCode} />;
   }

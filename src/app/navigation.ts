@@ -7,8 +7,7 @@ export type NavGroup =
   | "campaigns"
   | "content"
   | "performance"
-  | "settlements"
-  | "system";
+  | "settlements";
 
 export interface AdminRouteMeta {
   path: string;
@@ -32,7 +31,6 @@ export const NAV_GROUPS: readonly NavGroupMeta[] = [
   { id: "content", label: "콘텐츠" },
   { id: "performance", label: "성과" },
   { id: "settlements", label: "정산" },
-  { id: "system", label: "시스템" },
 ];
 
 export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
@@ -85,20 +83,20 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     workTabLabel: "셀렉터스 현황",
   },
   {
-    path: "/selectors/:selectorId",
-    group: "selectors",
-    menuLabel: "셀렉터스 현황",
-    title: "셀렉터스 상세",
-    screenCode: "SL202",
-    workTabLabel: "셀렉터스 상세",
-  },
-  {
     path: "/selectors/qualifications",
     group: "selectors",
     menuLabel: "자격 관리",
     title: "셀렉터스 자격 관리",
     screenCode: "SL301",
     workTabLabel: "자격 관리",
+  },
+  {
+    path: "/selectors/:selectorId",
+    group: "selectors",
+    menuLabel: "셀렉터스 현황",
+    title: "셀렉터스 상세",
+    screenCode: "SL202",
+    workTabLabel: "셀렉터스 상세",
   },
   {
     path: "/applicants",
@@ -195,14 +193,6 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     title: "정산 지급 관리",
     screenCode: "ST101",
     workTabLabel: "정산 관리",
-  },
-  {
-    path: "/system/notices",
-    group: "system",
-    menuLabel: "공지사항",
-    title: "공지사항 관리",
-    screenCode: "SY101",
-    workTabLabel: "공지사항",
   },
 ];
 

@@ -29,7 +29,6 @@ export const ADMIN_REQUIREMENT_ROWS = [
   { route: "/performance/creators", rows: [26] },
   { route: "/performance/contents", rows: [27] },
   { route: "/settlements", rows: [28] },
-  { route: "/system/notices", rows: [36] },
 ] as const satisfies readonly AdminRequirementRows[];
 
 function splitRequirementRoute(route: string) {

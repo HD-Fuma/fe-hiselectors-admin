@@ -426,15 +426,4 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     ],
     primaryRole: { role: "heading", name: "정산 지급 관리" },
   },
-  {
-    route: "/system/notices",
-    rows: [36],
-    expectedTexts: ["제목", "대상", "게시 기간", "게시 상태", "작성자", "수정일"],
-    expectedActions: [
-      "신규 작성",
-      "8월 셀렉터스 활동 안내 수정",
-      "8월 셀렉터스 활동 안내 삭제",
-    ],
-    primaryRole: { role: "heading", name: "공지사항 관리" },
-  },
 ] as const satisfies readonly AdminRequirementCoverageCase[];

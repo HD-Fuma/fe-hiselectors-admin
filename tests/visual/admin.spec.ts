@@ -364,8 +364,6 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
     "콘텐츠 분석",
     "정산",
     "정산 관리",
-    "시스템",
-    "공지사항",
   ]);
   const grid = page.locator('[data-visual-contract="creator-card-grid"]');
   const cards = grid.locator(":scope > .fuma-creator-card");

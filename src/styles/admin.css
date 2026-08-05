@@ -1998,57 +1998,6 @@
   font-weight: 400;
 }
 
-.fuma-notice-search .hsas-search-panel__fields {
-  grid-template-columns: minmax(220px, 1fr) minmax(190px, 0.7fr) minmax(360px, 1.2fr);
-}
-
-.fuma-notice-table .hsas-dense-table {
-  min-width: 972px;
-}
-
-.fuma-notice-editor__form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.fuma-notice-editor__form > .hsas-form-row:nth-child(even) {
-  border-right: 1px solid var(--hsas-border);
-}
-
-.fuma-notice-editor__form > .hsas-form-row:first-child,
-.fuma-notice-editor__form > .hsas-form-row:last-child {
-  grid-column: 1 / -1;
-  border-right: 0;
-}
-
-.fuma-notice-editor__textarea {
-  min-height: 72px;
-  padding: 7px;
-  resize: none;
-}
-
-.fuma-notice-editor__footer {
-  display: flex;
-  min-height: 39px;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--hsas-space-12);
-  padding: 6px var(--hsas-space-8);
-  border-top: 1px solid var(--hsas-border);
-  background: #f7f8f8;
-}
-
-.fuma-notice-editor__footer p {
-  margin: 0;
-  color: var(--hsas-text-muted);
-  font-size: 11px;
-}
-
-.fuma-notice-editor__footer > div {
-  display: flex;
-  gap: var(--hsas-space-4);
-}
-
 .fuma-creator-toolbar {
   min-height: 35px;
   display: flex;

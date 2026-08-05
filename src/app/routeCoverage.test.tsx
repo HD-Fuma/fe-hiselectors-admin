@@ -57,7 +57,6 @@ const REQUIRED_ROUTES = [
   "/performance/creators",
   "/performance/contents",
   "/settlements",
-  "/system/notices",
 ] as const;
 
 const SEMANTIC_ROUTE_CONTRACTS = [
