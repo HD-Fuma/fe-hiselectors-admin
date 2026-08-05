@@ -73,6 +73,15 @@ describe("CreatorAnalysisReport", () => {
       "ER 집계 불가 · 댓글 수가 있는 유효 표본 없음",
     );
   });
+
+  test("keeps fallback format-mix counts aligned with its collected content and ER sample window", () => {
+    render(<CreatorAnalysisReport creator={CREATORS[2]} />);
+
+    const quantitative = screen.getByRole("region", { name: "정량 분석" });
+    expect(quantitative).toHaveTextContent("수집 콘텐츠 18건");
+    expect(quantitative).toHaveTextContent("콘텐츠 형식 통계수집 콘텐츠 18건");
+    expect(quantitative).toHaveTextContent("표본 18건");
+  });
 });
 
 describe("creator analysis derivations", () => {

@@ -154,7 +154,7 @@ function fallbackAnalysis(creator: CreatorFixture): CreatorAnalysisFixture {
       likes: creator.profile.averageReactions,
       comments: null,
     },
-    formatMix: [{ label: "수집 콘텐츠", count: creator.featuredContents.length }],
+    formatMix: [{ label: "수집 콘텐츠", count: engagementSamples.length }],
     supplementalInteractions: [],
     qualitativeClaims: [
       {
