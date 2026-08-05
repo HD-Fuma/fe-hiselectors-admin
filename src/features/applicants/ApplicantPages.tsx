@@ -1,6 +1,5 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { AiSummaryPanel } from "../../components/content/AiSummaryPanel";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Checkbox, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
@@ -10,6 +9,7 @@ import { Pagination } from "../../components/ui/Pagination";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SectionTabs } from "../../components/ui/SectionTabs";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { ApplicantAnalysisReport } from "./ApplicantAnalysisReport";
 import {
   APPLICANTS,
   findApplicantFixture,
@@ -255,12 +255,13 @@ export function ApplicantListPage() {
 interface KeyValueSectionProps {
   fields: Array<[string, ReactNode]>;
   id: string;
+  sectionId: string;
   title: string;
 }
 
-function KeyValueSection({ fields, id, title }: KeyValueSectionProps) {
+function KeyValueSection({ fields, id, sectionId, title }: KeyValueSectionProps) {
   return (
-    <section aria-labelledby={id} className="fuma-content-section">
+    <section aria-labelledby={id} className="fuma-content-section" id={sectionId}>
       <header className="fuma-content-section__header">
         <h2 id={id}>{title}</h2>
       </header>
@@ -293,6 +294,7 @@ function BasicInformation({ applicant }: { applicant: ApplicantFixture }) {
         ],
       ]}
       id="applicant-basic-title"
+      sectionId="basic"
       title="기본 정보"
     />
   );
@@ -311,6 +313,7 @@ function SnsMetrics({ applicant }: { applicant: ApplicantFixture }) {
         ["평균 반응 수", formatNumber(applicant.averageReactions)],
       ]}
       id="applicant-metrics-title"
+      sectionId="metrics"
       title="SNS 채널 정보"
     />
   );
@@ -356,6 +359,7 @@ function ReviewSection({
     <section
       aria-labelledby="applicant-review-title"
       className="fuma-content-section fuma-applicant-review"
+      id="review"
     >
       <header className="fuma-content-section__header">
         <h2 id="applicant-review-title">심사 처리</h2>
@@ -410,6 +414,7 @@ function DeliverySection({ applicant }: { applicant: ApplicantFixture }) {
     <section
       aria-labelledby="applicant-delivery-title"
       className="fuma-content-section fuma-applicant-delivery"
+      id="delivery"
     >
       <header className="fuma-content-section__header">
         <h2 id="applicant-delivery-title">심사 결과 전송</h2>
@@ -432,7 +437,8 @@ function DeliverySection({ applicant }: { applicant: ApplicantFixture }) {
 const DETAIL_TABS = [
   { id: "basic", label: "기본 정보" },
   { id: "metrics", label: "SNS 지표" },
-  { id: "ai-report", label: "AI 요약 리포트" },
+  { id: "featured", label: "대표 콘텐츠", targetId: "featured-content" },
+  { id: "analysis", label: "AI 분석 리포트" },
   { id: "review", label: "심사 처리" },
   { id: "delivery", label: "결과 전송" },
 ];
@@ -443,6 +449,7 @@ export function ApplicantDetailPage() {
   const applicant = findApplicantFixture(applicantId);
   const showAutoRejectionDetails =
     applicant?.id === "ap-003" && searchParams.get("fixture") === "auto-rejected";
+  const [activeSection, setActiveSection] = useState("basic");
 
   return (
     <section className="fuma-page">
@@ -455,10 +462,10 @@ export function ApplicantDetailPage() {
                 목록
               </Link>
             </div>
-            <SectionTabs activeId="basic" items={DETAIL_TABS} />
+            <SectionTabs activeId={activeSection} items={DETAIL_TABS} onChange={setActiveSection} />
             <BasicInformation applicant={applicant} />
             <SnsMetrics applicant={applicant} />
-            <AiSummaryPanel report={applicant.aiReport} />
+            <ApplicantAnalysisReport applicant={applicant} />
             <ReviewSection
               applicant={applicant}
               key={`${applicant.id}-${showAutoRejectionDetails}`}

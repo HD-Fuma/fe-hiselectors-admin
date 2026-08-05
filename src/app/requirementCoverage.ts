@@ -176,8 +176,10 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     expectedTexts: [
       "평균 조회 수",
       "평균 반응 수",
-      "AI 적합도",
-      "근거 지표",
+      "대표 콘텐츠",
+      "지원자 분석 리포트",
+      "ER (Engagement Rate)",
+      "협업 브랜드",
       "심사 결과 전송",
       "전송 대기",
     ],

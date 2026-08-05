@@ -10,14 +10,15 @@ export interface AiSummaryReport {
 
 interface AiSummaryPanelProps {
   report: AiSummaryReport;
+  sectionId?: string;
 }
 
-export function AiSummaryPanel({ report }: AiSummaryPanelProps) {
+export function AiSummaryPanel({ report, sectionId }: AiSummaryPanelProps) {
   const isReady = report.status === "ready";
   const titleId = useId();
 
   return (
-    <section aria-labelledby={titleId} className="fuma-content-section">
+    <section aria-labelledby={titleId} className="fuma-content-section" id={sectionId}>
       <header className="fuma-content-section__header">
         <h2 id={titleId}>AI 요약 리포트</h2>
         <StatusPill tone={isReady ? "approved" : "pending"}>
