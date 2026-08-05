@@ -2,7 +2,9 @@ import {
   expect,
   test as base,
   type BrowserContext,
-  type Page,
+  type ConsoleMessage,
+  type Request,
+  type WebError,
 } from "@playwright/test";
 import {
   isAllowedHttpUrl,
@@ -19,25 +21,6 @@ export interface BrowserDiagnostics {
 
 interface BrowserDiagnosticFixtures {
   browserDiagnostics: BrowserDiagnostics;
-}
-
-function attachPageDiagnostics(
-  page: Page,
-  diagnostics: BrowserDiagnostics,
-  attachedPages: WeakSet<Page>,
-) {
-  if (attachedPages.has(page)) return;
-  attachedPages.add(page);
-
-  page.on("console", (message) => {
-    if (message.type() === "error") diagnostics.consoleErrors.push(message.text());
-  });
-  page.on("pageerror", (error) => diagnostics.pageErrors.push(error.message));
-  page.on("requestfailed", (request) => {
-    diagnostics.requestFailures.push(
-      `${request.method()} ${request.url()} ${request.failure()?.errorText ?? "unknown"}`,
-    );
-  });
 }
 
 async function installContextRoutes(
@@ -76,7 +59,7 @@ async function installContextRoutes(
 
 export const test = base.extend<BrowserDiagnosticFixtures>({
   browserDiagnostics: [
-    async ({ context, page }, use, testInfo) => {
+    async ({ context }, use, testInfo) => {
       const configuredBaseURL = testInfo.project.use.baseURL;
       if (typeof configuredBaseURL !== "string") {
         throw new Error("Visual diagnostics require a string Playwright baseURL.");
@@ -89,18 +72,28 @@ export const test = base.extend<BrowserDiagnosticFixtures>({
         pageErrors: [],
         requestFailures: [],
       };
-      const attachedPages = new WeakSet<Page>();
-      const attachDiagnostics = (contextPage: Page) =>
-        attachPageDiagnostics(contextPage, diagnostics, attachedPages);
+      const recordConsoleError = (message: ConsoleMessage) => {
+        if (message.type() === "error") diagnostics.consoleErrors.push(message.text());
+      };
+      const recordRequestFailure = (request: Request) => {
+        diagnostics.requestFailures.push(
+          `${request.method()} ${request.url()} ${request.failure()?.errorText ?? "unknown"}`,
+        );
+      };
+      const recordWebError = (webError: WebError) => {
+        diagnostics.pageErrors.push(webError.error().message);
+      };
 
-      for (const contextPage of context.pages()) attachDiagnostics(contextPage);
-      attachDiagnostics(page);
-      context.on("page", attachDiagnostics);
+      context.on("console", recordConsoleError);
+      context.on("requestfailed", recordRequestFailure);
+      context.on("weberror", recordWebError);
       await installContextRoutes(context, new URL(configuredBaseURL), diagnostics);
 
       await use(diagnostics);
 
-      context.off("page", attachDiagnostics);
+      context.off("console", recordConsoleError);
+      context.off("requestfailed", recordRequestFailure);
+      context.off("weberror", recordWebError);
       expect(diagnostics.externalRequests).toEqual([]);
       expect(diagnostics.externalWebSockets).toEqual([]);
       expect(diagnostics.consoleErrors).toEqual([]);
