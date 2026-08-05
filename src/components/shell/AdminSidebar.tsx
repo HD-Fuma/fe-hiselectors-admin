@@ -21,6 +21,7 @@ import {
   type NavGroup,
 } from "../../app/navigation";
 import "../../styles/sidebar-account.css";
+import "../../styles/sidebar-brand.css";
 
 const GROUP_ICONS: Record<NavGroup, LucideIcon> = {
   creators: UsersRound,
@@ -58,15 +59,14 @@ export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
   return (
     <aside className="hsas-admin-sidebar" data-shell-part="sidebar">
       <div className="hsas-admin-sidebar__brand">
-        <span className="hsas-admin-sidebar__brand-mark" aria-hidden="true">
-          S
+        <span className="hsas-admin-sidebar__brand-logo-shell">
+          <img
+            className="hsas-admin-sidebar__brand-logo"
+            src="/brand/thehyundai-hi.svg"
+            alt="더현대Hi"
+          />
         </span>
-        <span className="hsas-admin-sidebar__brand-copy">
-          <strong className="hsas-admin-sidebar__brand-name">SELECTORS</strong>
-          <span className="hsas-admin-sidebar__brand-caption">
-            CREATOR OPERATIONS
-          </span>
-        </span>
+        <span className="hsas-admin-sidebar__brand-caption">SELECTORS</span>
       </div>
       <nav
         className="hsas-admin-sidebar__navigation"

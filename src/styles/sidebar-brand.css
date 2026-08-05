@@ -1,0 +1,31 @@
+.hsas-admin-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 var(--hsas-space-16);
+}
+
+.hsas-admin-sidebar__brand-logo-shell {
+  display: grid;
+  width: 91px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 4px;
+  background: #fff;
+  place-items: center;
+}
+
+.hsas-admin-sidebar__brand-logo {
+  display: block;
+  width: 71px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.hsas-admin-sidebar__brand-caption {
+  color: var(--hsas-sidebar-heading);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+}
