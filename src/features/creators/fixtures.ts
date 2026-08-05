@@ -1,7 +1,6 @@
 export type ProposalChannel = "Instagram DM" | "이메일";
 export type ProposalStatus = "발송 대기" | "발송 완료" | "발송 실패" | "셀렉터스 전환";
-export type CreatorPlatform = "Instagram" | "YouTube" | "Facebook";
-export type CreatorPortraitVariant = "sage" | "navy" | "coral" | "amber";
+export type CreatorPlatform = "Instagram" | "YouTube";
 export type CreatorMediaVisual =
   | "beauty"
   | "fashion"
@@ -16,19 +15,20 @@ export type CreatorMediaVisual =
 
 export interface CreatorFeaturedContentFixture {
   id: string;
-  platform: CreatorPlatform;
   title: string;
   mediaType: "이미지" | "동영상";
   views: number;
   visual: CreatorMediaVisual;
+  thumbnailUrl: string;
 }
 
-export interface CreatorChannelFixture {
+export interface CreatorProfileFixture {
   platform: CreatorPlatform;
   handle: string;
   followers: number;
-  views: number;
-  reactions: number;
+  averageViews: number;
+  averageReactions: number;
+  profileImageUrl: string;
 }
 
 export interface AiReportFixture {
@@ -41,15 +41,12 @@ export interface AiReportFixture {
 interface CreatorBaseFixture {
   id: string;
   name: string;
-  portrait: CreatorPortraitVariant;
-  platforms: CreatorPlatform[];
+  profile: CreatorProfileFixture;
   categories: string[];
   tier: "T0" | "T1" | "T2" | "T3";
-  followers: number;
   contentCount: number;
   recentActivity: string;
   featuredContents: CreatorFeaturedContentFixture[];
-  channels: CreatorChannelFixture[];
   aiReport: AiReportFixture;
   proposalStatus: ProposalStatus | "미제안";
 }
@@ -113,53 +110,42 @@ export const CREATORS: CreatorFixture[] = [
   {
     id: "cr-001",
     name: "김서연",
-    portrait: "sage",
-    platforms: ["Instagram", "YouTube"],
+    profile: {
+      platform: "Instagram",
+      handle: "@seo.yeon",
+      followers: 82_400,
+      averageViews: 48_200,
+      averageReactions: 3_278,
+      profileImageUrl: "/creator-media/cr-001-profile.jpg",
+    },
     categories: ["뷰티", "패션"],
     tier: "T1",
-    followers: 128400,
     contentCount: 184,
     recentActivity: "2026-08-02",
     featuredContents: [
       {
         id: "seo-look",
-        platform: "Instagram",
         title: "여름 데일리 룩",
         mediaType: "이미지",
         views: 98_600,
         visual: "fashion",
+        thumbnailUrl: "/creator-media/cr-001-01.jpg",
       },
       {
         id: "seo-tone",
-        platform: "Instagram",
         title: "가을 톤 메이크업",
         mediaType: "이미지",
         views: 74_200,
         visual: "beauty",
+        thumbnailUrl: "/creator-media/cr-001-02.jpg",
       },
       {
         id: "seo-video",
-        platform: "YouTube",
         title: "5분 출근 룩북",
         mediaType: "동영상",
         views: 63_100,
         visual: "skincare",
-      },
-    ],
-    channels: [
-      {
-        platform: "Instagram",
-        handle: "@seo.yeon",
-        followers: 82400,
-        views: 48200,
-        reactions: 3278,
-      },
-      {
-        platform: "YouTube",
-        handle: "서연의 옷장",
-        followers: 46000,
-        views: 31400,
-        reactions: 1945,
+        thumbnailUrl: "/creator-media/cr-001-03.jpg",
       },
     ],
     aiReport: SEOYEON_AI_REPORT,
@@ -170,46 +156,42 @@ export const CREATORS: CreatorFixture[] = [
   {
     id: "cr-002",
     name: "박도윤",
-    portrait: "navy",
-    platforms: ["YouTube"],
+    profile: {
+      platform: "YouTube",
+      handle: "도윤의 집밥",
+      followers: 76_200,
+      averageViews: 26_800,
+      averageReactions: 1_320,
+      profileImageUrl: "/creator-media/cr-002-profile.jpg",
+    },
     categories: ["리빙", "푸드"],
     tier: "T2",
-    followers: 76200,
     contentCount: 96,
     recentActivity: "2026-07-31",
     featuredContents: [
       {
         id: "doyoon-home",
-        platform: "YouTube",
         title: "퇴근 후 집밥",
         mediaType: "동영상",
         views: 54_800,
         visual: "cooking",
+        thumbnailUrl: "/creator-media/cr-002-01.jpg",
       },
       {
         id: "doyoon-coffee",
-        platform: "YouTube",
         title: "홈카페 레시피",
         mediaType: "동영상",
         views: 37_400,
         visual: "coffee",
+        thumbnailUrl: "/creator-media/cr-002-02.jpg",
       },
       {
         id: "doyoon-table",
-        platform: "YouTube",
         title: "주말 한 상",
         mediaType: "이미지",
         views: 29_600,
         visual: "table",
-      },
-    ],
-    channels: [
-      {
-        platform: "YouTube",
-        handle: "도윤의 집밥",
-        followers: 76200,
-        views: 26800,
-        reactions: 1320,
+        thumbnailUrl: "/creator-media/cr-002-03.jpg",
       },
     ],
     aiReport: {
@@ -225,53 +207,42 @@ export const CREATORS: CreatorFixture[] = [
   {
     id: "cr-003",
     name: "이지아",
-    portrait: "coral",
-    platforms: ["Instagram", "Facebook"],
+    profile: {
+      platform: "Instagram",
+      handle: "@zia.trip",
+      followers: 32_700,
+      averageViews: 17_900,
+      averageReactions: 980,
+      profileImageUrl: "/creator-media/cr-003-profile.jpg",
+    },
     categories: ["여행", "라이프"],
     tier: "T3",
-    followers: 51100,
     contentCount: 142,
     recentActivity: "2026-07-29",
     featuredContents: [
       {
         id: "zia-coast",
-        platform: "Instagram",
         title: "여름 바다 산책",
         mediaType: "이미지",
         views: 42_300,
         visual: "coast",
+        thumbnailUrl: "/creator-media/cr-003-01.jpg",
       },
       {
         id: "zia-city",
-        platform: "Facebook",
         title: "도시 여행 노트",
         mediaType: "이미지",
         views: 28_100,
         visual: "city",
+        thumbnailUrl: "/creator-media/cr-003-02.jpg",
       },
       {
         id: "zia-pack",
-        platform: "Instagram",
         title: "3박 4일 패킹",
         mediaType: "동영상",
         views: 19_600,
         visual: "packing",
-      },
-    ],
-    channels: [
-      {
-        platform: "Instagram",
-        handle: "@zia.trip",
-        followers: 32700,
-        views: 17900,
-        reactions: 980,
-      },
-      {
-        platform: "Facebook",
-        handle: "지아의 여행노트",
-        followers: 18_400,
-        views: 9_300,
-        reactions: 420,
+        thumbnailUrl: "/creator-media/cr-003-03.jpg",
       },
     ],
     aiReport: PENDING_AI_REPORT,
@@ -282,46 +253,42 @@ export const CREATORS: CreatorFixture[] = [
   {
     id: "cr-004",
     name: "오하늘",
-    portrait: "amber",
-    platforms: ["Instagram"],
+    profile: {
+      platform: "Instagram",
+      handle: "@today_haneul",
+      followers: 486_000,
+      averageViews: 154_200,
+      averageReactions: 12_860,
+      profileImageUrl: "/creator-media/cr-004-profile.jpg",
+    },
     categories: ["푸드"],
     tier: "T0",
-    followers: 486000,
     contentCount: 356,
     recentActivity: "2026-08-03",
     featuredContents: [
       {
         id: "haneul-dessert",
-        platform: "Instagram",
         title: "제철 과일 디저트",
         mediaType: "동영상",
         views: 218_000,
         visual: "dessert",
+        thumbnailUrl: "/creator-media/cr-004-01.jpg",
       },
       {
         id: "haneul-table",
-        platform: "Instagram",
         title: "오늘의 브런치",
         mediaType: "이미지",
         views: 184_000,
         visual: "table",
+        thumbnailUrl: "/creator-media/cr-004-02.jpg",
       },
       {
         id: "haneul-coffee",
-        platform: "Instagram",
         title: "카페 신메뉴 리뷰",
         mediaType: "동영상",
         views: 169_000,
         visual: "coffee",
-      },
-    ],
-    channels: [
-      {
-        platform: "Instagram",
-        handle: "@today_haneul",
-        followers: 486000,
-        views: 154200,
-        reactions: 12860,
+        thumbnailUrl: "/creator-media/cr-004-03.jpg",
       },
     ],
     aiReport: {

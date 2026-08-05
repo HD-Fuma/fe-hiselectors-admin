@@ -32,7 +32,7 @@ describe("creator pool", () => {
       "전체T0T1T2T3",
     );
     expect(within(search).getByRole("combobox", { name: "플랫폼" })).toHaveTextContent(
-      "전체InstagramYouTubeFacebook",
+      "전체InstagramYouTube",
     );
     expect(within(search).getByRole("button", { name: "조회" })).toBeInTheDocument();
     expect(within(search).getByRole("button", { name: "초기화" })).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe("creator pool", () => {
     expect(screen.getByRole("list", { name: "크리에이터 목록" })).toBeInTheDocument();
   });
 
-  test("brands Instagram and Facebook in the fallback table", async () => {
+  test("shows exactly one Instagram or YouTube profile in each fallback-table row", async () => {
     const user = userEvent.setup();
     renderRoute("/creators");
     await user.click(screen.getByRole("button", { name: "목록 보기" }));
@@ -105,14 +105,11 @@ describe("creator pool", () => {
     const results = screen.getByRole("region", { name: "크리에이터 목록" });
     const ziaRow = within(results).getByRole("row", { name: /cr-003 이지아/ });
     expect(within(ziaRow).getByText("Instagram")).toBeInTheDocument();
-    expect(within(ziaRow).getByText("Facebook")).toBeInTheDocument();
     expect(within(ziaRow).getByRole("img", { name: "Instagram 플랫폼" })).toBeInTheDocument();
-    expect(within(ziaRow).getByRole("img", { name: "Facebook 플랫폼" })).toBeInTheDocument();
+    expect(within(ziaRow).queryByRole("img", { name: "YouTube 플랫폼" })).not.toBeInTheDocument();
+    expect(within(results).queryByText("Facebook")).not.toBeInTheDocument();
     expect(
       within(results).queryAllByRole("row", { name: /Instagram 플랫폼\s*Instagram/ }),
-    ).toHaveLength(0);
-    expect(
-      within(results).queryAllByRole("row", { name: /Facebook 플랫폼\s*Facebook/ }),
     ).toHaveLength(0);
   });
 
@@ -141,7 +138,7 @@ describe("creator detail", () => {
     expect(screen.getByText("cr-001")).toBeInTheDocument();
     expect(screen.getByText("김서연")).toBeInTheDocument();
     expect(screen.getByText("뷰티 / 패션")).toBeInTheDocument();
-    expect(screen.getByText("128,400")).toBeInTheDocument();
+    expect(screen.getAllByText("82,400")).toHaveLength(2);
     expectColumnHeaders([
       "플랫폼",
       "채널",
@@ -150,11 +147,10 @@ describe("creator detail", () => {
       "평균 반응 수",
     ]);
     expect(screen.getByText("@seo.yeon")).toBeInTheDocument();
-    expect(screen.getByText("서연의 옷장")).toBeInTheDocument();
     expect(screen.getByText("48,200")).toBeInTheDocument();
     expect(screen.getByText("3,278")).toBeInTheDocument();
-    expect(screen.getByText("31,400")).toBeInTheDocument();
-    expect(screen.getByText("1,945")).toBeInTheDocument();
+    const channels = screen.getByRole("region", { name: "플랫폼별 채널" });
+    expect(within(channels).getAllByRole("row")).toHaveLength(2);
 
     expect(screen.getByRole("heading", { name: "AI 요약 리포트" })).toBeInTheDocument();
     expect(screen.getByText("AI 적합도")).toBeInTheDocument();
@@ -205,18 +201,17 @@ describe("creator detail", () => {
     expect(proposals).not.toHaveTextContent("undefined");
   });
 
-  test("renders Facebook as a branded creator-detail channel", () => {
+  test("renders one branded creator-detail profile channel", () => {
     renderRoute("/creators/cr-003");
 
     const channels = screen.getByRole("region", { name: "플랫폼별 채널" });
     const row = within(channels).getByRole("row", {
-      name: /Facebook 플랫폼 지아의 여행노트/,
+      name: /Instagram 플랫폼 @zia.trip/,
     });
-    expect(within(row).getByText("Facebook")).toBeInTheDocument();
-    expect(within(row).getByRole("img", { name: "Facebook 플랫폼" })).toBeInTheDocument();
-    expect(
-      within(channels).queryAllByRole("row", { name: /Facebook 플랫폼\s*Facebook/ }),
-    ).toHaveLength(0);
+    expect(within(row).getByText("Instagram")).toBeInTheDocument();
+    expect(within(row).getByRole("img", { name: "Instagram 플랫폼" })).toBeInTheDocument();
+    expect(within(channels).getAllByRole("row")).toHaveLength(2);
+    expect(within(channels).queryByText("Facebook")).not.toBeInTheDocument();
   });
 
   test("keeps the detail frame and shows a missing-record state", () => {

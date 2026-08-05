@@ -1,62 +1,68 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { CreatorFeaturedContentFixture } from "./fixtures";
-import { CreatorPortrait } from "./CreatorArtwork";
+import { CreatorProfilePhoto } from "./CreatorArtwork";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
 
 const contents: CreatorFeaturedContentFixture[] = [
   {
     id: "coast",
-    platform: "Instagram",
     title: "여름 바다 산책",
     mediaType: "이미지",
     views: 42_300,
     visual: "coast",
+    thumbnailUrl: "/creator-media/cr-003-01.jpg",
   },
   {
     id: "city",
-    platform: "Facebook",
     title: "도시 여행 노트",
     mediaType: "이미지",
     views: 28_100,
     visual: "city",
+    thumbnailUrl: "/creator-media/cr-003-02.jpg",
   },
   {
     id: "packing",
-    platform: "YouTube",
     title: "3박 4일 패킹",
     mediaType: "동영상",
     views: 19_600,
     visual: "packing",
+    thumbnailUrl: "/creator-media/cr-003-03.jpg",
   },
 ];
 
-test("renders up to three locally drawn popular-content tiles", () => {
+test("renders three local popular-content tiles without platform captions", () => {
   const { rerender } = render(
     <CreatorMediaMosaic contents={contents} creatorName="이지아" />,
   );
   let mosaic = screen.getByRole("list", { name: "이지아 인기 콘텐츠" });
   expect(within(mosaic).getAllByRole("listitem")).toHaveLength(3);
-  expect(within(mosaic).getAllByRole("img", { name: /이지아 인기 콘텐츠:/ })).toHaveLength(
-    3,
+  expect(within(mosaic).getAllByRole("img", { name: /이지아 인기 콘텐츠:/ })).toHaveLength(3);
+  expect(within(mosaic).getByAltText("이지아 인기 콘텐츠: 여름 바다 산책")).toHaveAttribute(
+    "src",
+    "/creator-media/cr-003-01.jpg",
   );
-  expect(within(mosaic).getByText("Instagram")).toBeInTheDocument();
-  expect(within(mosaic).getByText("Facebook")).toBeInTheDocument();
-  expect(within(mosaic).getByText("YouTube")).toBeInTheDocument();
   expect(within(mosaic).getByRole("img", { name: "동영상" })).toBeInTheDocument();
-  expect(within(mosaic).getByText("4.2만")).toBeInTheDocument();
+  expect(mosaic).not.toHaveTextContent(/Instagram|YouTube|Facebook/);
 
   rerender(<CreatorMediaMosaic contents={contents.slice(0, 2)} creatorName="이지아" />);
   mosaic = screen.getByRole("list", { name: "이지아 인기 콘텐츠" });
-  expect(within(mosaic).getAllByRole("listitem")).toHaveLength(2);
-
-  rerender(<CreatorMediaMosaic contents={[]} creatorName="이지아" />);
-  mosaic = screen.getByRole("list", { name: "이지아 인기 콘텐츠" });
-  expect(within(mosaic).queryAllByRole("listitem")).toHaveLength(0);
+  expect(within(mosaic).getAllByRole("listitem")).toHaveLength(3);
+  expect(within(mosaic).getByRole("img", { name: "이지아 인기 콘텐츠 없음" })).toBeInTheDocument();
 });
 
-test("draws an accessible local creator portrait", () => {
-  const { container } = render(<CreatorPortrait creatorName="이지아" variant="coral" />);
-  expect(screen.getByRole("img", { name: "이지아 프로필 이미지" })).toBeInTheDocument();
-  expect(container.querySelector("svg")).toBeInTheDocument();
-  expect(container.querySelector("img")).not.toBeInTheDocument();
+test("replaces failed content and profile images with neutral fallbacks", () => {
+  const { rerender } = render(
+    <CreatorMediaMosaic contents={contents} creatorName="이지아" />,
+  );
+  fireEvent.error(screen.getByAltText("이지아 인기 콘텐츠: 여름 바다 산책"));
+  expect(
+    screen.getByRole("img", { name: "이지아 인기 콘텐츠: 여름 바다 산책 이미지 없음" }),
+  ).toHaveTextContent("여름 바다 산책");
+
+  rerender(<CreatorProfilePhoto creatorName="이지아" src="/broken.jpg" />);
+  fireEvent.error(screen.getByAltText("이지아 프로필 이미지"));
+  expect(screen.getByRole("img", { name: "이지아 프로필 이미지 없음" })).toHaveTextContent("이");
+
+  rerender(<CreatorProfilePhoto creatorName="이지아" src="" />);
+  expect(screen.getByRole("img", { name: "이지아 프로필 이미지 없음" })).toBeInTheDocument();
 });

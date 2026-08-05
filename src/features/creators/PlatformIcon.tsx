@@ -31,12 +31,6 @@ const iconPaths: Record<CreatorPlatform, ReactNode> = {
       <path d="m8 7 5 3-5 3V7Z" fill="white" />
     </>
   ),
-  Facebook: (
-    <path
-      d="M11.7 17v-6h2l.3-2.4h-2.3V7.1c0-.7.2-1.2 1.2-1.2H14V3.8c-.5-.1-1.1-.2-1.8-.2-1.8 0-3.1 1.1-3.1 3.2v1.8H7V11h2.1v6h2.6Z"
-      fill="currentColor"
-    />
-  ),
 };
 
 export function PlatformIcon({

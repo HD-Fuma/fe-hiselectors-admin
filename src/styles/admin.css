@@ -1999,10 +1999,8 @@
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--hsas-border);
+  border-radius: 14px;
   background: var(--hsas-surface);
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
 }
 
 .fuma-creator-card__article {
@@ -2010,72 +2008,42 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  padding: 12px 12px 0;
 }
 
 .fuma-creator-mosaic {
-  height: 164px;
   display: grid;
-  grid-template-columns: 1.45fr 0.72fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 2px;
-  overflow: hidden;
-  background: #e8ebec;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .fuma-creator-media {
   position: relative;
   min-width: 0;
-  min-height: 0;
+  aspect-ratio: 1;
   margin: 0;
   overflow: hidden;
+  border-radius: 8px;
+  background: #eef0f1;
 }
 
-.fuma-creator-media--main {
-  grid-row: 1 / span 2;
-}
-
-.fuma-creator-media > svg {
+.fuma-creator-media > img,
+.fuma-creator-media__fallback {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
 }
 
-.fuma-creator-media__caption {
-  position: absolute;
-  inset: auto 0 0;
-  display: flex;
-  justify-content: space-between;
-  gap: 4px;
-  padding: 18px 6px 5px;
-  background: linear-gradient(transparent, rgb(18 27 30 / 78%));
-  color: #fff;
-  font-size: 9px;
-}
-
-.fuma-creator-media--main .fuma-creator-media__caption {
-  padding-left: 72px;
-}
-
-.fuma-creator-media__source {
-  display: inline-flex;
-  min-width: 0;
+.fuma-creator-media__fallback {
+  display: grid;
   align-items: center;
-  gap: 3px;
-}
-
-.fuma-creator-media__source .fuma-platform-icon {
-  width: 14px;
-  height: 14px;
-}
-
-.fuma-creator-media__source .fuma-platform-icon svg {
-  width: 10px;
-  height: 10px;
-}
-
-.fuma-creator-media__views {
-  font-variant-numeric: tabular-nums;
+  padding: 8px;
+  background: #eef0f1;
+  color: #7a8286;
+  font-size: 10px;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .fuma-creator-media__play {
@@ -2097,37 +2065,72 @@
   flex: 1;
 }
 
-.fuma-creator-card__identity {
+.fuma-creator-card__profile {
   position: relative;
-  min-height: 70px;
+  z-index: 1;
+  height: 38px;
   display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 14px 10px 8px 72px;
+  justify-content: center;
+}
+
+.fuma-creator-card__identity {
+  padding: 8px 10px 14px;
+  text-align: center;
 }
 
 .fuma-creator-card__portrait {
-  position: absolute;
-  left: 10px;
-  top: -24px;
-  width: 54px;
-  height: 54px;
-  overflow: hidden;
+  position: relative;
+  top: -38px;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 76px;
   border: 3px solid #fff;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 4px rgb(35 49 54 / 18%);
+  box-shadow: 0 1px 3px rgb(35 49 54 / 16%);
+  box-sizing: border-box;
 }
 
-.fuma-creator-card__portrait svg {
+.fuma-creator-card__portrait > img,
+.fuma-creator-profile-fallback {
   width: 100%;
   height: 100%;
   display: block;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.fuma-creator-profile-fallback {
+  display: grid;
+  place-items: center;
+  background: #e8ebec;
+  color: #596166;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.fuma-creator-card__platform-badge {
+  position: absolute;
+  right: -2px;
+  bottom: 0;
+  width: 22px;
+  height: 22px;
+}
+
+.fuma-creator-card__platform-badge .fuma-platform-icon {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #fff;
+  box-sizing: border-box;
+}
+
+.fuma-creator-card__platform-badge .fuma-platform-icon svg {
+  width: 14px;
+  height: 14px;
 }
 
 .fuma-creator-card__identity-copy {
   min-width: 0;
-  flex: 1;
 }
 
 .fuma-creator-card__name {
@@ -2138,7 +2141,7 @@
 }
 
 .fuma-creator-card__handle {
-  margin: 1px 0 0;
+  margin: 3px 0 0;
   overflow: hidden;
   color: #596166;
   font-size: 11px;
@@ -2147,9 +2150,10 @@
 }
 
 .fuma-creator-card__categories {
-  margin: 3px 0 0;
+  margin: 7px 0 0;
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 3px 7px;
   color: var(--hsas-text);
   font-size: 10px;
@@ -2157,15 +2161,6 @@
 
 .fuma-creator-card__categories span {
   color: #596166;
-}
-
-.fuma-creator-card__platforms {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 3px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
 .fuma-platform-icon {
@@ -2193,14 +2188,10 @@
   box-shadow: inset 0 0 0 1px #ff0033;
 }
 
-.fuma-platform-icon--facebook {
-  background: #1877f2;
-}
-
 .fuma-creator-card__metrics {
-  min-height: 58px;
+  min-height: 66px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
   border-top: 1px solid var(--hsas-border);
   border-bottom: 1px solid var(--hsas-border);
@@ -2211,7 +2202,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 6px 7px;
+  padding: 9px 12px;
   border-left: 1px solid var(--hsas-border);
 }
 
@@ -2222,15 +2213,15 @@
 .fuma-creator-card__metric dt {
   overflow: hidden;
   color: #596166;
-  font-size: 10px;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .fuma-creator-card__metric dd {
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   color: var(--hsas-text);
-  font-size: 15px;
+  font-size: 19px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -2240,12 +2231,13 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 8px;
+  flex-wrap: wrap;
+  padding: 8px 4px;
   font-size: 10px;
 }
 
 .fuma-creator-card__ai {
-  color: var(--hsas-teal-dark);
+  color: #596166;
 }
 
 .fuma-creator-card__recent {
@@ -2260,6 +2252,8 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   border-top: 1px solid var(--hsas-border);
+  margin: 0 -12px;
+  background: #fafbfb;
 }
 
 .fuma-creator-card__action {
@@ -2277,8 +2271,8 @@
 }
 
 .fuma-creator-card__action--primary {
-  background: var(--hsas-teal-dark);
-  color: var(--hsas-text-inverse);
+  background: transparent;
+  color: var(--hsas-text);
 }
 
 .fuma-creator-card__action:focus-visible,
@@ -2287,7 +2281,6 @@
   outline-offset: -2px;
 }
 
-.fuma-creator-card__action--primary:focus-visible,
 .fuma-creator-toolbar__view[aria-pressed="true"]:focus-visible {
   outline: 2px solid #fff;
   outline-offset: -3px;
@@ -2316,23 +2309,8 @@
   height: 14px;
 }
 
-.fuma-creator-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgb(38 49 53 / 12%);
-}
-
-@media (max-width: 1199px) {
+@media (max-width: 1279px) {
   .fuma-creator-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fuma-creator-card {
-    transition: none !important;
-  }
-
-  .fuma-creator-card:hover {
-    transform: none;
   }
 }

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import type { CreatorFixture, ProposalStatus } from "./fixtures";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
-import { CreatorPortrait } from "./CreatorArtwork";
+import { CreatorProfilePhoto } from "./CreatorArtwork";
 import { PlatformIcon } from "./PlatformIcon";
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -10,28 +10,6 @@ export const compactNumber = new Intl.NumberFormat("ko-KR", {
   notation: "compact",
   maximumFractionDigits: 1,
 });
-
-// eslint-disable-next-line react-refresh/only-export-components
-export function averageViews(creator: CreatorFixture) {
-  if (creator.channels.length === 0) {
-    return 0;
-  }
-
-  const totalViews = creator.channels.reduce((sum, item) => sum + item.views, 0);
-  return Math.round(totalViews / creator.channels.length);
-}
-
-// eslint-disable-next-line react-refresh/only-export-components
-export function engagementRate(creator: CreatorFixture) {
-  const views = creator.channels.reduce((sum, item) => sum + item.views, 0);
-
-  if (views === 0) {
-    return 0;
-  }
-
-  const reactions = creator.channels.reduce((sum, item) => sum + item.reactions, 0);
-  return (reactions / views) * 100;
-}
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function proposalAction(creator: CreatorFixture) {
@@ -76,7 +54,16 @@ export function proposalTone(
 
 export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
   const action = proposalAction(creator);
-  const handle = creator.channels[0]?.handle ?? "채널 정보 없음";
+  const isInstagram = creator.profile.platform === "Instagram";
+  const primaryMetrics = isInstagram
+    ? [
+        { label: "평균 반응", value: creator.profile.averageReactions },
+        { label: "팔로워", value: creator.profile.followers },
+      ]
+    : [
+        { label: "평균 조회", value: creator.profile.averageViews },
+        { label: "구독자", value: creator.profile.followers },
+      ];
 
   return (
     <li className="fuma-creator-card" role="listitem">
@@ -89,43 +76,34 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
           creatorName={creator.name}
         />
         <div className="fuma-creator-card__body">
-          <header className="fuma-creator-card__identity">
+          <div className="fuma-creator-card__profile">
             <span className="fuma-creator-card__portrait">
-              <CreatorPortrait creatorName={creator.name} variant={creator.portrait} />
+              <CreatorProfilePhoto
+                creatorName={creator.name}
+                src={creator.profile.profileImageUrl}
+              />
+              <span className="fuma-creator-card__platform-badge">
+                <PlatformIcon platform={creator.profile.platform} />
+              </span>
             </span>
+          </div>
+          <header className="fuma-creator-card__identity">
             <div className="fuma-creator-card__identity-copy">
               <h2 className="fuma-creator-card__name">{creator.name}</h2>
-              <p className="fuma-creator-card__handle">{handle}</p>
+              <p className="fuma-creator-card__handle">{creator.profile.handle}</p>
               <p className="fuma-creator-card__categories">
                 {creator.categories.join(" / ")}
                 <span>콘텐츠 {creator.contentCount}개</span>
               </p>
             </div>
-            <ul
-              aria-label={`${creator.name} 플랫폼`}
-              className="fuma-creator-card__platforms"
-              role="list"
-            >
-              {creator.platforms.map((platform) => (
-                <li key={platform}>
-                  <PlatformIcon platform={platform} />
-                </li>
-              ))}
-            </ul>
           </header>
           <dl className="fuma-creator-card__metrics">
-            <div className="fuma-creator-card__metric">
-              <dt>팔로워·구독자</dt>
-              <dd>{compactNumber.format(creator.followers)}</dd>
-            </div>
-            <div className="fuma-creator-card__metric">
-              <dt>평균 조회</dt>
-              <dd>{compactNumber.format(averageViews(creator))}</dd>
-            </div>
-            <div className="fuma-creator-card__metric">
-              <dt>평균 반응률</dt>
-              <dd>{engagementRate(creator).toFixed(1)}%</dd>
-            </div>
+            {primaryMetrics.map((metric) => (
+              <div className="fuma-creator-card__metric" key={metric.label}>
+                <dt>{metric.label}</dt>
+                <dd>{compactNumber.format(metric.value)}</dd>
+              </div>
+            ))}
           </dl>
           <div className="fuma-creator-card__meta">
             <strong className="fuma-creator-card__ai">

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { PlatformIcon } from "./PlatformIcon";
 
-test.each(["Instagram", "YouTube", "Facebook"] as const)(
+test.each(["Instagram", "YouTube"] as const)(
   "renders an accessible %s platform icon without external assets",
   (platform) => {
     const { container, rerender } = render(<PlatformIcon platform={platform} />);

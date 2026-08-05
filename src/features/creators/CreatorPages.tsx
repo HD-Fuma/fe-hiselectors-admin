@@ -20,8 +20,8 @@ import {
   META_MANUAL_SEND_NOTE,
   PENDING_AI_REPORT,
   PROPOSALS,
-  type CreatorChannelFixture,
   type CreatorFixture,
+  type CreatorProfileFixture,
   type EmailCreatorFixture,
   type ProposalFixture,
   type ProposalStatus,
@@ -34,7 +34,7 @@ const TIER_OPTIONS = ["전체", "T0", "T1", "T2", "T3"].map((label) => ({
   label,
   value: label === "전체" ? "" : label,
 }));
-const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube", "Facebook"].map((label) => ({
+const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube"].map((label) => ({
   label,
   value: label === "전체" ? "" : label,
 }));
@@ -54,7 +54,7 @@ function formatNumber(value: number) {
   return value.toLocaleString("ko-KR");
 }
 
-function PlatformLabel({ platform }: { platform: CreatorChannelFixture["platform"] }) {
+function PlatformLabel({ platform }: { platform: CreatorProfileFixture["platform"] }) {
   return (
     <span className="fuma-platform-label">
       <PlatformIcon platform={platform} />
@@ -115,16 +115,10 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
   { key: "id", header: "ID", width: 76 },
   { key: "name", header: "이름", width: 70 },
   {
-    id: "platforms",
+    id: "platform",
     header: "플랫폼",
     width: 115,
-    render: (creator) => (
-      <div className="fuma-platform-labels">
-        {creator.platforms.map((platform) => (
-          <PlatformLabel key={platform} platform={platform} />
-        ))}
-      </div>
-    ),
+    render: (creator) => <PlatformLabel platform={creator.profile.platform} />,
   },
   {
     id: "categories",
@@ -134,11 +128,11 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
   },
   { key: "tier", header: "티어", width: 52, align: "center" },
   {
-    key: "followers",
+    id: "followers",
     header: "팔로워·구독자",
     width: 105,
     align: "right",
-    render: (creator) => formatNumber(creator.followers),
+    render: (creator) => formatNumber(creator.profile.followers),
   },
   {
     key: "contentCount",
@@ -229,7 +223,7 @@ export function CreatorListPage() {
   );
 }
 
-const CHANNEL_COLUMNS: DenseTableColumn<CreatorChannelFixture>[] = [
+const CHANNEL_COLUMNS: DenseTableColumn<CreatorProfileFixture>[] = [
   {
     id: "platform",
     header: "플랫폼",
@@ -242,21 +236,21 @@ const CHANNEL_COLUMNS: DenseTableColumn<CreatorChannelFixture>[] = [
     header: "팔로워·구독자",
     width: 140,
     align: "right",
-    render: (channel) => formatNumber(channel.followers),
+    render: (profile) => formatNumber(profile.followers),
   },
   {
-    key: "views",
+    key: "averageViews",
     header: "평균 조회 수",
     width: 140,
     align: "right",
-    render: (channel) => formatNumber(channel.views),
+    render: (profile) => formatNumber(profile.averageViews),
   },
   {
-    key: "reactions",
+    key: "averageReactions",
     header: "평균 반응 수",
     width: 140,
     align: "right",
-    render: (channel) => formatNumber(channel.reactions),
+    render: (profile) => formatNumber(profile.averageReactions),
   },
 ];
 
@@ -266,7 +260,7 @@ function BasicInformation({ creator }: { creator: CreatorFixture }) {
     ["이름", creator.name],
     ["카테고리", creator.categories.join(" / ")],
     ["티어", creator.tier],
-    ["팔로워·구독자", formatNumber(creator.followers)],
+    ["팔로워·구독자", formatNumber(creator.profile.followers)],
     ["콘텐츠 수", formatNumber(creator.contentCount)],
     ["최근 활동일", creator.recentActivity],
   ];
@@ -405,8 +399,8 @@ export function CreatorDetailPage() {
               </header>
               <DenseTable
                 columns={CHANNEL_COLUMNS}
-                rowKey={(channel) => `${channel.platform}-${channel.handle}`}
-                rows={creator.channels}
+                rowKey={(profile) => `${profile.platform}-${profile.handle}`}
+                rows={[creator.profile]}
               />
             </section>
             <AiSummaryPanel report={creator.aiReport} />
