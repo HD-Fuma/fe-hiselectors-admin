@@ -1,12 +1,136 @@
 import { CREATORS, type CreatorFixture } from "./fixtures";
 import {
   averageViews,
+  compactNumber,
   engagementRate,
   proposalAction,
   proposalTone,
 } from "./CreatorEvidenceCard";
 
 const zia = CREATORS[2];
+const evidenceFixtures = [
+  {
+    id: "cr-001",
+    portrait: "sage",
+    featuredContents: [
+      {
+        id: "seo-look",
+        platform: "Instagram",
+        title: "여름 데일리 룩",
+        mediaType: "이미지",
+        views: 98_600,
+        visual: "fashion",
+      },
+      {
+        id: "seo-tone",
+        platform: "Instagram",
+        title: "가을 톤 메이크업",
+        mediaType: "이미지",
+        views: 74_200,
+        visual: "beauty",
+      },
+      {
+        id: "seo-video",
+        platform: "YouTube",
+        title: "5분 출근 룩북",
+        mediaType: "동영상",
+        views: 63_100,
+        visual: "skincare",
+      },
+    ],
+  },
+  {
+    id: "cr-002",
+    portrait: "navy",
+    featuredContents: [
+      {
+        id: "doyoon-home",
+        platform: "YouTube",
+        title: "퇴근 후 집밥",
+        mediaType: "동영상",
+        views: 54_800,
+        visual: "cooking",
+      },
+      {
+        id: "doyoon-coffee",
+        platform: "YouTube",
+        title: "홈카페 레시피",
+        mediaType: "동영상",
+        views: 37_400,
+        visual: "coffee",
+      },
+      {
+        id: "doyoon-table",
+        platform: "YouTube",
+        title: "주말 한 상",
+        mediaType: "이미지",
+        views: 29_600,
+        visual: "table",
+      },
+    ],
+  },
+  {
+    id: "cr-003",
+    portrait: "coral",
+    featuredContents: [
+      {
+        id: "zia-coast",
+        platform: "Instagram",
+        title: "여름 바다 산책",
+        mediaType: "이미지",
+        views: 42_300,
+        visual: "coast",
+      },
+      {
+        id: "zia-city",
+        platform: "Facebook",
+        title: "도시 여행 노트",
+        mediaType: "이미지",
+        views: 28_100,
+        visual: "city",
+      },
+      {
+        id: "zia-pack",
+        platform: "Instagram",
+        title: "3박 4일 패킹",
+        mediaType: "동영상",
+        views: 19_600,
+        visual: "packing",
+      },
+    ],
+  },
+  {
+    id: "cr-004",
+    portrait: "amber",
+    featuredContents: [
+      {
+        id: "haneul-dessert",
+        platform: "Instagram",
+        title: "제철 과일 디저트",
+        mediaType: "동영상",
+        views: 218_000,
+        visual: "dessert",
+      },
+      {
+        id: "haneul-table",
+        platform: "Instagram",
+        title: "오늘의 브런치",
+        mediaType: "이미지",
+        views: 184_000,
+        visual: "table",
+      },
+      {
+        id: "haneul-coffee",
+        platform: "Instagram",
+        title: "카페 신메뉴 리뷰",
+        mediaType: "동영상",
+        views: 169_000,
+        visual: "coffee",
+      },
+    ],
+  },
+] as const;
+
 const withStatus = (status: CreatorFixture["proposalStatus"]): CreatorFixture => ({
   ...zia,
   proposalStatus: status,
@@ -26,6 +150,48 @@ describe("creator evidence-card helpers", () => {
     expect(averageViews(empty)).toBe(0);
     expect(engagementRate(empty)).toBe(0);
     expect(engagementRate(zero)).toBe(0);
+  });
+
+  test("rounds a fractional channel average to the nearest whole view", () => {
+    const fractional = {
+      ...zia,
+      channels: [
+        { ...zia.channels[0], views: 1 },
+        { ...zia.channels[1], views: 2 },
+      ],
+    } as CreatorFixture;
+
+    expect(averageViews(fractional)).toBe(2);
+  });
+
+  test("formats compact Korean view and follower counts", () => {
+    expect(compactNumber.format(13_600)).toBe("1.4만");
+    expect(compactNumber.format(51_100)).toBe("5.1만");
+  });
+
+  test.each(evidenceFixtures)(
+    "$id has its exact portrait and ordered featured content payload",
+    ({ id, portrait, featuredContents }) => {
+      const creator = CREATORS.find((item) => item.id === id);
+
+      expect(creator).toBeDefined();
+      expect({
+        portrait: creator?.portrait,
+        featuredContents: creator?.featuredContents,
+      }).toEqual({ portrait, featuredContents });
+    },
+  );
+
+  test("declares Zia's Facebook audience and channel metrics exactly", () => {
+    expect(zia.platforms).toEqual(["Instagram", "Facebook"]);
+    expect(zia.followers).toBe(51_100);
+    expect(zia.channels[1]).toEqual({
+      platform: "Facebook",
+      handle: "지아의 여행노트",
+      followers: 18_400,
+      views: 9_300,
+      reactions: 420,
+    });
   });
 
   test.each([
