@@ -29,7 +29,7 @@ Expected: FAIL because the new fields are absent.
 
 - [ ] **Step 3: Extend the fixture types and sample creators**
 
-Add `profileUrl`, `keywords`, and `engagementRate` to the card contract. Keep one Instagram or YouTube profile per creator; remove fixture fields that only support the retired card tier/AI-fit row.
+Add `profileUrl`, `keywords`, and `engagementRate` to the card contract. Keep one Instagram or YouTube profile per creator. Retain `tier` and legacy AI report data until their detail-page consumers are migrated; they simply stop rendering in the pool card.
 
 - [ ] **Step 4: Run fixture test to verify it passes**
 
@@ -48,10 +48,12 @@ git commit -m "feat: add creator analysis fixture fields"
 **Files:**
 - Modify: `src/features/creators/CreatorEvidenceCard.test.tsx`
 - Modify: `src/features/creators/CreatorEvidenceCard.tsx`
+- Modify: `src/features/creators/CreatorMediaMosaic.test.tsx`
+- Modify: `src/features/creators/CreatorMediaMosaic.tsx`
 
 - [ ] **Step 1: Write failing card assertions**
 
-For an Instagram and a YouTube fixture, assert the card exposes `대표 게시글`, profile image, platform account, name, category, keyword chips, platform-specific audience label, and ER. Assert `티어`, `AI 적합도`, and proposal status are not rendered inside the card.
+For an Instagram and a YouTube fixture, assert the card exposes `대표 게시글`, profile image, platform account, name, category, keyword chips, platform-specific audience label, and ER. Update the mosaic component test for the renamed accessible label. Assert `티어`, `AI 적합도`, and proposal status are not rendered inside the card.
 
 - [ ] **Step 2: Run card test to verify it fails**
 
@@ -70,7 +72,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/features/creators/CreatorEvidenceCard.tsx src/features/creators/CreatorEvidenceCard.test.tsx src/features/creators/CreatorMediaMosaic.tsx
+git add src/features/creators/CreatorEvidenceCard.tsx src/features/creators/CreatorEvidenceCard.test.tsx src/features/creators/CreatorMediaMosaic.tsx src/features/creators/CreatorMediaMosaic.test.tsx
 git commit -m "feat: align creator cards with analysis fields"
 ```
 
@@ -78,16 +80,15 @@ git commit -m "feat: align creator cards with analysis fields"
 
 **Files:**
 - Modify: `src/styles/admin.css`
-- Test: `src/features/creators/CreatorPages.test.tsx`
 
 - [ ] **Step 1: Write failing pool-page assertions**
 
-Assert the card view contains keyword chips and no tier filter/control. Keep the current card-grid and shell roles intact.
+Assert the card view contains keyword chips while keeping the current card-grid and shell roles intact. Pool-control assertions are handled with `CreatorPages.tsx` in Task 5.
 
 - [ ] **Step 2: Run page test to verify it fails**
 
-Run: `npm test -- --run src/features/creators/CreatorPages.test.tsx`
-Expected: FAIL because the old filter and card metadata remain.
+Run: `npm test -- --run src/features/creators/CreatorEvidenceCard.test.tsx`
+Expected: FAIL because the old card metadata remains.
 
 - [ ] **Step 3: Apply focused CSS**
 
@@ -101,7 +102,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/styles/admin.css src/features/creators/CreatorPages.test.tsx
+git add src/styles/admin.css
 git commit -m "style: refine creator analysis card hierarchy"
 ```
 
@@ -116,7 +117,7 @@ git commit -m "style: refine creator analysis card hierarchy"
 
 - [ ] **Step 1: Write failing report component tests**
 
-Assert report output labels: updated date/window, profile URL, audience, cadence, public versus 90-day collected counts, last-post date, average views/likes/comments, format mix, ER formula/sample size, summary, categories, keywords, collaborations, style, tone, risk, strengths/cautions, and cited content URLs.
+Assert report output labels: updated date/window, profile URL, audience, cadence, public versus 90-day collected counts, last-post date, average views/likes/comments, format mix, ER formula/sample size, summary, categories, keywords, collaborations, style, tone, risk, strengths/cautions, and cited content URLs. Add fixture cases for an unavailable metric, a zero-audience post excluded from ER, platform-specific supplemental interactions, and one URL attached to each AI claim.
 
 - [ ] **Step 2: Run report test to verify it fails**
 
@@ -125,7 +126,7 @@ Expected: FAIL because the component does not exist.
 
 - [ ] **Step 3: Implement the report component and fixture model**
 
-Use static, typed fixture data only. Label unavailable platform metrics explicitly and render content URLs as links. Use the normalized ER wording from the design spec and no API calls.
+Use static, typed fixture data only. Label unavailable platform metrics explicitly, render content URLs as links next to their respective AI claims, and show ER sample size/formula. Use the normalized ER wording from the design spec, include platform-specific supplemental interactions separately, and make no API calls. Render a static selection-method block that documents Top 2N `ER × log(1 + audience)` scoring and final Top N category-distribution adjustment; it is explanatory UI, not live ranking logic.
 
 - [ ] **Step 4: Run report test to verify it passes**
 
@@ -147,7 +148,7 @@ git commit -m "feat: add creator analysis report UI"
 
 - [ ] **Step 1: Write failing route tests**
 
-Assert creator-pool controls are keyword, follower/subscriber range, and platform; assert the dense table shows account, keywords, audience, ER, and recent activity; assert creator detail renders the analysis report instead of the retired generic AI-fit panel.
+Assert creator-pool controls are keyword, follower/subscriber range, and platform; assert the tier filter is absent; assert the dense table shows account, keywords, audience, ER, and recent activity; assert creator detail renders the analysis report and selection-method block instead of the retired generic AI-fit panel.
 
 - [ ] **Step 2: Run route test to verify it fails**
 
