@@ -1,5 +1,8 @@
+import { render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { CREATORS, type CreatorFixture } from "./fixtures";
 import {
+  CreatorEvidenceCard,
   averageViews,
   compactNumber,
   engagementRate,
@@ -134,6 +137,85 @@ const evidenceFixtures = [
 const withStatus = (status: CreatorFixture["proposalStatus"]): CreatorFixture => ({
   ...zia,
   proposalStatus: status,
+});
+
+function renderCard(creator: CreatorFixture = zia) {
+  return render(
+    <MemoryRouter>
+      <ul>
+        <CreatorEvidenceCard creator={creator} />
+      </ul>
+    </MemoryRouter>,
+  );
+}
+
+describe("CreatorEvidenceCard", () => {
+  test("shows profile, popular posts, platform identity, metrics, and state", () => {
+    renderCard();
+
+    const card = screen.getByRole("article", { name: "이지아 크리에이터 카드" });
+
+    expect(card.parentElement).toHaveAttribute("role", "listitem");
+    expect(within(card).getByRole("img", { name: "이지아 프로필 이미지" })).toBeInTheDocument();
+    expect(within(card).getAllByRole("img", { name: /이지아 인기 콘텐츠:/ })).toHaveLength(3);
+    expect(within(card).getByRole("img", { name: "Instagram 플랫폼" })).toBeInTheDocument();
+    expect(within(card).getByRole("img", { name: "Facebook 플랫폼" })).toBeInTheDocument();
+    expect(within(card).getByText("Facebook")).toBeInTheDocument();
+
+    for (const text of [
+      "@zia.trip",
+      "여행 / 라이프",
+      "콘텐츠 142개",
+      "5.1만",
+      "1.4만",
+      "5.1%",
+      "생성 대기",
+      "T3",
+      "발송 실패",
+      "최근 활동일 2026-07-29",
+    ]) {
+      expect(within(card).getByText(text)).toBeInTheDocument();
+    }
+
+    expect(within(card).getByText("팔로워·구독자")).toBeInTheDocument();
+    expect(within(card).getByText("평균 조회")).toBeInTheDocument();
+    expect(within(card).getByText("평균 반응률")).toBeInTheDocument();
+    expect(within(card).getByRole("link", { name: "이지아 상세 보기" })).toHaveAttribute(
+      "href",
+      "/creators/cr-003",
+    );
+    expect(within(card).getByRole("link", { name: "이지아 다시 제안" })).toHaveAttribute(
+      "href",
+      "/creators/cr-003#proposal",
+    );
+  });
+
+  test("shows a ready AI fitness label", () => {
+    renderCard(CREATORS[0]);
+
+    expect(screen.getByText("AI 적합도 92점")).toBeInTheDocument();
+  });
+
+  test.each([
+    ["미제안", "영입 제안", "/creators/cr-003#proposal"],
+    ["발송 실패", "다시 제안", "/creators/cr-003#proposal"],
+    ["발송 대기", "제안 이력", "/proposals?creator=cr-003"],
+    ["발송 완료", "제안 이력", "/proposals?creator=cr-003"],
+    ["셀렉터스 전환", "제안 이력", "/proposals?creator=cr-003"],
+  ] as const)("renders the %s action", (status, label, href) => {
+    renderCard(withStatus(status));
+
+    expect(screen.getByRole("link", { name: `이지아 ${label}` })).toHaveAttribute("href", href);
+  });
+
+  test("renders first-channel and zero-safe fallbacks", () => {
+    renderCard({ ...zia, channels: [], followers: 0 } as CreatorFixture);
+
+    expect(screen.getByText("채널 정보 없음")).toBeInTheDocument();
+    expect(screen.getAllByText("0").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("0.0%")).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(/NaN|Infinity/);
+  });
 });
 
 describe("creator evidence-card helpers", () => {
