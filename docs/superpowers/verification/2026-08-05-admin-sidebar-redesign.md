@@ -2,7 +2,7 @@
 
 - 검증일: 2026-08-05 (Asia/Seoul)
 - 브랜치: `codex/fuma-admin-ui`
-- 검증 대상 커밋: `f9f6f8f2832c5c36c318a66929ca5352afa18ba3`
+- 검증 대상 커밋: `c9127125c61fd99edfc722ace7201e23267e8d31`
 - 애플리케이션 구현 기준: `4d5e1ec43baad2af23162045137e5cc07d85c3a1`
 - 권위 있는 설계 기준: [FUMA 관리자 단일 사이드바 개편 디자인 명세](../specs/2026-08-05-admin-sidebar-redesign-design.md)
 - Playwright 자동 검증 URL: `http://127.0.0.1:4174`
@@ -19,10 +19,10 @@
 | production source 금지 참조 guard | wrapper exit 0, 내부 `rg` exit 1, 일치 0건 |
 | test 금지 참조 guard | wrapper exit 0, 내부 `rg` exit 1, 일치 0건 |
 | `npm run lint` | exit 0, ESLint 오류·경고 출력 없음 |
-| `npm test -- --run --maxWorkers=1` | test file 15/15, test 147/147 통과, 실패 0건, 98.89s |
+| `npm test -- --run --maxWorkers=1` | test file 15/15, test 147/147 통과, 실패 0건, 13.24s |
 | `npm run build` | exit 0, TypeScript build와 Vite production build 성공, 1,832 modules transformed |
-| `FUMA_VISUAL_PORT=4174 npm run test:visual` | 15/15 통과, 실패 0건, 1.2m |
-| `git diff --check 4d5e1ec43baad2af23162045137e5cc07d85c3a1...f9f6f8f2832c5c36c318a66929ca5352afa18ba3` | exit 0, 출력 없음 |
+| `FUMA_VISUAL_PORT=4174 npm run test:visual` | 16/16 통과, 실패 0건, 7.4s |
+| `git diff --check 4d5e1ec43baad2af23162045137e5cc07d85c3a1...c9127125c61fd99edfc722ace7201e23267e8d31` | exit 0, 출력 없음 |
 
 금지 참조 guard는 다음 wrapper와 호출을 그대로 사용했다.
 
@@ -44,7 +44,11 @@ wrapper는 `rg`가 일치를 찾은 exit 0을 실패로 바꾸고, 일치가 없
 
 diff whitespace 검사는 빈 현재 worktree가 아니라 애플리케이션 구현 기준부터 브라우저 진단 보강 커밋까지의 고정 범위를 대상으로 실행했다. 위 범위 명령은 exit 0이었고 출력은 없었다.
 
-Playwright의 공유 진단 fixture는 테스트 이동 전에 브라우저 context 정책을 설치한다. HTTP 요청은 `context.route`로 제한하므로 팝업의 첫 탐색도 검사하며, Playwright context의 service worker는 `serviceWorkers: "block"`으로 차단했다. WebSocket은 이동 전에 `context.routeWebSocket`을 설치해 동일 hostname과 유효 port의 `ws:`/`wss:` 연결만 `connectToServer()`로 이어 준다. 그 밖의 연결은 별도 `externalWebSockets` 진단 배열에 기록한 뒤 닫는다. 초기 page와 `context`에서 새로 열린 팝업 page 모두에 console error, page error, request failure 수집기를 연결했다. 새 15-test 시각 실행에서 console errors, page errors, request failures, external requests, external WebSockets는 모두 빈 배열이었고, URL 정책 unit test 3건은 위 147건에 포함된다.
+Playwright의 공유 진단 fixture는 테스트 이동 전에 브라우저 context 정책을 설치한다. HTTP 요청은 `context.route`로 제한하므로 팝업의 첫 탐색도 검사하며, Playwright context의 service worker는 `serviceWorkers: "block"`으로 차단했다. WebSocket은 이동 전에 `context.routeWebSocket`을 설치해 동일 hostname과 유효 port의 `ws:`/`wss:` 연결만 `connectToServer()`로 이어 준다. 그 밖의 연결은 별도 `externalWebSockets` 진단 배열에 기록한 뒤 닫는다.
+
+console error와 request failure는 각각 context 수준의 `context.on("console")`, `context.on("requestfailed")`로 수집한다. 처리되지 않은 page 예외는 `context.on("weberror")`에서 `webError.error().message`를 `pageErrors`에 기록한다. 이 세 listener는 초기 이동 전에 설치하고 fixture의 `use`가 끝난 뒤 제거하므로 초기 page와 팝업 page를 별도로 늦게 attach하지 않는다.
+
+새 adversarial 실브라우저 테스트는 `about:blank` 팝업을 연 직후 발생시킨 `console.error` sentinel이 수집되는지 확인한다. 이어 fixture route보다 나중에 등록한 테스트 전용 same-origin `context.route`가 팝업의 첫 요청을 `connectionreset`으로 중단한다. route handler 시점에 `context.pages().length`가 opener 1개뿐임을 확인해 팝업 page가 아직 제공되기 전임을 증명하고, 해당 요청이 `net::ERR_CONNECTION_RESET`과 함께 `requestFailures`에 수집되는지 확인한다. 테스트는 확인한 두 sentinel 항목만 제거하므로 다른 진단은 공통 teardown의 빈 배열 assertion에서 계속 실패한다. 새 16-test 시각 실행에서 console errors, page errors, request failures, external requests, external WebSockets는 모두 비어 있었고, URL 정책 unit test 3건은 위 147건에 포함된다.
 
 ## 지속형 서버 preflight
 
@@ -82,7 +86,7 @@ Playwright의 fresh 자동 캡처와 5173 서버의 수동 상태 캡처를 이�
 - `더현대Hi | Partners`, ID/비밀번호, `아이디 저장`, 로그인·계정 지원 버튼, `신규입점문의`, `광고신청/안내`, QR과 `파트너스 APP 다운로드`가 유지되었다.
 - 관리자 셸 root는 0개였으며 로그인에 사이드바가 렌더되지 않았다.
 
-수동 browser probe의 console error, page error, request failure, external request도 모두 0건이었다. 자동 검증에서는 context 단위 요청·WebSocket 정책과 초기·팝업 page 진단까지 추가로 확인했다.
+수동 browser probe의 console error, page error, request failure, external request도 모두 0건이었다. 자동 검증에서는 context 단위 요청·WebSocket 정책과 초기 이동 전에 설치한 context-level console·requestfailed·weberror 진단까지 추가로 확인했다.
 
 ## 대비 확인
 
@@ -100,7 +104,7 @@ Task 2에서 확정한 대비 계산값을 현재 토큰과 상태에 대조했�
 
 - [2026-08-03 시각 검증 기록](./2026-08-03-fuma-admin-ui.md)은 당시 40px 레일, 205px 마이메뉴, 38px 상단 바와 전체 메뉴 오버레이 결과를 보존한 역사 기록이며 현재 합격 기준이 아니다.
 - `docs/superpowers/references/hsas-08-mega-menu.png`는 역사적 참고 자료로만 남긴다.
-- ignored 경로에 남아 있을 수 있는 `test-results/visual/mega-menu.png`는 이전 실행 산출물이다. 이번 15-test run에는 전체 메뉴 checkpoint가 없으므로 현재 결과로 해석하지 않는다.
+- ignored 경로에 남아 있을 수 있는 `test-results/visual/mega-menu.png`는 이전 실행 산출물이다. 이번 16-test run에는 전체 메뉴 checkpoint가 없으므로 현재 결과로 해석하지 않는다.
 
 ## 판정
 
