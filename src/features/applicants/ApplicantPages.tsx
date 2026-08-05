@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { AiSummaryPanel } from "../../components/content/AiSummaryPanel";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Checkbox, Select, TextInput } from "../../components/ui/Controls";
@@ -178,9 +178,13 @@ const APPLICANT_COLUMNS: DenseTableColumn<ApplicantFixture>[] = [
     width: 58,
     align: "center",
     render: (applicant) => (
-      <Button aria-label={`${applicant.name} 상세 보기`} className="fuma-table-action">
+      <Link
+        aria-label={`${applicant.name} 상세 보기`}
+        className="fuma-table-action fuma-table-link"
+        to={`/applicants/${applicant.id}`}
+      >
         보기
-      </Button>
+      </Link>
     ),
   },
 ];
@@ -447,7 +451,9 @@ export function ApplicantDetailPage() {
         {applicant ? (
           <>
             <div className="fuma-detail-toolbar">
-              <Button>목록</Button>
+              <Link className="hsas-button fuma-detail-toolbar__link" to="/applicants">
+                목록
+              </Link>
             </div>
             <SectionTabs activeId="basic" items={DETAIL_TABS} />
             <BasicInformation applicant={applicant} />

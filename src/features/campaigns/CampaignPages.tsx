@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import {
   Button,
@@ -108,12 +108,20 @@ const CAMPAIGN_COLUMNS: DenseTableColumn<CampaignFixture>[] = [
     align: "center",
     render: (campaign) => (
       <div className="fuma-table-actions">
-        <Button
+        <Link
+          aria-label={`${campaign.name} 상세 보기`}
+          className="fuma-table-action fuma-table-link"
+          to={`/campaigns/${campaign.id}`}
+        >
+          상세
+        </Link>
+        <Link
           aria-label={`${campaign.name} 수정`}
-          className="fuma-table-action"
+          className="fuma-table-action fuma-table-link"
+          to={`/campaigns/${campaign.id}/edit`}
         >
           수정
-        </Button>
+        </Link>
         <Button
           aria-label={`${campaign.name} 삭제`}
           className="fuma-table-action"
@@ -173,6 +181,9 @@ export function CampaignListPage() {
         <div className="fuma-result-toolbar">
           <strong>캠페인 목록</strong>
           <span>총 {CAMPAIGNS.length}건</span>
+          <Link className="hsas-button hsas-button--primary fuma-result-toolbar__link" to="/campaigns/new">
+            캠페인 생성
+          </Link>
         </div>
         <div
           aria-label="캠페인 목록"
@@ -326,6 +337,75 @@ export function CampaignEditPage() {
       <div className="fuma-page__body">
         {campaign ? (
           <CampaignForm campaign={campaign} key={campaign.id} mode="edit" />
+        ) : (
+          <EmptyState
+            description="요청한 캠페인 정보를 확인할 수 없습니다."
+            title="대상을 찾을 수 없습니다"
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+const CAMPAIGN_DETAIL_PRODUCT_COLUMNS: DenseTableColumn<CampaignProduct>[] = [
+  { key: "id", header: "상품코드", width: 118 },
+  { key: "name", header: "상품명" },
+  { key: "saleStatus", header: "판매 상태", width: 86, align: "center" },
+  { key: "vendor", header: "협력사", width: 150 },
+];
+
+export function CampaignDetailPage() {
+  const { campaignId } = useParams();
+  const campaign = findCampaignFixture(campaignId);
+
+  return (
+    <section className="fuma-page">
+      <PageHeader screenCode="CP104" title="캠페인 상세" />
+      <div className="fuma-page__body">
+        {campaign ? (
+          <>
+            <div className="fuma-detail-toolbar">
+              <Link className="hsas-button fuma-detail-toolbar__link" to="/campaigns">
+                목록
+              </Link>
+              <Link
+                className="hsas-button hsas-button--primary fuma-detail-toolbar__link"
+                to={`/campaigns/${campaign.id}/edit`}
+              >
+                캠페인 수정
+              </Link>
+            </div>
+            <section aria-labelledby="campaign-detail-basic-title" className="fuma-content-section">
+              <header className="fuma-content-section__header">
+                <h2 id="campaign-detail-basic-title">기본 정보</h2>
+                <StatusPill tone={statusTone(campaign.status)}>{campaign.status}</StatusPill>
+              </header>
+              <dl className="fuma-key-value-grid">
+                <div className="fuma-key-value-grid__item"><dt>캠페인 ID</dt><dd>{campaign.id}</dd></div>
+                <div className="fuma-key-value-grid__item"><dt>캠페인명</dt><dd>{campaign.name}</dd></div>
+                <div className="fuma-key-value-grid__item"><dt>시작일</dt><dd>{campaign.startDate}</dd></div>
+                <div className="fuma-key-value-grid__item"><dt>종료일</dt><dd>{campaign.endDate}</dd></div>
+                <div className="fuma-key-value-grid__item"><dt>상품 수</dt><dd>{campaign.products.length}개</dd></div>
+                <div className="fuma-key-value-grid__item"><dt>삭제 가능 여부</dt><dd><StatusPill tone={campaign.deleteEligible ? "approved" : "rejected"}>{campaign.deleteEligible ? "가능" : "불가"}</StatusPill></dd></div>
+              </dl>
+            </section>
+            <section aria-labelledby="campaign-detail-products-title" className="fuma-content-section">
+              <header className="fuma-content-section__header">
+                <h2 id="campaign-detail-products-title">포함 상품</h2>
+                <span>총 {campaign.products.length}건</span>
+              </header>
+              <DenseTable
+                columns={CAMPAIGN_DETAIL_PRODUCT_COLUMNS}
+                rowKey={(product) => product.id}
+                rows={campaign.products}
+              />
+            </section>
+            <section aria-labelledby="campaign-detail-delete-title" className="fuma-campaign-detail-note">
+              <h2 id="campaign-detail-delete-title">삭제 안내</h2>
+              <p>{campaign.deleteBlockedReason ?? "현재 캠페인은 삭제할 수 있습니다."}</p>
+            </section>
+          </>
         ) : (
           <EmptyState
             description="요청한 캠페인 정보를 확인할 수 없습니다."

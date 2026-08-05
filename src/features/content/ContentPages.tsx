@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { EditorFrame } from "../../components/content/EditorFrame";
 import { MediaTiles } from "../../components/content/MediaTiles";
 import { PageHeader } from "../../components/shell/PageHeader";
@@ -184,9 +184,13 @@ function queueColumns(noSelection: boolean): DenseTableColumn<ContentReviewFixtu
       width: 58,
       align: "center",
       render: (content) => (
-        <Button aria-label={`${content.id} 상세 보기`} className="fuma-table-action">
+        <Link
+          aria-label={`${content.id} 상세 보기`}
+          className="fuma-table-action fuma-table-link"
+          to={`/content/reviews/${content.id}`}
+        >
           보기
-        </Button>
+        </Link>
       ),
     },
   ];
@@ -380,7 +384,9 @@ export function ContentReviewDetailPage() {
         {content ? (
           <>
             <div className="fuma-detail-toolbar">
-              <Button>목록</Button>
+              <Link className="hsas-button fuma-detail-toolbar__link" to="/content/reviews">
+                목록
+              </Link>
             </div>
             <div aria-label="검수 상태 요약" className="fuma-content-status-toolbar" role="group">
               <span>검수 유형</span>

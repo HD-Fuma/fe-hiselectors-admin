@@ -19,6 +19,7 @@ export const ADMIN_REQUIREMENT_ROWS = [
   { route: "/applicants/ap-003?fixture=auto-rejected", rows: [12] },
   { route: "/campaigns", rows: [18, 19, 20] },
   { route: "/campaigns/new", rows: [18] },
+  { route: "/campaigns/cp-001", rows: [18, 19, 20] },
   { route: "/campaigns/cp-001/edit", rows: [19] },
   { route: "/content/reviews", rows: [21, 22] },
   { route: "/content/reviews/ct-001", rows: [21] },

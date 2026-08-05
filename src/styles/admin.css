@@ -1031,6 +1031,25 @@
   line-height: 19px;
 }
 
+.fuma-table-link,
+.fuma-detail-toolbar__link,
+.fuma-result-toolbar__link {
+  display: inline-block;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+.fuma-table-link {
+  border: 1px solid var(--hsas-border-dark);
+  border-radius: var(--hsas-radius);
+  background: var(--hsas-surface);
+  color: var(--hsas-text);
+}
+
+.fuma-table-link:hover {
+  background: var(--hsas-surface-muted);
+}
+
 .fuma-content-section {
   min-width: 0;
   border: 1px solid var(--hsas-border);
@@ -1245,6 +1264,33 @@
   min-height: 27px;
   align-items: center;
   justify-content: flex-end;
+  gap: var(--hsas-space-4);
+}
+
+.fuma-result-toolbar__link {
+  margin-left: auto;
+}
+
+.fuma-campaign-detail-note {
+  padding: 14px 16px;
+  border: 1px solid #d9e2dd;
+  background: #f7faf8;
+}
+
+.fuma-campaign-detail-note h2,
+.fuma-campaign-detail-note p {
+  margin: 0;
+}
+
+.fuma-campaign-detail-note h2 {
+  color: #344139;
+  font-size: 12px;
+}
+
+.fuma-campaign-detail-note p {
+  margin-top: 5px;
+  color: #68756e;
+  font-size: 12px;
 }
 
 .fuma-applicant-review__form {

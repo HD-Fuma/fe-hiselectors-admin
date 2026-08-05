@@ -91,7 +91,10 @@ describe("content review queue", () => {
       expect(within(newRow).getByText(value)).toBeInTheDocument();
     }
     expect(within(newRow).getByRole("checkbox", { name: "ct-001 선택" })).toBeChecked();
-    expectButton(within(newRow).getByRole("button", { name: "ct-001 상세 보기" }));
+    expect(within(newRow).getByRole("link", { name: "ct-001 상세 보기" })).toHaveAttribute(
+      "href",
+      "/content/reviews/ct-001",
+    );
 
     const correctionRow = within(queue).getByRole("row", {
       name: /ct-002 위반 수정본 박도윤/,

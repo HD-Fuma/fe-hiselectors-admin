@@ -79,9 +79,9 @@ describe("applicant review list", () => {
       expect(within(minjiRow).getByText(value)).toBeInTheDocument();
     }
     expect(within(minjiRow).getByRole("checkbox", { name: "김민지 선택" })).toBeInTheDocument();
-    expect(within(minjiRow).getByRole("button", { name: "김민지 상세 보기" })).toHaveAttribute(
-      "type",
-      "button",
+    expect(within(minjiRow).getByRole("link", { name: "김민지 상세 보기" })).toHaveAttribute(
+      "href",
+      "/applicants/ap-001",
     );
     expectStatusTone(minjiRow, "검토 대기", "pending");
     expectStatusTone(minjiRow, "비해당", "neutral");
@@ -102,9 +102,9 @@ describe("applicant review list", () => {
       expect(within(soraRow).getByText(value)).toBeInTheDocument();
     }
     expect(within(soraRow).getByRole("checkbox", { name: "윤소라 선택" })).toBeInTheDocument();
-    expect(within(soraRow).getByRole("button", { name: "윤소라 상세 보기" })).toHaveAttribute(
-      "type",
-      "button",
+    expect(within(soraRow).getByRole("link", { name: "윤소라 상세 보기" })).toHaveAttribute(
+      "href",
+      "/applicants/ap-003",
     );
     expectStatusTone(soraRow, "자동 반려", "rejected");
     expectStatusTone(soraRow, "해당", "rejected");
@@ -135,7 +135,7 @@ describe("applicant detail review", () => {
 
     expect(screen.getByRole("heading", { name: "지원자 상세 심사" })).toBeInTheDocument();
     expect(screen.getByText("AP102")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "목록" })).toHaveAttribute("type", "button");
+    expect(screen.getByRole("link", { name: "목록" })).toHaveAttribute("href", "/applicants");
 
     const tabs = screen.getByRole("navigation", { name: "섹션" });
     expect(within(tabs).getByText("기본 정보")).toHaveAttribute("aria-current", "page");

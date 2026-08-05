@@ -131,6 +131,14 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     workTabLabel: "캠페인 등록",
   },
   {
+    path: "/campaigns/:campaignId",
+    group: "campaigns",
+    menuLabel: "캠페인 관리",
+    title: "캠페인 상세",
+    screenCode: "CP104",
+    workTabLabel: "캠페인 상세",
+  },
+  {
     path: "/campaigns/:campaignId/edit",
     group: "campaigns",
     menuLabel: "캠페인 관리",

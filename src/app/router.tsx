@@ -20,6 +20,7 @@ import {
 } from "../features/selectors/SelectorPages";
 import {
   CampaignCreatePage,
+  CampaignDetailPage,
   CampaignEditPage,
   CampaignListPage,
 } from "../features/campaigns/CampaignPages";
@@ -64,6 +65,8 @@ function adminRouteElement(path: string, title: string, screenCode: string) {
       return <CampaignListPage />;
     case "/campaigns/new":
       return <CampaignCreatePage />;
+    case "/campaigns/:campaignId":
+      return <CampaignDetailPage />;
     case "/campaigns/:campaignId/edit":
       return <CampaignEditPage />;
     case "/content/reviews":
