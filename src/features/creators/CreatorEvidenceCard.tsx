@@ -101,7 +101,7 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
             {primaryMetrics.map((metric, index) => (
               <div className="fuma-creator-card__metric" key={metric.label}>
                 <dt>
-                  {index === 0 ? (
+                  {index === 1 ? (
                     <span className="hsas-visually-hidden">팔로워·구독자</span>
                   ) : null}
                   {metric.label}
