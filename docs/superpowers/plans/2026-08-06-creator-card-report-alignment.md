@@ -26,7 +26,7 @@ Assert every profile has a public profile URL, every creator has keywords and on
 
 - [ ] **Step 2: Run fixture test to verify it fails**
 
-Run: `npm test -- --run src/features/creators/fixtures.test.ts`
+Run: `npm test -- --run src/features/creators/fixtures.test.ts src/features/creators/creatorAnalysis.test.ts`
 Expected: FAIL because the new fields are absent.
 
 - [ ] **Step 3: Extend the fixture types and sample creators**
@@ -35,13 +35,13 @@ Add `profileUrl`, `keywords`, and a typed 90-day analysis snapshot with post-lev
 
 - [ ] **Step 4: Run fixture test to verify it passes**
 
-Run: `npm test -- --run src/features/creators/fixtures.test.ts`
+Run: `npm test -- --run src/features/creators/fixtures.test.ts src/features/creators/creatorAnalysis.test.ts`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/features/creators/fixtures.ts src/features/creators/fixtures.test.ts
+git add src/features/creators/fixtures.ts src/features/creators/fixtures.test.ts src/features/creators/creatorAnalysis.ts src/features/creators/creatorAnalysis.test.ts
 git commit -m "feat: add creator analysis fixture fields"
 ```
 
@@ -83,25 +83,16 @@ git commit -m "feat: align creator cards with analysis fields"
 **Files:**
 - Modify: `src/styles/admin.css`
 
-- [ ] **Step 1: Write failing pool-page assertions**
-
-Assert the card view contains keyword chips while keeping the current card-grid and shell roles intact. Pool-control assertions are handled with `CreatorPages.tsx` in Task 5.
-
-- [ ] **Step 2: Run page test to verify it fails**
-
-Run: `npm test -- --run src/features/creators/CreatorEvidenceCard.test.tsx`
-Expected: FAIL because the old card metadata remains.
-
-- [ ] **Step 3: Apply focused CSS**
+- [ ] **Step 1: Apply focused CSS**
 
 Add only card-level classes for section label, chip rows, and balanced metrics. Keep the existing sidebar, topbar, page header, and grid selector contracts unchanged.
 
-- [ ] **Step 4: Run pool-page tests to verify it passes**
+- [ ] **Step 2: Run pool-card tests to verify styles did not alter the UI contract**
 
 Run: `npm test -- --run src/features/creators/CreatorEvidenceCard.test.tsx src/features/creators/CreatorPages.test.tsx`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add src/styles/admin.css
@@ -119,7 +110,7 @@ git commit -m "style: refine creator analysis card hierarchy"
 
 - [ ] **Step 1: Write failing report component tests**
 
-Assert report output labels and relationships: the 90-day window ends at `updatedAt`; weekly cadence equals collected posts divided by 90 days; profile URL, audience, public versus 90-day collected counts, last-post date, eligible average views/likes/comments, format mix, derived ER formula/sample size, summary, categories, keywords, collaborations, style, tone, risk, strengths/cautions. Add fixture cases for an unavailable metric, a zero-audience post excluded from ER, platform-specific supplemental interactions, and an individually attached supporting URL for every AI claim.
+Assert report output labels and relationships: the 90-day window ends at `updatedAt`; daily cadence equals collected posts divided by 90 days, weekly cadence equals that daily rate multiplied by seven, and longest publication gap is derived from post dates; profile URL, audience, public versus 90-day collected counts, last-post date, eligible average views/likes/comments, format mix, derived ER formula/sample size, summary, categories, keywords, collaborations, style, tone, risk, strengths/cautions. Add fixture cases for an unavailable metric, a zero-audience post excluded from ER, platform-specific supplemental interactions, and an individually attached supporting URL for every AI claim.
 
 - [ ] **Step 2: Run report test to verify it fails**
 
