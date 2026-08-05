@@ -4,6 +4,7 @@ import type { CreatorFixture, ProposalStatus } from "./fixtures";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
 import { CreatorProfilePhoto } from "./CreatorArtwork";
 import { PlatformIcon } from "./PlatformIcon";
+import { engagementResultForCreator } from "./CreatorAnalysisReport";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const compactNumber = new Intl.NumberFormat("ko-KR", {
@@ -41,9 +42,10 @@ export function proposalTone(
 export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
   const action = proposalAction(creator);
   const isInstagram = creator.profile.platform === "Instagram";
+  const engagement = engagementResultForCreator(creator);
   const primaryMetrics = [
     { label: isInstagram ? "팔로워" : "구독자", value: creator.profile.followers },
-    { label: "ER", value: `${creator.profile.engagementRate.toFixed(1)}%` },
+    { label: "ER", value: engagement.value === null ? "집계 불가" : `${engagement.value.toFixed(1)}%` },
   ];
 
   return (

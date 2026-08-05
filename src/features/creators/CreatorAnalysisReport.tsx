@@ -46,6 +46,13 @@ const DOYOON_ENGAGEMENT_SAMPLES = Array.from({ length: 20 }, () => ({
   likes: 1_130,
   comments: null,
 }));
+const ADDITIONAL_ENGAGEMENT_SAMPLES: Record<
+  string,
+  readonly { audience: number; likes: number; comments: number | null }[]
+> = {
+  "cr-003": Array.from({ length: 18 }, () => ({ audience: 32_700, likes: 900, comments: 81 })),
+  "cr-004": Array.from({ length: 24 }, () => ({ audience: 486_000, likes: 12_000, comments: 636 })),
+};
 
 const CREATOR_ANALYSES: Record<string, CreatorAnalysisFixture> = {
   "cr-001": {
@@ -167,7 +174,8 @@ function audienceLabel(creator: CreatorFixture) {
 }
 
 export function topNScore(creator: CreatorFixture) {
-  return creator.profile.engagementRate * Math.log(1 + creator.profile.followers);
+  const engagement = engagementResultForCreator(creator);
+  return engagement.value === null ? null : engagement.value * Math.log(1 + creator.profile.followers);
 }
 
 export function deriveCadence(postDates: readonly string[], updatedAt: string, windowDays: number) {
@@ -207,9 +215,17 @@ export function deriveEngagementRate(
   return { value: Number((totalRate / eligible.length).toFixed(2)), sampleSize: eligible.length };
 }
 
+export function engagementResultForCreator(creator: CreatorFixture) {
+  const samples = CREATOR_ANALYSES[creator.id]?.engagementSamples
+    ?? ADDITIONAL_ENGAGEMENT_SAMPLES[creator.id]
+    ?? [];
+  return deriveEngagementRate(samples);
+}
+
 export function rankTopTwoN(creators: readonly CreatorFixture[], targetCount: number) {
   return [...creators]
-    .sort((left, right) => topNScore(right) - topNScore(left))
+    .filter((creator) => topNScore(creator) !== null)
+    .sort((left, right) => (topNScore(right) ?? 0) - (topNScore(left) ?? 0))
     .slice(0, targetCount * 2);
 }
 
@@ -244,7 +260,7 @@ export function CreatorAnalysisReport({ creator }: { creator: CreatorFixture }) 
   const audience = audienceLabel(creator);
   const cadence = deriveCadence(analysis.postDates, analysis.updatedAt.replaceAll(".", "-"), analysis.collectionDays);
   const collectedContentCount = Math.round(cadence.dailyAverage * analysis.collectionDays);
-  const engagement = deriveEngagementRate(analysis.engagementSamples);
+  const engagement = engagementResultForCreator(creator);
   const topTwoN = rankTopTwoN(CREATORS, 2);
   const finalTopN = selectTopNWithCategoryQuota(topTwoN, 2, 1);
 
@@ -296,7 +312,7 @@ export function CreatorAnalysisReport({ creator }: { creator: CreatorFixture }) 
       <section aria-label="크리에이터 풀 TopN 선정" className="fuma-content-section">
         <header className="fuma-content-section__header"><h2>크리에이터 풀 TopN 선정</h2></header>
         <dl className="fuma-key-value-grid">
-          <AnalysisFields label="1차 2N 선정">ER × log(1 + 팔로워·구독자 수) · 현재 점수 {topNScore(creator).toFixed(2)} · 후보 {topTwoN.map((candidate) => candidate.name).join(" · ")}</AnalysisFields>
+          <AnalysisFields label="1차 2N 선정">ER × log(1 + 팔로워·구독자 수) · 현재 점수 {topNScore(creator)?.toFixed(2) ?? "집계 불가"} · 후보 {topTwoN.map((candidate) => candidate.name).join(" · ")}</AnalysisFields>
           <AnalysisFields label="최종 N 선정">카테고리별 최대 1명 · 최종 후보 {finalTopN.map((candidate) => candidate.name).join(" · ")}</AnalysisFields>
         </dl>
       </section>

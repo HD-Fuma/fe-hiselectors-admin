@@ -76,7 +76,8 @@ describe("CreatorEvidenceCard", () => {
     expect(within(card).getByText("구독자")).toBeInTheDocument();
     expect(within(card).getByText("7.6만")).toBeInTheDocument();
     expect(within(card).getByText("ER")).toBeInTheDocument();
-    expect(within(card).getByText("1.7%")).toBeInTheDocument();
+    expect(within(card).getByText("집계 불가")).toBeInTheDocument();
+    expect(within(card).queryByText("1.7%")).not.toBeInTheDocument();
     expect(container.querySelectorAll(".fuma-creator-card__metrics > div")).toHaveLength(2);
   });
 

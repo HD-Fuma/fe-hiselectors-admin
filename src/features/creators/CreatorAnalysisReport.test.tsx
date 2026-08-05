@@ -60,7 +60,7 @@ describe("CreatorAnalysisReport", () => {
     expect(within(selection).getByText("1차 2N 선정")).toBeInTheDocument();
     expect(selection).toHaveTextContent("ER × log(1 + 팔로워·구독자 수)");
     expect(within(selection).getByText("최종 N 선정")).toBeInTheDocument();
-    expect(selection).toHaveTextContent("후보 김서연 · 오하늘 · 이지아 · 박도윤");
+    expect(selection).toHaveTextContent("후보 김서연 · 오하늘 · 이지아");
     expect(selection).toHaveTextContent("카테고리별 최대 1명");
   });
 
@@ -96,6 +96,6 @@ describe("creator analysis derivations", () => {
   });
 
   test("ranks Top 2N candidates by ER times log audience before category distribution adjustment", () => {
-    expect(rankTopTwoN(CREATORS, 1).map(({ id }) => id)).toEqual(["cr-001", "cr-004"]);
+    expect(rankTopTwoN(CREATORS, 2).map(({ id }) => id)).toEqual(["cr-001", "cr-004", "cr-003"]);
   });
 });
