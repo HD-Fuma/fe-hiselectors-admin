@@ -1,6 +1,27 @@
 export type ProposalChannel = "Instagram DM" | "이메일";
 export type ProposalStatus = "발송 대기" | "발송 완료" | "발송 실패" | "셀렉터스 전환";
 export type CreatorPlatform = "Instagram" | "YouTube" | "Facebook";
+export type CreatorPortraitVariant = "sage" | "navy" | "coral" | "amber";
+export type CreatorMediaVisual =
+  | "beauty"
+  | "fashion"
+  | "skincare"
+  | "cooking"
+  | "coffee"
+  | "table"
+  | "coast"
+  | "city"
+  | "packing"
+  | "dessert";
+
+export interface CreatorFeaturedContentFixture {
+  id: string;
+  platform: CreatorPlatform;
+  title: string;
+  mediaType: "이미지" | "동영상";
+  views: number;
+  visual: CreatorMediaVisual;
+}
 
 export interface CreatorChannelFixture {
   platform: CreatorPlatform;
