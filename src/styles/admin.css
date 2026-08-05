@@ -513,7 +513,7 @@
   width: var(--hsas-sidebar-width);
   height: 100dvh;
   align-self: start;
-  grid-template-rows: 72px minmax(0, 1fr) auto;
+  grid-template-rows: 68px minmax(0, 1fr) auto;
   overflow: hidden;
   border-right: 1px solid var(--hsas-sidebar-border);
   background: var(--hsas-sidebar-background);
@@ -578,18 +578,18 @@
 
 .hsas-admin-sidebar__account {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--hsas-space-8);
-  padding: var(--hsas-space-12) var(--hsas-space-16);
+  gap: 6px;
+  padding: var(--hsas-space-8) var(--hsas-space-12);
   border-top: 1px solid var(--hsas-sidebar-border);
   background: var(--hsas-sidebar-surface);
 }
 
 .hsas-admin-sidebar__account-avatar {
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: rgb(255 255 255 / 14%);
   color: var(--hsas-text-inverse);
@@ -621,18 +621,28 @@
 }
 
 .hsas-admin-sidebar__logout {
-  display: inline-flex;
+  display: grid;
+  width: 28px;
   height: 28px;
   align-items: center;
-  gap: 4px;
-  padding: 0 6px;
+  padding: 0;
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;
   color: var(--hsas-sidebar-heading);
   cursor: pointer;
-  font-size: 10px;
-  font-weight: 700;
+  place-items: center;
+}
+
+.hsas-admin-sidebar__logout span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 .hsas-admin-sidebar__logout:hover {
