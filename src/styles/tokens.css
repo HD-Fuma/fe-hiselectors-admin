@@ -6,17 +6,17 @@
 
   --hsas-sidebar-width: 248px;
   --hsas-topbar-height: 44px;
-  --hsas-sidebar-background: #202826;
-  --hsas-sidebar-surface: #27312f;
-  --hsas-sidebar-text: #c9d2cf;
-  --hsas-sidebar-heading: #82918d;
-  --hsas-sidebar-active: #116f60;
-  --hsas-sidebar-hover: #2c3835;
-  --hsas-sidebar-border: rgb(255 255 255 / 8%);
+  --hsas-sidebar-background: #2f2f2f;
+  --hsas-sidebar-surface: #333333;
+  --hsas-sidebar-text: #d5d5d5;
+  --hsas-sidebar-heading: #b8b8b8;
+  --hsas-sidebar-active: #168f78;
+  --hsas-sidebar-hover: #3a3a3a;
+  --hsas-sidebar-border: rgb(255 255 255 / 10%);
   --hsas-sidebar-row-height: 34px;
   --hsas-sidebar-radius: 6px;
   --hsas-sidebar-focus-active: #fff;
-  --hsas-sidebar-scrollbar: #72827e;
+  --hsas-sidebar-scrollbar: #8a8a8a;
 
   --hsas-background: #f7f7f8;
   --hsas-surface: #ffffff;
