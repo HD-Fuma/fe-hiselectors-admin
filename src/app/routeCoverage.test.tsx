@@ -41,6 +41,7 @@ const REQUIRED_ROUTES = [
   "/cohorts",
   "/selectors",
   "/selectors/qualifications",
+  "/selectors/sl-001",
   "/applicants",
   "/applicants/ap-001",
   "/applicants/ap-003?fixture=auto-rejected",
@@ -358,17 +359,17 @@ describe("requirement row route resolution", () => {
     [
       "/content/reviews/ct-002",
       "?preview=1&fixture=violation-correction&utm=x",
-      [25],
+      [22],
     ],
-    ["/content/reviews/ct-003", "?utm=x&fixture=edited", [26]],
+    ["/content/reviews/ct-003", "?utm=x&fixture=edited", [22]],
   ])("matches fixture metadata for %s with extra params", (pathname, search, rows) => {
     expect(findRequirementCoverage(pathname, search)?.rows).toEqual(rows);
   });
 
   test.each([
     ["/applicants/ap-003", "?fixture=edited", [19]],
-    ["/content/reviews/ct-002", "?fixture=edited", [25]],
-    ["/content/reviews/ct-003", "?fixture=violation-correction", [26]],
+    ["/content/reviews/ct-002", "?fixture=edited", [22]],
+    ["/content/reviews/ct-003", "?fixture=violation-correction", [22]],
   ])("does not grant fixture-specific rows for a mismatch on %s", (pathname, search, rows) => {
     expect(findRequirementCoverage(pathname, search)?.rows).not.toEqual(rows);
   });

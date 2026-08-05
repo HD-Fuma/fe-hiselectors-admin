@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Checkbox, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
@@ -205,6 +206,17 @@ const SELECTOR_COLUMNS: DenseTableColumn<SelectorFixture>[] = [
     render: (selector) => formatNumber(selector.conversions),
   },
   { key: "recentActivity", header: "최근 활동일", width: 104, align: "center" },
+  {
+    id: "detail",
+    header: "상세",
+    width: 62,
+    align: "center",
+    render: (selector) => (
+      <Link aria-label={`${selector.name} 상세 보기`} className="fuma-table-action" to={`/selectors/${selector.id}`}>
+        보기
+      </Link>
+    ),
+  },
 ];
 
 export function SelectorOverviewPage() {
@@ -240,6 +252,81 @@ export function SelectorOverviewPage() {
           />
         </div>
         <Pagination page={1} pageSize={20} totalPages={1} />
+      </div>
+    </section>
+  );
+}
+
+function SelectorDetailFields({ selector }: { selector: SelectorFixture }) {
+  const conversionRate = selector.clicks === 0 ? "0.0" : ((selector.conversions / selector.clicks) * 100).toFixed(1);
+  const fields: Array<[string, ReactNode]> = [
+    ["셀렉터스 ID", selector.id],
+    ["기수", selector.cohort],
+    ["활동 상태", <StatusPill key="status" tone={selectorStatusTone(selector.status)}>{selector.status}</StatusPill>],
+    ["SNS 채널", selector.sns],
+    ["콘텐츠 수", `${selector.contentCount}건`],
+    ["최근 활동일", selector.recentActivity],
+    ["누적 위반", `${selector.violationCount}회`],
+    ["클릭 수", formatNumber(selector.clicks)],
+    ["구매 전환 수", formatNumber(selector.conversions)],
+    ["전환율", `${conversionRate}%`],
+  ];
+
+  return (
+    <section aria-labelledby="selector-detail-basic" className="fuma-content-section">
+      <header className="fuma-content-section__header">
+        <h2 id="selector-detail-basic">셀렉터스 정보</h2>
+      </header>
+      <dl className="fuma-key-value-grid">
+        {fields.map(([label, value]) => (
+          <div className="fuma-key-value-grid__item" key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+export function SelectorDetailPage() {
+  const { selectorId } = useParams();
+  const selector = SELECTORS.find((item) => item.id === selectorId);
+
+  return (
+    <section className="fuma-page">
+      <PageHeader screenCode="SL202" title="셀렉터스 상세" />
+      <div className="fuma-page__body">
+        {selector ? (
+          <>
+            <div className="fuma-detail-toolbar">
+              <Link className="hsas-button hsas-button--secondary ui-button ui-button--secondary" to="/selectors">목록</Link>
+            </div>
+            <section aria-label="셀렉터스 프로필" className="fuma-selector-profile-summary">
+              <div>
+                <span>{selector.cohort}</span>
+                <h2>{selector.name}</h2>
+                <p>{selector.sns}</p>
+              </div>
+              <StatusPill tone={selectorStatusTone(selector.status)}>{selector.status}</StatusPill>
+            </section>
+            <SelectorDetailFields selector={selector} />
+            <section aria-labelledby="selector-detail-operation" className="fuma-content-section">
+              <header className="fuma-content-section__header">
+                <h2 id="selector-detail-operation">운영 참고</h2>
+              </header>
+              <div className="fuma-selector-operation-note">
+                <strong>{selector.violationCount === 0 ? "정상 활동 중" : `위반 ${selector.violationCount}건 확인 필요`}</strong>
+                <p>콘텐츠 검수와 자격 관리 화면에서 세부 이력 및 처리 상태를 확인할 수 있습니다.</p>
+              </div>
+            </section>
+          </>
+        ) : (
+          <section className="fuma-empty-state" aria-label="셀렉터스 없음">
+            <h2>대상을 찾을 수 없습니다</h2>
+            <p>요청한 셀렉터스 정보를 확인할 수 없습니다.</p>
+          </section>
+        )}
       </div>
     </section>
   );

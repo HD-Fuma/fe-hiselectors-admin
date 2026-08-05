@@ -85,6 +85,14 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     workTabLabel: "셀렉터스 현황",
   },
   {
+    path: "/selectors/:selectorId",
+    group: "selectors",
+    menuLabel: "셀렉터스 현황",
+    title: "셀렉터스 상세",
+    screenCode: "SL202",
+    workTabLabel: "셀렉터스 상세",
+  },
+  {
     path: "/selectors/qualifications",
     group: "selectors",
     menuLabel: "자격 관리",

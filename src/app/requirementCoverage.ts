@@ -39,7 +39,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   {
     route: "/creators",
     rows: [3, 4],
-    expectedTexts: ["김서연", "#데일리룩", "팔로워·구독자", "ER"],
+    expectedTexts: ["김서연", "#데일리룩", "팔로워", "ER"],
     expectedActions: ["조회", "초기화"],
     expectedControls: [
       { role: "textbox", name: "키워드" },
@@ -51,7 +51,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/creators/cr-001",
-    rows: [5, 6, 7, 8],
+    rows: [5, 6, 7],
     expectedTexts: [
       "기본 정보",
       "크리에이터 분석",
@@ -67,7 +67,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/proposals",
-    rows: [9, 10],
+    rows: [8],
     expectedTexts: ["대상", "채널", "발송 방식", "발송 시각", "상태"],
     expectedActions: ["조회", "초기화"],
     expectedControls: [
@@ -84,14 +84,14 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/cohorts",
-    rows: [11],
+    rows: [14],
     expectedTexts: ["기수명", "모집 기간", "활동 기간", "모집 상태", "참여자 수"],
     expectedActions: ["기수 생성"],
     primaryRole: { role: "heading", name: "셀렉터스 기수 관리" },
   },
   {
     route: "/selectors",
-    rows: [12],
+    rows: [15],
     expectedTexts: [
       "SNS",
       "활동 상태",
@@ -117,7 +117,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/selectors/qualifications",
-    rows: [13, 14],
+    rows: [17],
     expectedTexts: [
       "현재 자격",
       "누적 패널티",
@@ -130,8 +130,15 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     primaryRole: { role: "heading", name: "셀렉터스 자격 관리" },
   },
   {
+    route: "/selectors/sl-001",
+    rows: [16],
+    expectedTexts: ["셀렉터스 정보", "SNS 채널", "콘텐츠 수", "최근 활동일", "구매 전환 수"],
+    expectedActions: ["새로고침"],
+    primaryRole: { role: "heading", name: "셀렉터스 상세" },
+  },
+  {
     route: "/applicants",
-    rows: [15],
+    rows: [9],
     expectedTexts: [
       "지원자 ID",
       "SNS 채널",
@@ -165,7 +172,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/applicants/ap-001",
-    rows: [16, 17, 18, 20],
+    rows: [10, 11, 12, 13],
     expectedTexts: [
       "평균 조회 수",
       "평균 반응 수",
@@ -186,28 +193,28 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/campaigns",
-    rows: [23],
+    rows: [18, 19, 20],
     expectedTexts: ["상태", "삭제 가능 여부", "삭제 불가 사유"],
     expectedActions: ["2026 가을 골프웨어 셀렉션 삭제"],
     primaryRole: { role: "heading", name: "캠페인 관리" },
   },
   {
     route: "/campaigns/new",
-    rows: [21, 22],
+    rows: [18],
     expectedTexts: ["캠페인명", "기간", "상품 선택"],
     expectedActions: ["상품 선택", "등록"],
     primaryRole: { role: "heading", name: "캠페인 등록" },
   },
   {
     route: "/campaigns/cp-001/edit",
-    rows: [21, 22],
+    rows: [19],
     expectedTexts: ["캠페인명", "기간", "상품 선택"],
     expectedActions: ["상품 선택", "저장"],
     primaryRole: { role: "heading", name: "캠페인 수정" },
   },
   {
     route: "/content/reviews",
-    rows: [24, 25, 26],
+    rows: [21, 22],
     expectedTexts: [
       "검수 유형",
       "작성자",
@@ -244,7 +251,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/content/reviews/ct-001",
-    rows: [24],
+    rows: [21],
     expectedTexts: [
       "검수 유형",
       "작성자",
@@ -264,7 +271,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/content/reviews/ct-002?fixture=violation-correction",
-    rows: [25],
+    rows: [22],
     expectedTexts: [
       "위반 수정본",
       "이전 콘텐츠",
@@ -283,7 +290,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/content/reviews/ct-003?fixture=edited",
-    rows: [26],
+    rows: [22],
     expectedTexts: [
       "일반 수정본",
       "이전 콘텐츠",
@@ -301,7 +308,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/content/violations",
-    rows: [27, 28, 29],
+    rows: [23, 24],
     expectedTexts: [
       "기수",
       "위반 유형",
@@ -326,7 +333,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/performance",
-    rows: [30],
+    rows: [25],
     expectedTexts: ["캠페인명", "셀렉터스", "클릭 수", "구매 전환 수", "전환율"],
     expectedActions: ["조회", "초기화"],
     expectedControls: [
@@ -349,7 +356,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/performance/creators",
-    rows: [31],
+    rows: [26],
     expectedTexts: ["구매 전환 수", "조회 수", "좋아요", "댓글"],
     expectedActions: ["조회", "초기화"],
     expectedControls: [
@@ -367,7 +374,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/performance/contents",
-    rows: [32],
+    rows: [27],
     expectedTexts: ["구매 전환 수", "조회 수", "좋아요", "댓글"],
     expectedActions: ["조회", "초기화"],
     expectedControls: [
@@ -385,7 +392,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/settlements",
-    rows: [33, 34, 35],
+    rows: [28],
     expectedTexts: [
       "귀속월",
       "셀렉터스",

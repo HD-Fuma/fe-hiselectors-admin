@@ -113,6 +113,7 @@ describe("selector overview", () => {
       "클릭",
       "전환",
       "최근 활동일",
+      "상세",
     ]);
 
     const seoyeonRow = within(results).getByRole("row", { name: /김서연/ });
@@ -148,6 +149,20 @@ describe("selector overview", () => {
     }
     expectStatusTone(haneulRow, "수료", "neutral");
     expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
+  });
+
+  test("opens the selector detail required for operational review", () => {
+    renderRoute("/selectors/sl-002");
+
+    expect(screen.getByRole("heading", { name: "셀렉터스 상세" })).toBeInTheDocument();
+    expect(screen.getByText("SL202")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "셀렉터스 프로필" })).toHaveTextContent(
+      "박도윤",
+    );
+    expect(screen.getAllByText("YouTube")).toHaveLength(2);
+    expect(screen.getByText("11건")).toBeInTheDocument();
+    expect(screen.getByText("구매 전환 수")).toBeInTheDocument();
+    expect(screen.getByText("위반 2건 확인 필요")).toBeInTheDocument();
   });
 });
 

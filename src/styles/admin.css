@@ -2648,6 +2648,47 @@
   gap: 6px;
 }
 
+.fuma-selector-profile-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid #dfe7e3;
+  border-radius: 10px;
+  background: #f8fbf9;
+}
+
+.fuma-selector-profile-summary span {
+  color: #1d6f53;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.fuma-selector-profile-summary h2 {
+  margin: 4px 0;
+  color: #29352f;
+  font-size: 18px;
+}
+
+.fuma-selector-profile-summary p,
+.fuma-selector-operation-note p {
+  margin: 0;
+  color: #707a75;
+  font-size: 11px;
+}
+
+.fuma-selector-operation-note {
+  padding: 16px;
+}
+
+.fuma-selector-operation-note strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #344139;
+  font-size: 12px;
+}
+
 .fuma-creator-card__action:hover {
   background: transparent;
   color: #1d6f53;
