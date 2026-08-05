@@ -43,10 +43,13 @@ export interface ApplicantFixture extends ApplicantMetric {
 
 export interface ApplicantFeaturedContent {
   id: string;
+  comments: number;
+  likes: number;
   mediaType: "이미지" | "동영상";
   thumbnailUrl: string;
   title: string;
   url: string;
+  views: number;
 }
 
 export interface ApplicantAnalysisReport {
@@ -331,23 +334,23 @@ const APPLICANT_ANALYSIS: Record<string, ApplicantAnalysisReport> = {
 
 const APPLICANT_CONTENT: Record<string, ApplicantFeaturedContent[]> = {
   "ap-001": [
-    { id: "ap-001-1", title: "여름 톤 메이크업 루틴", mediaType: "동영상", thumbnailUrl: "/creator-media/cr-001-02.jpg", url: "https://www.instagram.com/p/ap001-01/" },
-    { id: "ap-001-2", title: "출근 전 5분 데일리룩", mediaType: "이미지", thumbnailUrl: "/creator-media/cr-001-03.jpg", url: "https://www.instagram.com/p/ap001-02/" },
-    { id: "ap-001-3", title: "파우치 속 뷰티 아이템", mediaType: "이미지", thumbnailUrl: "/creator-media/cr-001-01.jpg", url: "https://www.instagram.com/p/ap001-03/" },
+    { id: "ap-001-1", title: "여름 톤 메이크업 루틴", mediaType: "동영상", thumbnailUrl: "/creator-media/cr-001-02.jpg", url: "https://www.instagram.com/p/ap001-01/", views: 38_420, likes: 2_460, comments: 184 },
+    { id: "ap-001-2", title: "출근 전 5분 데일리룩", mediaType: "이미지", thumbnailUrl: "/creator-media/cr-001-03.jpg", url: "https://www.instagram.com/p/ap001-02/", views: 27_830, likes: 1_940, comments: 126 },
+    { id: "ap-001-3", title: "파우치 속 뷰티 아이템", mediaType: "이미지", thumbnailUrl: "/creator-media/cr-001-01.jpg", url: "https://www.instagram.com/p/ap001-03/", views: 24_610, likes: 1_720, comments: 98 },
   ],
   "ap-002": [
-    { id: "ap-002-1", title: "살림 동선 정리 브이로그", mediaType: "동영상", thumbnailUrl: "/creator-media/cr-002-01.jpg", url: "https://www.youtube.com/watch?v=ap002-01" },
-    { id: "ap-002-2", title: "주말 집밥 루틴", mediaType: "동영상", thumbnailUrl: "/creator-media/cr-002-02.jpg", url: "https://www.youtube.com/watch?v=ap002-02" },
-    { id: "ap-002-3", title: "홈카페 도구 리뷰", mediaType: "동영상", thumbnailUrl: "/creator-media/cr-002-03.jpg", url: "https://www.youtube.com/watch?v=ap002-03" },
+    { id: "ap-002-1", title: "살림 동선 정리 브이로그", mediaType: "동영상", thumbnailUrl: "/creator-media/cr-002-01.jpg", url: "https://www.youtube.com/watch?v=ap002-01", views: 132_400, likes: 4_820, comments: 392 },
+    { id: "ap-002-2", title: "주말 집밥 루틴", mediaType: "동영상", thumbnailUrl: "/creator-media/cr-002-02.jpg", url: "https://www.youtube.com/watch?v=ap002-02", views: 98_300, likes: 3_610, comments: 281 },
+    { id: "ap-002-3", title: "홈카페 도구 리뷰", mediaType: "동영상", thumbnailUrl: "/creator-media/cr-002-03.jpg", url: "https://www.youtube.com/watch?v=ap002-03", views: 81_700, likes: 2_940, comments: 226 },
   ],
   "ap-003": [
-    { id: "ap-003-1", title: "봄 데일리 착장", mediaType: "이미지", thumbnailUrl: "/creator-media/cr-003-01.jpg", url: "https://www.instagram.com/p/ap003-01/" },
-    { id: "ap-003-2", title: "주말 카페 기록", mediaType: "이미지", thumbnailUrl: "/creator-media/cr-003-02.jpg", url: "https://www.instagram.com/p/ap003-02/" },
+    { id: "ap-003-1", title: "봄 데일리 착장", mediaType: "이미지", thumbnailUrl: "/creator-media/cr-003-01.jpg", url: "https://www.instagram.com/p/ap003-01/", views: 410, likes: 21, comments: 3 },
+    { id: "ap-003-2", title: "주말 카페 기록", mediaType: "이미지", thumbnailUrl: "/creator-media/cr-003-02.jpg", url: "https://www.instagram.com/p/ap003-02/", views: 270, likes: 12, comments: 1 },
   ],
   "ap-004": [
-    { id: "ap-004-1", title: "초여름 출근룩", mediaType: "동영상", thumbnailUrl: "/creator-media/cr-004-01.jpg", url: "https://www.instagram.com/p/ap004-01/" },
-    { id: "ap-004-2", title: "주간 스타일링 하울", mediaType: "이미지", thumbnailUrl: "/creator-media/cr-004-02.jpg", url: "https://www.instagram.com/p/ap004-02/" },
-    { id: "ap-004-3", title: "액세서리 매치 팁", mediaType: "이미지", thumbnailUrl: "/creator-media/cr-004-03.jpg", url: "https://www.instagram.com/p/ap004-03/" },
+    { id: "ap-004-1", title: "초여름 출근룩", mediaType: "동영상", thumbnailUrl: "/creator-media/cr-004-01.jpg", url: "https://www.instagram.com/p/ap004-01/", views: 18_420, likes: 740, comments: 62 },
+    { id: "ap-004-2", title: "주간 스타일링 하울", mediaType: "이미지", thumbnailUrl: "/creator-media/cr-004-02.jpg", url: "https://www.instagram.com/p/ap004-02/", views: 14_360, likes: 590, comments: 48 },
+    { id: "ap-004-3", title: "액세서리 매치 팁", mediaType: "이미지", thumbnailUrl: "/creator-media/cr-004-03.jpg", url: "https://www.instagram.com/p/ap004-03/", views: 11_980, likes: 510, comments: 42 },
   ],
 };
 
@@ -363,4 +366,9 @@ export function applicantProfileUrl(applicant: ApplicantFixture) {
   return applicant.platform === "Instagram"
     ? `https://www.instagram.com/${applicant.channelName.replace(/^@/, "")}/`
     : `https://www.youtube.com/@${encodeURIComponent(applicant.channelName)}`;
+}
+
+export function applicantProfileImageUrl(applicant: ApplicantFixture) {
+  const creatorId = applicant.id.replace("ap-", "cr-");
+  return `/creator-media/${creatorId}-profile.jpg`;
 }

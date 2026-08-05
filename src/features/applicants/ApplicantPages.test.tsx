@@ -140,13 +140,17 @@ describe("applicant detail review", () => {
 
     const tabs = screen.getByRole("navigation", { name: "섹션" });
     expect(within(tabs).getByText("기본 정보")).toHaveAttribute("aria-current", "page");
-    for (const label of ["SNS 지표", "대표 콘텐츠", "AI 분석 리포트", "심사 처리", "결과 전송"]) {
+    for (const label of ["SNS 지표", "자동 심사", "대표 콘텐츠", "AI 분석 리포트", "심사 처리", "결과 전송"]) {
       expect(within(tabs).getByText(label)).toBeInTheDocument();
     }
     expect(within(tabs).getByRole("link", { name: "대표 콘텐츠" })).toHaveAttribute(
       "href",
       "#featured-content",
     );
+    const reviewSummary = screen.getByRole("region", { name: "김민지 지원자 심사 요약" });
+    for (const value of ["58,420", "29건", "21,840", "2.5%", "통과"]) {
+      expect(within(reviewSummary).getByText(value)).toBeInTheDocument();
+    }
 
     const basic = screen.getByRole("region", { name: "기본 정보" });
     for (const label of ["지원자 ID", "이름", "지원일", "이메일", "연락처", "심사 상태"]) {
@@ -180,6 +184,8 @@ describe("applicant detail review", () => {
 
     const featured = screen.getByRole("region", { name: "대표 콘텐츠" });
     expect(within(featured).getAllByRole("link", { name: /김민지 대표 콘텐츠:/ })).toHaveLength(3);
+    expect(within(featured).getByText("38,420")).toBeInTheDocument();
+    expect(within(featured).getByText("2,460")).toBeInTheDocument();
 
     const ai = screen.getByRole("region", { name: "지원자 분석 리포트" });
     expect(

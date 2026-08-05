@@ -3364,3 +3364,818 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Applicant review workspace */
+.fuma-applicant-detail-page .fuma-page__body {
+  gap: 14px;
+}
+
+.fuma-applicant-detail-page .hsas-section-tabs {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  overflow-x: auto;
+  margin: 0 -2px;
+  padding: 8px 2px 0;
+  background: var(--hsas-surface);
+  scrollbar-width: none;
+}
+
+.fuma-applicant-detail-page .hsas-section-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.fuma-applicant-detail-page .hsas-section-tabs__tab {
+  min-width: max-content;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.fuma-applicant-detail-page .fuma-content-section {
+  overflow: hidden;
+  border-color: #dde6e1;
+  border-radius: 10px;
+}
+
+.fuma-applicant-detail-page .fuma-content-section__header {
+  min-height: 42px;
+  padding: 8px 14px;
+  background: #f5f7f6;
+}
+
+.fuma-applicant-detail-page .fuma-content-section__header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.fuma-applicant-detail-page .fuma-content-section__header h2 {
+  color: #2d4338;
+  font-size: 13px;
+}
+
+.fuma-applicant-detail-page .fuma-content-section__header span:not(.hsas-status-pill) {
+  color: #7a8780;
+  font-size: 10px;
+}
+
+.fuma-applicant-detail-hero {
+  display: grid;
+  min-height: 222px;
+  grid-template-columns: minmax(270px, 0.82fr) minmax(390px, 1.45fr) 170px;
+  overflow: hidden;
+  border: 1px solid #d7e2dc;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 26px rgb(30 61 48 / 7%);
+}
+
+.fuma-applicant-detail-hero__visual {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  padding: 9px;
+  grid-template-columns: 1.25fr 0.75fr;
+  grid-template-rows: repeat(2, 1fr);
+  gap: 6px;
+  background: #23463a;
+}
+
+.fuma-applicant-detail-hero__visual > img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.fuma-applicant-detail-hero__content-1 {
+  grid-row: 1 / 3;
+}
+
+.fuma-applicant-detail-hero__portrait {
+  position: absolute;
+  right: -30px;
+  bottom: 20px;
+  width: 74px;
+  height: 74px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 5px 16px rgb(17 45 34 / 24%);
+}
+
+.fuma-applicant-detail-hero__portrait > img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.fuma-applicant-detail-hero__platform {
+  position: absolute;
+  right: -4px;
+  bottom: -2px;
+}
+
+.fuma-applicant-detail-hero__platform .fuma-platform-icon {
+  width: 23px;
+  height: 23px;
+  border: 2px solid #fff;
+}
+
+.fuma-applicant-detail-hero__body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 22px 26px 18px 48px;
+}
+
+.fuma-applicant-detail-hero__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.fuma-applicant-detail-hero__topline > span:first-child {
+  color: #26765a;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.fuma-applicant-detail-hero__identity {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.fuma-applicant-detail-hero__identity h2 {
+  margin: 0;
+  color: #21362d;
+  font-size: 26px;
+  letter-spacing: -0.05em;
+}
+
+.fuma-applicant-detail-hero__identity a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #596d63;
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.fuma-applicant-detail-hero__identity .fuma-platform-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.fuma-applicant-detail-hero__summary {
+  overflow: hidden;
+  margin: 8px 0 0;
+  color: #566860;
+  font-size: 11px;
+  line-height: 1.55;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-applicant-detail-hero__categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.fuma-applicant-detail-hero__categories span {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #eef4f0;
+  color: #456555;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.fuma-applicant-detail-hero__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: auto 0 0;
+}
+
+.fuma-applicant-detail-hero__metrics > div {
+  min-width: 0;
+  padding: 9px 12px 0;
+  border-left: 1px solid #e3ebe6;
+}
+
+.fuma-applicant-detail-hero__metrics > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.fuma-applicant-detail-hero__metrics dt {
+  overflow: hidden;
+  color: #7a8780;
+  font-size: 9px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-applicant-detail-hero__metrics dd {
+  overflow: hidden;
+  margin: 4px 0 0;
+  color: #213d31;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-applicant-detail-hero__decision {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 22px 18px;
+  border-left: 1px solid #dce7e1;
+  background: #f3f8f5;
+}
+
+.fuma-applicant-detail-hero__decision--fail {
+  border-left-color: #ebd8d8;
+  background: #fff6f5;
+}
+
+.fuma-applicant-detail-hero__decision > span {
+  color: #75837c;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.fuma-applicant-detail-hero__decision strong {
+  margin-top: 7px;
+  color: #207253;
+  font-size: 22px;
+  letter-spacing: -0.05em;
+}
+
+.fuma-applicant-detail-hero__decision--fail strong {
+  color: #a84545;
+}
+
+.fuma-applicant-detail-hero__decision p {
+  margin: 7px 0 16px;
+  color: #6b7a72;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.fuma-applicant-detail-hero__decision a {
+  width: fit-content;
+  padding-bottom: 2px;
+  border-bottom: 1px solid currentColor;
+  color: #315e4b;
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.fuma-applicant-auto-review {
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #d9e5df;
+  border-left: 4px solid #318165;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.fuma-applicant-auto-review--fail {
+  border-color: #eadada;
+  border-left-color: #b95050;
+}
+
+.fuma-applicant-auto-review__verdict {
+  flex: 1;
+  padding: 16px 18px;
+}
+
+.fuma-applicant-auto-review__label {
+  color: #358064;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.fuma-applicant-auto-review__verdict > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 5px;
+}
+
+.fuma-applicant-auto-review__verdict h2 {
+  margin: 0;
+}
+
+.fuma-applicant-auto-review__checks {
+  display: grid;
+  align-self: stretch;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: 0;
+  min-width: 390px;
+  margin: 0;
+  border-left: 1px solid #e1e8e4;
+  background: #f7f9f8;
+}
+
+.fuma-applicant-auto-review__checks > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 12px 18px;
+  border-left: 1px solid #e1e8e4;
+}
+
+.fuma-applicant-auto-review__checks > div:first-child {
+  border-left: 0;
+}
+
+.fuma-applicant-auto-review__checks dd {
+  font-size: 15px;
+}
+
+.fuma-applicant-auto-review__checks span {
+  margin-top: 5px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.fuma-applicant-auto-review__checks .is-pass {
+  color: #287557;
+}
+
+.fuma-applicant-auto-review__checks .is-fail {
+  color: #a84545;
+}
+
+.fuma-applicant-featured-content {
+  gap: 10px;
+  padding: 12px;
+}
+
+.fuma-applicant-featured-content__item {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.85fr) minmax(150px, 1.15fr);
+  border: 1px solid #dfe7e3;
+  border-radius: 8px;
+}
+
+.fuma-applicant-featured-content__item img {
+  width: 100%;
+  height: 154px;
+}
+
+.fuma-applicant-featured-content__rank {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: rgb(22 45 36 / 82%);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.fuma-applicant-featured-content__body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 13px 12px 10px;
+}
+
+.fuma-applicant-featured-content__body strong {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  color: #2c4036;
+  font-size: 12px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-applicant-featured-content__body dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin: 15px 0 0;
+}
+
+.fuma-applicant-featured-content__body dl > div {
+  min-width: 0;
+}
+
+.fuma-applicant-featured-content__body dt {
+  color: #89938e;
+  font-size: 8px;
+}
+
+.fuma-applicant-featured-content__body dd {
+  overflow: hidden;
+  margin: 3px 0 0;
+  color: #32473c;
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+}
+
+.fuma-applicant-featured-content__body .fuma-applicant-featured-content__link {
+  margin: auto 0 0;
+  padding: 0;
+}
+
+.fuma-applicant-featured-content__type {
+  right: calc(57.5% + 8px);
+}
+
+.fuma-applicant-analysis__section {
+  padding: 18px;
+}
+
+.fuma-applicant-analysis__section-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.fuma-applicant-analysis__section-title > span {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  border: 1px solid #cddbd4;
+  border-radius: 50%;
+  color: #2f765a;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.fuma-applicant-analysis__section-title h3,
+.fuma-applicant-analysis__section-title p {
+  margin: 0;
+}
+
+.fuma-applicant-analysis__section-title p {
+  margin-top: 3px;
+  color: #7a8780;
+  font-size: 10px;
+}
+
+.fuma-applicant-analysis__metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid #dfe7e3;
+  border-radius: 8px;
+}
+
+.fuma-applicant-analysis__metric {
+  min-width: 0;
+  padding: 13px 15px;
+  border-left: 1px solid #e2e9e5;
+}
+
+.fuma-applicant-analysis__metric:first-child {
+  border-left: 0;
+}
+
+.fuma-applicant-analysis__metric dt {
+  color: #718078;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.fuma-applicant-analysis__metric dd {
+  margin: 5px 0 2px;
+  color: #243e32;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.fuma-applicant-analysis__metric span {
+  color: #8b9690;
+  font-size: 9px;
+}
+
+.fuma-applicant-analysis__detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 12px 0 0;
+  border-top: 1px solid #e4ebe7;
+}
+
+.fuma-applicant-analysis__detail-grid > div {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 100px minmax(0, 1fr);
+  padding: 9px 6px;
+  border-bottom: 1px solid #e4ebe7;
+}
+
+.fuma-applicant-analysis__detail-grid > div:nth-child(odd) {
+  border-right: 1px solid #e4ebe7;
+}
+
+.fuma-applicant-analysis__detail-grid dt {
+  color: #718078;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.fuma-applicant-analysis__detail-grid dd {
+  min-width: 0;
+  margin: 0;
+  color: #384c42;
+  font-size: 10px;
+}
+
+.fuma-applicant-analysis__detail-grid a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #2f7258;
+  text-decoration: none;
+}
+
+.fuma-applicant-analysis__detail-grid .fuma-platform-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.fuma-applicant-analysis__formula {
+  margin: 8px 0 0;
+  color: #7e8983;
+  font-size: 9px;
+  text-align: right;
+}
+
+.fuma-applicant-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.fuma-applicant-insight {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #e0e7e3;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.fuma-applicant-insight--summary,
+.fuma-applicant-insight--wide {
+  grid-column: 1 / -1;
+}
+
+.fuma-applicant-insight--summary {
+  border-left: 3px solid #43876b;
+  background: #f6f9f7;
+}
+
+.fuma-applicant-insight--risk {
+  border-left: 3px solid #cb9b52;
+  background: #fffbf4;
+}
+
+.fuma-applicant-insight dt {
+  color: #75827b;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.fuma-applicant-insight dd {
+  margin: 7px 0 0;
+  color: #30463b;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.fuma-applicant-analysis__chips,
+.fuma-applicant-analysis__keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.fuma-applicant-analysis__chips span,
+.fuma-applicant-analysis__keywords span {
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #edf4f0;
+  color: #3e6755;
+  font-size: 9px;
+}
+
+.fuma-applicant-analysis__keywords span {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.fuma-applicant-analysis__keywords small {
+  color: #79877f;
+}
+
+.fuma-applicant-analysis__evidence-note {
+  display: grid;
+  grid-template-columns: 100px minmax(170px, 1fr) minmax(300px, 1.4fr);
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border: 1px solid #d9e5df;
+  border-left: 3px solid #599077;
+  background: #f5f8f6;
+}
+
+.fuma-applicant-analysis__evidence-note strong {
+  color: #315b49;
+  font-size: 10px;
+}
+
+.fuma-applicant-analysis__evidence-note p {
+  margin: 0;
+  color: #6c7972;
+  font-size: 9px;
+}
+
+.fuma-applicant-analysis__evidence-note > div {
+  display: flex;
+  min-width: 0;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.fuma-applicant-analysis__evidence-note a {
+  overflow: hidden;
+  color: #2f7157;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#basic,
+#metrics,
+#featured-content,
+#analysis,
+#review,
+#delivery,
+#screening {
+  scroll-margin-top: 48px;
+}
+
+@media (max-width: 1180px) {
+  .fuma-applicant-detail-hero {
+    grid-template-columns: 260px minmax(370px, 1fr);
+  }
+
+  .fuma-applicant-detail-hero__decision {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 10px 16px;
+    border-top: 1px solid #dce7e1;
+    border-left: 0;
+  }
+
+  .fuma-applicant-detail-hero__decision p {
+    margin: 0 auto 0 0;
+  }
+
+  .fuma-applicant-featured-content__item {
+    grid-template-columns: 1fr;
+  }
+
+  .fuma-applicant-featured-content__item img {
+    height: 140px;
+  }
+
+  .fuma-applicant-featured-content__type {
+    right: 8px;
+  }
+}
+
+@media (max-width: 820px) {
+  .fuma-applicant-detail-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .fuma-applicant-detail-hero__visual {
+    min-height: 200px;
+  }
+
+  .fuma-applicant-detail-hero__portrait {
+    right: auto;
+    bottom: -32px;
+    left: 22px;
+  }
+
+  .fuma-applicant-detail-hero__body {
+    padding: 42px 20px 18px;
+  }
+
+  .fuma-applicant-featured-content {
+    grid-template-columns: 1fr;
+  }
+
+  .fuma-applicant-featured-content__item {
+    grid-template-columns: 160px minmax(0, 1fr);
+  }
+
+  .fuma-applicant-featured-content__type {
+    right: auto;
+    left: 112px;
+  }
+
+  .fuma-applicant-auto-review__checks {
+    min-width: 320px;
+  }
+
+  .fuma-applicant-analysis__metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fuma-applicant-analysis__metric:nth-child(3) {
+    border-left: 0;
+  }
+
+  .fuma-applicant-analysis__metric:nth-child(n + 3) {
+    border-top: 1px solid #e2e9e5;
+  }
+
+  .fuma-applicant-analysis__evidence-note {
+    grid-template-columns: 1fr;
+  }
+
+  .fuma-applicant-analysis__evidence-note > div {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 620px) {
+  .fuma-applicant-detail-hero__metrics,
+  .fuma-applicant-analysis__detail-grid,
+  .fuma-applicant-insight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fuma-applicant-detail-hero__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 0;
+  }
+
+  .fuma-applicant-detail-hero__metrics > div:nth-child(3) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .fuma-applicant-auto-review {
+    display: block;
+  }
+
+  .fuma-applicant-auto-review__checks {
+    min-width: 0;
+    border-top: 1px solid #e1e8e4;
+    border-left: 0;
+  }
+
+  .fuma-applicant-featured-content__item {
+    grid-template-columns: 130px minmax(0, 1fr);
+  }
+
+  .fuma-applicant-featured-content__type {
+    left: 82px;
+  }
+
+  .fuma-applicant-analysis__detail-grid > div:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .fuma-applicant-insight--summary,
+  .fuma-applicant-insight--wide {
+    grid-column: auto;
+  }
+}

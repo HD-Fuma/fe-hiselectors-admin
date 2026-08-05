@@ -10,8 +10,13 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SectionTabs } from "../../components/ui/SectionTabs";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { ApplicantAnalysisReport } from "./ApplicantAnalysisReport";
+import { PlatformIcon } from "../creators/PlatformIcon";
 import {
   APPLICANTS,
+  applicantAnalysisFor,
+  applicantFeaturedContentFor,
+  applicantProfileImageUrl,
+  applicantProfileUrl,
   findApplicantFixture,
   type ApplicantDeliveryRecord,
   type ApplicantFixture,
@@ -300,6 +305,58 @@ function BasicInformation({ applicant }: { applicant: ApplicantFixture }) {
   );
 }
 
+function ApplicantReviewHero({ applicant }: { applicant: ApplicantFixture }) {
+  const analysis = applicantAnalysisFor(applicant);
+  const contents = applicantFeaturedContentFor(applicant);
+  const audienceLabel = applicant.platform === "Instagram" ? "팔로워" : "구독자";
+  const passes = applicant.followerCount >= 500 && analysis.recent90ContentCount >= 3;
+
+  return (
+    <section aria-label={`${applicant.name} 지원자 심사 요약`} className="fuma-applicant-detail-hero">
+      <div className="fuma-applicant-detail-hero__visual">
+        {contents.slice(0, 3).map((content, index) => (
+          <img alt="" className={`fuma-applicant-detail-hero__content-${index + 1}`} key={content.id} src={content.thumbnailUrl} />
+        ))}
+        <span className="fuma-applicant-detail-hero__portrait">
+          <img alt={`${applicant.name} 프로필`} src={applicantProfileImageUrl(applicant)} />
+          <span className="fuma-applicant-detail-hero__platform"><PlatformIcon platform={applicant.platform} /></span>
+        </span>
+      </div>
+      <div className="fuma-applicant-detail-hero__body">
+        <div className="fuma-applicant-detail-hero__topline">
+          <span>APPLICANT REVIEW · {applicant.id}</span>
+          <StatusPill tone={reviewStatusTone(applicant.reviewStatus)}>{applicant.reviewStatus}</StatusPill>
+        </div>
+        <div className="fuma-applicant-detail-hero__identity">
+          <h2>{applicant.name}</h2>
+          <a href={applicantProfileUrl(applicant)} rel="noreferrer" target="_blank">
+            <PlatformIcon decorative platform={applicant.platform} />
+            <span>{applicant.channelName}</span>
+            <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+        <p className="fuma-applicant-detail-hero__summary">{analysis.summary}</p>
+        <div className="fuma-applicant-detail-hero__categories">
+          {analysis.categories.map((category) => <span key={category}>{category}</span>)}
+          {analysis.keywords.slice(0, 2).map((keyword) => <span key={keyword.label}>#{keyword.label}</span>)}
+        </div>
+        <dl className="fuma-applicant-detail-hero__metrics">
+          <div><dt>{audienceLabel}</dt><dd>{formatNumber(applicant.followerCount)}</dd></div>
+          <div><dt>최근 90일 콘텐츠</dt><dd>{analysis.recent90ContentCount}건</dd></div>
+          <div><dt>평균 조회</dt><dd>{formatNumber(applicant.averageViews)}</dd></div>
+          <div><dt>ER</dt><dd>{analysis.engagementRate.toFixed(1)}%</dd></div>
+        </dl>
+      </div>
+      <aside className={`fuma-applicant-detail-hero__decision fuma-applicant-detail-hero__decision--${passes ? "pass" : "fail"}`}>
+        <span>자동 심사</span>
+        <strong>{passes ? "통과" : "반려 대상"}</strong>
+        <p>{passes ? "최소 요건을 모두 충족했습니다." : "최소 요건 미충족 항목이 있습니다."}</p>
+        <a href="#review">심사 처리로 이동 <span aria-hidden="true">↓</span></a>
+      </aside>
+    </section>
+  );
+}
+
 function SnsMetrics({ applicant }: { applicant: ApplicantFixture }) {
   return (
     <KeyValueSection
@@ -437,6 +494,7 @@ function DeliverySection({ applicant }: { applicant: ApplicantFixture }) {
 const DETAIL_TABS = [
   { id: "basic", label: "기본 정보" },
   { id: "metrics", label: "SNS 지표" },
+  { id: "screening", label: "자동 심사" },
   { id: "featured", label: "대표 콘텐츠", targetId: "featured-content" },
   { id: "analysis", label: "AI 분석 리포트" },
   { id: "review", label: "심사 처리" },
@@ -452,7 +510,7 @@ export function ApplicantDetailPage() {
   const [activeSection, setActiveSection] = useState("basic");
 
   return (
-    <section className="fuma-page">
+    <section className="fuma-page fuma-applicant-detail-page">
       <PageHeader screenCode="AP102" title="지원자 상세 심사" />
       <div className="fuma-page__body">
         {applicant ? (
@@ -462,6 +520,7 @@ export function ApplicantDetailPage() {
                 목록
               </Link>
             </div>
+            <ApplicantReviewHero applicant={applicant} />
             <SectionTabs activeId={activeSection} items={DETAIL_TABS} onChange={setActiveSection} />
             <BasicInformation applicant={applicant} />
             <SnsMetrics applicant={applicant} />
