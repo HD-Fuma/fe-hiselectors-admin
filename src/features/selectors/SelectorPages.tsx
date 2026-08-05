@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Checkbox, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
@@ -220,6 +220,8 @@ const SELECTOR_COLUMNS: DenseTableColumn<SelectorFixture>[] = [
 ];
 
 export function SelectorOverviewPage() {
+  const navigate = useNavigate();
+
   return (
     <section className="fuma-page">
       <PageHeader screenCode="SL201" title="기수별 셀렉터스 현황" />
@@ -247,6 +249,7 @@ export function SelectorOverviewPage() {
         <div aria-label="셀렉터스 목록" className="fuma-wide-table" role="region">
           <DenseTable
             columns={SELECTOR_COLUMNS}
+            onRowClick={(selector) => navigate(`/selectors/${selector.id}`)}
             rowKey={(selector) => selector.id}
             rows={SELECTORS}
           />

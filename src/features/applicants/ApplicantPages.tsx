@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Checkbox, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
@@ -198,6 +198,8 @@ const APPLICANT_COLUMNS: DenseTableColumn<ApplicantFixture>[] = [
 ];
 
 export function ApplicantListPage() {
+  const navigate = useNavigate();
+
   return (
     <section className="fuma-page">
       <PageHeader screenCode="AP101" title="지원자 심사" />
@@ -250,6 +252,7 @@ export function ApplicantListPage() {
         >
           <DenseTable
             columns={APPLICANT_COLUMNS}
+            onRowClick={(applicant) => navigate(`/applicants/${applicant.id}`)}
             rowKey={(applicant) => applicant.id}
             rows={[...APPLICANTS]}
           />

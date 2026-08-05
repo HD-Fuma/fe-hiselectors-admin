@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
@@ -168,6 +168,7 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
 
 export function CreatorListPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const creators = [...(searchParams.get("fixture") === "empty" ? [] : CREATORS)].sort(
     (left, right) => {
       const leftRate = engagementResultForCreator(left).value;
@@ -217,6 +218,7 @@ export function CreatorListPage() {
             <DenseTable
               columns={CREATOR_COLUMNS}
               emptyMessage="검색 결과가 없습니다."
+              onRowClick={(creator) => navigate(`/creators/${creator.id}`)}
               rowKey={(creator) => creator.id}
               rows={creators}
             />

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import {
   Button,
@@ -135,6 +135,8 @@ const CAMPAIGN_COLUMNS: DenseTableColumn<CampaignFixture>[] = [
 ];
 
 export function CampaignListPage() {
+  const navigate = useNavigate();
+
   return (
     <section className="fuma-page">
       <PageHeader screenCode="CP101" title="캠페인 관리" />
@@ -192,6 +194,7 @@ export function CampaignListPage() {
         >
           <DenseTable
             columns={CAMPAIGN_COLUMNS}
+            onRowClick={(campaign) => navigate(`/campaigns/${campaign.id}`)}
             rowKey={(campaign) => campaign.id}
             rows={[...CAMPAIGNS]}
           />

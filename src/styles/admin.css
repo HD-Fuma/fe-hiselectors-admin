@@ -458,6 +458,27 @@
   background: #fafbfb;
 }
 
+.hsas-dense-table__row {
+  cursor: pointer;
+}
+
+.hsas-dense-table__row td {
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.hsas-dense-table__row:hover td {
+  background: #edf6f2;
+}
+
+.hsas-dense-table__row[aria-selected="true"] td {
+  background: #dfeee7;
+}
+
+.hsas-dense-table__row:focus-visible {
+  outline: 2px solid var(--hsas-teal);
+  outline-offset: -2px;
+}
+
 .hsas-dense-table__cell--left {
   text-align: left;
 }

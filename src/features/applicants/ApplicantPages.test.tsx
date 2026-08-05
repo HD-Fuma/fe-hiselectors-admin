@@ -128,6 +128,17 @@ describe("applicant review list", () => {
       expect(applicant).not.toHaveProperty("deliveryStatus");
     }
   });
+
+  test("opens applicant detail when a table row is clicked", async () => {
+    const user = userEvent.setup();
+    const { router } = renderRoute("/applicants");
+    const results = screen.getByRole("region", { name: "지원자 승인" });
+    const row = within(results).getByRole("row", { name: /ap-001 김민지/ });
+
+    await user.click(row);
+
+    expect(router.state.location.pathname).toBe("/applicants/ap-001");
+  });
 });
 
 describe("applicant detail review", () => {

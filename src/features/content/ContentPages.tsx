@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { EditorFrame } from "../../components/content/EditorFrame";
 import { MediaTiles } from "../../components/content/MediaTiles";
 import { PageHeader } from "../../components/shell/PageHeader";
@@ -197,6 +197,7 @@ function queueColumns(noSelection: boolean): DenseTableColumn<ContentReviewFixtu
 }
 
 export function ContentReviewListPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const noSelection = searchParams.get("fixture") === "no-selection";
 
@@ -226,6 +227,7 @@ export function ContentReviewListPage() {
         >
           <DenseTable
             columns={queueColumns(noSelection)}
+            onRowClick={(content) => navigate(`/content/reviews/${content.id}`)}
             rowKey={(content) => content.id}
             rows={[...CONTENT_REVIEWS]}
           />
