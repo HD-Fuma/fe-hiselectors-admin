@@ -1,4 +1,5 @@
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderRoute } from "../../test/renderRoute";
 
 const expectedSidebarLinks = [
@@ -99,16 +100,40 @@ test("renders only the unified administrator shell parts", () => {
   expect(shell.querySelector('[data-shell-part="rail"]')).not.toBeInTheDocument();
 });
 
-test.each([
-  ["/creators", "크리에이터 / 크리에이터 풀"],
-  ["/campaigns/new", "캠페인 / 캠페인 등록"],
-])("renders the exact administrator context for %s", (path, context) => {
-  renderRoute(path);
+test("keeps one global product label in the topbar", () => {
+  renderRoute("/creators");
 
   const shell = screen.getByTestId("admin-shell");
   const topbar = shell.querySelector('[data-shell-part="topbar"]');
   expect(topbar).toBeInTheDocument();
-  expect(within(topbar as HTMLElement).getByText(context)).toBeInTheDocument();
+  expect(
+    within(topbar as HTMLElement).getByText("더현대Hi 셀렉터스 운영"),
+  ).toBeInTheDocument();
+  expect(
+    within(topbar as HTMLElement).queryByText("크리에이터 / 크리에이터 풀"),
+  ).not.toBeInTheDocument();
+});
+
+test("opens and closes work tabs as screens are visited", async () => {
+  const user = userEvent.setup();
+  const { router } = renderRoute("/creators");
+
+  await act(async () => {
+    await router.navigate("/campaigns/new");
+  });
+
+  const workTabs = screen.getByRole("navigation", { name: "작업 탭" });
+  expect(within(workTabs).getByRole("link", { name: "크리에이터 풀" })).toBeInTheDocument();
+  expect(within(workTabs).getByRole("link", { name: "캠페인 등록" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+
+  await user.click(
+    within(workTabs).getByRole("button", { name: "캠페인 등록 탭 닫기" }),
+  );
+
+  expect(screen.getByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
 });
 
 test("keeps the administrator identity and utility controls in the topbar only", () => {
