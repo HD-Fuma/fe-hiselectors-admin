@@ -84,7 +84,7 @@ sips -g pixelWidth -g pixelHeight test-results/visual/creators.png test-results/
 
 - 네 카드의 테두리, 하단 action, media source caption 사이에 겹침이나 이탈이 없고 카드 내부의 수평 overflow도 없다. 자동 checkpoint의 카드별 `scrollWidth <= clientWidth` assertion도 1310/1440에서 통과했다.
 - Instagram, YouTube, Facebook 색상 mark와 source label이 각각 알아볼 수 있다.
-- 이름과 handle/채널명(`김서연`/`@seo.yeon`, `박도윤`/`도윤의 집밥`, `이지아`/`@zia.trip`, `오하늘`/`@today.haneul`)이 읽힌다.
+- 이름과 handle/채널명(`김서연`/`@seo.yeon`, `박도윤`/`도윤의 집밥`, `이지아`/`@zia.trip`, `오하늘`/`@today_haneul`)이 읽힌다.
 - 팔로워·구독자, 평균 조회, 평균 반응률 수치와 AI 적합도/생성 대기 상태, 발송 완료/셀렉터스 전환/발송 실패/미제안 상태가 읽힌다.
 - 최근 활동일 `2026-08-02`, `2026-07-31`, `2026-07-29`, `2026-08-03`과 `상세 보기`, `제안 이력`, `다시 제안`, `영입 제안` action이 읽힌다.
 - 고채도·다색 영역은 카드 상단의 콘텐츠 mosaic에 집중되어 있다. 관리자 chrome은 어두운 sidebar, 흰색·연회색 surface, 제한된 청록색 상태·action으로 절제되어 있다.
