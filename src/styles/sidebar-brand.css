@@ -6,20 +6,18 @@
 }
 
 .hsas-admin-sidebar__brand-logo-shell {
-  display: grid;
-  width: 91px;
-  height: 34px;
+  display: block;
+  width: 78px;
+  height: 31px;
   flex: 0 0 auto;
-  border-radius: 4px;
-  background: #fff;
-  place-items: center;
 }
 
 .hsas-admin-sidebar__brand-logo {
   display: block;
-  width: 71px;
-  height: 28px;
+  width: 78px;
+  height: 31px;
   object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
 .hsas-admin-sidebar__brand-caption {
