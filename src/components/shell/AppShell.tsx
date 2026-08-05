@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { DEFAULT_ADMIN_ROUTE, findAdminRoute } from "../../app/navigation";
 import { AdminSidebar } from "./AdminSidebar";
-import { AdminTopbar } from "./AdminTopbar";
 import { WorkTabs, type WorkTab } from "./WorkTabs";
 import "../../styles/admin.css";
 
@@ -43,7 +42,6 @@ export function AppShell() {
     >
       <AdminSidebar activeRoute={activeRoute} currentPath={location.pathname} />
       <div className="hsas-admin-shell__workspace">
-        <AdminTopbar />
         <WorkTabs activeTabId={currentPath} onClose={closeTab} tabs={tabs} />
         <main className="hsas-admin-shell__content" data-shell-part="content">
           <Outlet />

@@ -71,7 +71,7 @@ test("locks the administrator shell geometry", async ({ page }) => {
   const root = page.locator('[data-shell-part="root"]');
   const sidebar = page.locator('[data-shell-part="sidebar"]');
   const workspace = page.locator(".hsas-admin-shell__workspace");
-  const topbar = page.locator('[data-shell-part="topbar"]');
+  const workTabs = page.locator('[data-shell-part="work-tabs"]');
   const content = page.locator('[data-shell-part="content"]');
   const brand = sidebar.locator(".hsas-admin-sidebar__brand");
   const navigation = sidebar.getByRole("navigation", { name: "관리자 메뉴" });
@@ -79,22 +79,22 @@ test("locks the administrator shell geometry", async ({ page }) => {
   await expect(root).toBeVisible();
   await expect(sidebar).toBeVisible();
   await expect(workspace).toBeVisible();
-  await expect(topbar).toBeVisible();
+  await expect(workTabs).toBeVisible();
   await expect(content).toBeVisible();
   await expect(brand).toBeVisible();
   await expect(navigation.getByRole("link")).toHaveCount(13);
   await expect(sidebar.getByText("관리자 계정")).toBeVisible();
   await page.screenshot({ path: "test-results/visual/admin-shell-reference.png" });
 
-  const [rootBox, sidebarBox, workspaceBox, topbarBox, contentBox] = await Promise.all([
+  const [rootBox, sidebarBox, workspaceBox, workTabsBox, contentBox] = await Promise.all([
     root.boundingBox(),
     sidebar.boundingBox(),
     workspace.boundingBox(),
-    topbar.boundingBox(),
+    workTabs.boundingBox(),
     content.boundingBox(),
   ]);
 
-  for (const box of [rootBox, sidebarBox, workspaceBox, topbarBox, contentBox]) {
+  for (const box of [rootBox, sidebarBox, workspaceBox, workTabsBox, contentBox]) {
     expect(box).not.toBeNull();
   }
 
@@ -103,13 +103,12 @@ test("locks the administrator shell geometry", async ({ page }) => {
   expect(Math.abs(sidebarBox!.x - rootBox!.x)).toBeLessThanOrEqual(1);
   expect(Math.abs(sidebarBox!.y)).toBeLessThanOrEqual(1);
   expect(Math.abs(sidebarBox!.height - 741)).toBeLessThanOrEqual(2);
-  expect(topbarBox!.height).toBeGreaterThanOrEqual(42);
-  expect(topbarBox!.height).toBeLessThanOrEqual(46);
-  expect(
-    Math.abs(topbarBox!.x - (sidebarBox!.x + sidebarBox!.width)),
-  ).toBeLessThanOrEqual(1);
-  expect(Math.abs(workspaceBox!.x - topbarBox!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(workTabsBox!.x - workspaceBox!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(workTabsBox!.y - workspaceBox!.y)).toBeLessThanOrEqual(1);
   expect(Math.abs(contentBox!.x - workspaceBox!.x)).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(contentBox!.y - (workTabsBox!.y + workTabsBox!.height)),
+  ).toBeLessThanOrEqual(1);
 
   const rootMinimumWidth = await root.evaluate((element) =>
     Number.parseFloat(getComputedStyle(element).minWidth),

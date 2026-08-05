@@ -86,19 +86,19 @@ async function expectAdminGeometry(page: Page, viewportWidth: number) {
   const root = page.locator('[data-shell-part="root"]');
   const sidebar = page.locator('[data-shell-part="sidebar"]');
   const workspace = page.locator(".hsas-admin-shell__workspace");
-  const topbar = page.locator('[data-shell-part="topbar"]');
+  const workTabs = page.locator('[data-shell-part="work-tabs"]');
   const content = page.locator('[data-shell-part="content"]');
   const viewport = page.viewportSize();
-  const [rootBox, sidebarBox, workspaceBox, topbarBox, contentBox] = await Promise.all([
+  const [rootBox, sidebarBox, workspaceBox, workTabsBox, contentBox] = await Promise.all([
     root.boundingBox(),
     sidebar.boundingBox(),
     workspace.boundingBox(),
-    topbar.boundingBox(),
+    workTabs.boundingBox(),
     content.boundingBox(),
   ]);
 
   expect(viewport).not.toBeNull();
-  for (const box of [rootBox, sidebarBox, workspaceBox, topbarBox, contentBox]) {
+  for (const box of [rootBox, sidebarBox, workspaceBox, workTabsBox, contentBox]) {
     expect(box).not.toBeNull();
   }
   expect(rootBox!.width).toBeGreaterThanOrEqual(1280);
@@ -108,10 +108,11 @@ async function expectAdminGeometry(page: Page, viewportWidth: number) {
   expectApprox(sidebarBox!.height, viewport!.height, 2);
   expectApprox(workspaceBox!.x, sidebarBox!.x + sidebarBox!.width, 1);
   expectApprox(workspaceBox!.width, rootBox!.width - sidebarBox!.width, 2);
-  expectApprox(topbarBox!.height, 44, 2);
-  expectApprox(topbarBox!.x, sidebarBox!.x + sidebarBox!.width, 1);
-  expectApprox(topbarBox!.width, workspaceBox!.width, 2);
+  expectApprox(workTabsBox!.x, workspaceBox!.x, 1);
+  expectApprox(workTabsBox!.y, workspaceBox!.y, 1);
+  expectApprox(workTabsBox!.width, workspaceBox!.width, 2);
   expectApprox(contentBox!.x, workspaceBox!.x, 1);
+  expectApprox(contentBox!.y, workTabsBox!.y + workTabsBox!.height, 1);
   expectApprox(contentBox!.width, workspaceBox!.width, 2);
 
   const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
@@ -448,7 +449,6 @@ test("campaign product modal visual checkpoint", async ({ page }, testInfo) => {
   const backdrop = page.locator(".hsas-modal-backdrop");
   const sidebar = page.locator('[data-shell-part="sidebar"]');
   const workspace = page.locator(".hsas-admin-shell__workspace");
-  const topbar = page.locator('[data-shell-part="topbar"]');
   await expect(modal.locator('[data-visual-contract="dense-table"]')).toBeVisible();
   await expectAdminGeometry(page, 1316);
   const [modalBox, titleBarBox, backdropBox, sidebarBox, workspaceBox] = await Promise.all([
@@ -474,17 +474,12 @@ test("campaign product modal visual checkpoint", async ({ page }, testInfo) => {
       zIndex: Number.parseInt(styles.zIndex, 10),
     };
   });
-  const [sidebarZIndex, topbarZIndex] = await Promise.all(
-    [sidebar, topbar].map((locator) =>
-      locator.evaluate((element) => {
-        const zIndex = getComputedStyle(element).zIndex;
-        return zIndex === "auto" ? 0 : Number.parseInt(zIndex, 10);
-      }),
-    ),
-  );
+  const sidebarZIndex = await sidebar.evaluate((element) => {
+    const zIndex = getComputedStyle(element).zIndex;
+    return zIndex === "auto" ? 0 : Number.parseInt(zIndex, 10);
+  });
   expectApprox(backdropStyles.paddingLeft, 264, 2);
   expect(backdropStyles.zIndex).toBeGreaterThan(sidebarZIndex);
-  expect(backdropStyles.zIndex).toBeGreaterThan(topbarZIndex);
   expectApprox(modalBox!.width, 820, 24);
   expectApprox(titleBarBox!.height, 32, 4);
   const [modalControlBox, modalRowBox] = await Promise.all([

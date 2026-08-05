@@ -93,24 +93,12 @@ test("renders only the unified administrator shell parts", () => {
 
   const shell = screen.getByTestId("admin-shell");
   expect(shell).toHaveAttribute("data-shell-part", "root");
-  for (const part of ["sidebar", "topbar", "work-tabs", "content"]) {
+  for (const part of ["sidebar", "work-tabs", "content"]) {
     expect(shell.querySelector(`[data-shell-part="${part}"]`)).toBeInTheDocument();
   }
+  expect(shell.querySelector('[data-shell-part="topbar"]')).not.toBeInTheDocument();
+  expect(within(shell).queryByText("더현대Hi 셀렉터스 운영")).not.toBeInTheDocument();
   expect(shell.querySelector('[data-shell-part="rail"]')).not.toBeInTheDocument();
-});
-
-test("keeps one global product label in the topbar", () => {
-  renderRoute("/creators");
-
-  const shell = screen.getByTestId("admin-shell");
-  const topbar = shell.querySelector('[data-shell-part="topbar"]');
-  expect(topbar).toBeInTheDocument();
-  expect(
-    within(topbar as HTMLElement).getByText("더현대Hi 셀렉터스 운영"),
-  ).toBeInTheDocument();
-  expect(
-    within(topbar as HTMLElement).queryByText("크리에이터 / 크리에이터 풀"),
-  ).not.toBeInTheDocument();
 });
 
 test("opens and closes work tabs as screens are visited", async () => {
@@ -139,11 +127,6 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
   renderRoute("/creators");
 
   const shell = screen.getByTestId("admin-shell");
-  const topbar = shell.querySelector('[data-shell-part="topbar"]');
-  expect(topbar).toBeInTheDocument();
-  expect(within(topbar as HTMLElement).queryByText("관리자")).not.toBeInTheDocument();
-  expect(within(topbar as HTMLElement).queryByRole("button", { name: "설정" })).not.toBeInTheDocument();
-  expect(within(topbar as HTMLElement).queryByRole("button", { name: "로그아웃" })).not.toBeInTheDocument();
   expect(within(shell).getByText("관리자")).toBeInTheDocument();
   expect(within(shell).getByText("관리자 계정")).toBeInTheDocument();
   expect(within(shell).getAllByRole("button", { name: "설정" })).toHaveLength(1);

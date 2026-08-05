@@ -793,58 +793,6 @@
   content: "";
 }
 
-.hsas-admin-topbar {
-  position: relative;
-  z-index: 5;
-  display: flex;
-  height: var(--hsas-topbar-height);
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--hsas-space-16);
-  padding: 0 var(--hsas-space-16);
-  border-bottom: 1px solid var(--hsas-border);
-  background: var(--hsas-surface);
-}
-
-.hsas-admin-topbar__context {
-  overflow: hidden;
-  color: #596166;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.hsas-admin-topbar__utilities {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: var(--hsas-space-4);
-}
-
-.hsas-admin-topbar__utility-button {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  background: transparent;
-  color: #626a6e;
-  cursor: pointer;
-  place-items: center;
-}
-
-.hsas-admin-topbar__utility-button:hover {
-  border-color: var(--hsas-border);
-  background: var(--hsas-surface-muted);
-  color: var(--hsas-text);
-}
-
-.hsas-admin-topbar__utility-button svg {
-  width: 15px;
-  height: 15px;
-}
-
 .hsas-page-header__refresh {
   border: 0;
   background: transparent;
