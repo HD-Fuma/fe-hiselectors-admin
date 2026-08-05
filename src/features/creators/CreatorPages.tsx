@@ -14,6 +14,7 @@ import {
   CreatorResultToolbar,
   type CreatorPoolView,
 } from "./CreatorResultToolbar";
+import { PlatformIcon } from "./PlatformIcon";
 import {
   CREATORS,
   META_MANUAL_SEND_NOTE,
@@ -51,6 +52,15 @@ const PROPOSAL_STATUS_OPTIONS = [
 
 function formatNumber(value: number) {
   return value.toLocaleString("ko-KR");
+}
+
+function PlatformLabel({ platform }: { platform: CreatorChannelFixture["platform"] }) {
+  return (
+    <span className="fuma-platform-label">
+      <PlatformIcon platform={platform} />
+      <span>{platform}</span>
+    </span>
+  );
 }
 
 function proposalTone(
@@ -101,15 +111,20 @@ function ResultToolbar({ count, title }: { count: number; title: string }) {
   );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
+const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
   { key: "id", header: "ID", width: 76 },
   { key: "name", header: "이름", width: 70 },
   {
     id: "platforms",
     header: "플랫폼",
     width: 115,
-    render: (creator) => creator.platforms.join(" / "),
+    render: (creator) => (
+      <div className="fuma-platform-labels">
+        {creator.platforms.map((platform) => (
+          <PlatformLabel key={platform} platform={platform} />
+        ))}
+      </div>
+    ),
   },
   {
     id: "categories",
@@ -194,7 +209,18 @@ export function CreatorListPage() {
           </FilterField>
         </SearchPanel>
         <CreatorResultToolbar count={creators.length} onViewChange={setView} view={view} />
-        {view === "cards" ? <CreatorCardGrid creators={creators} /> : null}
+        {view === "cards" ? (
+          <CreatorCardGrid creators={creators} />
+        ) : (
+          <div aria-label="크리에이터 목록" className="fuma-wide-table" role="region">
+            <DenseTable
+              columns={CREATOR_COLUMNS}
+              emptyMessage="검색 결과가 없습니다."
+              rowKey={(creator) => creator.id}
+              rows={creators}
+            />
+          </div>
+        )}
         <Pagination page={1} pageSize={20} totalPages={1} />
       </div>
     </section>
@@ -202,7 +228,12 @@ export function CreatorListPage() {
 }
 
 const CHANNEL_COLUMNS: DenseTableColumn<CreatorChannelFixture>[] = [
-  { key: "platform", header: "플랫폼", width: 120 },
+  {
+    id: "platform",
+    header: "플랫폼",
+    width: 120,
+    render: (channel) => <PlatformLabel platform={channel.platform} />,
+  },
   { key: "handle", header: "채널" },
   {
     key: "followers",

@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderRoute } from "../../test/renderRoute";
 import type { CreatorProposalContact } from "./fixtures";
 
@@ -56,6 +57,57 @@ describe("creator pool", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
     expect(screen.getByText("페이지당 20개")).toBeInTheDocument();
+  });
+
+  test("switches to the preserved branded dense table and back", async () => {
+    const user = userEvent.setup();
+    renderRoute("/creators");
+
+    await user.click(screen.getByRole("button", { name: "목록 보기" }));
+
+    expect(screen.getByRole("button", { name: "목록 보기" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "카드 보기" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.queryByRole("list", { name: "크리에이터 목록" })).not.toBeInTheDocument();
+    const results = screen.getByRole("region", { name: "크리에이터 목록" });
+    expect(within(results).getByRole("table")).toBeInTheDocument();
+    for (const name of [
+      "ID",
+      "이름",
+      "플랫폼",
+      "카테고리",
+      "티어",
+      "팔로워·구독자",
+      "콘텐츠 수",
+      "최근 활동일",
+      "AI 리포트 상태",
+      "제안 상태",
+      "상세",
+    ]) {
+      expect(within(results).getByRole("columnheader", { name })).toBeInTheDocument();
+    }
+
+    await user.click(screen.getByRole("button", { name: "카드 보기" }));
+
+    expect(screen.getByRole("list", { name: "크리에이터 목록" })).toBeInTheDocument();
+  });
+
+  test("brands Instagram and Facebook in the fallback table", async () => {
+    const user = userEvent.setup();
+    renderRoute("/creators");
+    await user.click(screen.getByRole("button", { name: "목록 보기" }));
+
+    const results = screen.getByRole("region", { name: "크리에이터 목록" });
+    const ziaRow = within(results).getByRole("row", { name: /cr-003 이지아/ });
+    expect(within(ziaRow).getByText("Instagram")).toBeInTheDocument();
+    expect(within(ziaRow).getByText("Facebook")).toBeInTheDocument();
+    expect(within(ziaRow).getByRole("img", { name: "Instagram 플랫폼" })).toBeInTheDocument();
+    expect(within(ziaRow).getByRole("img", { name: "Facebook 플랫폼" })).toBeInTheDocument();
   });
 
   test("renders the explicit empty creator fixture", () => {
@@ -144,6 +196,15 @@ describe("creator detail", () => {
     ).not.toBeInTheDocument();
     expect(within(proposals).queryByRole("heading", { name: "이메일" })).not.toBeInTheDocument();
     expect(proposals).not.toHaveTextContent("undefined");
+  });
+
+  test("renders Facebook as a branded creator-detail channel", () => {
+    renderRoute("/creators/cr-003");
+
+    const channels = screen.getByRole("region", { name: "플랫폼별 채널" });
+    const row = within(channels).getByRole("row", { name: /Facebook 지아의 여행노트/ });
+    expect(within(row).getByText("Facebook")).toBeInTheDocument();
+    expect(within(row).getByRole("img", { name: "Facebook 플랫폼" })).toBeInTheDocument();
   });
 
   test("keeps the detail frame and shows a missing-record state", () => {
