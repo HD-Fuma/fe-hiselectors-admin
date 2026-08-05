@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ClipboardList,
   FileSearch,
+  LogOut,
   Megaphone,
   Settings2,
   UsersRound,
@@ -55,8 +56,15 @@ export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
   return (
     <aside className="hsas-admin-sidebar" data-shell-part="sidebar">
       <div className="hsas-admin-sidebar__brand">
-        <strong className="hsas-admin-sidebar__brand-name">FUMA</strong>
-        <span className="hsas-admin-sidebar__brand-caption">ADMIN CONSOLE</span>
+        <span className="hsas-admin-sidebar__brand-mark" aria-hidden="true">
+          S
+        </span>
+        <span className="hsas-admin-sidebar__brand-copy">
+          <strong className="hsas-admin-sidebar__brand-name">SELECTORS</strong>
+          <span className="hsas-admin-sidebar__brand-caption">
+            CREATOR OPERATIONS
+          </span>
+        </span>
       </div>
       <nav
         className="hsas-admin-sidebar__navigation"
@@ -137,6 +145,23 @@ export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
           );
         })}
       </nav>
+      <div className="hsas-admin-sidebar__account" data-shell-part="account">
+        <span className="hsas-admin-sidebar__account-avatar" aria-hidden="true">
+          관
+        </span>
+        <span className="hsas-admin-sidebar__account-copy">
+          <strong>관리자</strong>
+          <span>FUMA 운영자</span>
+        </span>
+        <button
+          type="button"
+          className="hsas-admin-sidebar__logout"
+          aria-label="로그아웃"
+        >
+          <LogOut aria-hidden="true" />
+          <span>로그아웃</span>
+        </button>
+      </div>
     </aside>
   );
 }

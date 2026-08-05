@@ -513,7 +513,7 @@
   width: var(--hsas-sidebar-width);
   height: 100dvh;
   align-self: start;
-  grid-template-rows: 68px minmax(0, 1fr);
+  grid-template-rows: 72px minmax(0, 1fr) auto;
   overflow: hidden;
   border-right: 1px solid var(--hsas-sidebar-border);
   background: var(--hsas-sidebar-background);
@@ -522,38 +522,48 @@
 
 .hsas-admin-sidebar__brand {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr);
+  grid-template-columns: 30px minmax(0, 1fr);
   grid-template-rows: repeat(2, auto);
   align-content: center;
-  column-gap: 10px;
+  column-gap: var(--hsas-space-8);
   padding: 0 var(--hsas-space-16);
   border-bottom: 1px solid var(--hsas-sidebar-border);
   background: var(--hsas-sidebar-surface);
 }
 
-.hsas-admin-sidebar__brand::before {
-  width: 12px;
-  height: 12px;
+.hsas-admin-sidebar__brand-mark {
+  display: grid;
+  width: 28px;
+  height: 28px;
   align-self: center;
-  border-radius: 2px;
-  background: var(--hsas-teal-accent);
-  content: "";
+  border-radius: 7px;
+  background: var(--hsas-teal);
+  color: var(--hsas-text-inverse);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  place-items: center;
   grid-row: 1 / span 2;
+}
+
+.hsas-admin-sidebar__brand-copy {
+  display: grid;
+  min-width: 0;
 }
 
 .hsas-admin-sidebar__brand-name {
   color: var(--hsas-text-inverse);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   line-height: 20px;
 }
 
 .hsas-admin-sidebar__brand-caption {
   color: var(--hsas-sidebar-heading);
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   line-height: 12px;
 }
 
@@ -564,6 +574,81 @@
   overscroll-behavior: contain;
   scrollbar-color: var(--hsas-sidebar-scrollbar) transparent;
   scrollbar-width: thin;
+}
+
+.hsas-admin-sidebar__account {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--hsas-space-8);
+  padding: var(--hsas-space-12) var(--hsas-space-16);
+  border-top: 1px solid var(--hsas-sidebar-border);
+  background: var(--hsas-sidebar-surface);
+}
+
+.hsas-admin-sidebar__account-avatar {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 14%);
+  color: var(--hsas-text-inverse);
+  font-size: 11px;
+  font-weight: 700;
+  place-items: center;
+}
+
+.hsas-admin-sidebar__account-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.hsas-admin-sidebar__account-copy strong {
+  overflow: hidden;
+  color: var(--hsas-text-inverse);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hsas-admin-sidebar__account-copy span {
+  overflow: hidden;
+  color: var(--hsas-sidebar-heading);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hsas-admin-sidebar__logout {
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--hsas-sidebar-heading);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.hsas-admin-sidebar__logout:hover {
+  border-color: var(--hsas-sidebar-border);
+  background: var(--hsas-sidebar-hover);
+  color: var(--hsas-text-inverse);
+}
+
+.hsas-admin-sidebar__logout:focus-visible {
+  outline: 2px solid var(--hsas-teal-accent);
+  outline-offset: -2px;
+}
+
+.hsas-admin-sidebar__logout svg {
+  width: 13px;
+  height: 13px;
 }
 
 .hsas-admin-sidebar__navigation::-webkit-scrollbar {
@@ -724,25 +809,6 @@
   flex: 0 0 auto;
   align-items: center;
   gap: var(--hsas-space-4);
-}
-
-.hsas-admin-topbar__account {
-  display: grid;
-  justify-items: end;
-  padding-right: var(--hsas-space-12);
-  margin-right: var(--hsas-space-4);
-  border-right: 1px solid var(--hsas-border);
-  line-height: 1.15;
-}
-
-.hsas-admin-topbar__account-name {
-  color: var(--hsas-text);
-  font-size: 11px;
-}
-
-.hsas-admin-topbar__account-role {
-  color: #596166;
-  font-size: 10px;
 }
 
 .hsas-admin-topbar__utility-button {
