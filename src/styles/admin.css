@@ -1932,3 +1932,388 @@
   display: flex;
   gap: var(--hsas-space-4);
 }
+
+.fuma-creator-toolbar {
+  min-height: 35px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--hsas-border);
+  background: var(--hsas-surface-muted);
+}
+
+.fuma-creator-toolbar__summary {
+  color: var(--hsas-text);
+}
+
+.fuma-creator-toolbar__controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fuma-creator-toolbar__sort {
+  padding-right: 8px;
+  border-right: 1px solid var(--hsas-border);
+  color: var(--hsas-text-muted);
+  font-size: 11px;
+}
+
+.fuma-creator-toolbar__views {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.fuma-creator-toolbar__view {
+  height: 27px;
+  padding: 0 8px;
+  border: 1px solid var(--hsas-border-dark);
+  background: var(--hsas-surface);
+  color: var(--hsas-text-muted);
+  cursor: pointer;
+}
+
+.fuma-creator-toolbar__view[aria-pressed="true"] {
+  border-color: var(--hsas-teal-dark);
+  background: var(--hsas-teal);
+  color: var(--hsas-text-inverse);
+  font-weight: 700;
+}
+
+.fuma-creator-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fuma-creator-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--hsas-border);
+  background: var(--hsas-surface);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.fuma-creator-card__article {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fuma-creator-mosaic {
+  height: 164px;
+  display: grid;
+  grid-template-columns: 1.45fr 0.72fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  overflow: hidden;
+  background: #e8ebec;
+}
+
+.fuma-creator-media {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.fuma-creator-media--main {
+  grid-row: 1 / span 2;
+}
+
+.fuma-creator-media > svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.fuma-creator-media__caption {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 18px 6px 5px;
+  background: linear-gradient(transparent, rgb(18 27 30 / 78%));
+  color: #fff;
+  font-size: 9px;
+}
+
+.fuma-creator-media__source {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 3px;
+}
+
+.fuma-creator-media__source .fuma-platform-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.fuma-creator-media__views {
+  font-variant-numeric: tabular-nums;
+}
+
+.fuma-creator-media__play {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(18 27 30 / 72%);
+  color: #fff;
+  font-size: 9px;
+}
+
+.fuma-creator-card__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.fuma-creator-card__identity {
+  position: relative;
+  min-height: 70px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px 10px 8px 72px;
+}
+
+.fuma-creator-card__portrait {
+  position: absolute;
+  left: 10px;
+  top: -24px;
+  width: 54px;
+  height: 54px;
+  overflow: hidden;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(35 49 54 / 18%);
+}
+
+.fuma-creator-card__portrait svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.fuma-creator-card__identity-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.fuma-creator-card__name {
+  margin: 0;
+  color: var(--hsas-text);
+  font-size: 15px;
+  line-height: 18px;
+}
+
+.fuma-creator-card__handle {
+  margin: 1px 0 0;
+  overflow: hidden;
+  color: var(--hsas-text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-creator-card__categories {
+  margin: 3px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 7px;
+  color: var(--hsas-text);
+  font-size: 10px;
+}
+
+.fuma-creator-card__categories span {
+  color: var(--hsas-text-muted);
+}
+
+.fuma-creator-card__platforms {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fuma-platform-icon {
+  width: 25px;
+  height: 25px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+}
+
+.fuma-platform-icon svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+}
+
+.fuma-platform-icon--instagram {
+  background: linear-gradient(135deg, #833ab4, #fd1d1d 55%, #fcb045);
+}
+
+.fuma-platform-icon--youtube {
+  background: #fff;
+  color: #ff0033;
+  box-shadow: inset 0 0 0 1px #ff0033;
+}
+
+.fuma-platform-icon--facebook {
+  background: #1877f2;
+}
+
+.fuma-creator-card__metrics {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--hsas-border);
+  border-bottom: 1px solid var(--hsas-border);
+}
+
+.fuma-creator-card__metric {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 7px;
+  border-left: 1px solid var(--hsas-border);
+}
+
+.fuma-creator-card__metric:first-child {
+  border-left: 0;
+}
+
+.fuma-creator-card__metric dt {
+  overflow: hidden;
+  color: var(--hsas-text-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-creator-card__metric dd {
+  margin: 2px 0 0;
+  color: var(--hsas-text);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.fuma-creator-card__meta {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  font-size: 10px;
+}
+
+.fuma-creator-card__ai {
+  color: var(--hsas-teal-dark);
+}
+
+.fuma-creator-card__recent {
+  margin-left: auto;
+  overflow: hidden;
+  color: var(--hsas-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-creator-card__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--hsas-border);
+}
+
+.fuma-creator-card__action {
+  height: 31px;
+  display: grid;
+  place-items: center;
+  color: var(--hsas-text);
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.fuma-creator-card__action + .fuma-creator-card__action {
+  border-left: 1px solid var(--hsas-border);
+}
+
+.fuma-creator-card__action--primary {
+  background: var(--hsas-teal);
+  color: var(--hsas-text-inverse);
+}
+
+.fuma-creator-card__action:focus-visible,
+.fuma-creator-toolbar__view:focus-visible {
+  outline: 2px solid var(--hsas-teal-dark);
+  outline-offset: -2px;
+}
+
+.fuma-platform-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.fuma-platform-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.fuma-platform-label .fuma-platform-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.fuma-platform-label .fuma-platform-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fuma-creator-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgb(38 49 53 / 12%);
+}
+
+@media (max-width: 1199px) {
+  .fuma-creator-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fuma-creator-card {
+    transition: none !important;
+  }
+
+  .fuma-creator-card:hover {
+    transform: none;
+  }
+}

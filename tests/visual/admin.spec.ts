@@ -164,22 +164,47 @@ test("creators visual checkpoint at the legacy viewport", async ({ page }, testI
   await openCheckpoint(page, "/creators", testInfo);
 
   await expect(page.locator('[data-visual-contract="admin-shell"]')).toBeVisible();
-  await expect(page.locator('[data-visual-contract="dense-table"]')).toBeVisible();
   await expectAdminGeometry(page, 1310);
-  await expectControlAndDenseRowGeometry(page);
   await expectPageHeaderTextBounds(page, "크리에이터 풀", "CR101");
-  await expectKeyTextBounds(page.getByRole("region", { name: "크리에이터 목록" }), [
-    "ID",
-    "이름",
-    "플랫폼",
-    "AI 리포트 상태",
-    "cr-001",
-    "김서연",
-    "Instagram / YouTube",
-    "128,400",
-    "생성 완료",
-    "발송 완료",
-  ]);
+  const grid = page.locator('[data-visual-contract="creator-card-grid"]');
+  const cards = grid.locator(":scope > .fuma-creator-card");
+  await expect(grid).toBeVisible();
+  await expect(cards).toHaveCount(4);
+  expect(
+    await grid.evaluate(
+      (node) =>
+        getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length,
+    ),
+  ).toBe(3);
+  const tops = await cards.evaluateAll((nodes) =>
+    nodes.slice(0, 3).map((node) => node.getBoundingClientRect().top),
+  );
+  expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(1);
+  const boxes = await cards.evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      width: node.getBoundingClientRect().width,
+      height: node.getBoundingClientRect().height,
+      scrollWidth: node.scrollWidth,
+      clientWidth: node.clientWidth,
+    })),
+  );
+  for (const box of boxes) {
+    expect(box.width).toBeGreaterThan(0);
+    expect(box.height).toBeGreaterThan(0);
+    expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth);
+  }
+  await expectKeyTextBounds(
+    page.getByRole("article", { name: "김서연 크리에이터 카드" }),
+    [
+      "김서연",
+      "@seo.yeon",
+      "팔로워·구독자",
+      "평균 조회",
+      "평균 반응률",
+      "상세 보기",
+      "제안 이력",
+    ],
+  );
   await page.screenshot({ path: "test-results/visual/creators.png" });
 });
 
@@ -188,9 +213,7 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
   await openCheckpoint(page, "/creators", testInfo);
 
   await expect(page.locator('[data-visual-contract="admin-shell"]')).toBeVisible();
-  await expect(page.locator('[data-visual-contract="dense-table"]')).toBeVisible();
   await expectAdminGeometry(page, 1440);
-  await expectControlAndDenseRowGeometry(page);
   await expectPageHeaderTextBounds(page, "크리에이터 풀", "CR101");
   const sidebar = page.locator('[data-shell-part="sidebar"]');
   const navigation = sidebar.getByRole("navigation", { name: "관리자 메뉴" });
@@ -261,14 +284,47 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
     "시스템",
     "공지사항",
   ]);
-  await expectKeyTextBounds(page.getByRole("region", { name: "크리에이터 목록" }), [
-    "ID",
-    "플랫폼",
-    "cr-004",
-    "오하늘",
-    "486,000",
-    "미제안",
-  ]);
+  const grid = page.locator('[data-visual-contract="creator-card-grid"]');
+  const cards = grid.locator(":scope > .fuma-creator-card");
+  const firstCard = cards.first();
+  await expect
+    .poll(() =>
+      firstCard.evaluate((node) => getComputedStyle(node).transitionDuration),
+    )
+    .toBe("0s");
+  await firstCard.hover();
+  await expect
+    .poll(() => firstCard.evaluate((node) => getComputedStyle(node).transform))
+    .toBe("none");
+  await expect(grid).toBeVisible();
+  await expect(cards).toHaveCount(4);
+  expect(
+    await grid.evaluate(
+      (node) =>
+        getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length,
+    ),
+  ).toBe(3);
+  const tops = await cards.evaluateAll((nodes) =>
+    nodes.slice(0, 3).map((node) => node.getBoundingClientRect().top),
+  );
+  expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(1);
+  const boxes = await cards.evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      width: node.getBoundingClientRect().width,
+      height: node.getBoundingClientRect().height,
+      scrollWidth: node.scrollWidth,
+      clientWidth: node.clientWidth,
+    })),
+  );
+  for (const box of boxes) {
+    expect(box.width).toBeGreaterThan(0);
+    expect(box.height).toBeGreaterThan(0);
+    expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth);
+  }
+  await expectKeyTextBounds(
+    page.getByRole("article", { name: "이지아 크리에이터 카드" }),
+    ["이지아", "@zia.trip", "Facebook", "생성 대기", "발송 실패", "다시 제안"],
+  );
   await page.screenshot({ path: "test-results/visual/creators-1440.png" });
 });
 
