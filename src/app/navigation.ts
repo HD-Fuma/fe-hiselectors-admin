@@ -196,7 +196,9 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
 ];
 
-export const DEFAULT_ADMIN_ROUTE = ADMIN_ROUTES[0];
+export const DEFAULT_ADMIN_ROUTE = ADMIN_ROUTES.find(
+  (route) => route.path === "/performance",
+) ?? ADMIN_ROUTES[0];
 
 export function findAdminRoute(pathname: string) {
   return ADMIN_ROUTES.find((route) => matchPath({ path: route.path, end: true }, pathname));
