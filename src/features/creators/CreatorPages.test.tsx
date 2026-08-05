@@ -93,6 +93,24 @@ describe("creator pool", () => {
     expect(screen.getByRole("list", { name: "크리에이터 목록" })).toBeInTheDocument();
   });
 
+  test("sorts both card and table results by the eligible fixture ER and shows unavailable ER explicitly", async () => {
+    const user = userEvent.setup();
+    renderRoute("/creators");
+
+    const cards = screen.getByRole("list", { name: "크리에이터 목록" });
+    expect(within(cards).getAllByRole("article").map((card) => card.getAttribute("aria-label"))).toEqual([
+      "김서연 크리에이터 카드",
+      "이지아 크리에이터 카드",
+      "오하늘 크리에이터 카드",
+      "박도윤 크리에이터 카드",
+    ]);
+
+    await user.click(screen.getByRole("button", { name: "목록 보기" }));
+    const rows = within(screen.getByRole("region", { name: "크리에이터 목록" })).getAllByRole("row");
+    expect(rows.at(-1)).toHaveTextContent("박도윤");
+    expect(rows.at(-1)).toHaveTextContent("집계 불가");
+  });
+
   test("shows exactly one Instagram or YouTube profile in each fallback-table row", async () => {
     const user = userEvent.setup();
     renderRoute("/creators");

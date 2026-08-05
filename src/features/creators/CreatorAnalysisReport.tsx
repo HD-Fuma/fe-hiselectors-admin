@@ -134,15 +134,20 @@ const CREATOR_ANALYSES: Record<string, CreatorAnalysisFixture> = {
 };
 
 function fallbackAnalysis(creator: CreatorFixture): CreatorAnalysisFixture {
+  const engagementSamples = ADDITIONAL_ENGAGEMENT_SAMPLES[creator.id] ?? creator.featuredContents.map(() => ({
+    audience: creator.profile.followers,
+    likes: creator.profile.averageReactions,
+    comments: null,
+  }));
   return {
     updatedAt: "2026.08.05",
     collectionDays: 90,
-    postDates: creator.featuredContents.map(() => creator.recentActivity),
-    engagementSamples: creator.featuredContents.map(() => ({
-      audience: creator.profile.followers,
-      likes: creator.profile.averageReactions,
-      comments: null,
-    })),
+    postDates: engagementSamples.map((_, index) =>
+      new Date(Date.parse(`${creator.recentActivity}T00:00:00Z`) - index * 3 * 86_400_000)
+        .toISOString()
+        .slice(0, 10),
+    ),
+    engagementSamples,
     lastPostDate: creator.recentActivity,
     averages: {
       views: creator.profile.averageViews,

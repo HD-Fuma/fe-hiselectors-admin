@@ -9,6 +9,7 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SectionTabs } from "../../components/ui/SectionTabs";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { CreatorCardGrid } from "./CreatorCardGrid";
+import { engagementResultForCreator } from "./CreatorAnalysisReport";
 import { CreatorAnalysisReport } from "./CreatorAnalysisReport";
 import {
   CreatorResultToolbar,
@@ -143,7 +144,10 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
     header: "ER",
     width: 72,
     align: "right",
-    render: (creator) => `${creator.profile.engagementRate.toFixed(1)}%`,
+    render: (creator) => {
+      const engagement = engagementResultForCreator(creator);
+      return engagement.value === null ? "집계 불가" : `${engagement.value.toFixed(1)}%`;
+    },
   },
   { key: "recentActivity", header: "최근 활동일", width: 96, align: "center" },
   {
@@ -161,7 +165,13 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
 
 export function CreatorListPage() {
   const [searchParams] = useSearchParams();
-  const creators = searchParams.get("fixture") === "empty" ? [] : CREATORS;
+  const creators = [...(searchParams.get("fixture") === "empty" ? [] : CREATORS)].sort(
+    (left, right) => {
+      const leftRate = engagementResultForCreator(left).value;
+      const rightRate = engagementResultForCreator(right).value;
+      return (rightRate ?? Number.NEGATIVE_INFINITY) - (leftRate ?? Number.NEGATIVE_INFINITY);
+    },
+  );
   const [view, setView] = useState<CreatorPoolView>("cards");
 
   return (
