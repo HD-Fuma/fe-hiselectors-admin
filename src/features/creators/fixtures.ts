@@ -172,7 +172,7 @@ export const CREATORS: CreatorFixture[] = [
       engagementRate: 1.7,
       profileImageUrl: "/creator-media/cr-002-profile.jpg",
     },
-    categories: ["리빙", "푸드"],
+    categories: ["리빙/라이프", "푸드"],
     keywords: ["#집밥", "#홈카페", "#주말요리"],
     tier: "T2",
     contentCount: 96,

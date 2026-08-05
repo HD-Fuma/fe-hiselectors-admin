@@ -22,9 +22,9 @@ describe("CreatorAnalysisReport", () => {
     for (const value of [
       "팔로워",
       "82,400",
-      "주 3.2회",
+      "주 2.3회",
       "최근 90일 29건",
-      "공백 최대 6일",
+      "공백 최대 4일",
       "공개 콘텐츠 184건",
       "수집 콘텐츠 29건",
       "마지막 게시일 2026.08.02",
@@ -60,7 +60,8 @@ describe("CreatorAnalysisReport", () => {
     expect(within(selection).getByText("1차 2N 선정")).toBeInTheDocument();
     expect(selection).toHaveTextContent("ER × log(1 + 팔로워·구독자 수)");
     expect(within(selection).getByText("최종 N 선정")).toBeInTheDocument();
-    expect(within(selection).getByText("카테고리 분포 조절")).toBeInTheDocument();
+    expect(selection).toHaveTextContent("후보 김서연 · 오하늘 · 이지아 · 박도윤");
+    expect(selection).toHaveTextContent("카테고리별 최대 1명");
   });
 
   test("makes an unavailable average metric explicit instead of displaying a zero", () => {
@@ -68,13 +69,16 @@ describe("CreatorAnalysisReport", () => {
 
     expect(screen.getByText("평균 댓글")).toBeInTheDocument();
     expect(screen.getByText("집계 불가")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "정량 분석" })).toHaveTextContent(
+      "ER 집계 불가 · 댓글 수가 있는 유효 표본 없음",
+    );
   });
 });
 
 describe("creator analysis derivations", () => {
   test("derives the configured collection window cadence and longest gap from posting dates", () => {
     expect(
-      deriveCadence(["2026-08-05", "2026-08-01", "2026-07-29"], "2026-08-05", 90),
+      deriveCadence(["2026-08-05", "2026-08-01", "2026-07-29", "2026-05-01"], "2026-08-05", 90),
     ).toEqual({ dailyAverage: 0.03, weeklyAverage: 0.2, longestGapDays: 3 });
   });
 
