@@ -58,7 +58,7 @@
 ## 6. 컴포넌트와 데이터 경계
 
 - `CreatorListPage`: 검색 조건, 보기 모드 상태, 결과/빈 상태 조합
-- `CreatorResultToolbar`: 건수와 보기 모드 전환
+- `CreatorResultToolbar`: 건수, 정적 정렬 문구, 보기 모드 전환
 - `CreatorCardGrid`: 크리에이터 배열을 카드로 렌더
 - `CreatorEvidenceCard`: 카드의 정보 우선순위와 액션 조합
 - `CreatorMediaMosaic`: 세 개의 콘텐츠 미리보기
@@ -71,6 +71,7 @@ fixture에는 `Platform` 유니온, 대표 콘텐츠 3개, 아트워크 변형 �
 - 평균 반응률은 `반응 수 합계 / 조회 수 합계 × 100`이며 조회 수 합계가 `0`이면 `0.0%`로 표시한다.
 - 팔로워와 평균 조회는 `Intl.NumberFormat("ko-KR", { notation: "compact", maximumFractionDigits: 1 })`, 반응률은 소수점 한 자리와 `%`로 표시한다.
 - `cr-003 이지아` fixture는 Instagram과 Facebook 채널을 가지며, 인기 콘텐츠 세 개 중 하나의 출처를 Facebook으로 둔다. 따라서 기본 카드 화면에서 Facebook 아이콘을 반드시 확인할 수 있다.
+- 대표 핸들은 fixture의 `channels[0].handle`을 사용하고 채널이 없으면 `채널 정보 없음`으로 표시한다.
 - `AI 적합도순`은 fixture 프로토타입의 현재 배열 순서를 설명하는 비대화형 문구다. 실제 정렬 상태나 API 요청은 이번 범위에 포함하지 않는다.
 
 ## 7. 접근성 및 오류 처리
