@@ -186,7 +186,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/applicants/ap-003?fixture=auto-rejected",
-    rows: [19],
+    rows: [12],
     expectedTexts: ["자동 반려", "정량 기준 미충족", "내부 반려 사유"],
     expectedActions: ["승인", "반려"],
     primaryRole: { role: "heading", name: "지원자 상세 심사" },

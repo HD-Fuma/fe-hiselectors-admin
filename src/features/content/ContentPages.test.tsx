@@ -173,7 +173,7 @@ describe("content review queue", () => {
 
 describe("content review detail", () => {
   test("renders the exact new-content source, four local media tiles, AI result, and inert actions", () => {
-    const { container } = renderRoute("/content/reviews/ct-001");
+    renderRoute("/content/reviews/ct-001");
 
     expect(screen.getByRole("heading", { name: "콘텐츠 검수 상세" })).toBeInTheDocument();
     expect(screen.getByText("CT102")).toBeInTheDocument();
@@ -229,7 +229,7 @@ describe("content review detail", () => {
       expectButton(within(actions).getByRole("button", { name }));
     }
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(container.querySelector("img")).not.toBeInTheDocument();
+    expect(current.querySelector("img")).not.toBeInTheDocument();
   });
 
   test("renders the exact violation-correction before/after differences and actions", () => {

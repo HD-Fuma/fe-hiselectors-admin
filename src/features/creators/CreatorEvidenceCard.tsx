@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
-import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
-import type { CreatorFixture, ProposalStatus } from "./fixtures";
+import type { CreatorFixture } from "./fixtures";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
 import { CreatorProfilePhoto } from "./CreatorArtwork";
 import { PlatformIcon } from "./PlatformIcon";
@@ -19,25 +18,6 @@ export function proposalAction(creator: CreatorFixture) {
     label: "제안 작성",
     to: `/proposals/new?creator=${creator.id}`,
   };
-}
-
-// eslint-disable-next-line react-refresh/only-export-components
-export function proposalTone(
-  status: ProposalStatus | "미제안",
-): NonNullable<StatusPillProps["tone"]> {
-  if (status === "발송 완료" || status === "셀렉터스 전환") {
-    return "approved";
-  }
-
-  if (status === "발송 대기") {
-    return "pending";
-  }
-
-  if (status === "발송 실패") {
-    return "rejected";
-  }
-
-  return "neutral";
 }
 
 export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
@@ -72,12 +52,6 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
           </div>
           <header className="fuma-creator-card__identity">
             <div className="fuma-creator-card__identity-copy">
-              <div className="fuma-creator-card__eyebrow">
-                <span>{creator.tier}</span>
-                <StatusPill tone={proposalTone(creator.proposalStatus)}>
-                  {creator.proposalStatus}
-                </StatusPill>
-              </div>
               <h2 className="fuma-creator-card__name">{creator.name}</h2>
               <p className="fuma-creator-card__channel">
                 <PlatformIcon platform={creator.profile.platform} />

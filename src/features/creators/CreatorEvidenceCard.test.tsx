@@ -5,7 +5,6 @@ import {
   CreatorEvidenceCard,
   compactNumber,
   proposalAction,
-  proposalTone,
 } from "./CreatorEvidenceCard";
 
 const zia = CREATORS[2];
@@ -96,8 +95,4 @@ test("keeps compact metrics and proposal helper contracts", () => {
     label: "제안 작성",
     to: "/proposals/new?creator=cr-003",
   });
-  expect(proposalTone("발송 완료")).toBe("approved");
-  expect(proposalTone("발송 대기")).toBe("pending");
-  expect(proposalTone("발송 실패")).toBe("rejected");
-  expect(proposalTone("미제안")).toBe("neutral");
 });

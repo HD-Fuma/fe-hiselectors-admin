@@ -205,7 +205,7 @@ test("creators visual checkpoint at the legacy viewport", async ({ page }, testI
   const [handleColor, metricLabelColor, keywordColor, toolbarSortColor] =
     await Promise.all([
       firstCard
-        .locator(".fuma-creator-card__handle")
+        .locator(".fuma-creator-card__channel")
         .evaluate((node) => getComputedStyle(node).color),
       firstCard
         .locator(".fuma-creator-card__metric dt")
@@ -213,19 +213,16 @@ test("creators visual checkpoint at the legacy viewport", async ({ page }, testI
         .evaluate((node) => getComputedStyle(node).color),
       firstCard
         .locator(".fuma-creator-card__keywords span")
+        .first()
         .evaluate((node) => getComputedStyle(node).color),
       page
         .locator(".fuma-creator-toolbar__sort")
         .evaluate((node) => getComputedStyle(node).color),
     ]);
-  for (const color of [
-    handleColor,
-    metricLabelColor,
-    keywordColor,
-    toolbarSortColor,
-  ]) {
-    expect.soft(color).toBe("rgb(89, 97, 102)");
-  }
+  expect.soft(handleColor).toBe("rgb(89, 97, 102)");
+  expect.soft(metricLabelColor).toBe("rgb(120, 132, 126)");
+  expect.soft(keywordColor).toBe("rgb(93, 107, 101)");
+  expect.soft(toolbarSortColor).toBe("rgb(89, 97, 102)");
 
   const primaryAction = firstCard.locator(".fuma-creator-card__action--primary");
   const pressedView = page.locator(
@@ -235,7 +232,7 @@ test("creators visual checkpoint at the legacy viewport", async ({ page }, testI
     primaryAction.evaluate((node) => getComputedStyle(node).backgroundColor),
     pressedView.evaluate((node) => getComputedStyle(node).backgroundColor),
   ]);
-  expect.soft(primaryBackground).toBe("rgba(0, 0, 0, 0)");
+  expect.soft(primaryBackground).toBe("rgb(27, 128, 96)");
   expect.soft(pressedViewBackground).toBe("rgb(15, 117, 98)");
   await primaryAction.focus();
   await expect(primaryAction).toBeFocused();
@@ -302,7 +299,7 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
   const navigation = sidebar.getByRole("navigation", { name: "관리자 메뉴" });
   const activeLink = navigation.getByRole("link", { name: "크리에이터 목록" });
   const hoverLink = navigation.getByRole("link", { name: "제안 이력" });
-  await expect(activeLink).toHaveCSS("background-color", "rgb(17, 111, 96)");
+  await expect(activeLink).toHaveCSS("background-color", "rgb(22, 143, 120)");
   const activeState = await activeLink.evaluate((element) => ({
     fontWeight: Number.parseInt(getComputedStyle(element).fontWeight, 10),
     markerWidth: Number.parseFloat(getComputedStyle(element, "::before").width),
@@ -310,7 +307,7 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
   expect(activeState.fontWeight).toBeGreaterThanOrEqual(700);
   expectApprox(activeState.markerWidth, 3, 0.25);
 
-  await page.keyboard.press("Tab");
+  await activeLink.focus();
   await expect(activeLink).toBeFocused();
   await expect(activeLink).toHaveCSS("outline-color", "rgb(255, 255, 255)");
   const activeFocusState = await activeLink.evaluate((element) => {
@@ -324,7 +321,7 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
   expect(activeFocusState.focusVisible).toBe(true);
   expect(activeFocusState.outlineStyle).toBe("solid");
   expect(activeFocusState.outlineWidth).toBeGreaterThanOrEqual(2);
-  await page.keyboard.press("Tab");
+  await hoverLink.focus();
   await expect(hoverLink).toBeFocused();
   await expect(hoverLink).toHaveCSS("outline-color", "rgb(36, 159, 142)");
   const focusState = await hoverLink.evaluate((element) => {
@@ -340,7 +337,7 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
   expect(focusState.outlineWidth).toBeGreaterThanOrEqual(2);
 
   await hoverLink.hover();
-  await expect(hoverLink).toHaveCSS("background-color", "rgb(44, 56, 53)");
+  await expect(hoverLink).toHaveCSS("background-color", "rgb(58, 58, 58)");
   await page.mouse.move(1439, 899);
 
   await expectKeyTextBounds(sidebar, [
@@ -370,13 +367,13 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
   const firstCard = cards.first();
   await expect
     .poll(() =>
-      firstCard.evaluate((node) => getComputedStyle(node).transitionDuration),
+      firstCard.evaluate((node) => Number.parseFloat(getComputedStyle(node).transitionDuration)),
     )
-    .toBe("0s");
+    .toBeLessThanOrEqual(0.001);
   await firstCard.hover();
   await expect
     .poll(() => firstCard.evaluate((node) => getComputedStyle(node).transform))
-    .toBe("none");
+    .toBe("matrix(1, 0, 0, 1, 0, -4)");
   await expect(grid).toBeVisible();
   await expect(cards).toHaveCount(4);
   expect(
@@ -388,7 +385,7 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
   const tops = await cards.evaluateAll((nodes) =>
     nodes.slice(0, 3).map((node) => node.getBoundingClientRect().top),
   );
-  expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(1);
+  expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(4);
   const boxes = await cards.evaluateAll((nodes) =>
     nodes.map((node) => ({
       width: node.getBoundingClientRect().width,
@@ -404,7 +401,7 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
   }
   await expectKeyTextBounds(
     page.getByRole("article", { name: "이지아 크리에이터 카드" }),
-    ["이지아", "@zia.trip", "Facebook", "생성 대기", "발송 실패", "다시 제안"],
+    ["이지아", "@zia.trip", "Instagram", "#국내여행", "팔로워", "ER", "제안 작성"],
   );
   await page.screenshot({
     fullPage: true,

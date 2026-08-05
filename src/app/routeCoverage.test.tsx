@@ -351,7 +351,7 @@ describe("requirement row route resolution", () => {
         "/applicants/ap-003",
         "?utm=x&fixture=auto-rejected",
       )?.rows,
-    ).toEqual([19]);
+    ).toEqual([12]);
   });
 
   test.each([
@@ -366,7 +366,7 @@ describe("requirement row route resolution", () => {
   });
 
   test.each([
-    ["/applicants/ap-003", "?fixture=edited", [19]],
+    ["/applicants/ap-003", "?fixture=edited", [12]],
     ["/content/reviews/ct-002", "?fixture=edited", [22]],
     ["/content/reviews/ct-003", "?fixture=violation-correction", [22]],
   ])("does not grant fixture-specific rows for a mismatch on %s", (pathname, search, rows) => {

@@ -82,11 +82,8 @@ test("locks the administrator shell geometry", async ({ page }) => {
   await expect(topbar).toBeVisible();
   await expect(content).toBeVisible();
   await expect(brand).toBeVisible();
-  await expect(navigation.getByRole("link")).toHaveCount(14);
-  await expect(topbar.locator(".hsas-admin-topbar__account-role")).toHaveCSS(
-    "color",
-    "rgb(89, 97, 102)",
-  );
+  await expect(navigation.getByRole("link")).toHaveCount(13);
+  await expect(sidebar.getByText("관리자 계정")).toBeVisible();
   await page.screenshot({ path: "test-results/visual/admin-shell-reference.png" });
 
   const [rootBox, sidebarBox, workspaceBox, topbarBox, contentBox] = await Promise.all([
@@ -145,7 +142,7 @@ test("keeps sidebar navigation scroll independent from the page", async ({ page 
   await expect(navigation).toHaveCSS("overflow-y", "auto");
   await expect(navigation).toHaveCSS(
     "scrollbar-color",
-    "rgb(114, 130, 126) rgba(0, 0, 0, 0)",
+    "rgb(138, 138, 138) rgba(0, 0, 0, 0)",
   );
 
   const navigationSize = await navigation.evaluate((element) => ({

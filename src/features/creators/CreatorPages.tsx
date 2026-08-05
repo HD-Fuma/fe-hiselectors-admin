@@ -262,9 +262,7 @@ const CHANNEL_COLUMNS: DenseTableColumn<CreatorProfileFixture>[] = [
 function BasicInformation({ creator }: { creator: CreatorFixture }) {
   const fields = [
     ["ID", creator.id],
-    ["이름", creator.name],
     ["카테고리", creator.categories.join(" / ")],
-    ["티어", creator.tier],
     ["팔로워·구독자", formatNumber(creator.profile.followers)],
     ["콘텐츠 수", formatNumber(creator.contentCount)],
     ["최근 활동일", creator.recentActivity],
@@ -282,14 +280,6 @@ function BasicInformation({ creator }: { creator: CreatorFixture }) {
             <dd>{value}</dd>
           </div>
         ))}
-        <div className="fuma-key-value-grid__item">
-          <dt>제안 상태</dt>
-          <dd>
-            <StatusPill tone={proposalTone(creator.proposalStatus)}>
-              {creator.proposalStatus}
-            </StatusPill>
-          </dd>
-        </div>
       </dl>
     </section>
   );

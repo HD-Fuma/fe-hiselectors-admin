@@ -33,8 +33,7 @@ test("renders the complete administrator navigation in one sidebar", () => {
   const sidebarQueries = within(sidebar as HTMLElement);
   const navigation = sidebarQueries.getByRole("navigation", { name: "관리자 메뉴" });
 
-  expect(sidebarQueries.getByText("FUMA")).toBeInTheDocument();
-  expect(sidebarQueries.getByText("ADMIN CONSOLE")).toBeInTheDocument();
+  expect(sidebarQueries.getByRole("img", { name: "더현대Hi" })).toBeInTheDocument();
   expect(screen.getAllByRole("navigation", { name: "관리자 메뉴" })).toHaveLength(1);
   expect(within(navigation).getAllByRole("link")).toHaveLength(13);
   for (const [label, href] of expectedSidebarLinks) {
@@ -136,18 +135,17 @@ test("opens and closes work tabs as screens are visited", async () => {
   expect(screen.getByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
 });
 
-test("keeps the administrator identity and utility controls in the topbar only", () => {
+test("keeps the administrator identity and utility controls in the sidebar", () => {
   renderRoute("/creators");
 
   const shell = screen.getByTestId("admin-shell");
   const topbar = shell.querySelector('[data-shell-part="topbar"]');
   expect(topbar).toBeInTheDocument();
-  const topbarQueries = within(topbar as HTMLElement);
-
-  expect(topbarQueries.getByText("관리자")).toBeInTheDocument();
-  expect(topbarQueries.getByText("FUMA 운영자")).toBeInTheDocument();
-  expect(topbarQueries.getByRole("button", { name: "설정" })).toBeInTheDocument();
-  expect(topbarQueries.getByRole("button", { name: "로그아웃" })).toBeInTheDocument();
+  expect(within(topbar as HTMLElement).queryByText("관리자")).not.toBeInTheDocument();
+  expect(within(topbar as HTMLElement).queryByRole("button", { name: "설정" })).not.toBeInTheDocument();
+  expect(within(topbar as HTMLElement).queryByRole("button", { name: "로그아웃" })).not.toBeInTheDocument();
+  expect(within(shell).getByText("관리자")).toBeInTheDocument();
+  expect(within(shell).getByText("관리자 계정")).toBeInTheDocument();
   expect(within(shell).getAllByRole("button", { name: "설정" })).toHaveLength(1);
   expect(within(shell).getAllByRole("button", { name: "로그아웃" })).toHaveLength(1);
 });

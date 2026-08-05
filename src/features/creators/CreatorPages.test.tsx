@@ -152,7 +152,7 @@ describe("creator detail", () => {
     expect(screen.getByText("cr-001")).toBeInTheDocument();
     expect(screen.getByText("김서연")).toBeInTheDocument();
     expect(screen.getByText("뷰티 / 패션")).toBeInTheDocument();
-    expect(screen.getAllByText("82,400")).toHaveLength(3);
+    expect(screen.getAllByText("82,400")).toHaveLength(4);
     expectColumnHeaders([
       "플랫폼",
       "채널",
@@ -160,7 +160,7 @@ describe("creator detail", () => {
       "평균 조회 수",
       "평균 반응 수",
     ]);
-    expect(screen.getByText("@seo.yeon")).toBeInTheDocument();
+    expect(screen.getAllByText("@seo.yeon")).toHaveLength(2);
     expect(screen.getAllByText("48,200")).toHaveLength(2);
     expect(screen.getAllByText("3,278")).toHaveLength(1);
     const channels = screen.getByRole("region", { name: "플랫폼별 채널" });
