@@ -25,12 +25,10 @@ describe("creator pool", () => {
       "placeholder",
       "이름 또는 채널명 검색",
     );
-    expect(within(search).getByRole("combobox", { name: "카테고리" })).toHaveTextContent(
-      "전체뷰티패션리빙푸드여행라이프",
-    );
-    expect(within(search).getByRole("combobox", { name: "티어" })).toHaveTextContent(
-      "전체T0T1T2T3",
-    );
+    expect(within(search).getByRole("textbox", { name: "최소 팔로워·구독자" })).toBeInTheDocument();
+    expect(within(search).getByRole("textbox", { name: "최대 팔로워·구독자" })).toBeInTheDocument();
+    expect(within(search).queryByRole("combobox", { name: "카테고리" })).not.toBeInTheDocument();
+    expect(within(search).queryByRole("combobox", { name: "티어" })).not.toBeInTheDocument();
     expect(within(search).getByRole("combobox", { name: "플랫폼" })).toHaveTextContent(
       "전체InstagramYouTube",
     );
@@ -38,7 +36,7 @@ describe("creator pool", () => {
     expect(within(search).getByRole("button", { name: "초기화" })).toBeInTheDocument();
 
     expect(screen.getByText("총 4건")).toBeInTheDocument();
-    expect(screen.getByText("AI 적합도순").closest("button,select")).toBeNull();
+    expect(screen.getByText("ER순")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "카드 보기" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -80,13 +78,11 @@ describe("creator pool", () => {
       "ID",
       "이름",
       "플랫폼",
-      "카테고리",
-      "티어",
+      "계정",
+      "키워드",
       "팔로워·구독자",
-      "콘텐츠 수",
+      "ER",
       "최근 활동일",
-      "AI 리포트 상태",
-      "제안 상태",
       "상세",
     ]) {
       expect(within(results).getByRole("columnheader", { name })).toBeInTheDocument();

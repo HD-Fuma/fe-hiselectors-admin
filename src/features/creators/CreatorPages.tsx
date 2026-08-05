@@ -27,13 +27,6 @@ import {
   type ProposalStatus,
 } from "./fixtures";
 
-const CATEGORY_OPTIONS = ["전체", "뷰티", "패션", "리빙", "푸드", "여행", "라이프"].map(
-  (label) => ({ label, value: label === "전체" ? "" : label }),
-);
-const TIER_OPTIONS = ["전체", "T0", "T1", "T2", "T3"].map((label) => ({
-  label,
-  value: label === "전체" ? "" : label,
-}));
 const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube"].map((label) => ({
   label,
   value: label === "전체" ? "" : label,
@@ -121,12 +114,23 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
     render: (creator) => <PlatformLabel platform={creator.profile.platform} />,
   },
   {
+    id: "account",
+    header: "계정",
+    width: 130,
+    render: (creator) => creator.profile.handle,
+  },
+  {
     id: "categories",
     header: "카테고리",
     width: 110,
     render: (creator) => creator.categories.join(" / "),
   },
-  { key: "tier", header: "티어", width: 52, align: "center" },
+  {
+    id: "keywords",
+    header: "키워드",
+    width: 165,
+    render: (creator) => creator.keywords.join(" "),
+  },
   {
     id: "followers",
     header: "팔로워·구독자",
@@ -135,33 +139,13 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
     render: (creator) => formatNumber(creator.profile.followers),
   },
   {
-    key: "contentCount",
-    header: "콘텐츠 수",
-    width: 78,
+    id: "engagementRate",
+    header: "ER",
+    width: 72,
     align: "right",
-    render: (creator) => formatNumber(creator.contentCount),
+    render: (creator) => `${creator.profile.engagementRate.toFixed(1)}%`,
   },
   { key: "recentActivity", header: "최근 활동일", width: 96, align: "center" },
-  {
-    id: "aiReportStatus",
-    header: "AI 리포트 상태",
-    width: 110,
-    align: "center",
-    render: (creator) => (
-      <StatusPill tone={creator.aiReport.status === "ready" ? "approved" : "pending"}>
-        {creator.aiReport.status === "ready" ? "생성 완료" : "생성 대기"}
-      </StatusPill>
-    ),
-  },
-  {
-    key: "proposalStatus",
-    header: "제안 상태",
-    width: 102,
-    align: "center",
-    render: (creator) => (
-      <StatusPill tone={proposalTone(creator.proposalStatus)}>{creator.proposalStatus}</StatusPill>
-    ),
-  },
   {
     id: "detail",
     header: "상세",
@@ -192,11 +176,19 @@ export function CreatorListPage() {
               placeholder="이름 또는 채널명 검색"
             />
           </FilterField>
-          <FilterField htmlFor="creator-category" label="카테고리">
-            <Select id="creator-category" name="category" options={CATEGORY_OPTIONS} />
+          <FilterField htmlFor="creator-followers-min" label="최소 팔로워·구독자">
+            <TextInput
+              id="creator-followers-min"
+              name="followersMin"
+              placeholder="예: 10,000"
+            />
           </FilterField>
-          <FilterField htmlFor="creator-tier" label="티어">
-            <Select id="creator-tier" name="tier" options={TIER_OPTIONS} />
+          <FilterField htmlFor="creator-followers-max" label="최대 팔로워·구독자">
+            <TextInput
+              id="creator-followers-max"
+              name="followersMax"
+              placeholder="예: 100,000"
+            />
           </FilterField>
           <FilterField htmlFor="creator-platform" label="플랫폼">
             <Select id="creator-platform" name="platform" options={PLATFORM_OPTIONS} />

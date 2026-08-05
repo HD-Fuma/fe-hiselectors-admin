@@ -194,25 +194,15 @@ test("creators visual checkpoint at the legacy viewport", async ({ page }, testI
     expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth);
   }
   const firstCard = cards.first();
-  const portrait = firstCard.locator(".fuma-creator-card__portrait");
-  const mainMediaSource = firstCard.locator(
-    ".fuma-creator-media--main .fuma-creator-media__source",
-  );
-  const [portraitBox, mainMediaSourceBox] = await Promise.all([
-    portrait.boundingBox(),
-    mainMediaSource.boundingBox(),
-  ]);
-  expect(portraitBox).not.toBeNull();
-  expect(mainMediaSourceBox).not.toBeNull();
-  const portraitIntersectsMainMediaSource = !(
-    portraitBox!.x + portraitBox!.width <= mainMediaSourceBox!.x ||
-    mainMediaSourceBox!.x + mainMediaSourceBox!.width <= portraitBox!.x ||
-    portraitBox!.y + portraitBox!.height <= mainMediaSourceBox!.y ||
-    mainMediaSourceBox!.y + mainMediaSourceBox!.height <= portraitBox!.y
-  );
-  expect.soft(portraitIntersectsMainMediaSource).toBe(false);
+  const tiles = firstCard.locator(".fuma-creator-media");
+  await expect(tiles).toHaveCount(3);
+  for (let index = 0; index < 3; index += 1) {
+    const box = await tiles.nth(index).boundingBox();
+    expect(box).not.toBeNull();
+    expectApprox(box!.width, box!.height, 1);
+  }
 
-  const [handleColor, metricLabelColor, recentDateColor, toolbarSortColor] =
+  const [handleColor, metricLabelColor, keywordColor, toolbarSortColor] =
     await Promise.all([
       firstCard
         .locator(".fuma-creator-card__handle")
@@ -222,7 +212,7 @@ test("creators visual checkpoint at the legacy viewport", async ({ page }, testI
         .first()
         .evaluate((node) => getComputedStyle(node).color),
       firstCard
-        .locator(".fuma-creator-card__recent")
+        .locator(".fuma-creator-card__keywords span")
         .evaluate((node) => getComputedStyle(node).color),
       page
         .locator(".fuma-creator-toolbar__sort")
@@ -231,7 +221,7 @@ test("creators visual checkpoint at the legacy viewport", async ({ page }, testI
   for (const color of [
     handleColor,
     metricLabelColor,
-    recentDateColor,
+    keywordColor,
     toolbarSortColor,
   ]) {
     expect.soft(color).toBe("rgb(89, 97, 102)");
@@ -245,13 +235,13 @@ test("creators visual checkpoint at the legacy viewport", async ({ page }, testI
     primaryAction.evaluate((node) => getComputedStyle(node).backgroundColor),
     pressedView.evaluate((node) => getComputedStyle(node).backgroundColor),
   ]);
-  expect.soft(primaryBackground).toBe("rgb(15, 117, 98)");
+  expect.soft(primaryBackground).toBe("rgba(0, 0, 0, 0)");
   expect.soft(pressedViewBackground).toBe("rgb(15, 117, 98)");
   await primaryAction.focus();
   await expect(primaryAction).toBeFocused();
   expect.soft(
     await primaryAction.evaluate((node) => getComputedStyle(node).outlineColor),
-  ).toBe("rgb(255, 255, 255)");
+  ).toBe("rgb(15, 117, 98)");
   await pressedView.focus();
   await expect(pressedView).toBeFocused();
   expect.soft(
@@ -262,11 +252,11 @@ test("creators visual checkpoint at the legacy viewport", async ({ page }, testI
     [
       "김서연",
       "@seo.yeon",
-      "팔로워·구독자",
-      "평균 조회",
-      "평균 반응률",
+      "#데일리룩",
+      "팔로워",
+      "ER",
       "상세 보기",
-      "제안 이력",
+      "제안하기",
     ],
   );
   await page.screenshot({ path: "test-results/visual/creators.png" });

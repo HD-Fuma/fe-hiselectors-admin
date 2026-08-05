@@ -14,7 +14,7 @@ export function CreatorResultToolbar({
       <strong className="fuma-creator-toolbar__summary">크리에이터 목록</strong>
       <span>총 {count}건</span>
       <div className="fuma-creator-toolbar__controls">
-        <span className="fuma-creator-toolbar__sort">AI 적합도순</span>
+        <span className="fuma-creator-toolbar__sort">ER순</span>
         <div
           aria-label="보기 방식"
           className="fuma-creator-toolbar__views"

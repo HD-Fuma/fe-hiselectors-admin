@@ -39,12 +39,12 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   {
     route: "/creators",
     rows: [3, 4],
-    expectedTexts: ["김서연", "팔로워·구독자", "콘텐츠 184개", "최근 활동일 2026-08-02"],
+    expectedTexts: ["김서연", "#데일리룩", "팔로워·구독자", "ER"],
     expectedActions: ["조회", "초기화"],
     expectedControls: [
       { role: "textbox", name: "키워드" },
-      { role: "combobox", name: "카테고리" },
-      { role: "combobox", name: "티어" },
+      { role: "textbox", name: "최소 팔로워·구독자" },
+      { role: "textbox", name: "최대 팔로워·구독자" },
       { role: "combobox", name: "플랫폼" },
     ],
     primaryRole: { role: "heading", name: "크리에이터 풀" },
