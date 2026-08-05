@@ -35,14 +35,14 @@ const contents: CreatorFeaturedContentFixture[] = [
   },
 ];
 
-test("renders three local popular-content tiles without platform captions", () => {
+test("renders three local representative-post tiles without platform captions", () => {
   const { rerender } = render(
     <CreatorMediaMosaic contents={contents} creatorName="이지아" />,
   );
-  let mosaic = screen.getByRole("list", { name: "이지아 인기 콘텐츠" });
+  let mosaic = screen.getByRole("list", { name: "이지아 대표 게시글" });
   expect(within(mosaic).getAllByRole("listitem")).toHaveLength(3);
-  expect(within(mosaic).getAllByRole("img", { name: /이지아 인기 콘텐츠:/ })).toHaveLength(3);
-  expect(within(mosaic).getByAltText("이지아 인기 콘텐츠: 여름 바다 산책")).toHaveAttribute(
+  expect(within(mosaic).getAllByRole("img", { name: /이지아 대표 게시글:/ })).toHaveLength(3);
+  expect(within(mosaic).getByAltText("이지아 대표 게시글: 여름 바다 산책")).toHaveAttribute(
     "src",
     "/creator-media/cr-003-01.jpg",
   );
@@ -50,18 +50,18 @@ test("renders three local popular-content tiles without platform captions", () =
   expect(mosaic).not.toHaveTextContent(/Instagram|YouTube|Facebook/);
 
   rerender(<CreatorMediaMosaic contents={contents.slice(0, 2)} creatorName="이지아" />);
-  mosaic = screen.getByRole("list", { name: "이지아 인기 콘텐츠" });
+  mosaic = screen.getByRole("list", { name: "이지아 대표 게시글" });
   expect(within(mosaic).getAllByRole("listitem")).toHaveLength(3);
-  expect(within(mosaic).getByRole("img", { name: "이지아 인기 콘텐츠 없음" })).toBeInTheDocument();
+  expect(within(mosaic).getByRole("img", { name: "이지아 대표 게시글 없음" })).toBeInTheDocument();
 });
 
 test("replaces failed content and profile images with neutral fallbacks", () => {
   const { rerender } = render(
     <CreatorMediaMosaic contents={contents} creatorName="이지아" />,
   );
-  fireEvent.error(screen.getByAltText("이지아 인기 콘텐츠: 여름 바다 산책"));
+  fireEvent.error(screen.getByAltText("이지아 대표 게시글: 여름 바다 산책"));
   expect(
-    screen.getByRole("img", { name: "이지아 인기 콘텐츠: 여름 바다 산책 이미지 없음" }),
+    screen.getByRole("img", { name: "이지아 대표 게시글: 여름 바다 산책 이미지 없음" }),
   ).toHaveTextContent("여름 바다 산책");
 
   rerender(<CreatorProfilePhoto creatorName="이지아" src="/broken.jpg" />);
@@ -116,9 +116,9 @@ test("content photo recovers when its source changes and never renders an empty 
     />,
   );
 
-  fireEvent.error(screen.getByAltText("이지아 인기 콘텐츠: 여름 바다 산책"));
+  fireEvent.error(screen.getByAltText("이지아 대표 게시글: 여름 바다 산책"));
   expect(
-    screen.getByRole("img", { name: "이지아 인기 콘텐츠: 여름 바다 산책 이미지 없음" }),
+    screen.getByRole("img", { name: "이지아 대표 게시글: 여름 바다 산책 이미지 없음" }),
   ).toBeInTheDocument();
 
   rerender(
@@ -128,7 +128,7 @@ test("content photo recovers when its source changes and never renders an empty 
       title="여름 바다 산책"
     />,
   );
-  expect(screen.getByAltText("이지아 인기 콘텐츠: 여름 바다 산책")).toHaveAttribute(
+  expect(screen.getByAltText("이지아 대표 게시글: 여름 바다 산책")).toHaveAttribute(
     "src",
     "/valid-content.jpg",
   );
@@ -136,8 +136,8 @@ test("content photo recovers when its source changes and never renders an empty 
   rerender(
     <CreatorContentPhoto creatorName="이지아" src="" title="여름 바다 산책" />,
   );
-  expect(screen.queryByAltText("이지아 인기 콘텐츠: 여름 바다 산책")).not.toBeInTheDocument();
+  expect(screen.queryByAltText("이지아 대표 게시글: 여름 바다 산책")).not.toBeInTheDocument();
   expect(
-    screen.getByRole("img", { name: "이지아 인기 콘텐츠: 여름 바다 산책 이미지 없음" }),
+    screen.getByRole("img", { name: "이지아 대표 게시글: 여름 바다 산책 이미지 없음" }),
   ).toBeInTheDocument();
 });

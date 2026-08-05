@@ -49,7 +49,7 @@ export function CreatorContentPhoto({
   if (failed) {
     return (
       <span
-        aria-label={`${creatorName} 인기 콘텐츠: ${title} 이미지 없음`}
+        aria-label={`${creatorName} 대표 게시글: ${title} 이미지 없음`}
         className="fuma-creator-media__fallback"
         role="img"
       >
@@ -60,7 +60,7 @@ export function CreatorContentPhoto({
 
   return (
     <img
-      alt={`${creatorName} 인기 콘텐츠: ${title}`}
+      alt={`${creatorName} 대표 게시글: ${title}`}
       onError={() => setFailedSrc(resolvedSrc)}
       src={resolvedSrc}
     />

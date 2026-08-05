@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { type StatusPillProps } from "../../components/ui/StatusPill";
 import type { CreatorFixture, ProposalStatus } from "./fixtures";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
 import { CreatorProfilePhoto } from "./CreatorArtwork";
@@ -13,23 +13,9 @@ export const compactNumber = new Intl.NumberFormat("ko-KR", {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function proposalAction(creator: CreatorFixture) {
-  if (creator.proposalStatus === "미제안") {
-    return {
-      label: "영입 제안",
-      to: `/creators/${creator.id}#proposal`,
-    };
-  }
-
-  if (creator.proposalStatus === "발송 실패") {
-    return {
-      label: "다시 제안",
-      to: `/creators/${creator.id}#proposal`,
-    };
-  }
-
   return {
-    label: "제안 이력",
-    to: `/proposals?creator=${creator.id}`,
+    label: "제안하기",
+    to: `/creators/${creator.id}#proposal`,
   };
 }
 
@@ -55,15 +41,10 @@ export function proposalTone(
 export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
   const action = proposalAction(creator);
   const isInstagram = creator.profile.platform === "Instagram";
-  const primaryMetrics = isInstagram
-    ? [
-        { label: "평균 반응", value: creator.profile.averageReactions },
-        { label: "팔로워", value: creator.profile.followers },
-      ]
-    : [
-        { label: "평균 조회", value: creator.profile.averageViews },
-        { label: "구독자", value: creator.profile.followers },
-      ];
+  const primaryMetrics = [
+    { label: isInstagram ? "팔로워" : "구독자", value: creator.profile.followers },
+    { label: "ER", value: `${creator.profile.engagementRate.toFixed(1)}%` },
+  ];
 
   return (
     <li className="fuma-creator-card" role="listitem">
@@ -93,37 +74,27 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
               <p className="fuma-creator-card__handle">{creator.profile.handle}</p>
               <p className="fuma-creator-card__categories">
                 {creator.categories.join(" / ")}
-                <span>콘텐츠 {creator.contentCount}개</span>
               </p>
+              <div aria-label="키워드" className="fuma-creator-card__keywords">
+                {creator.keywords.map((keyword) => (
+                  <span key={keyword}>{keyword}</span>
+                ))}
+              </div>
             </div>
           </header>
           <dl className="fuma-creator-card__metrics">
             {primaryMetrics.map((metric, index) => (
               <div className="fuma-creator-card__metric" key={metric.label}>
                 <dt>
-                  {index === 1 ? (
+                  {index === 0 ? (
                     <span className="hsas-visually-hidden">팔로워·구독자</span>
                   ) : null}
                   {metric.label}
                 </dt>
-                <dd>{compactNumber.format(metric.value)}</dd>
+                <dd>{typeof metric.value === "number" ? compactNumber.format(metric.value) : metric.value}</dd>
               </div>
             ))}
           </dl>
-          <div className="fuma-creator-card__meta">
-            <strong className="fuma-creator-card__ai">
-              {creator.aiReport.fitnessScore === null
-                ? "생성 대기"
-                : `AI 적합도 ${creator.aiReport.fitnessScore}점`}
-            </strong>
-            <span>{creator.tier}</span>
-            <StatusPill tone={proposalTone(creator.proposalStatus)}>
-              {creator.proposalStatus}
-            </StatusPill>
-            <span className="fuma-creator-card__recent">
-              최근 활동일 {creator.recentActivity}
-            </span>
-          </div>
         </div>
         <footer className="fuma-creator-card__actions">
           <Link

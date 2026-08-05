@@ -11,7 +11,7 @@ export function CreatorMediaMosaic({
   const slots = Array.from({ length: 3 }, (_, index) => contents[index] ?? null);
 
   return (
-    <div aria-label={`${creatorName} 인기 콘텐츠`} className="fuma-creator-mosaic" role="list">
+    <div aria-label={`${creatorName} 대표 게시글`} className="fuma-creator-mosaic" role="list">
       {slots.map((content, index) => (
         <figure className="fuma-creator-media" key={content?.id ?? `empty-${index}`} role="listitem">
           {content ? (
@@ -29,7 +29,7 @@ export function CreatorMediaMosaic({
             </>
           ) : (
             <span
-              aria-label={`${creatorName} 인기 콘텐츠 없음`}
+              aria-label={`${creatorName} 대표 게시글 없음`}
               className="fuma-creator-media__fallback fuma-creator-media__fallback--empty"
               role="img"
             >

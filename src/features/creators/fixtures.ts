@@ -25,9 +25,11 @@ export interface CreatorFeaturedContentFixture {
 export interface CreatorProfileFixture {
   platform: CreatorPlatform;
   handle: string;
+  profileUrl: string;
   followers: number;
   averageViews: number;
   averageReactions: number;
+  engagementRate: number;
   profileImageUrl: string;
 }
 
@@ -43,6 +45,7 @@ interface CreatorBaseFixture {
   name: string;
   profile: CreatorProfileFixture;
   categories: string[];
+  keywords: string[];
   tier: "T0" | "T1" | "T2" | "T3";
   contentCount: number;
   recentActivity: string;
@@ -113,12 +116,15 @@ export const CREATORS: CreatorFixture[] = [
     profile: {
       platform: "Instagram",
       handle: "@seo.yeon",
+      profileUrl: "https://www.instagram.com/seo.yeon",
       followers: 82_400,
       averageViews: 48_200,
       averageReactions: 3_278,
+      engagementRate: 4,
       profileImageUrl: "/creator-media/cr-001-profile.jpg",
     },
     categories: ["뷰티", "패션"],
+    keywords: ["#데일리룩", "#톤메이크업", "#뷰티리뷰"],
     tier: "T1",
     contentCount: 184,
     recentActivity: "2026-08-02",
@@ -159,12 +165,15 @@ export const CREATORS: CreatorFixture[] = [
     profile: {
       platform: "YouTube",
       handle: "도윤의 집밥",
+      profileUrl: "https://www.youtube.com/@doyoonhome",
       followers: 76_200,
       averageViews: 26_800,
       averageReactions: 1_320,
+      engagementRate: 1.7,
       profileImageUrl: "/creator-media/cr-002-profile.jpg",
     },
     categories: ["리빙", "푸드"],
+    keywords: ["#집밥", "#홈카페", "#주말요리"],
     tier: "T2",
     contentCount: 96,
     recentActivity: "2026-07-31",
@@ -210,12 +219,15 @@ export const CREATORS: CreatorFixture[] = [
     profile: {
       platform: "Instagram",
       handle: "@zia.trip",
+      profileUrl: "https://www.instagram.com/zia.trip",
       followers: 32_700,
       averageViews: 17_900,
       averageReactions: 980,
+      engagementRate: 3,
       profileImageUrl: "/creator-media/cr-003-profile.jpg",
     },
-    categories: ["여행", "라이프"],
+    categories: ["여행", "리빙/라이프"],
+    keywords: ["#국내여행", "#여행브이로그", "#주말여행"],
     tier: "T3",
     contentCount: 142,
     recentActivity: "2026-07-29",
@@ -256,12 +268,15 @@ export const CREATORS: CreatorFixture[] = [
     profile: {
       platform: "Instagram",
       handle: "@today_haneul",
+      profileUrl: "https://www.instagram.com/today_haneul",
       followers: 486_000,
       averageViews: 154_200,
       averageReactions: 12_860,
+      engagementRate: 2.6,
       profileImageUrl: "/creator-media/cr-004-profile.jpg",
     },
     categories: ["푸드"],
+    keywords: ["#브런치", "#디저트", "#카페리뷰"],
     tier: "T0",
     contentCount: 356,
     recentActivity: "2026-08-03",

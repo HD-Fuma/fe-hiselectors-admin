@@ -35,24 +35,24 @@ describe("CreatorEvidenceCard", () => {
       "src",
       "/creator-media/cr-003-profile.jpg",
     );
-    const mosaic = within(card).getByRole("list", { name: "이지아 인기 콘텐츠" });
+    const mosaic = within(card).getByRole("list", { name: "이지아 대표 게시글" });
     expect(within(mosaic).getAllByRole("listitem")).toHaveLength(3);
-    expect(within(mosaic).getAllByRole("img", { name: /이지아 인기 콘텐츠:/ })).toHaveLength(3);
+    expect(within(mosaic).getAllByRole("img", { name: /이지아 대표 게시글:/ })).toHaveLength(3);
     expect(within(card).getAllByRole("img", { name: /플랫폼/ })).toHaveLength(1);
     expect(within(card).getByRole("img", { name: "Instagram 플랫폼" })).toBeInTheDocument();
     expect(within(card).queryByRole("img", { name: "YouTube 플랫폼" })).not.toBeInTheDocument();
 
-    for (const text of ["@zia.trip", "여행 / 라이프", "콘텐츠 142개", "평균 반응", "980", "팔로워", "3.3만"]) {
+    for (const text of ["@zia.trip", "여행 / 리빙/라이프", "#국내여행", "#여행브이로그", "팔로워", "3.3만", "ER", "3.0%"]) {
       expect(within(card).getByText(text)).toBeInTheDocument();
     }
-    expect(within(card).queryByText("평균 반응률")).not.toBeInTheDocument();
-    expect(within(card).queryByText("평균 조회")).not.toBeInTheDocument();
+    expect(within(card).queryByText(/AI 적합도/)).not.toBeInTheDocument();
+    expect(within(card).queryByText("T3")).not.toBeInTheDocument();
+    expect(within(card).queryByText("발송 실패")).not.toBeInTheDocument();
     const metrics = container.querySelectorAll<HTMLElement>(
       ".fuma-creator-card__metrics > div",
     );
     expect(metrics).toHaveLength(2);
-    expect(within(metrics[0]).queryByText("팔로워·구독자")).not.toBeInTheDocument();
-    expect(within(metrics[1]).getByText("팔로워·구독자")).toHaveClass(
+    expect(within(metrics[0]).getByText("팔로워·구독자")).toHaveClass(
       "hsas-visually-hidden",
     );
     expect(container.querySelector(".fuma-creator-card__portrait .fuma-creator-card__platform-badge")).toBeInTheDocument();
@@ -62,41 +62,37 @@ describe("CreatorEvidenceCard", () => {
       "href",
       "/creators/cr-003",
     );
-    expect(within(card).getByRole("link", { name: "이지아 다시 제안" })).toHaveAttribute(
+    expect(within(card).getByRole("link", { name: "이지아 제안하기" })).toHaveAttribute(
       "href",
       "/creators/cr-003#proposal",
     );
   });
 
-  test("shows YouTube average views and subscribers as the only two metrics", () => {
+  test("shows YouTube subscribers and ER as the only two metrics", () => {
     const { container } = renderCard(CREATORS[1]);
     const card = screen.getByRole("article", { name: "박도윤 크리에이터 카드" });
 
     expect(within(card).getByRole("img", { name: "YouTube 플랫폼" })).toBeInTheDocument();
-    expect(within(card).getByText("평균 조회")).toBeInTheDocument();
-    expect(within(card).getByText("2.7만")).toBeInTheDocument();
     expect(within(card).getByText("구독자")).toBeInTheDocument();
     expect(within(card).getByText("7.6만")).toBeInTheDocument();
-    expect(within(card).queryByText("평균 반응")).not.toBeInTheDocument();
+    expect(within(card).getByText("ER")).toBeInTheDocument();
+    expect(within(card).getByText("1.7%")).toBeInTheDocument();
     expect(container.querySelectorAll(".fuma-creator-card__metrics > div")).toHaveLength(2);
   });
 
-  test.each([
-    ["미제안", "영입 제안", "/creators/cr-003#proposal"],
-    ["발송 실패", "다시 제안", "/creators/cr-003#proposal"],
-    ["발송 대기", "제안 이력", "/proposals?creator=cr-003"],
-    ["발송 완료", "제안 이력", "/proposals?creator=cr-003"],
-    ["셀렉터스 전환", "제안 이력", "/proposals?creator=cr-003"],
-  ] as const)("keeps the %s proposal action", (status, label, href) => {
+  test.each(["미제안", "발송 실패", "발송 대기", "발송 완료", "셀렉터스 전환"] as const)("keeps the generic proposal action for %s", (status) => {
     renderCard(withStatus(status));
-    expect(screen.getByRole("link", { name: `이지아 ${label}` })).toHaveAttribute("href", href);
+    expect(screen.getByRole("link", { name: "이지아 제안하기" })).toHaveAttribute(
+      "href",
+      "/creators/cr-003#proposal",
+    );
   });
 });
 
 test("keeps compact metrics and proposal helper contracts", () => {
   expect(compactNumber.format(32_700)).toBe("3.3만");
   expect(proposalAction(withStatus("미제안"))).toEqual({
-    label: "영입 제안",
+    label: "제안하기",
     to: "/creators/cr-003#proposal",
   });
   expect(proposalTone("발송 완료")).toBe("approved");
