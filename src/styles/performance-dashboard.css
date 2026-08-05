@@ -1,0 +1,481 @@
+.fuma-performance-page {
+  --fuma-performance-ink: #263438;
+  --fuma-performance-muted: #66767a;
+  --fuma-performance-line: #dce5e4;
+  --fuma-performance-teal: #147a69;
+  --fuma-performance-teal-soft: #dcefeb;
+  --fuma-performance-orange: #c45724;
+  --fuma-performance-orange-text: #a54218;
+  --fuma-performance-panel: #fff;
+}
+
+.fuma-performance-page .fuma-page__body {
+  gap: 20px;
+  margin-top: 18px;
+}
+
+.fuma-performance-page .fuma-performance-search .hsas-search-panel {
+  padding: 14px 16px;
+  border-color: #d5dfde;
+  border-radius: 8px;
+  background: #f4f8f7;
+}
+
+.fuma-performance-kpi-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.fuma-performance-kpi-grid__item {
+  position: relative;
+  min-width: 0;
+  min-height: 112px;
+  padding: 21px 22px 18px;
+  overflow: hidden;
+  border: 1px solid #d9e3e1;
+  border-radius: 12px;
+  background: var(--fuma-performance-panel);
+  box-shadow: 0 8px 22px rgb(36 56 59 / 6%);
+}
+
+.fuma-performance-kpi-grid__item::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 4px;
+  background: var(--fuma-performance-teal);
+  content: "";
+}
+
+.fuma-performance-kpi-grid__item:nth-child(2)::before,
+.fuma-performance-kpi-grid__item:nth-child(4)::before {
+  background: var(--fuma-performance-orange);
+}
+
+.fuma-performance-kpi-grid dt,
+.fuma-performance-kpi-grid dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.fuma-performance-kpi-grid dt {
+  color: var(--fuma-performance-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.fuma-performance-kpi-grid dd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 15px;
+  color: var(--fuma-performance-ink);
+  font-size: clamp(23px, 2.25vw, 31px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.fuma-performance-kpi-grid dd small {
+  color: var(--fuma-performance-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.fuma-performance-visuals {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
+.fuma-performance-visuals--overview {
+  grid-template-columns: minmax(0, 1.55fr) minmax(290px, 0.85fr);
+}
+
+.fuma-performance-visuals--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.fuma-performance-visuals__wide {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.fuma-performance-chart {
+  min-width: 0;
+  margin: 0;
+  padding: 22px 24px 24px;
+  border: 1px solid #d9e3e1;
+  border-radius: 12px;
+  background: var(--fuma-performance-panel);
+  box-shadow: 0 8px 24px rgb(36 56 59 / 5%);
+}
+
+.fuma-performance-chart figcaption {
+  color: var(--fuma-performance-ink);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.fuma-performance-chart figcaption span {
+  display: block;
+  margin-top: 5px;
+  color: var(--fuma-performance-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.fuma-performance-chart__legend {
+  display: flex;
+  min-height: 21px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  margin: 4px 0 5px;
+  color: #536367;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.fuma-performance-chart__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.fuma-performance-chart__legend span::before {
+  width: 17px;
+  height: 3px;
+  border-radius: 99px;
+  background: var(--fuma-performance-teal);
+  content: "";
+}
+
+.fuma-performance-chart__legend .fuma-performance-chart__legend-clicks::before {
+  background: var(--fuma-performance-ink);
+}
+
+.fuma-performance-chart__legend-conversions::before,
+.fuma-performance-chart__legend-secondary::before {
+  height: 0 !important;
+  border-top: 3px dashed var(--fuma-performance-orange);
+  background: transparent !important;
+}
+
+.fuma-performance-chart__empty {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  margin: 12px 0 0;
+  border: 1px dashed #c8d4d2;
+  border-radius: 8px;
+  background: #f7faf9;
+  color: var(--fuma-performance-muted);
+}
+
+.fuma-performance-trend-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: 320px;
+  overflow: hidden;
+}
+
+.fuma-performance-trend-chart svg text {
+  fill: #667579;
+  font-family: var(--hsas-font-family);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.fuma-performance-trend-chart__axis {
+  stroke: #6f7f7d;
+  stroke-width: 1;
+}
+
+.fuma-performance-trend-chart__line {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.fuma-performance-trend-chart__line--clicks {
+  stroke: var(--fuma-performance-ink);
+}
+
+.fuma-performance-trend-chart__line--conversions {
+  stroke: var(--fuma-performance-orange);
+}
+
+.fuma-performance-trend-chart__point--clicks {
+  fill: #fff;
+  stroke: var(--fuma-performance-ink);
+  stroke-width: 3;
+}
+
+.fuma-performance-trend-chart__point--conversions {
+  fill: #fff;
+  stroke: var(--fuma-performance-orange);
+  stroke-width: 3;
+}
+
+.fuma-performance-trend-chart__value {
+  font-size: 10px !important;
+  font-weight: 700;
+}
+
+.fuma-performance-trend-chart__value--clicks {
+  fill: var(--fuma-performance-ink) !important;
+}
+
+.fuma-performance-trend-chart__value--conversions {
+  fill: #a54218 !important;
+}
+
+.fuma-performance-bar-chart__rows,
+.fuma-performance-ranking__list {
+  display: grid;
+  gap: 10px;
+  margin: 17px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fuma-performance-bar-chart__row {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(105px, 1.05fr) minmax(160px, 2fr) minmax(128px, auto);
+  align-items: center;
+  gap: 14px;
+}
+
+.fuma-performance-bar-chart__label {
+  min-width: 0;
+  overflow: hidden;
+  color: #445357;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-performance-bar-chart__track {
+  position: relative;
+  height: 14px;
+  overflow: visible;
+  border-radius: 99px;
+  background: #edf2f1;
+}
+
+.fuma-performance-bar-chart__bar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--fuma-performance-teal);
+  transition: filter 160ms ease;
+}
+
+.fuma-performance-bar-chart__dot {
+  position: absolute;
+  top: 50%;
+  width: 13px;
+  height: 13px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--fuma-performance-orange);
+  box-shadow: 0 0 0 1px #a6461d;
+  transform: translate(-50%, -50%);
+}
+
+.fuma-performance-bar-chart__values {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  color: var(--fuma-performance-ink);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.fuma-performance-bar-chart__values span + span {
+  color: #a54218;
+  font-size: 11px;
+}
+
+.fuma-performance-ranking__item {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 42px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 13px;
+  border: 1px solid #e1e8e7;
+  border-radius: 8px;
+  background: #f8faf9;
+}
+
+.fuma-performance-ranking__rank {
+  color: var(--fuma-performance-orange-text);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.fuma-performance-ranking__label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fuma-performance-ink);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-performance-ranking__detail {
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: var(--fuma-performance-teal-soft);
+  color: #126454;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.fuma-performance-ranking__value {
+  color: var(--fuma-performance-teal);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.fuma-performance-page .fuma-performance-results {
+  padding: 4px 0 0;
+}
+
+.fuma-performance-page .fuma-result-toolbar {
+  min-height: 34px;
+  padding-right: 8px;
+  padding-left: 8px;
+  border-bottom-color: #9aabaa;
+}
+
+@media (max-width: 1180px) {
+  .fuma-performance-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fuma-performance-visuals--overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fuma-performance-visuals__wide {
+    grid-column: auto;
+  }
+
+  .fuma-performance-page .fuma-performance-search .hsas-search-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .fuma-performance-page .fuma-performance-search .hsas-search-panel__fields,
+  .fuma-performance-page .fuma-performance-search:has(input[type="text"]) .hsas-search-panel__fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fuma-performance-page .fuma-performance-search .hsas-search-panel__fields > *,
+  .fuma-performance-page .fuma-performance-period-filter > div,
+  .fuma-performance-page .fuma-performance-period-filter .hsas-control {
+    min-width: 0;
+  }
+
+  .fuma-performance-page .fuma-performance-period-filter,
+  .fuma-performance-page .fuma-performance-search:has(input[type="text"]) .fuma-performance-period-filter {
+    grid-column: 1 / -1;
+  }
+
+  .fuma-performance-page .fuma-performance-search:has(input[type="text"]) .fuma-filter-field:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .fuma-performance-page .fuma-performance-search .hsas-search-panel__actions {
+    align-self: flex-end;
+  }
+
+  .fuma-performance-trend-chart {
+    max-width: 100%;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 768px) {
+  .fuma-performance-page .fuma-page__body {
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  .fuma-performance-kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .fuma-performance-kpi-grid__item {
+    min-height: 94px;
+    padding: 17px 18px 15px;
+  }
+
+  .fuma-performance-kpi-grid dd {
+    margin-top: 11px;
+    font-size: 25px;
+  }
+
+  .fuma-performance-chart {
+    padding: 18px 16px 20px;
+    border-radius: 10px;
+  }
+
+  .fuma-performance-bar-chart__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+  }
+
+  .fuma-performance-bar-chart__track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .fuma-performance-bar-chart__values {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .fuma-performance-ranking__item {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+  }
+
+  .fuma-performance-ranking__detail {
+    display: none;
+  }
+
+  .fuma-performance-page .fuma-performance-search .hsas-search-panel__fields,
+  .fuma-performance-page .fuma-performance-search:has(input[type="text"]) .hsas-search-panel__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fuma-performance-page .fuma-performance-search:has(input[type="text"]) .fuma-performance-period-filter {
+    grid-column: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fuma-performance-page .fuma-performance-bar-chart__bar {
+    transition: none;
+  }
+}

@@ -1,5 +1,16 @@
-import { screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { renderRoute } from "../../test/renderRoute";
+import {
+  PerformanceBarChart,
+  PerformanceKpiGrid,
+  PerformanceRanking,
+  PerformanceTrendChart,
+} from "./PerformanceCharts";
+import {
+  buildContentVisualData,
+  buildCreatorVisualData,
+  buildDashboardVisualData,
+} from "./PerformancePages";
 import {
   CAMPAIGN_PERFORMANCE,
   CONTENT_INFLUENCE,
@@ -13,6 +24,7 @@ import {
 const COHORT_OPTIONS = "전체3기2기";
 const CAMPAIGN_OPTIONS =
   "전체2026 가을 골프웨어 셀렉션여름 바캉스 스타일링초여름 패션 리뷰";
+const EMPTY_STATE = "표시할 성과 데이터가 없습니다";
 
 function expectColumnHeaders(region: HTMLElement, names: string[]) {
   for (const name of names) {
@@ -133,6 +145,145 @@ test("keeps creator and selector totals equal to their canonical content groups"
   }
 });
 
+test("builds page-level no-result and all-zero summaries with common chart empty states", () => {
+  const emptyDashboard = buildDashboardVisualData([], [], []);
+  const emptyCreators = buildCreatorVisualData([]);
+  const emptyContents = buildContentVisualData([]);
+
+  expect(emptyDashboard.kpis.map((item) => item.value)).toEqual([
+    "-",
+    "-",
+    "-",
+    "-",
+  ]);
+  expect(emptyCreators.kpis.map((item) => item.value)).toEqual([
+    "-",
+    "-",
+    "-",
+    "-",
+  ]);
+  expect(emptyContents.kpis.map((item) => item.value)).toEqual([
+    "-",
+    "-",
+    "-",
+    "-",
+  ]);
+
+  const emptyView = render(
+    <>
+      <PerformanceKpiGrid ariaLabel="빈 성과 요약" items={emptyDashboard.kpis} />
+      <PerformanceTrendChart points={emptyDashboard.trendPoints} title="빈 추이" />
+      <PerformanceBarChart
+        items={emptyDashboard.campaignItems}
+        mode="single"
+        primaryLabel="전환율"
+        title="빈 캠페인"
+      />
+      <PerformanceRanking items={emptyDashboard.selectorItems} title="빈 순위" />
+    </>,
+  );
+  expect(screen.getAllByText(EMPTY_STATE)).toHaveLength(3);
+  emptyView.unmount();
+
+  const zeroDashboard = buildDashboardVisualData(
+    [{ ...CAMPAIGN_PERFORMANCE[0], clicks: 0, conversions: 0 }],
+    [{ ...SELECTOR_PERFORMANCE[0], clicks: 0, conversions: 0 }],
+    [{ ...PERFORMANCE_TREND[0], clicks: 0, conversions: 0 }],
+  );
+  const zeroCreators = buildCreatorVisualData([
+    {
+      ...CREATOR_INFLUENCE[0],
+      comments: 0,
+      conversions: 0,
+      likes: 0,
+      views: 0,
+    },
+  ]);
+  const zeroContents = buildContentVisualData([
+    {
+      ...CONTENT_INFLUENCE[0],
+      clicks: 0,
+      comments: 0,
+      conversions: 0,
+      likes: 0,
+      views: 0,
+    },
+  ]);
+
+  expect(zeroDashboard.kpis.map((item) => item.value)).toEqual([
+    "0",
+    "0",
+    "0",
+    "1명",
+  ]);
+  expect(zeroDashboard.campaignItems[0].primaryText).toBe("전환율 0.00%");
+  expect(zeroCreators.kpis.map((item) => item.value)).toEqual([
+    "0",
+    "0",
+    "0",
+    "0",
+  ]);
+  expect(zeroContents.kpis.map((item) => item.value)).toEqual([
+    "1개",
+    "0",
+    "0",
+    "0",
+  ]);
+
+  render(
+    <>
+      <PerformanceTrendChart points={zeroDashboard.trendPoints} title="0 추이" />
+      <PerformanceBarChart
+        items={zeroDashboard.campaignItems}
+        mode="single"
+        primaryLabel="전환율"
+        title="0 캠페인"
+      />
+      <PerformanceRanking items={zeroDashboard.selectorItems} title="0 순위" />
+    </>,
+  );
+  expect(screen.getAllByText(EMPTY_STATE)).toHaveLength(3);
+});
+
+test("limits page-mapped content performance to the top five conversions", () => {
+  const contents = [
+    { conversions: 10, id: "ct-test-f", title: "테스트 콘텐츠 F", views: 6_000 },
+    { conversions: 60, id: "ct-test-b", title: "테스트 콘텐츠 B", views: 1_000 },
+    { conversions: 60, id: "ct-test-a", title: "테스트 콘텐츠 A", views: 2_000 },
+    { conversions: 40, id: "ct-test-d", title: "테스트 콘텐츠 D", views: 3_000 },
+    { conversions: 50, id: "ct-test-c", title: "테스트 콘텐츠 C", views: 4_000 },
+    { conversions: 20, id: "ct-test-e", title: "테스트 콘텐츠 E", views: 5_000 },
+  ].map((item) => ({
+    ...CONTENT_INFLUENCE[0],
+    ...item,
+  }));
+  const visualData = buildContentVisualData(contents);
+
+  render(
+    <PerformanceBarChart
+      items={visualData.chartItems}
+      mode="single"
+      primaryLabel="조회 수"
+      title="테스트 콘텐츠 성과 순위"
+    />,
+  );
+
+  const chart = screen.getByRole("figure", {
+    name: "테스트 콘텐츠 성과 순위",
+  });
+  expect(
+    [...chart.querySelectorAll(".fuma-performance-bar-chart__row")].map(
+      (row) => row.getAttribute("data-item-id"),
+    ),
+  ).toEqual([
+    "ct-test-a",
+    "ct-test-b",
+    "ct-test-c",
+    "ct-test-d",
+    "ct-test-e",
+  ]);
+});
+
 test("renders the exact dashboard metrics and campaign and selector performance tables", () => {
   renderRoute("/performance");
 
@@ -151,6 +302,40 @@ test("renders the exact dashboard metrics and campaign and selector performance 
     expect(within(metrics).getByText(value)).toBeInTheDocument();
   }
   expect(metrics.tagName).toBe("DL");
+
+  const trend = screen.getByRole("figure", { name: "선택 기간 성과 추이" });
+  for (const point of PERFORMANCE_TREND) {
+    expect(
+      within(trend).getByText(
+        `${point.label}: 클릭 ${formatCount(point.clicks)}, 구매 전환 ${formatCount(point.conversions)}`,
+      ),
+    ).toBeInTheDocument();
+  }
+
+  const campaignChart = screen.getByRole("figure", {
+    name: "캠페인 전환 성과",
+  });
+  expect(
+    [...campaignChart.querySelectorAll(".fuma-performance-bar-chart__row")].map(
+      (row) => row.getAttribute("data-item-id"),
+    ),
+  ).toEqual(["cp-002", "cp-001", "cp-003"]);
+  for (const campaign of CAMPAIGN_PERFORMANCE) {
+    expect(
+      within(campaignChart).getByText(
+        `${campaign.name}: 전환율 ${formatRate(campaign.conversions, campaign.clicks)}`,
+      ),
+    ).toBeInTheDocument();
+  }
+
+  const selectorRanking = screen.getByRole("figure", {
+    name: "셀렉터스 성과 순위",
+  });
+  expect(
+    [...selectorRanking.querySelectorAll(".fuma-performance-ranking__item")].map(
+      (row) => row.getAttribute("data-item-id"),
+    ),
+  ).toEqual(["sl-004", "sl-001", "sl-002", "sl-003"]);
 
   expect(screen.getByText("캠페인별 성과", { selector: "strong" })).toBeInTheDocument();
   expect(screen.getByText("총 3건")).toBeInTheDocument();
@@ -215,6 +400,33 @@ test("renders creator influence filters and exact engagement metrics", () => {
     within(search).getByRole("textbox", { name: "크리에이터명" }),
   ).toHaveAttribute("placeholder", "이름 검색");
 
+  const metrics = screen.getByRole("group", { name: "크리에이터 성과 요약" });
+  for (const [label, value] of [
+    ["총 조회 수", "309,300"],
+    ["총 좋아요", "22,922"],
+    ["총 댓글", "1,684"],
+    ["구매 전환 수", "1,399"],
+  ]) {
+    expect(within(metrics).getByText(label)).toBeInTheDocument();
+    expect(within(metrics).getByText(value)).toBeInTheDocument();
+  }
+
+  const chart = screen.getByRole("figure", {
+    name: "크리에이터 영향력 비교",
+  });
+  expect(
+    [...chart.querySelectorAll(".fuma-performance-bar-chart__row")].map(
+      (row) => row.getAttribute("data-item-id"),
+    ),
+  ).toEqual(["cr-004", "cr-001", "cr-002", "cr-003"]);
+  for (const creator of CREATOR_INFLUENCE) {
+    expect(
+      within(chart).getByText(
+        `${creator.name}: 조회 수 ${formatCount(creator.views)}, 구매 전환 ${formatCount(creator.conversions)}`,
+      ),
+    ).toBeInTheDocument();
+  }
+
   expect(screen.getByText("크리에이터 영향력", { selector: "strong" })).toBeInTheDocument();
   expect(screen.getByText("총 4건")).toBeInTheDocument();
   const results = screen.getByRole("region", { name: "크리에이터 영향력" });
@@ -248,6 +460,31 @@ test("renders content influence filters and exact content engagement rows", () =
   expect(
     within(search).getByRole("textbox", { name: "콘텐츠/작성자" }),
   ).toHaveAttribute("placeholder", "콘텐츠 ID 또는 작성자");
+
+  const metrics = screen.getByRole("group", { name: "콘텐츠 성과 요약" });
+  for (const [label, value] of [
+    ["콘텐츠 수", "5개"],
+    ["총 조회 수", "309,300"],
+    ["총 반응", "24,606"],
+    ["구매 전환 수", "1,399"],
+  ]) {
+    expect(within(metrics).getByText(label)).toBeInTheDocument();
+    expect(within(metrics).getByText(value)).toBeInTheDocument();
+  }
+
+  const chart = screen.getByRole("figure", { name: "콘텐츠 성과 순위" });
+  expect(
+    [...chart.querySelectorAll(".fuma-performance-bar-chart__row")].map(
+      (row) => row.getAttribute("data-item-id"),
+    ),
+  ).toEqual(["ct-005", "ct-003", "ct-002", "ct-001", "ct-004"]);
+  for (const content of CONTENT_INFLUENCE) {
+    expect(
+      within(chart).getByText(
+        `${content.title}: 조회 수 ${formatCount(content.views)}, 전환율 ${formatRate(content.conversions, content.clicks)}`,
+      ),
+    ).toBeInTheDocument();
+  }
 
   expect(screen.getByText("콘텐츠 영향력", { selector: "strong" })).toBeInTheDocument();
   expect(screen.getByText("총 5건")).toBeInTheDocument();

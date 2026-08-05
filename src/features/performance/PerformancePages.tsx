@@ -1,15 +1,22 @@
 import type { ReactNode } from "react";
-import { MetricStrip } from "../../components/content/MetricStrip";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { Pagination } from "../../components/ui/Pagination";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import "../../styles/performance-dashboard.css";
+import {
+  PerformanceBarChart,
+  PerformanceKpiGrid,
+  PerformanceRanking,
+  PerformanceTrendChart,
+} from "./PerformanceCharts";
 import {
   CAMPAIGN_PERFORMANCE,
   CONTENT_INFLUENCE,
   CREATOR_INFLUENCE,
+  PERFORMANCE_TREND,
   SELECTOR_PERFORMANCE,
   campaignNameById,
   creatorNameById,
@@ -20,6 +27,7 @@ import {
   type CampaignPerformanceStatus,
   type ContentInfluence,
   type CreatorInfluence,
+  type PerformanceTrendPoint,
   type SelectorActivityStatus,
   type SelectorPerformance,
 } from "./fixtures";
@@ -335,30 +343,188 @@ const CONTENT_COLUMNS: DenseTableColumn<ContentInfluence>[] = [
   },
 ];
 
-export function PerformanceDashboardPage() {
-  const totalClicks = CAMPAIGN_PERFORMANCE.reduce(
+function formattedTotal(rowCount: number, total: number) {
+  return rowCount === 0 ? "-" : formatCount(total);
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function buildDashboardVisualData(
+  campaigns: readonly CampaignPerformance[],
+  selectors: readonly SelectorPerformance[],
+  trendPoints: readonly PerformanceTrendPoint[],
+) {
+  const totalClicks = campaigns.reduce(
     (total, campaign) => total + campaign.clicks,
     0,
   );
-  const totalConversions = CAMPAIGN_PERFORMANCE.reduce(
+  const totalConversions = campaigns.reduce(
     (total, campaign) => total + campaign.conversions,
     0,
   );
+  const conversionRate =
+    campaigns.length === 0
+      ? "-"
+      : totalClicks === 0 && totalConversions === 0
+        ? "0"
+        : formatRate(totalConversions, totalClicks);
+
+  return {
+    campaignItems: campaigns.map((campaign) => ({
+      id: campaign.id,
+      label: campaign.name,
+      primaryText: `전환율 ${formatRate(campaign.conversions, campaign.clicks)}`,
+      primaryValue:
+        campaign.clicks === 0
+          ? 0
+          : (campaign.conversions / campaign.clicks) * 100,
+      sortValue:
+        campaign.clicks === 0
+          ? 0
+          : campaign.conversions / campaign.clicks,
+    })),
+    kpis: [
+      { label: "총 클릭 수", value: formattedTotal(campaigns.length, totalClicks) },
+      {
+        label: "구매 전환 수",
+        value: formattedTotal(campaigns.length, totalConversions),
+      },
+      { label: "전환율", value: conversionRate },
+      {
+        label: "집계 셀렉터스",
+        value: selectors.length === 0 ? "-" : `${selectors.length}명`,
+      },
+    ],
+    selectorItems: selectors.map((selector) => ({
+      conversionText: `${formatCount(selector.conversions)}건`,
+      conversions: selector.conversions,
+      detail: selector.cohort,
+      id: selector.id,
+      label: selector.name,
+    })),
+    trendPoints,
+  };
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function buildCreatorVisualData(
+  creators: readonly CreatorInfluence[],
+) {
+  const totalViews = creators.reduce(
+    (total, creator) => total + creator.views,
+    0,
+  );
+  const totalLikes = creators.reduce(
+    (total, creator) => total + creator.likes,
+    0,
+  );
+  const totalComments = creators.reduce(
+    (total, creator) => total + creator.comments,
+    0,
+  );
+  const totalConversions = creators.reduce(
+    (total, creator) => total + creator.conversions,
+    0,
+  );
+
+  return {
+    chartItems: creators.map((creator) => ({
+      id: creator.id,
+      label: creator.name,
+      primaryText: `조회 수 ${formatCount(creator.views)}`,
+      primaryValue: creator.views,
+      secondaryText: `구매 전환 ${formatCount(creator.conversions)}`,
+      secondaryValue: creator.conversions,
+      sortValue: creator.conversions,
+    })),
+    kpis: [
+      { label: "총 조회 수", value: formattedTotal(creators.length, totalViews) },
+      { label: "총 좋아요", value: formattedTotal(creators.length, totalLikes) },
+      { label: "총 댓글", value: formattedTotal(creators.length, totalComments) },
+      {
+        label: "구매 전환 수",
+        value: formattedTotal(creators.length, totalConversions),
+      },
+    ],
+  };
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function buildContentVisualData(
+  contents: readonly ContentInfluence[],
+) {
+  const totalViews = contents.reduce(
+    (total, content) => total + content.views,
+    0,
+  );
+  const totalReactions = contents.reduce(
+    (total, content) => total + content.likes + content.comments,
+    0,
+  );
+  const totalConversions = contents.reduce(
+    (total, content) => total + content.conversions,
+    0,
+  );
+
+  return {
+    chartItems: contents.map((content) => ({
+      id: content.id,
+      label: content.title,
+      primaryText: `조회 수 ${formatCount(content.views)}, 전환율 ${formatRate(content.conversions, content.clicks)}`,
+      primaryValue: content.views,
+      sortValue: content.conversions,
+    })),
+    kpis: [
+      {
+        label: "콘텐츠 수",
+        value: contents.length === 0 ? "-" : `${contents.length}개`,
+      },
+      { label: "총 조회 수", value: formattedTotal(contents.length, totalViews) },
+      {
+        label: "총 반응",
+        value: formattedTotal(contents.length, totalReactions),
+      },
+      {
+        label: "구매 전환 수",
+        value: formattedTotal(contents.length, totalConversions),
+      },
+    ],
+  };
+}
+
+export function PerformanceDashboardPage() {
+  const visualData = buildDashboardVisualData(
+    CAMPAIGN_PERFORMANCE,
+    SELECTOR_PERFORMANCE,
+    PERFORMANCE_TREND,
+  );
 
   return (
-    <section className="fuma-page">
+    <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF101" title="관리자 성과 대시보드" />
       <div className="fuma-page__body">
         <PerformanceFilters />
-        <MetricStrip
+        <PerformanceKpiGrid
           ariaLabel="성과 요약"
-          items={[
-            { label: "총 클릭 수", value: formatCount(totalClicks) },
-            { label: "구매 전환 수", value: formatCount(totalConversions) },
-            { label: "전환율", value: formatRate(totalConversions, totalClicks) },
-            { label: "집계 셀렉터스", value: `${SELECTOR_PERFORMANCE.length}명` },
-          ]}
+          items={visualData.kpis}
         />
+        <div className="fuma-performance-visuals fuma-performance-visuals--overview">
+          <div className="fuma-performance-visuals__wide">
+            <PerformanceTrendChart
+              points={visualData.trendPoints}
+              title="선택 기간 성과 추이"
+            />
+          </div>
+          <PerformanceBarChart
+            items={visualData.campaignItems}
+            mode="single"
+            primaryLabel="전환율"
+            title="캠페인 전환 성과"
+          />
+          <PerformanceRanking
+            items={visualData.selectorItems}
+            title="셀렉터스 성과 순위"
+          />
+        </div>
         <PerformanceResultTable
           className="fuma-performance-campaign-table"
           columns={CAMPAIGN_COLUMNS}
@@ -379,8 +545,10 @@ export function PerformanceDashboardPage() {
 }
 
 export function CreatorPerformancePage() {
+  const visualData = buildCreatorVisualData(CREATOR_INFLUENCE);
+
   return (
-    <section className="fuma-page">
+    <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF201" title="크리에이터 영향력 분석" />
       <div className="fuma-page__body">
         <PerformanceFilters
@@ -390,6 +558,19 @@ export function CreatorPerformancePage() {
             placeholder: "이름 검색",
           }}
         />
+        <PerformanceKpiGrid
+          ariaLabel="크리에이터 성과 요약"
+          items={visualData.kpis}
+        />
+        <div className="fuma-performance-visuals fuma-performance-visuals--single">
+          <PerformanceBarChart
+            items={visualData.chartItems}
+            mode="bar-dot"
+            primaryLabel="조회 수"
+            secondaryLabel="구매 전환"
+            title="크리에이터 영향력 비교"
+          />
+        </div>
         <PerformanceResultTable
           className="fuma-performance-creator-table"
           columns={CREATOR_COLUMNS}
@@ -403,8 +584,10 @@ export function CreatorPerformancePage() {
 }
 
 export function ContentPerformancePage() {
+  const visualData = buildContentVisualData(CONTENT_INFLUENCE);
+
   return (
-    <section className="fuma-page">
+    <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF202" title="콘텐츠 영향력 분석" />
       <div className="fuma-page__body">
         <PerformanceFilters
@@ -414,6 +597,18 @@ export function ContentPerformancePage() {
             placeholder: "콘텐츠 ID 또는 작성자",
           }}
         />
+        <PerformanceKpiGrid
+          ariaLabel="콘텐츠 성과 요약"
+          items={visualData.kpis}
+        />
+        <div className="fuma-performance-visuals fuma-performance-visuals--single">
+          <PerformanceBarChart
+            items={visualData.chartItems}
+            mode="single"
+            primaryLabel="조회 수"
+            title="콘텐츠 성과 순위"
+          />
+        </div>
         <PerformanceResultTable
           className="fuma-performance-content-table"
           columns={CONTENT_COLUMNS}
