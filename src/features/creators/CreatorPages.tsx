@@ -10,8 +10,10 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SectionTabs } from "../../components/ui/SectionTabs";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { CreatorCardGrid } from "./CreatorCardGrid";
+import { CreatorProfilePhoto } from "./CreatorArtwork";
 import { engagementResultForCreator } from "./CreatorAnalysisReport";
 import { CreatorAnalysisReport } from "./CreatorAnalysisReport";
+import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
 import {
   CreatorResultToolbar,
   type CreatorPoolView,
@@ -293,6 +295,64 @@ function BasicInformation({ creator }: { creator: CreatorFixture }) {
   );
 }
 
+function CreatorProfileHero({ creator }: { creator: CreatorFixture }) {
+  const engagement = engagementResultForCreator(creator);
+  const audienceLabel = creator.profile.platform === "Instagram" ? "팔로워" : "구독자";
+  const engagementValue =
+    engagement.value === null ? "집계 불가" : `${engagement.value.toFixed(1)}%`;
+
+  return (
+    <section aria-label={`${creator.name} 프로필 요약`} className="fuma-creator-detail-hero">
+      <div className="fuma-creator-detail-hero__visual">
+        <CreatorMediaMosaic contents={creator.featuredContents} creatorName={creator.name} />
+        <span className="fuma-creator-detail-hero__portrait">
+          <CreatorProfilePhoto creatorName={creator.name} src={creator.profile.profileImageUrl} />
+          <span className="fuma-creator-detail-hero__platform">
+            <PlatformIcon platform={creator.profile.platform} />
+          </span>
+        </span>
+      </div>
+      <div className="fuma-creator-detail-hero__content">
+        <div className="fuma-creator-detail-hero__identity">
+          <span className="fuma-creator-detail-hero__eyebrow">CREATOR PROFILE</span>
+          <h2>{creator.name}</h2>
+          <p>
+            <PlatformLabel platform={creator.profile.platform} />
+            <span>{creator.profile.handle}</span>
+          </p>
+          <div aria-label="카테고리" className="fuma-creator-detail-hero__categories">
+            {creator.categories.map((category) => (
+              <span key={category}>{category}</span>
+            ))}
+          </div>
+        </div>
+        <dl className="fuma-creator-detail-hero__metrics">
+          <div>
+            <dt>{audienceLabel}</dt>
+            <dd>{formatNumber(creator.profile.followers)}</dd>
+          </div>
+          <div>
+            <dt>ER</dt>
+            <dd>{engagementValue}</dd>
+          </div>
+          <div>
+            <dt>콘텐츠</dt>
+            <dd>{formatNumber(creator.contentCount)}</dd>
+          </div>
+          <div>
+            <dt>제안 상태</dt>
+            <dd>
+              <StatusPill tone={proposalTone(creator.proposalStatus)}>
+                {creator.proposalStatus}
+              </StatusPill>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+  );
+}
+
 function ProposalMethod({
   buttonLabel,
   children,
@@ -382,7 +442,7 @@ export function CreatorDetailPage() {
       : fixture;
 
   return (
-    <section className="fuma-page">
+    <section className="fuma-page fuma-creator-detail-page">
       <PageHeader screenCode="CR102" title="크리에이터 상세" />
       <div className="fuma-page__body">
         {creator ? (
@@ -395,6 +455,7 @@ export function CreatorDetailPage() {
                 { id: "proposal", label: "영입 제안" },
               ]}
             />
+            <CreatorProfileHero creator={creator} />
             <BasicInformation creator={creator} />
             <section aria-labelledby="creator-channel-title" className="fuma-content-section">
               <header className="fuma-content-section__header">

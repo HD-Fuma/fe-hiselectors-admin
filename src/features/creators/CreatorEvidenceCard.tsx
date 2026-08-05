@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
-import { type StatusPillProps } from "../../components/ui/StatusPill";
+import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import type { CreatorFixture, ProposalStatus } from "./fixtures";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
 import { CreatorProfilePhoto } from "./CreatorArtwork";
@@ -72,6 +72,12 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
           </div>
           <header className="fuma-creator-card__identity">
             <div className="fuma-creator-card__identity-copy">
+              <div className="fuma-creator-card__eyebrow">
+                <span>{creator.tier}</span>
+                <StatusPill tone={proposalTone(creator.proposalStatus)}>
+                  {creator.proposalStatus}
+                </StatusPill>
+              </div>
               <h2 className="fuma-creator-card__name">{creator.name}</h2>
               <p className="fuma-creator-card__channel">
                 <PlatformIcon platform={creator.profile.platform} />

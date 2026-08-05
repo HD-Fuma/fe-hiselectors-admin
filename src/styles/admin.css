@@ -853,21 +853,70 @@
 
 .hsas-work-tabs {
   display: flex;
+  min-height: 35px;
+  align-items: end;
+  gap: 2px;
+  padding: 0 10px;
   border-bottom: 1px solid var(--hsas-border);
   background: #e8ebec;
 }
 
 .hsas-work-tabs__tab {
-  padding: var(--hsas-space-8) var(--hsas-space-12);
-  border-right: 1px solid var(--hsas-border);
-  background: var(--hsas-surface);
-  color: var(--hsas-text);
-  text-decoration: none;
+  display: flex;
+  height: 30px;
+  align-items: center;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+  color: #69726e;
 }
 
 .hsas-work-tabs__tab--active {
-  border-top: 2px solid var(--hsas-teal);
+  border-color: var(--hsas-border);
+  background: var(--hsas-surface);
+  color: var(--hsas-text);
+  box-shadow: inset 0 2px 0 var(--hsas-teal);
   font-weight: 700;
+}
+
+.hsas-work-tabs__tab > a {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  padding: 0 7px 0 10px;
+  color: inherit;
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.hsas-work-tabs__close {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  margin-right: 3px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #7a837f;
+  cursor: pointer;
+  place-items: center;
+}
+
+.hsas-work-tabs__close:hover {
+  background: #edf2ef;
+  color: #344139;
+}
+
+.hsas-work-tabs__close svg {
+  width: 13px;
+  height: 13px;
+}
+
+.hsas-work-tabs__tab > a:focus-visible,
+.hsas-work-tabs__close:focus-visible {
+  outline: 2px solid var(--hsas-teal-dark);
+  outline-offset: -2px;
 }
 
 .hsas-page-header,
@@ -2648,6 +2697,367 @@
   background: #15563f;
   color: #fff;
   text-decoration: none;
+}
+
+/* Creator profiles use a more editorial surface than data-heavy operations screens. */
+.fuma-creator-grid {
+  gap: 18px;
+  margin-top: 6px;
+}
+
+.fuma-creator-card {
+  border-color: #e5e9e7;
+  border-radius: 18px;
+  box-shadow: 0 8px 22px rgb(24 49 41 / 5%);
+}
+
+.fuma-creator-card:hover {
+  border-color: #afc9bd;
+  box-shadow: 0 18px 34px rgb(24 49 41 / 12%);
+  transform: translateY(-4px);
+}
+
+.fuma-creator-card__article {
+  padding: 10px 10px 4px;
+}
+
+.fuma-creator-card .fuma-creator-mosaic {
+  grid-template-columns: 1.18fr repeat(2, 0.91fr);
+  gap: 6px;
+}
+
+.fuma-creator-card .fuma-creator-media {
+  border-radius: 10px;
+}
+
+.fuma-creator-card__profile {
+  height: 32px;
+  justify-content: flex-start;
+  padding-left: 14px;
+}
+
+.fuma-creator-card__portrait {
+  top: -32px;
+  width: 64px;
+  height: 64px;
+  flex-basis: 64px;
+  border-width: 3px;
+}
+
+.fuma-creator-card__platform-badge,
+.fuma-creator-card__platform-badge .fuma-platform-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.fuma-creator-card__identity {
+  padding: 0 14px 15px;
+  text-align: left;
+}
+
+.fuma-creator-card__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+  margin: 0 0 4px;
+}
+
+.fuma-creator-card__eyebrow > span:first-child {
+  color: #197553;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.fuma-creator-card__eyebrow .hsas-status-pill {
+  min-height: 18px;
+  padding: 2px 6px;
+  font-size: 9px;
+}
+
+.fuma-creator-card__name {
+  font-size: 17px;
+  line-height: 21px;
+  letter-spacing: -0.04em;
+}
+
+.fuma-creator-card__channel,
+.fuma-creator-card__categories,
+.fuma-creator-card__keywords {
+  justify-content: flex-start;
+}
+
+.fuma-creator-card__channel {
+  margin-top: 4px;
+  font-size: 10px;
+}
+
+.fuma-creator-card__categories {
+  margin-top: 8px;
+  color: #47534e;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.fuma-creator-card__keywords {
+  margin-top: 8px;
+}
+
+.fuma-creator-card__keywords span {
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #f2f6f3;
+  color: #5d6b65;
+}
+
+.fuma-creator-card__metrics {
+  min-height: 62px;
+  margin: 0 4px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: #f4f7f5;
+}
+
+.fuma-creator-card__metric {
+  padding: 10px 12px;
+}
+
+.fuma-creator-card__metric--engagement {
+  border-left-color: #dce7e1;
+}
+
+.fuma-creator-card__metric dt {
+  font-size: 9px;
+}
+
+.fuma-creator-card__metric dd {
+  margin-top: 3px;
+  font-size: 18px;
+}
+
+.fuma-creator-card__actions {
+  gap: 6px;
+  padding: 0 4px 6px;
+}
+
+.fuma-creator-card__action {
+  min-height: 34px;
+  border-radius: 8px;
+  background: #f1f4f2;
+  font-size: 11px;
+}
+
+.fuma-creator-card__action--primary {
+  background: #1b8060;
+}
+
+.fuma-creator-detail-page .fuma-page__body {
+  gap: 16px;
+}
+
+.fuma-creator-detail-page .hsas-section-tabs {
+  margin-bottom: -4px;
+}
+
+.fuma-creator-detail-hero {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.6fr);
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #dce5e0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgb(25 55 45 / 6%);
+}
+
+.fuma-creator-detail-hero__visual {
+  position: relative;
+  min-height: 230px;
+  padding: 10px;
+  background: #1d4136;
+}
+
+.fuma-creator-detail-hero__visual .fuma-creator-mosaic {
+  height: 100%;
+  grid-template-columns: 1.25fr repeat(2, 0.875fr);
+  gap: 6px;
+}
+
+.fuma-creator-detail-hero__visual .fuma-creator-media {
+  aspect-ratio: auto;
+  border-radius: 10px;
+}
+
+.fuma-creator-detail-hero__portrait {
+  position: absolute;
+  bottom: -31px;
+  left: 24px;
+  width: 74px;
+  height: 74px;
+  overflow: visible;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 5px 14px rgb(9 28 20 / 22%);
+}
+
+.fuma-creator-detail-hero__portrait > img,
+.fuma-creator-detail-hero__portrait .fuma-creator-profile-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.fuma-creator-detail-hero__platform {
+  position: absolute;
+  right: -4px;
+  bottom: -1px;
+}
+
+.fuma-creator-detail-hero__platform .fuma-platform-icon {
+  width: 23px;
+  height: 23px;
+  border: 2px solid #fff;
+}
+
+.fuma-creator-detail-hero__content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 28px 30px 20px;
+}
+
+.fuma-creator-detail-hero__identity {
+  min-width: 0;
+}
+
+.fuma-creator-detail-hero__eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: #198060;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.fuma-creator-detail-hero__identity h2 {
+  margin: 0;
+  color: #22342d;
+  font-size: 28px;
+  letter-spacing: -0.055em;
+  line-height: 1.1;
+}
+
+.fuma-creator-detail-hero__identity p {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 9px 0 0;
+  color: #69766f;
+  font-size: 12px;
+}
+
+.fuma-creator-detail-hero__identity .fuma-platform-label .fuma-platform-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.fuma-creator-detail-hero__identity .fuma-platform-label .fuma-platform-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.fuma-creator-detail-hero__categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 13px;
+}
+
+.fuma-creator-detail-hero__categories span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef5f0;
+  color: #3b6554;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.fuma-creator-detail-hero__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 22px 0 0;
+}
+
+.fuma-creator-detail-hero__metrics div {
+  min-width: 0;
+  padding-top: 10px;
+  border-top: 1px solid #e3ebe6;
+}
+
+.fuma-creator-detail-hero__metrics dt {
+  color: #78857e;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.fuma-creator-detail-hero__metrics dd {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  min-height: 23px;
+  margin: 4px 0 0;
+  color: #203a2f;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+.fuma-creator-detail-hero__metrics .hsas-status-pill {
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+.fuma-creator-detail-page .fuma-content-section {
+  overflow: hidden;
+  border-color: #e0e7e3;
+  border-radius: 12px;
+}
+
+.fuma-creator-detail-page .fuma-content-section__header {
+  min-height: 42px;
+  padding: 8px 16px;
+  background: #f6f8f7;
+}
+
+.fuma-creator-detail-page .fuma-content-section__header h2 {
+  color: #30463b;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .fuma-creator-detail-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .fuma-creator-detail-hero__visual {
+    min-height: 190px;
+  }
+
+  .fuma-creator-detail-hero__content {
+    padding: 44px 20px 20px;
+  }
+}
+
+@media (max-width: 620px) {
+  .fuma-creator-detail-hero__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .fuma-creator-card__action:focus-visible,
