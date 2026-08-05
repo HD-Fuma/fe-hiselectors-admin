@@ -145,7 +145,8 @@ describe("creator detail", () => {
     expect(screen.getByRole("heading", { name: "크리에이터 상세" })).toBeInTheDocument();
     expect(screen.getByText("CR102")).toBeInTheDocument();
     const sections = screen.getByRole("navigation", { name: "섹션" });
-    expect(within(sections).getByText("기본 정보")).toHaveAttribute("aria-current", "page");
+    expect(within(sections).getByText("대표 게시글")).toHaveAttribute("aria-current", "page");
+    expect(within(sections).getByText("기본 정보")).toBeInTheDocument();
     expect(within(sections).getByText("크리에이터 분석")).toBeInTheDocument();
     expect(within(sections).getByText("영입 제안")).toBeInTheDocument();
 
@@ -163,6 +164,11 @@ describe("creator detail", () => {
     expect(screen.getAllByText("@seo.yeon")).toHaveLength(2);
     expect(screen.getAllByText("48,200")).toHaveLength(2);
     expect(screen.getAllByText("3,278")).toHaveLength(1);
+    const featured = screen.getByRole("region", { name: "대표 게시글" });
+    expect(within(featured).getAllByRole("link", { name: /김서연 대표 게시글:/ })).toHaveLength(3);
+    for (const views of ["98,600", "74,200", "63,100"]) {
+      expect(within(featured).getByText(views)).toBeInTheDocument();
+    }
     const channels = screen.getByRole("region", { name: "플랫폼별 채널" });
     expect(within(channels).getAllByRole("row")).toHaveLength(2);
 
@@ -176,10 +182,17 @@ describe("creator detail", () => {
 
     expect(screen.getByText("Instagram DM", { selector: "h3" })).toBeInTheDocument();
     expect(screen.getByText("Meta 정책상 자동 선접촉이 불가합니다. 관리자 확인 후 수동 발송이 필요합니다.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Instagram DM 제안 발송" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "DM 제안 작성" })).toHaveAttribute(
+      "href",
+      "/proposals/new?creator=cr-001&channel=Instagram%20DM",
+    );
+    expect(screen.getByRole("link", { name: "Instagram DM 제안 작성" })).toHaveAttribute(
+      "href",
+      "/proposals/new?creator=cr-001&channel=Instagram%20DM",
+    );
     expect(screen.getByText("seoyeon@example.com")).toBeInTheDocument();
     expect(screen.getByText("자동 발송 상태")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "이메일 제안 발송" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "이메일 제안 작성" })).toBeInTheDocument();
   });
 
   test("renders the analysis report for a pending legacy fixture", () => {
@@ -192,16 +205,29 @@ describe("creator detail", () => {
     expect(screen.queryByText("AI 적합도")).not.toBeInTheDocument();
   });
 
+  test("activates the creator-analysis tab", async () => {
+    const user = userEvent.setup();
+    renderRoute("/creators/cr-001");
+
+    const sections = screen.getByRole("navigation", { name: "섹션" });
+    await user.click(within(sections).getByRole("link", { name: "크리에이터 분석" }));
+
+    expect(within(sections).getByRole("link", { name: "크리에이터 분석" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
   test("renders only declared proposal channels for an Instagram-only creator", () => {
     renderRoute("/creators/cr-004");
 
     const proposals = screen.getByRole("region", { name: "영입 제안" });
     expect(
-      within(proposals).getByRole("button", { name: "Instagram DM 제안 발송" }),
+      within(proposals).getByRole("link", { name: "Instagram DM 제안 작성" }),
     ).toBeInTheDocument();
     expect(within(proposals).getByRole("heading", { name: "Instagram DM" })).toBeInTheDocument();
     expect(
-      within(proposals).queryByRole("button", { name: "이메일 제안 발송" }),
+      within(proposals).queryByRole("link", { name: "이메일 제안 작성" }),
     ).not.toBeInTheDocument();
     expect(within(proposals).queryByRole("heading", { name: "이메일" })).not.toBeInTheDocument();
     expect(proposals).not.toHaveTextContent("undefined");
@@ -248,6 +274,14 @@ describe("proposal history", () => {
       "더현대Hi 셀렉터스 활동 제안드립니다, 김서연님",
     );
     expect(within(form).getByRole("button", { name: "제안 발송" })).toBeInTheDocument();
+  });
+
+  test("honors the proposal channel selected from creator detail", () => {
+    renderRoute("/proposals/new?creator=cr-001&channel=%EC%9D%B4%EB%A9%94%EC%9D%BC");
+
+    const form = screen.getByRole("form", { name: "제안 작성" });
+    expect(within(form).getByRole("combobox", { name: "제안 채널" })).toHaveValue("이메일");
+    expect(within(form).getByText("이메일 자동 발송")).toBeInTheDocument();
   });
 
   test("renders all channels, send methods, statuses, and filters", () => {

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
@@ -10,10 +10,9 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SectionTabs } from "../../components/ui/SectionTabs";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { CreatorCardGrid } from "./CreatorCardGrid";
-import { CreatorProfilePhoto } from "./CreatorArtwork";
+import { CreatorContentPhoto, CreatorProfilePhoto } from "./CreatorArtwork";
 import { engagementResultForCreator } from "./CreatorAnalysisReport";
 import { CreatorAnalysisReport } from "./CreatorAnalysisReport";
-import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
 import {
   CreatorResultToolbar,
   type CreatorPoolView,
@@ -28,6 +27,7 @@ import {
   type CreatorProfileFixture,
   type EmailCreatorFixture,
   type ProposalFixture,
+  type ProposalChannel,
   type ProposalStatus,
 } from "./fixtures";
 
@@ -269,7 +269,7 @@ function BasicInformation({ creator }: { creator: CreatorFixture }) {
   ];
 
   return (
-    <section aria-labelledby="creator-basic-title" className="fuma-content-section">
+    <section aria-labelledby="creator-basic-title" className="fuma-content-section" id="basic">
       <header className="fuma-content-section__header">
         <h2 id="creator-basic-title">기본 정보</h2>
       </header>
@@ -290,30 +290,33 @@ function CreatorProfileHero({ creator }: { creator: CreatorFixture }) {
   const audienceLabel = creator.profile.platform === "Instagram" ? "팔로워" : "구독자";
   const engagementValue =
     engagement.value === null ? "집계 불가" : `${engagement.value.toFixed(1)}%`;
+  const primaryChannel = creator.availableProposalChannels[0];
+  const proposalLabel = primaryChannel === "Instagram DM" ? "DM 제안 작성" : "이메일 제안 작성";
+  const proposalHref = `/proposals/new?creator=${creator.id}&channel=${encodeURIComponent(primaryChannel)}`;
 
   return (
     <section aria-label={`${creator.name} 프로필 요약`} className="fuma-creator-detail-hero">
-      <div className="fuma-creator-detail-hero__visual">
-        <CreatorMediaMosaic contents={creator.featuredContents} creatorName={creator.name} />
-        <span className="fuma-creator-detail-hero__portrait">
-          <CreatorProfilePhoto creatorName={creator.name} src={creator.profile.profileImageUrl} />
-          <span className="fuma-creator-detail-hero__platform">
-            <PlatformIcon platform={creator.profile.platform} />
-          </span>
+      <div className="fuma-creator-detail-hero__portrait">
+        <CreatorProfilePhoto creatorName={creator.name} src={creator.profile.profileImageUrl} />
+        <span className="fuma-creator-detail-hero__platform">
+          <PlatformIcon platform={creator.profile.platform} />
         </span>
       </div>
       <div className="fuma-creator-detail-hero__content">
         <div className="fuma-creator-detail-hero__identity">
-          <span className="fuma-creator-detail-hero__eyebrow">CREATOR PROFILE</span>
-          <h2>{creator.name}</h2>
-          <p>
+          <div className="fuma-creator-detail-hero__title-row">
+            <h2>{creator.name}</h2>
+            <StatusPill tone={proposalTone(creator.proposalStatus)}>{creator.proposalStatus}</StatusPill>
+          </div>
+          <a className="fuma-creator-detail-hero__channel" href={creator.profile.profileUrl} rel="noreferrer" target="_blank">
             <PlatformLabel platform={creator.profile.platform} />
             <span>{creator.profile.handle}</span>
-          </p>
+            <span aria-hidden="true">↗</span>
+          </a>
           <div aria-label="카테고리" className="fuma-creator-detail-hero__categories">
-            {creator.categories.map((category) => (
-              <span key={category}>{category}</span>
-            ))}
+            <strong>{creator.categories.join(" · ")}</strong>
+            <span aria-hidden="true">/</span>
+            <span>{creator.keywords.join("  ")}</span>
           </div>
         </div>
         <dl className="fuma-creator-detail-hero__metrics">
@@ -329,15 +332,42 @@ function CreatorProfileHero({ creator }: { creator: CreatorFixture }) {
             <dt>콘텐츠</dt>
             <dd>{formatNumber(creator.contentCount)}</dd>
           </div>
-          <div>
-            <dt>제안 상태</dt>
-            <dd>
-              <StatusPill tone={proposalTone(creator.proposalStatus)}>
-                {creator.proposalStatus}
-              </StatusPill>
-            </dd>
-          </div>
+          <div><dt>최근 활동</dt><dd>{creator.recentActivity}</dd></div>
         </dl>
+      </div>
+      <div className="fuma-creator-detail-hero__actions">
+        <span>{primaryChannel === "Instagram DM" ? "Instagram 수동 발송" : "이메일 자동 발송"}</span>
+        <Link className="hsas-button hsas-button--primary fuma-creator-detail-hero__proposal" to={proposalHref}>{proposalLabel}</Link>
+        <a href="#proposal">발송 방식 확인</a>
+      </div>
+    </section>
+  );
+}
+
+function CreatorFeaturedPosts({ creator }: { creator: CreatorFixture }) {
+  return (
+    <section aria-labelledby="creator-featured-title" className="fuma-content-section fuma-creator-featured" id="featured">
+      <header className="fuma-content-section__header">
+        <div>
+          <h2 id="creator-featured-title">대표 게시글</h2>
+          <span>조회 수가 높은 콘텐츠를 기준으로 표시합니다.</span>
+        </div>
+        <a href={creator.profile.profileUrl} rel="noreferrer" target="_blank">채널에서 전체 보기 ↗</a>
+      </header>
+      <div className="fuma-creator-featured__grid">
+        {creator.featuredContents.map((content, index) => (
+          <a className="fuma-creator-featured__post" href={creator.profile.profileUrl} key={content.id} rel="noreferrer" target="_blank">
+            <div className="fuma-creator-featured__image">
+              <CreatorContentPhoto creatorName={creator.name} src={content.thumbnailUrl} title={content.title} />
+              <span>{index + 1}</span>
+              {content.mediaType === "동영상" ? <b aria-label="동영상">▶</b> : null}
+            </div>
+            <div className="fuma-creator-featured__copy">
+              <div><strong>{content.title}</strong><span>{content.mediaType}</span></div>
+              <dl><dt>조회</dt><dd>{formatNumber(content.views)}</dd></dl>
+            </div>
+          </a>
+        ))}
       </div>
     </section>
   );
@@ -346,17 +376,19 @@ function CreatorProfileHero({ creator }: { creator: CreatorFixture }) {
 function ProposalMethod({
   buttonLabel,
   children,
+  href,
   title,
 }: {
   buttonLabel: string;
   children: ReactNode;
+  href: string;
   title: string;
 }) {
   return (
     <article className="fuma-proposal-method">
       <h3>{title}</h3>
       <div className="fuma-proposal-method__details">{children}</div>
-      <Button variant="primary">{buttonLabel}</Button>
+      <Link className="hsas-button hsas-button--primary" to={href}>{buttonLabel}</Link>
     </article>
   );
 }
@@ -381,7 +413,7 @@ function ProposalMethods({ creator }: { creator: CreatorFixture }) {
       </header>
       <div className="fuma-proposal-methods">
         {hasInstagramProposalChannel ? (
-          <ProposalMethod buttonLabel="Instagram DM 제안 발송" title="Instagram DM">
+          <ProposalMethod buttonLabel="Instagram DM 제안 작성" href={`/proposals/new?creator=${creator.id}&channel=Instagram%20DM`} title="Instagram DM">
             <dl>
               <div>
                 <dt>발송 방식</dt>
@@ -398,7 +430,7 @@ function ProposalMethods({ creator }: { creator: CreatorFixture }) {
           </ProposalMethod>
         ) : null}
         {hasEmailProposal ? (
-          <ProposalMethod buttonLabel="이메일 제안 발송" title="이메일">
+          <ProposalMethod buttonLabel="이메일 제안 작성" href={`/proposals/new?creator=${creator.id}&channel=${encodeURIComponent("이메일")}`} title="이메일">
             <dl>
               <div>
                 <dt>이메일</dt>
@@ -430,6 +462,7 @@ export function CreatorDetailPage() {
     fixture && searchParams.get("fixture") === "ai-pending"
       ? { ...fixture, aiReport: PENDING_AI_REPORT }
       : fixture;
+  const [activeSection, setActiveSection] = useState("featured");
 
   return (
     <section className="fuma-page fuma-creator-detail-page">
@@ -437,15 +470,18 @@ export function CreatorDetailPage() {
       <div className="fuma-page__body">
         {creator ? (
           <>
+            <CreatorProfileHero creator={creator} />
             <SectionTabs
-              activeId="basic"
+              activeId={activeSection}
               items={[
+                { id: "featured", label: "대표 게시글" },
                 { id: "basic", label: "기본 정보" },
-                { id: "ai", label: "크리에이터 분석" },
+                { id: "analysis", label: "크리에이터 분석" },
                 { id: "proposal", label: "영입 제안" },
               ]}
+              onChange={setActiveSection}
             />
-            <CreatorProfileHero creator={creator} />
+            <CreatorFeaturedPosts creator={creator} />
             <BasicInformation creator={creator} />
             <section aria-labelledby="creator-channel-title" className="fuma-content-section">
               <header className="fuma-content-section__header">
@@ -527,7 +563,10 @@ export function ProposalComposePage() {
     label: channel,
     value: channel,
   }));
-  const initialChannel = channelOptions[0].value;
+  const requestedChannel = searchParams.get("channel") as ProposalChannel | null;
+  const initialChannel = requestedChannel && creator.availableProposalChannels.some((channel) => channel === requestedChannel)
+    ? requestedChannel
+    : channelOptions[0].value;
   const isInstagram = initialChannel === "Instagram DM";
 
   return (

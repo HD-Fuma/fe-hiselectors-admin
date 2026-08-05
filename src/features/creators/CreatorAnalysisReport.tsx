@@ -270,7 +270,7 @@ export function CreatorAnalysisReport({ creator }: { creator: CreatorFixture }) 
   const finalTopN = selectTopNWithCategoryQuota(topTwoN, 2, 1);
 
   return (
-    <section aria-labelledby="creator-analysis-title" className="fuma-content-section">
+    <section aria-labelledby="creator-analysis-title" className="fuma-content-section" id="analysis">
       <header className="fuma-content-section__header">
         <h2 id="creator-analysis-title">크리에이터 분석</h2>
         <span>최종 업데이트 {analysis.updatedAt} · 최근 {analysis.collectionDays}일 수집 데이터</span>
