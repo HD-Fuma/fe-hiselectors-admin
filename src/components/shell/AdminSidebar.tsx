@@ -6,6 +6,7 @@ import {
   FileSearch,
   LogOut,
   Megaphone,
+  Settings,
   Settings2,
   UsersRound,
   WalletCards,
@@ -19,6 +20,7 @@ import {
   type AdminRouteMeta,
   type NavGroup,
 } from "../../app/navigation";
+import "../../styles/sidebar-account.css";
 
 const GROUP_ICONS: Record<NavGroup, LucideIcon> = {
   creators: UsersRound,
@@ -151,16 +153,24 @@ export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
         </span>
         <span className="hsas-admin-sidebar__account-copy">
           <strong>관리자</strong>
-          <span>FUMA 운영자</span>
+          <span>관리자 계정</span>
         </span>
-        <button
-          type="button"
-          className="hsas-admin-sidebar__logout"
-          aria-label="로그아웃"
-        >
-          <LogOut aria-hidden="true" />
-          <span>로그아웃</span>
-        </button>
+        <span className="hsas-admin-sidebar__account-actions">
+          <button
+            type="button"
+            className="hsas-admin-sidebar__account-action"
+            aria-label="설정"
+          >
+            <Settings aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="hsas-admin-sidebar__account-action"
+            aria-label="로그아웃"
+          >
+            <LogOut aria-hidden="true" />
+          </button>
+        </span>
       </div>
     </aside>
   );

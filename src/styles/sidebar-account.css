@@ -1,0 +1,34 @@
+.hsas-admin-sidebar__account-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.hsas-admin-sidebar__account-action {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--hsas-sidebar-heading);
+  cursor: pointer;
+  place-items: center;
+}
+
+.hsas-admin-sidebar__account-action:hover {
+  border-color: var(--hsas-sidebar-border);
+  background: var(--hsas-sidebar-hover);
+  color: var(--hsas-text-inverse);
+}
+
+.hsas-admin-sidebar__account-action:focus-visible {
+  outline: 2px solid var(--hsas-teal-accent);
+  outline-offset: -2px;
+}
+
+.hsas-admin-sidebar__account-action svg {
+  width: 13px;
+  height: 13px;
+}
