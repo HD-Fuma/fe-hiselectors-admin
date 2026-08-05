@@ -193,6 +193,70 @@ test("creators visual checkpoint at the legacy viewport", async ({ page }, testI
     expect(box.height).toBeGreaterThan(0);
     expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth);
   }
+  const firstCard = cards.first();
+  const portrait = firstCard.locator(".fuma-creator-card__portrait");
+  const mainMediaSource = firstCard.locator(
+    ".fuma-creator-media--main .fuma-creator-media__source",
+  );
+  const [portraitBox, mainMediaSourceBox] = await Promise.all([
+    portrait.boundingBox(),
+    mainMediaSource.boundingBox(),
+  ]);
+  expect(portraitBox).not.toBeNull();
+  expect(mainMediaSourceBox).not.toBeNull();
+  const portraitIntersectsMainMediaSource = !(
+    portraitBox!.x + portraitBox!.width <= mainMediaSourceBox!.x ||
+    mainMediaSourceBox!.x + mainMediaSourceBox!.width <= portraitBox!.x ||
+    portraitBox!.y + portraitBox!.height <= mainMediaSourceBox!.y ||
+    mainMediaSourceBox!.y + mainMediaSourceBox!.height <= portraitBox!.y
+  );
+  expect.soft(portraitIntersectsMainMediaSource).toBe(false);
+
+  const [handleColor, metricLabelColor, recentDateColor, toolbarSortColor] =
+    await Promise.all([
+      firstCard
+        .locator(".fuma-creator-card__handle")
+        .evaluate((node) => getComputedStyle(node).color),
+      firstCard
+        .locator(".fuma-creator-card__metric dt")
+        .first()
+        .evaluate((node) => getComputedStyle(node).color),
+      firstCard
+        .locator(".fuma-creator-card__recent")
+        .evaluate((node) => getComputedStyle(node).color),
+      page
+        .locator(".fuma-creator-toolbar__sort")
+        .evaluate((node) => getComputedStyle(node).color),
+    ]);
+  for (const color of [
+    handleColor,
+    metricLabelColor,
+    recentDateColor,
+    toolbarSortColor,
+  ]) {
+    expect.soft(color).toBe("rgb(89, 97, 102)");
+  }
+
+  const primaryAction = firstCard.locator(".fuma-creator-card__action--primary");
+  const pressedView = page.locator(
+    '.fuma-creator-toolbar__view[aria-pressed="true"]',
+  );
+  const [primaryBackground, pressedViewBackground] = await Promise.all([
+    primaryAction.evaluate((node) => getComputedStyle(node).backgroundColor),
+    pressedView.evaluate((node) => getComputedStyle(node).backgroundColor),
+  ]);
+  expect.soft(primaryBackground).toBe("rgb(15, 117, 98)");
+  expect.soft(pressedViewBackground).toBe("rgb(15, 117, 98)");
+  await primaryAction.focus();
+  await expect(primaryAction).toBeFocused();
+  expect.soft(
+    await primaryAction.evaluate((node) => getComputedStyle(node).outlineColor),
+  ).toBe("rgb(255, 255, 255)");
+  await pressedView.focus();
+  await expect(pressedView).toBeFocused();
+  expect.soft(
+    await pressedView.evaluate((node) => getComputedStyle(node).outlineColor),
+  ).toBe("rgb(255, 255, 255)");
   await expectKeyTextBounds(
     page.getByRole("article", { name: "김서연 크리에이터 카드" }),
     [
@@ -206,6 +270,35 @@ test("creators visual checkpoint at the legacy viewport", async ({ page }, testI
     ],
   );
   await page.screenshot({ path: "test-results/visual/creators.png" });
+});
+
+test("creators visual checkpoint at 1180 two-column viewport", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1180, height: 900 });
+  await openCheckpoint(page, "/creators", testInfo);
+
+  await expect(page.locator('[data-visual-contract="admin-shell"]')).toBeVisible();
+  await expectPageHeaderTextBounds(page, "크리에이터 풀", "CR101");
+  const grid = page.locator('[data-visual-contract="creator-card-grid"]');
+  const cards = grid.locator(":scope > .fuma-creator-card");
+  await expect(grid).toBeVisible();
+  await expect(cards).toHaveCount(4);
+  expect(
+    await grid.evaluate(
+      (node) =>
+        getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length,
+    ),
+  ).toBe(2);
+  const viewport = page.viewportSize();
+  const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(viewport).not.toBeNull();
+  expect(scrollWidth).toBeGreaterThanOrEqual(1280);
+  expect(scrollWidth).toBeGreaterThan(viewport!.width);
+  await page.screenshot({
+    fullPage: true,
+    path: "test-results/visual/creators-1180.png",
+  });
 });
 
 test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
@@ -325,7 +418,10 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
     page.getByRole("article", { name: "이지아 크리에이터 카드" }),
     ["이지아", "@zia.trip", "Facebook", "생성 대기", "발송 실패", "다시 제안"],
   );
-  await page.screenshot({ path: "test-results/visual/creators-1440.png" });
+  await page.screenshot({
+    fullPage: true,
+    path: "test-results/visual/creators-1440.png",
+  });
 });
 
 test("applicant detail visual checkpoint", async ({ page }, testInfo) => {
