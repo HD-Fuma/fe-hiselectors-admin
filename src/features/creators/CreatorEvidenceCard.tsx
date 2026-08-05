@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Send } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { type StatusPillProps } from "../../components/ui/StatusPill";
 import type { CreatorFixture, ProposalStatus } from "./fixtures";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
@@ -16,7 +16,7 @@ export const compactNumber = new Intl.NumberFormat("ko-KR", {
 // eslint-disable-next-line react-refresh/only-export-components
 export function proposalAction(creator: CreatorFixture) {
   return {
-    label: "제안 보내기",
+    label: "제안",
     to: `/creators/${creator.id}#proposal`,
   };
 }
@@ -97,11 +97,11 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
         </div>
         <footer className="fuma-creator-card__actions">
           <Link
-            aria-label={`${creator.name} 프로필 보기`}
+            aria-label={`${creator.name} 상세 보기`}
             className="fuma-creator-card__action"
             to={`/creators/${creator.id}`}
           >
-            프로필 보기
+            상세
             <ArrowUpRight aria-hidden="true" />
           </Link>
           <Link
@@ -109,7 +109,6 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
             className="fuma-creator-card__action fuma-creator-card__action--primary"
             to={action.to}
           >
-            <Send aria-hidden="true" />
             {action.label}
           </Link>
         </footer>
