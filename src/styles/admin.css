@@ -466,11 +466,11 @@
   transition: background-color 120ms ease, color 120ms ease;
 }
 
-.hsas-dense-table__row:hover td {
+.hsas-dense-table tbody .hsas-dense-table__row:hover td {
   background: #edf6f2;
 }
 
-.hsas-dense-table__row[aria-selected="true"] td {
+.hsas-dense-table tbody .hsas-dense-table__row[aria-selected="true"] td {
   background: #dfeee7;
 }
 
