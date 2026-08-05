@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { AiSummaryPanel } from "../../components/content/AiSummaryPanel";
 import { PageHeader } from "../../components/shell/PageHeader";
@@ -9,6 +9,11 @@ import { Pagination } from "../../components/ui/Pagination";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SectionTabs } from "../../components/ui/SectionTabs";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { CreatorCardGrid } from "./CreatorCardGrid";
+import {
+  CreatorResultToolbar,
+  type CreatorPoolView,
+} from "./CreatorResultToolbar";
 import {
   CREATORS,
   META_MANUAL_SEND_NOTE,
@@ -28,7 +33,7 @@ const TIER_OPTIONS = ["전체", "T0", "T1", "T2", "T3"].map((label) => ({
   label,
   value: label === "전체" ? "" : label,
 }));
-const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube"].map((label) => ({
+const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube", "Facebook"].map((label) => ({
   label,
   value: label === "전체" ? "" : label,
 }));
@@ -96,7 +101,8 @@ function ResultToolbar({ count, title }: { count: number; title: string }) {
   );
 }
 
-const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
+// eslint-disable-next-line react-refresh/only-export-components
+export const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
   { key: "id", header: "ID", width: 76 },
   { key: "name", header: "이름", width: 70 },
   {
@@ -163,6 +169,7 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
 export function CreatorListPage() {
   const [searchParams] = useSearchParams();
   const creators = searchParams.get("fixture") === "empty" ? [] : CREATORS;
+  const [view, setView] = useState<CreatorPoolView>("cards");
 
   return (
     <section className="fuma-page">
@@ -186,15 +193,8 @@ export function CreatorListPage() {
             <Select id="creator-platform" name="platform" options={PLATFORM_OPTIONS} />
           </FilterField>
         </SearchPanel>
-        <ResultToolbar count={creators.length} title="크리에이터 목록" />
-        <div aria-label="크리에이터 목록" className="fuma-wide-table" role="region">
-          <DenseTable
-            columns={CREATOR_COLUMNS}
-            emptyMessage="검색 결과가 없습니다."
-            rowKey={(creator) => creator.id}
-            rows={creators}
-          />
-        </div>
+        <CreatorResultToolbar count={creators.length} onViewChange={setView} view={view} />
+        {view === "cards" ? <CreatorCardGrid creators={creators} /> : null}
         <Pagination page={1} pageSize={20} totalPages={1} />
       </div>
     </section>

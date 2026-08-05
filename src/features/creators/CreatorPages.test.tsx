@@ -13,7 +13,7 @@ function expectColumnHeaders(names: string[]) {
 }
 
 describe("creator pool", () => {
-  test("renders the populated creator list and its static search controls", () => {
+  test("renders the populated creator pool as profile-first cards", () => {
     renderRoute("/creators");
 
     expect(screen.getByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
@@ -31,38 +31,31 @@ describe("creator pool", () => {
       "전체T0T1T2T3",
     );
     expect(within(search).getByRole("combobox", { name: "플랫폼" })).toHaveTextContent(
-      "전체InstagramYouTube",
+      "전체InstagramYouTubeFacebook",
     );
     expect(within(search).getByRole("button", { name: "조회" })).toBeInTheDocument();
     expect(within(search).getByRole("button", { name: "초기화" })).toBeInTheDocument();
 
     expect(screen.getByText("총 4건")).toBeInTheDocument();
-    expectColumnHeaders([
-      "ID",
-      "이름",
-      "플랫폼",
-      "카테고리",
-      "티어",
-      "팔로워·구독자",
-      "콘텐츠 수",
-      "최근 활동일",
-      "AI 리포트 상태",
-      "제안 상태",
-      "상세",
-    ]);
-    expect(screen.getByText("김서연")).toBeInTheDocument();
-    expect(screen.getByText("박도윤")).toBeInTheDocument();
-    expect(screen.getByText("486,000")).toBeInTheDocument();
-    expect(screen.getByText("생성 대기")).toBeInTheDocument();
-    expect(screen.getByText("미제안")).toBeInTheDocument();
+    expect(screen.getByText("AI 적합도순").closest("button,select")).toBeNull();
+    expect(screen.getByRole("button", { name: "카드 보기" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "목록 보기" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    const cards = screen.getByRole("list", { name: "크리에이터 목록" });
+    expect(cards.querySelectorAll(':scope > [role="listitem"]')).toHaveLength(4);
+    for (const name of ["김서연", "박도윤", "이지아", "오하늘"]) {
+      expect(
+        within(cards).getByRole("article", { name: `${name} 크리에이터 카드` }),
+      ).toBeInTheDocument();
+    }
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
     expect(screen.getByText("페이지당 20개")).toBeInTheDocument();
-
-    const results = screen.getByRole("region", { name: "크리에이터 목록" });
-    const seoyeonRow = within(results).getByRole("row", { name: /cr-001 김서연/ });
-    expect(
-      within(seoyeonRow).getByRole("button", { name: "김서연 상세 보기" }),
-    ).toBeInTheDocument();
   });
 
   test("renders the explicit empty creator fixture", () => {
