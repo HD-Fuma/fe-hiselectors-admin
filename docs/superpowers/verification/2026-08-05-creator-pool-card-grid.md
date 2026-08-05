@@ -46,6 +46,16 @@ sips -g pixelWidth -g pixelHeight test-results/visual/creators.png test-results/
 
 `creators-1180.png`은 1180×900 viewport에서 full-page로 캡처했다. 관리자 desktop shell의 의도된 최소 폭 때문에 document scroll width가 1280px로 유지되어 결과 PNG도 1280px 폭이다. 이는 좁은 viewport에서 의도된 shell-level 수평 overflow이며 카드 내부 overflow가 아니다.
 
+## Artifact integrity
+
+아래 세 기존 PNG는 복사하거나 다시 쓰지 않고 정확한 경로를 force-add했으며, 이 문서와 같은 evidence commit에서 Git 추적 파일로 보존한다. `shasum -a 256`의 실제 결과는 다음과 같다.
+
+| Git 추적 경로 | SHA-256 |
+| --- | --- |
+| `test-results/visual/creators.png` | `f4686eef7a3ce5bd285511f4e84303f884df2cf06f61b4d04493c192ff526467` |
+| `test-results/visual/creators-1180.png` | `51871ae3d9d697a448d79eb5cf844f4a6489f4959197e16867698824c66050ef` |
+| `test-results/visual/creators-1440.png` | `03fa7596d99b8acbb67ede90de80f4c4c270defb8af9f3ae9e19afa8daca7e5b` |
+
 ## 원본 이미지 육안 검증
 
 세 PNG를 모두 원본 해상도로 열어 확인했다.
@@ -54,23 +64,25 @@ sips -g pixelWidth -g pixelHeight test-results/visual/creators.png test-results/
 
 - 첫 세 카드가 같은 상단선에 맞춰 3열로 정렬되어 있다.
 - 네 번째 카드는 의도대로 두 번째 행에서 시작한다. viewport 높이 기준 캡처이므로 이 파일에는 네 번째 카드 상단 mosaic까지만 보인다.
-- 각 카드의 테두리, media source caption, 본문, 지표 행, 상태·날짜 행, 하단 action 영역이 서로 침범하지 않는다.
+- 첫 행의 세 카드에서는 카드 테두리, media source caption, 본문, 지표 행, 상태·날짜 행, 하단 action 영역이 서로 침범하지 않는다.
 
 ### 1440×1045 full-page checkpoint
 
 - 첫 세 카드가 같은 상단선에 맞춰 3열로 정렬되어 있다.
 - 네 번째 카드는 의도대로 두 번째 행 첫 열에서 시작하며 mosaic부터 하단 action까지 완전하게 보인다.
 - 첫 행 카드와 두 번째 행 카드 사이에 정상적인 grid gap이 유지된다.
+- 이 full-page artifact에서는 네 카드 모두 카드 본문, 지표, 상태·날짜, 하단 action 및 media source caption이 테두리 안에서 겹침 없이 완전하게 보인다.
 
 ### 1180 viewport checkpoint · 1280×1045 artifact
 
 - 네 카드가 2열×2행으로 모두 완전하게 보인다.
 - 1280px desktop shell이 1180px viewport보다 넓어 생기는 의도된 수평 overflow가 캡처 폭에 반영되어 있다.
 - 카드들은 각 열 안에 유지되며 카드 자체의 가로 overflow나 오른쪽 잘림은 없다.
+- 이 full-page artifact에서도 네 카드 모두 본문, 지표, 상태·날짜, 하단 action 및 media source caption이 겹침 없이 완전하게 보인다.
 
-### 세 checkpoint 공통 확인
+### 1440/1180 full-page artifact의 네 카드 공통 확인
 
-- 카드 테두리, 하단 action, media source caption 사이의 겹침이나 이탈이 없고 카드 내부의 수평 overflow도 없다. 자동 checkpoint의 카드별 `scrollWidth <= clientWidth` assertion도 1310/1440에서 통과했다.
+- 네 카드의 테두리, 하단 action, media source caption 사이에 겹침이나 이탈이 없고 카드 내부의 수평 overflow도 없다. 자동 checkpoint의 카드별 `scrollWidth <= clientWidth` assertion도 1310/1440에서 통과했다.
 - Instagram, YouTube, Facebook 색상 mark와 source label이 각각 알아볼 수 있다.
 - 이름과 handle/채널명(`김서연`/`@seo.yeon`, `박도윤`/`도윤의 집밥`, `이지아`/`@zia.trip`, `오하늘`/`@today.haneul`)이 읽힌다.
 - 팔로워·구독자, 평균 조회, 평균 반응률 수치와 AI 적합도/생성 대기 상태, 발송 완료/셀렉터스 전환/발송 실패/미제안 상태가 읽힌다.
