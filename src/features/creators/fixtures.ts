@@ -1,8 +1,9 @@
 export type ProposalChannel = "Instagram DM" | "이메일";
 export type ProposalStatus = "발송 대기" | "발송 완료" | "발송 실패" | "셀렉터스 전환";
+export type CreatorPlatform = "Instagram" | "YouTube" | "Facebook";
 
 export interface CreatorChannelFixture {
-  platform: "Instagram" | "YouTube";
+  platform: CreatorPlatform;
   handle: string;
   followers: number;
   views: number;
@@ -19,7 +20,7 @@ export interface AiReportFixture {
 interface CreatorBaseFixture {
   id: string;
   name: string;
-  platforms: string[];
+  platforms: CreatorPlatform[];
   categories: string[];
   tier: "T0" | "T1" | "T2" | "T3";
   followers: number;
