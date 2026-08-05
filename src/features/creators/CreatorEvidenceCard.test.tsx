@@ -48,6 +48,7 @@ describe("CreatorEvidenceCard", () => {
     expect(within(card).queryByText("평균 반응률")).not.toBeInTheDocument();
     expect(within(card).queryByText("평균 조회")).not.toBeInTheDocument();
     expect(container.querySelectorAll(".fuma-creator-card__metrics > div")).toHaveLength(2);
+    expect(within(card).getByText("팔로워·구독자")).toHaveClass("hsas-visually-hidden");
     expect(container.querySelector(".fuma-creator-card__portrait .fuma-creator-card__platform-badge")).toBeInTheDocument();
     expect(container.querySelector(".fuma-creator-card__identity .fuma-creator-card__actions")).not.toBeInTheDocument();
 

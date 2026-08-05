@@ -1,7 +1,12 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, vi } from "vitest";
 import type { CreatorFeaturedContentFixture } from "./fixtures";
-import { CreatorProfilePhoto } from "./CreatorArtwork";
+import { CreatorContentPhoto, CreatorProfilePhoto } from "./CreatorArtwork";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 const contents: CreatorFeaturedContentFixture[] = [
   {
@@ -65,4 +70,74 @@ test("replaces failed content and profile images with neutral fallbacks", () => 
 
   rerender(<CreatorProfilePhoto creatorName="이지아" src="" />);
   expect(screen.getByRole("img", { name: "이지아 프로필 이미지 없음" })).toBeInTheDocument();
+});
+
+test("prefixes local creator images with the configured Vite base URL", () => {
+  vi.stubEnv("BASE_URL", "/fe-selectors-admin/");
+
+  render(
+    <CreatorProfilePhoto
+      creatorName="이지아"
+      src="/creator-media/cr-003-profile.jpg"
+    />,
+  );
+
+  expect(screen.getByAltText("이지아 프로필 이미지")).toHaveAttribute(
+    "src",
+    "/fe-selectors-admin/creator-media/cr-003-profile.jpg",
+  );
+});
+
+test("profile photo recovers when its source changes and never renders an empty src", () => {
+  const { rerender } = render(
+    <CreatorProfilePhoto creatorName="이지아" src="/broken-profile.jpg" />,
+  );
+
+  fireEvent.error(screen.getByAltText("이지아 프로필 이미지"));
+  expect(screen.getByRole("img", { name: "이지아 프로필 이미지 없음" })).toBeInTheDocument();
+
+  rerender(<CreatorProfilePhoto creatorName="이지아" src="/valid-profile.jpg" />);
+  expect(screen.getByAltText("이지아 프로필 이미지")).toHaveAttribute(
+    "src",
+    "/valid-profile.jpg",
+  );
+
+  rerender(<CreatorProfilePhoto creatorName="이지아" src="" />);
+  expect(screen.queryByAltText("이지아 프로필 이미지")).not.toBeInTheDocument();
+  expect(screen.getByRole("img", { name: "이지아 프로필 이미지 없음" })).toBeInTheDocument();
+});
+
+test("content photo recovers when its source changes and never renders an empty src", () => {
+  const { rerender } = render(
+    <CreatorContentPhoto
+      creatorName="이지아"
+      src="/broken-content.jpg"
+      title="여름 바다 산책"
+    />,
+  );
+
+  fireEvent.error(screen.getByAltText("이지아 인기 콘텐츠: 여름 바다 산책"));
+  expect(
+    screen.getByRole("img", { name: "이지아 인기 콘텐츠: 여름 바다 산책 이미지 없음" }),
+  ).toBeInTheDocument();
+
+  rerender(
+    <CreatorContentPhoto
+      creatorName="이지아"
+      src="/valid-content.jpg"
+      title="여름 바다 산책"
+    />,
+  );
+  expect(screen.getByAltText("이지아 인기 콘텐츠: 여름 바다 산책")).toHaveAttribute(
+    "src",
+    "/valid-content.jpg",
+  );
+
+  rerender(
+    <CreatorContentPhoto creatorName="이지아" src="" title="여름 바다 산책" />,
+  );
+  expect(screen.queryByAltText("이지아 인기 콘텐츠: 여름 바다 산책")).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("img", { name: "이지아 인기 콘텐츠: 여름 바다 산책 이미지 없음" }),
+  ).toBeInTheDocument();
 });

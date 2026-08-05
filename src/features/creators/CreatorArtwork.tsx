@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { assetUrl } from "./assetUrl";
 
 export function CreatorProfilePhoto({
   creatorName,
@@ -7,7 +8,9 @@ export function CreatorProfilePhoto({
   creatorName: string;
   src: string;
 }) {
-  const [failed, setFailed] = useState(!src);
+  const resolvedSrc = assetUrl(src);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const failed = !resolvedSrc || failedSrc === resolvedSrc;
 
   if (failed) {
     return (
@@ -24,8 +27,8 @@ export function CreatorProfilePhoto({
   return (
     <img
       alt={`${creatorName} 프로필 이미지`}
-      onError={() => setFailed(true)}
-      src={src}
+      onError={() => setFailedSrc(resolvedSrc)}
+      src={resolvedSrc}
     />
   );
 }
@@ -39,7 +42,9 @@ export function CreatorContentPhoto({
   src: string;
   title: string;
 }) {
-  const [failed, setFailed] = useState(!src);
+  const resolvedSrc = assetUrl(src);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const failed = !resolvedSrc || failedSrc === resolvedSrc;
 
   if (failed) {
     return (
@@ -56,8 +61,8 @@ export function CreatorContentPhoto({
   return (
     <img
       alt={`${creatorName} 인기 콘텐츠: ${title}`}
-      onError={() => setFailed(true)}
-      src={src}
+      onError={() => setFailedSrc(resolvedSrc)}
+      src={resolvedSrc}
     />
   );
 }
