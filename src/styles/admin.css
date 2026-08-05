@@ -569,7 +569,7 @@
 
 .hsas-admin-sidebar__navigation {
   min-height: 0;
-  padding: 10px var(--hsas-space-12);
+  padding: var(--hsas-space-16) var(--hsas-space-12);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-color: var(--hsas-sidebar-scrollbar) transparent;
@@ -676,18 +676,18 @@
 }
 
 .hsas-admin-sidebar__group + .hsas-admin-sidebar__group {
-  margin-top: 10px;
+  margin-top: var(--hsas-space-16);
 }
 
 .hsas-admin-sidebar__group-title {
-  height: 28px;
-  margin: 0 0 2px;
+  height: 32px;
+  margin: 0 0 var(--hsas-space-4);
 }
 
 .hsas-admin-sidebar__group-toggle {
   display: flex;
   width: 100%;
-  height: 28px;
+  height: 32px;
   align-items: center;
   gap: var(--hsas-space-8);
   padding: 0 var(--hsas-space-8);
@@ -749,14 +749,14 @@
 .hsas-admin-sidebar__link {
   position: relative;
   display: flex;
-  height: var(--hsas-sidebar-row-height);
+  height: 36px;
   align-items: center;
-  padding: 0 var(--hsas-space-8) 0 40px;
+  padding: 0 var(--hsas-space-12) 0 40px;
   border-radius: var(--hsas-sidebar-radius);
   color: var(--hsas-sidebar-text);
   font-size: 12px;
   font-weight: 500;
-  line-height: var(--hsas-sidebar-row-height);
+  line-height: 36px;
   text-decoration: none;
 }
 
@@ -786,7 +786,7 @@
   position: absolute;
   top: 7px;
   bottom: 7px;
-  left: 0;
+  left: var(--hsas-space-8);
   width: 3px;
   border-radius: 0 2px 2px 0;
   background: var(--hsas-teal-accent);
