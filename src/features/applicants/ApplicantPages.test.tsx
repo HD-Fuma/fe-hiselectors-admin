@@ -46,9 +46,9 @@ describe("applicant review list", () => {
       "button",
     );
 
-    expect(screen.getByText("지원자 목록", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("지원자 승인", { selector: "strong" })).toBeInTheDocument();
     expect(screen.getByText("총 4건")).toBeInTheDocument();
-    const results = screen.getByRole("region", { name: "지원자 목록" });
+    const results = screen.getByRole("region", { name: "지원자 승인" });
     expectColumnHeaders(results, [
       "선택",
       "지원자 ID",
@@ -139,8 +139,8 @@ describe("applicant detail review", () => {
     expect(screen.getByRole("link", { name: "목록" })).toHaveAttribute("href", "/applicants");
 
     const tabs = screen.getByRole("navigation", { name: "섹션" });
-    expect(within(tabs).getByText("기본 정보")).toHaveAttribute("aria-current", "page");
-    for (const label of ["SNS 지표", "자동 심사", "대표 콘텐츠", "AI 분석 리포트", "심사 처리", "결과 전송"]) {
+    expect(within(tabs).getByText("대표 콘텐츠")).toHaveAttribute("aria-current", "page");
+    for (const label of ["기본 정보", "SNS 지표", "자동 심사", "AI 분석 리포트", "심사 처리", "결과 전송"]) {
       expect(within(tabs).getByText(label)).toBeInTheDocument();
     }
     expect(within(tabs).getByRole("link", { name: "대표 콘텐츠" })).toHaveAttribute(

@@ -295,7 +295,7 @@ function CreatorProfileHero({ creator }: { creator: CreatorFixture }) {
   const proposalHref = `/proposals/new?creator=${creator.id}&channel=${encodeURIComponent(primaryChannel)}`;
 
   return (
-    <section aria-label={`${creator.name} 프로필 요약`} className="fuma-creator-detail-hero">
+    <section aria-label={`${creator.name} 프로필 요약`} className="fuma-creator-detail-hero fuma-unified-detail-hero">
       <div className="fuma-creator-detail-hero__portrait">
         <CreatorProfilePhoto creatorName={creator.name} src={creator.profile.profileImageUrl} />
         <span className="fuma-creator-detail-hero__platform">
@@ -319,6 +319,7 @@ function CreatorProfileHero({ creator }: { creator: CreatorFixture }) {
             <span>{creator.keywords.join("  ")}</span>
           </div>
         </div>
+        <p className="fuma-unified-detail-hero__summary">{creator.aiReport.status === "ready" ? creator.aiReport.summary : "크리에이터 분석 리포트를 생성하고 있습니다."}</p>
         <dl className="fuma-creator-detail-hero__metrics">
           <div>
             <dt>{audienceLabel}</dt>
@@ -346,25 +347,25 @@ function CreatorProfileHero({ creator }: { creator: CreatorFixture }) {
 
 function CreatorFeaturedPosts({ creator }: { creator: CreatorFixture }) {
   return (
-    <section aria-labelledby="creator-featured-title" className="fuma-content-section fuma-creator-featured" id="featured">
+    <section aria-labelledby="creator-featured-title" className="fuma-content-section fuma-detail-featured" id="featured">
       <header className="fuma-content-section__header">
         <div>
-          <h2 id="creator-featured-title">대표 게시글</h2>
+          <h2 id="creator-featured-title">대표 콘텐츠</h2>
           <span>조회 수가 높은 콘텐츠를 기준으로 표시합니다.</span>
         </div>
         <a href={creator.profile.profileUrl} rel="noreferrer" target="_blank">채널에서 전체 보기 ↗</a>
       </header>
-      <div className="fuma-creator-featured__grid">
+      <div className="fuma-detail-featured__grid">
         {creator.featuredContents.map((content, index) => (
-          <a className="fuma-creator-featured__post" href={creator.profile.profileUrl} key={content.id} rel="noreferrer" target="_blank">
-            <div className="fuma-creator-featured__image">
+          <a className="fuma-detail-featured__post" href={creator.profile.profileUrl} key={content.id} rel="noreferrer" target="_blank">
+            <div className="fuma-detail-featured__image">
               <CreatorContentPhoto creatorName={creator.name} src={content.thumbnailUrl} title={content.title} />
               <span>{index + 1}</span>
               {content.mediaType === "동영상" ? <b aria-label="동영상">▶</b> : null}
             </div>
-            <div className="fuma-creator-featured__copy">
+            <div className="fuma-detail-featured__copy">
               <div><strong>{content.title}</strong><span>{content.mediaType}</span></div>
-              <dl><dt>조회</dt><dd>{formatNumber(content.views)}</dd></dl>
+              <dl className="fuma-detail-featured__metrics"><div><dt>조회</dt><dd>{formatNumber(content.views)}</dd></div></dl>
             </div>
           </a>
         ))}
@@ -470,11 +471,14 @@ export function CreatorDetailPage() {
       <div className="fuma-page__body">
         {creator ? (
           <>
+            <div className="fuma-detail-toolbar">
+              <Link className="hsas-button fuma-detail-toolbar__link" to="/creators">목록</Link>
+            </div>
             <CreatorProfileHero creator={creator} />
             <SectionTabs
               activeId={activeSection}
               items={[
-                { id: "featured", label: "대표 게시글" },
+                { id: "featured", label: "대표 콘텐츠" },
                 { id: "basic", label: "기본 정보" },
                 { id: "analysis", label: "크리에이터 분석" },
                 { id: "proposal", label: "영입 제안" },

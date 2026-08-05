@@ -9,12 +9,15 @@ import { Pagination } from "../../components/ui/Pagination";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SectionTabs } from "../../components/ui/SectionTabs";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
-import { ApplicantAnalysisReport } from "./ApplicantAnalysisReport";
+import {
+  ApplicantAnalysisReport,
+  ApplicantAutomaticReview,
+  ApplicantFeaturedContents,
+} from "./ApplicantAnalysisReport";
 import { PlatformIcon } from "../creators/PlatformIcon";
 import {
   APPLICANTS,
   applicantAnalysisFor,
-  applicantFeaturedContentFor,
   applicantProfileImageUrl,
   applicantProfileUrl,
   findApplicantFixture,
@@ -237,11 +240,11 @@ export function ApplicantListPage() {
           </FilterField>
         </SearchPanel>
         <div className="fuma-result-toolbar">
-          <strong>지원자 목록</strong>
+          <strong>지원자 승인</strong>
           <span>총 {APPLICANTS.length}건</span>
         </div>
         <div
-          aria-label="지원자 목록"
+          aria-label="지원자 승인"
           className="fuma-wide-table fuma-applicant-list-table"
           role="region"
         >
@@ -307,47 +310,41 @@ function BasicInformation({ applicant }: { applicant: ApplicantFixture }) {
 
 function ApplicantReviewHero({ applicant }: { applicant: ApplicantFixture }) {
   const analysis = applicantAnalysisFor(applicant);
-  const contents = applicantFeaturedContentFor(applicant);
   const audienceLabel = applicant.platform === "Instagram" ? "팔로워" : "구독자";
   const passes = applicant.followerCount >= 500 && analysis.recent90ContentCount >= 3;
 
   return (
-    <section aria-label={`${applicant.name} 지원자 심사 요약`} className="fuma-applicant-detail-hero">
-      <div className="fuma-applicant-detail-hero__visual">
-        {contents.slice(0, 3).map((content, index) => (
-          <img alt="" className={`fuma-applicant-detail-hero__content-${index + 1}`} key={content.id} src={content.thumbnailUrl} />
-        ))}
-        <span className="fuma-applicant-detail-hero__portrait">
-          <img alt={`${applicant.name} 프로필`} src={applicantProfileImageUrl(applicant)} />
-          <span className="fuma-applicant-detail-hero__platform"><PlatformIcon platform={applicant.platform} /></span>
-        </span>
+    <section aria-label={`${applicant.name} 지원자 심사 요약`} className="fuma-creator-detail-hero fuma-applicant-detail-hero fuma-unified-detail-hero">
+      <div className="fuma-creator-detail-hero__portrait">
+        <img alt={`${applicant.name} 프로필`} src={applicantProfileImageUrl(applicant)} />
+        <span className="fuma-creator-detail-hero__platform"><PlatformIcon platform={applicant.platform} /></span>
       </div>
-      <div className="fuma-applicant-detail-hero__body">
-        <div className="fuma-applicant-detail-hero__topline">
-          <span>APPLICANT REVIEW · {applicant.id}</span>
-          <StatusPill tone={reviewStatusTone(applicant.reviewStatus)}>{applicant.reviewStatus}</StatusPill>
-        </div>
-        <div className="fuma-applicant-detail-hero__identity">
-          <h2>{applicant.name}</h2>
-          <a href={applicantProfileUrl(applicant)} rel="noreferrer" target="_blank">
+      <div className="fuma-creator-detail-hero__content">
+        <div className="fuma-creator-detail-hero__identity">
+          <div className="fuma-creator-detail-hero__title-row">
+            <h2>{applicant.name}</h2>
+            <StatusPill tone={reviewStatusTone(applicant.reviewStatus)}>{applicant.reviewStatus}</StatusPill>
+          </div>
+          <a className="fuma-creator-detail-hero__channel" href={applicantProfileUrl(applicant)} rel="noreferrer" target="_blank">
             <PlatformIcon decorative platform={applicant.platform} />
             <span>{applicant.channelName}</span>
             <span aria-hidden="true">↗</span>
           </a>
+          <div aria-label="카테고리와 키워드" className="fuma-creator-detail-hero__categories">
+            <strong>{analysis.categories.join(" · ")}</strong>
+            <span aria-hidden="true">/</span>
+            <span>{analysis.keywords.slice(0, 3).map((keyword) => `#${keyword.label}`).join("  ")}</span>
+          </div>
         </div>
-        <p className="fuma-applicant-detail-hero__summary">{analysis.summary}</p>
-        <div className="fuma-applicant-detail-hero__categories">
-          {analysis.categories.map((category) => <span key={category}>{category}</span>)}
-          {analysis.keywords.slice(0, 2).map((keyword) => <span key={keyword.label}>#{keyword.label}</span>)}
-        </div>
-        <dl className="fuma-applicant-detail-hero__metrics">
+        <p className="fuma-unified-detail-hero__summary">{analysis.summary}</p>
+        <dl className="fuma-creator-detail-hero__metrics">
           <div><dt>{audienceLabel}</dt><dd>{formatNumber(applicant.followerCount)}</dd></div>
           <div><dt>최근 90일 콘텐츠</dt><dd>{analysis.recent90ContentCount}건</dd></div>
           <div><dt>평균 조회</dt><dd>{formatNumber(applicant.averageViews)}</dd></div>
           <div><dt>ER</dt><dd>{analysis.engagementRate.toFixed(1)}%</dd></div>
         </dl>
       </div>
-      <aside className={`fuma-applicant-detail-hero__decision fuma-applicant-detail-hero__decision--${passes ? "pass" : "fail"}`}>
+      <aside className={`fuma-creator-detail-hero__actions fuma-applicant-unified-decision fuma-applicant-unified-decision--${passes ? "pass" : "fail"}`}>
         <span>자동 심사</span>
         <strong>{passes ? "통과" : "반려 대상"}</strong>
         <p>{passes ? "최소 요건을 모두 충족했습니다." : "최소 요건 미충족 항목이 있습니다."}</p>
@@ -492,10 +489,10 @@ function DeliverySection({ applicant }: { applicant: ApplicantFixture }) {
 }
 
 const DETAIL_TABS = [
+  { id: "featured", label: "대표 콘텐츠", targetId: "featured-content" },
   { id: "basic", label: "기본 정보" },
   { id: "metrics", label: "SNS 지표" },
   { id: "screening", label: "자동 심사" },
-  { id: "featured", label: "대표 콘텐츠", targetId: "featured-content" },
   { id: "analysis", label: "AI 분석 리포트" },
   { id: "review", label: "심사 처리" },
   { id: "delivery", label: "결과 전송" },
@@ -507,7 +504,7 @@ export function ApplicantDetailPage() {
   const applicant = findApplicantFixture(applicantId);
   const showAutoRejectionDetails =
     applicant?.id === "ap-003" && searchParams.get("fixture") === "auto-rejected";
-  const [activeSection, setActiveSection] = useState("basic");
+  const [activeSection, setActiveSection] = useState("featured");
 
   return (
     <section className="fuma-page fuma-applicant-detail-page">
@@ -522,8 +519,10 @@ export function ApplicantDetailPage() {
             </div>
             <ApplicantReviewHero applicant={applicant} />
             <SectionTabs activeId={activeSection} items={DETAIL_TABS} onChange={setActiveSection} />
+            <ApplicantFeaturedContents applicant={applicant} />
             <BasicInformation applicant={applicant} />
             <SnsMetrics applicant={applicant} />
+            <ApplicantAutomaticReview applicant={applicant} />
             <ApplicantAnalysisReport applicant={applicant} />
             <ReviewSection
               applicant={applicant}

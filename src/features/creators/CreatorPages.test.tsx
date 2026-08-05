@@ -145,7 +145,7 @@ describe("creator detail", () => {
     expect(screen.getByRole("heading", { name: "크리에이터 상세" })).toBeInTheDocument();
     expect(screen.getByText("CR102")).toBeInTheDocument();
     const sections = screen.getByRole("navigation", { name: "섹션" });
-    expect(within(sections).getByText("대표 게시글")).toHaveAttribute("aria-current", "page");
+    expect(within(sections).getByText("대표 콘텐츠")).toHaveAttribute("aria-current", "page");
     expect(within(sections).getByText("기본 정보")).toBeInTheDocument();
     expect(within(sections).getByText("크리에이터 분석")).toBeInTheDocument();
     expect(within(sections).getByText("영입 제안")).toBeInTheDocument();
@@ -164,7 +164,7 @@ describe("creator detail", () => {
     expect(screen.getAllByText("@seo.yeon")).toHaveLength(2);
     expect(screen.getAllByText("48,200")).toHaveLength(2);
     expect(screen.getAllByText("3,278")).toHaveLength(1);
-    const featured = screen.getByRole("region", { name: "대표 게시글" });
+    const featured = screen.getByRole("region", { name: "대표 콘텐츠" });
     expect(within(featured).getAllByRole("link", { name: /김서연 대표 게시글:/ })).toHaveLength(3);
     for (const views of ["98,600", "74,200", "63,100"]) {
       expect(within(featured).getByText(views)).toBeInTheDocument();

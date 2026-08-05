@@ -11,37 +11,38 @@ function formatNumber(value: number) {
   return value.toLocaleString("ko-KR");
 }
 
-function FeaturedContents({ applicant }: { applicant: ApplicantFixture }) {
+export function ApplicantFeaturedContents({ applicant }: { applicant: ApplicantFixture }) {
   const contents = applicantFeaturedContentFor(applicant);
 
   return (
-    <section aria-labelledby="applicant-featured-content-title" className="fuma-content-section fuma-applicant-featured" id="featured-content">
+    <section aria-labelledby="applicant-featured-content-title" className="fuma-content-section fuma-detail-featured" id="featured-content">
       <header className="fuma-content-section__header">
         <div>
           <h2 id="applicant-featured-content-title">대표 콘텐츠</h2>
           <span>최근 90일 반응 상위 콘텐츠 · 클릭 시 원문으로 이동</span>
         </div>
       </header>
-      <div className="fuma-applicant-featured-content">
+      <div className="fuma-detail-featured__grid">
         {contents.map((content, index) => (
           <a
-            className="fuma-applicant-featured-content__item"
+            className="fuma-detail-featured__post"
             href={content.url}
             key={content.id}
             rel="noreferrer"
             target="_blank"
           >
-            <img alt={`${applicant.name} 대표 콘텐츠: ${content.title}`} src={content.thumbnailUrl} />
-            <span className="fuma-applicant-featured-content__rank">TOP {index + 1}</span>
-            <span className="fuma-applicant-featured-content__type">{content.mediaType}</span>
-            <div className="fuma-applicant-featured-content__body">
-              <strong>{content.title}</strong>
-              <dl aria-label={`${content.title} 반응 지표`}>
+            <div className="fuma-detail-featured__image">
+              <img alt={`${applicant.name} 대표 콘텐츠: ${content.title}`} src={content.thumbnailUrl} />
+              <span>{index + 1}</span>
+              {content.mediaType === "동영상" ? <b aria-label="동영상">▶</b> : null}
+            </div>
+            <div className="fuma-detail-featured__copy">
+              <div><strong>{content.title}</strong><span>{content.mediaType}</span></div>
+              <dl aria-label={`${content.title} 반응 지표`} className="fuma-detail-featured__metrics">
                 <div><dt>조회</dt><dd>{formatNumber(content.views)}</dd></div>
                 <div><dt>좋아요</dt><dd>{formatNumber(content.likes)}</dd></div>
                 <div><dt>댓글</dt><dd>{formatNumber(content.comments)}</dd></div>
               </dl>
-              <span className="fuma-applicant-featured-content__link">원문 보기 <span aria-hidden="true">↗</span></span>
             </div>
           </a>
         ))}
@@ -50,7 +51,7 @@ function FeaturedContents({ applicant }: { applicant: ApplicantFixture }) {
   );
 }
 
-function AutomaticReview({ applicant }: { applicant: ApplicantFixture }) {
+export function ApplicantAutomaticReview({ applicant }: { applicant: ApplicantFixture }) {
   const analysis = applicantAnalysisFor(applicant);
   const audienceLabel = applicant.platform === "Instagram" ? "팔로워" : "구독자";
   const contentLabel = applicant.platform === "Instagram" ? "공개 게시물" : "공개 영상";
@@ -109,10 +110,7 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: ApplicantFix
   const audienceLabel = applicant.platform === "Instagram" ? "팔로워" : "구독자";
 
   return (
-    <>
-      <AutomaticReview applicant={applicant} />
-      <FeaturedContents applicant={applicant} />
-      <section aria-labelledby="applicant-analysis-title" className="fuma-content-section fuma-applicant-analysis" id="analysis">
+    <section aria-labelledby="applicant-analysis-title" className="fuma-content-section fuma-applicant-analysis" id="analysis">
         <header className="fuma-content-section__header">
           <div>
             <h2 id="applicant-analysis-title">지원자 분석 리포트</h2>
@@ -162,7 +160,6 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: ApplicantFix
             <div>{featuredContents.map((content, index) => <a href={content.url} key={content.id} rel="noreferrer" target="_blank">근거 {index + 1}. {content.title} <span aria-hidden="true">↗</span></a>)}</div>
           </div>
         </section>
-      </section>
-    </>
+    </section>
   );
 }
