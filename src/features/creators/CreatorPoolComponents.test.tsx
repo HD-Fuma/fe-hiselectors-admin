@@ -16,7 +16,7 @@ test("toolbar owns the static sort and mutually exclusive view buttons", async (
 
   expect(screen.getByText("크리에이터 목록")).toBeInTheDocument();
   expect(screen.getByText("총 4건")).toBeInTheDocument();
-  expect(screen.getByText("AI 적합도순").closest("button,select")).toBeNull();
+  expect(screen.getByText("ER순").closest("button,select")).toBeNull();
   expect(screen.getByRole("button", { name: "카드 보기" })).toHaveAttribute(
     "aria-pressed",
     "true",
