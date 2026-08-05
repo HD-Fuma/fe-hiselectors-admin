@@ -291,7 +291,11 @@ function ProposalMethods({ creator }: { creator: CreatorFixture }) {
   const hasEmailProposal = hasEmailProposalChannel(creator);
 
   return (
-    <section aria-labelledby="creator-proposal-title" className="fuma-content-section">
+    <section
+      aria-labelledby="creator-proposal-title"
+      className="fuma-content-section"
+      id="proposal"
+    >
       <header className="fuma-content-section__header">
         <h2 id="creator-proposal-title">영입 제안</h2>
       </header>
@@ -415,7 +419,13 @@ const PROPOSAL_COLUMNS: DenseTableColumn<ProposalFixture>[] = [
 
 export function ProposalHistoryPage() {
   const [searchParams] = useSearchParams();
-  const proposals = searchParams.get("fixture") === "empty" ? [] : PROPOSALS;
+  const creatorId = searchParams.get("creator");
+  const proposals =
+    searchParams.get("fixture") === "empty"
+      ? []
+      : creatorId
+        ? PROPOSALS.filter((proposal) => proposal.targetId === creatorId)
+        : PROPOSALS;
 
   return (
     <section className="fuma-page">

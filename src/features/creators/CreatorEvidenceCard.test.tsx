@@ -1,6 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { CREATORS, type CreatorFixture } from "./fixtures";
+import { CreatorDetailPage, ProposalHistoryPage } from "./CreatorPages";
 import {
   CreatorEvidenceCard,
   averageViews,
@@ -149,6 +151,25 @@ function renderCard(creator: CreatorFixture = zia) {
   );
 }
 
+function renderCardRoutes(creator: CreatorFixture = zia) {
+  return render(
+    <MemoryRouter initialEntries={["/"]}>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <ul>
+              <CreatorEvidenceCard creator={creator} />
+            </ul>
+          }
+        />
+        <Route path="/creators/:creatorId" element={<CreatorDetailPage />} />
+        <Route path="/proposals" element={<ProposalHistoryPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
 describe("CreatorEvidenceCard", () => {
   test("shows profile, popular posts, platform identity, metrics, and state", () => {
     renderCard();
@@ -206,6 +227,30 @@ describe("CreatorEvidenceCard", () => {
     renderCard(withStatus(status));
 
     expect(screen.getByRole("link", { name: `이지아 ${label}` })).toHaveAttribute("href", href);
+  });
+
+  test("navigates the proposal action to the detail proposal target", async () => {
+    const user = userEvent.setup();
+    renderCardRoutes();
+
+    await user.click(screen.getByRole("link", { name: "이지아 다시 제안" }));
+
+    expect(screen.getByRole("region", { name: "영입 제안" })).toHaveAttribute(
+      "id",
+      "proposal",
+    );
+  });
+
+  test("navigates the history action to proposals filtered for the creator", async () => {
+    const user = userEvent.setup();
+    renderCardRoutes(withStatus("발송 완료"));
+
+    await user.click(screen.getByRole("link", { name: "이지아 제안 이력" }));
+
+    expect(screen.getByText("총 1건")).toBeInTheDocument();
+    const results = screen.getByRole("region", { name: "제안 이력 목록" });
+    expect(within(results).getByRole("row", { name: /이지아 \(cr-003\)/ })).toBeInTheDocument();
+    expect(within(results).queryByText(/김서연/)).not.toBeInTheDocument();
   });
 
   test("renders first-channel and zero-safe fallbacks", () => {
