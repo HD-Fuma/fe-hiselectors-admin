@@ -233,6 +233,23 @@ describe("creator detail", () => {
 });
 
 describe("proposal history", () => {
+  test("opens a creator-specific proposal compose workspace", () => {
+    renderRoute("/proposals/new?creator=cr-001");
+
+    expect(screen.getByRole("heading", { name: "크리에이터 제안 작성" })).toBeInTheDocument();
+    expect(screen.getByText("CR202")).toBeInTheDocument();
+    expect(screen.getByText("김서연님에게 보낼 제안을 작성합니다.")).toBeInTheDocument();
+    const target = screen.getByRole("complementary", { name: "제안 대상" });
+    expect(within(target).getByText("Instagram")).toBeInTheDocument();
+    expect(within(target).getByText("@seo.yeon")).toBeInTheDocument();
+    const form = screen.getByRole("form", { name: "제안 작성" });
+    expect(within(form).getByRole("combobox", { name: "제안 채널" })).toHaveValue("Instagram DM");
+    expect(within(form).getByRole("textbox", { name: "제목" })).toHaveValue(
+      "더현대Hi 셀렉터스 활동 제안드립니다, 김서연님",
+    );
+    expect(within(form).getByRole("button", { name: "제안 발송" })).toBeInTheDocument();
+  });
+
   test("renders all channels, send methods, statuses, and filters", () => {
     renderRoute("/proposals");
 

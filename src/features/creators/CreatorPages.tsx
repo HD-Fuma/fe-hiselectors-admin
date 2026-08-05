@@ -4,6 +4,7 @@ import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SectionTabs } from "../../components/ui/SectionTabs";
@@ -414,6 +415,119 @@ export function CreatorDetailPage() {
             title="대상을 찾을 수 없습니다"
           />
         )}
+      </div>
+    </section>
+  );
+}
+
+function ProposalCreatorSummary({ creator }: { creator: CreatorFixture }) {
+  const platform = creator.profile.platform;
+  const audienceLabel = platform === "Instagram" ? "팔로워" : "구독자";
+
+  return (
+    <aside aria-label="제안 대상" className="fuma-proposal-compose__creator">
+      <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
+      <div className="fuma-proposal-compose__creator-profile">
+        <img alt={`${creator.name} 프로필 이미지`} src={creator.profile.profileImageUrl} />
+        <div>
+          <strong>{creator.name}</strong>
+          <span>
+            <PlatformLabel platform={platform} />
+            {creator.profile.handle}
+          </span>
+        </div>
+      </div>
+      <dl className="fuma-proposal-compose__creator-metrics">
+        <div>
+          <dt>{audienceLabel}</dt>
+          <dd>{formatNumber(creator.profile.followers)}</dd>
+        </div>
+        <div>
+          <dt>카테고리</dt>
+          <dd>{creator.categories.join(" · ")}</dd>
+        </div>
+      </dl>
+      <p className="fuma-proposal-compose__creator-note">
+        대표 콘텐츠와 분석 리포트를 확인한 뒤 제안 내용을 작성해 주세요.
+      </p>
+    </aside>
+  );
+}
+
+export function ProposalComposePage() {
+  const [searchParams] = useSearchParams();
+  const creator = CREATORS.find((item) => item.id === searchParams.get("creator"));
+
+  if (!creator) {
+    return (
+      <section className="fuma-page">
+        <PageHeader screenCode="CR202" title="크리에이터 제안 작성" />
+        <div className="fuma-page__body">
+          <EmptyState
+            description="크리에이터 풀에서 제안할 대상을 선택해 주세요."
+            title="제안 대상이 없습니다"
+          />
+        </div>
+      </section>
+    );
+  }
+
+  const channelOptions = creator.availableProposalChannels.map((channel) => ({
+    label: channel,
+    value: channel,
+  }));
+  const initialChannel = channelOptions[0].value;
+  const isInstagram = initialChannel === "Instagram DM";
+
+  return (
+    <section className="fuma-page fuma-proposal-compose">
+      <PageHeader screenCode="CR202" title="크리에이터 제안 작성" />
+      <div className="fuma-page__body">
+        <div className="fuma-proposal-compose__intro">
+          <div>
+            <p>CREATOR OUTREACH</p>
+            <h2>{creator.name}님에게 보낼 제안을 작성합니다.</h2>
+          </div>
+          <span>발송 전 내용을 다시 확인해 주세요.</span>
+        </div>
+        <div className="fuma-proposal-compose__layout">
+          <ProposalCreatorSummary creator={creator} />
+          <form aria-label="제안 작성" className="fuma-proposal-compose__form">
+            <div className="fuma-proposal-compose__form-heading">
+              <h2>제안 내용</h2>
+              <span>필수 항목을 입력해 주세요.</span>
+            </div>
+            <FormRow label="제안 채널" required>
+              <Select aria-label="제안 채널" defaultValue={initialChannel} options={channelOptions} />
+            </FormRow>
+            <FormRow label="발송 방식">
+              <div className="fuma-proposal-compose__delivery">
+                <strong>{isInstagram ? "관리자 수동 발송" : "이메일 자동 발송"}</strong>
+                <span>{isInstagram ? META_MANUAL_SEND_NOTE : creator.email}</span>
+              </div>
+            </FormRow>
+            <FormRow label="제목" required>
+              <TextInput
+                aria-label="제목"
+                defaultValue={`더현대Hi 셀렉터스 활동 제안드립니다, ${creator.name}님`}
+              />
+            </FormRow>
+            <FormRow label="제안 메시지" required>
+              <textarea
+                aria-label="제안 메시지"
+                className="hsas-control fuma-proposal-compose__textarea"
+                defaultValue={`${creator.name}님의 콘텐츠를 인상 깊게 보았습니다. 더현대Hi 셀렉터스와 함께할 기회를 제안드립니다.`}
+              />
+            </FormRow>
+            <footer className="fuma-proposal-compose__footer">
+              <span>발송 후 제안 이력에서 상태를 확인할 수 있습니다.</span>
+              <div>
+                <Button>취소</Button>
+                <Button variant="primary">제안 발송</Button>
+              </div>
+            </footer>
+          </form>
+        </div>
       </div>
     </section>
   );

@@ -255,8 +255,8 @@ test("creators visual checkpoint at the legacy viewport", async ({ page }, testI
       "#데일리룩",
       "팔로워",
       "ER",
-      "상세",
-      "제안",
+      "프로필",
+      "제안 작성",
     ],
   );
   await page.screenshot({ path: "test-results/visual/creators.png" });

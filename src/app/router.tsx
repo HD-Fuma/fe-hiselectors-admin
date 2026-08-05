@@ -9,6 +9,7 @@ import {
 import {
   CreatorDetailPage,
   CreatorListPage,
+  ProposalComposePage,
   ProposalHistoryPage,
 } from "../features/creators/CreatorPages";
 import {
@@ -45,6 +46,8 @@ function adminRouteElement(path: string, title: string, screenCode: string) {
       return <CreatorDetailPage />;
     case "/proposals":
       return <ProposalHistoryPage />;
+    case "/proposals/new":
+      return <ProposalComposePage />;
     case "/cohorts":
       return <CohortManagementPage />;
     case "/selectors":

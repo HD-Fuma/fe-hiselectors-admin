@@ -61,6 +61,14 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     workTabLabel: "제안 이력",
   },
   {
+    path: "/proposals/new",
+    group: "creators",
+    menuLabel: "제안 이력",
+    title: "크리에이터 제안 작성",
+    screenCode: "CR202",
+    workTabLabel: "제안 작성",
+  },
+  {
     path: "/cohorts",
     group: "selectors",
     menuLabel: "기수 관리",

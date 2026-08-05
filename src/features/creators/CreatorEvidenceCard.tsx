@@ -16,8 +16,8 @@ export const compactNumber = new Intl.NumberFormat("ko-KR", {
 // eslint-disable-next-line react-refresh/only-export-components
 export function proposalAction(creator: CreatorFixture) {
   return {
-    label: "제안",
-    to: `/creators/${creator.id}#proposal`,
+    label: "제안 작성",
+    to: `/proposals/new?creator=${creator.id}`,
   };
 }
 
@@ -73,7 +73,12 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
           <header className="fuma-creator-card__identity">
             <div className="fuma-creator-card__identity-copy">
               <h2 className="fuma-creator-card__name">{creator.name}</h2>
-              <p className="fuma-creator-card__handle">{creator.profile.handle}</p>
+              <p className="fuma-creator-card__channel">
+                <PlatformIcon platform={creator.profile.platform} />
+                <span>{creator.profile.platform}</span>
+                <span className="fuma-creator-card__channel-divider" aria-hidden="true">/</span>
+                <span>{creator.profile.handle}</span>
+              </p>
               <p className="fuma-creator-card__categories">
                 {creator.categories.join(" / ")}
               </p>
@@ -97,11 +102,11 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
         </div>
         <footer className="fuma-creator-card__actions">
           <Link
-            aria-label={`${creator.name} 상세 보기`}
+            aria-label={`${creator.name} 프로필 보기`}
             className="fuma-creator-card__action"
             to={`/creators/${creator.id}`}
           >
-            상세
+            프로필
             <ArrowUpRight aria-hidden="true" />
           </Link>
           <Link
