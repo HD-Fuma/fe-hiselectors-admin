@@ -209,7 +209,9 @@ export function CreatorListPage() {
           </FilterField>
         </SearchPanel>
         <CreatorResultToolbar count={creators.length} onViewChange={setView} view={view} />
-        {view === "cards" ? (
+        {creators.length === 0 ? (
+          <EmptyState title="검색 결과가 없습니다." />
+        ) : view === "cards" ? (
           <CreatorCardGrid creators={creators} />
         ) : (
           <div aria-label="크리에이터 목록" className="fuma-wide-table" role="region">

@@ -68,12 +68,6 @@ const SEMANTIC_ROUTE_CONTRACTS = [
       { role: "combobox", name: "티어" },
       { role: "combobox", name: "플랫폼" },
     ],
-    expectedTables: [
-      {
-        region: "크리에이터 목록",
-        columns: ["이름", "팔로워·구독자", "콘텐츠 수", "최근 활동일"],
-      },
-    ],
   },
   {
     route: "/proposals",

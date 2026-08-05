@@ -116,13 +116,14 @@ describe("creator pool", () => {
     ).toHaveLength(0);
   });
 
-  test("renders the explicit empty creator fixture", () => {
+  test("renders one explicit empty state instead of a card list or table", () => {
     renderRoute("/creators?fixture=empty");
 
     expect(screen.getByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
     expect(screen.getByText("총 0건")).toBeInTheDocument();
-    expect(screen.getByText("검색 결과가 없습니다.")).toBeInTheDocument();
-    expect(screen.queryByText("김서연")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "검색 결과가 없습니다." })).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "크리에이터 목록" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 });
 
