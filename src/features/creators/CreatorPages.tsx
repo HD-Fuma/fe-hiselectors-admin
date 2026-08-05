@@ -58,7 +58,7 @@ function PlatformLabel({ platform }: { platform: CreatorChannelFixture["platform
   return (
     <span className="fuma-platform-label">
       <PlatformIcon platform={platform} />
-      <span>{platform}</span>
+      <span aria-hidden="true">{platform}</span>
     </span>
   );
 }

@@ -108,6 +108,12 @@ describe("creator pool", () => {
     expect(within(ziaRow).getByText("Facebook")).toBeInTheDocument();
     expect(within(ziaRow).getByRole("img", { name: "Instagram 플랫폼" })).toBeInTheDocument();
     expect(within(ziaRow).getByRole("img", { name: "Facebook 플랫폼" })).toBeInTheDocument();
+    expect(
+      within(results).queryAllByRole("row", { name: /Instagram 플랫폼\s*Instagram/ }),
+    ).toHaveLength(0);
+    expect(
+      within(results).queryAllByRole("row", { name: /Facebook 플랫폼\s*Facebook/ }),
+    ).toHaveLength(0);
   });
 
   test("renders the explicit empty creator fixture", () => {
@@ -202,9 +208,14 @@ describe("creator detail", () => {
     renderRoute("/creators/cr-003");
 
     const channels = screen.getByRole("region", { name: "플랫폼별 채널" });
-    const row = within(channels).getByRole("row", { name: /Facebook 지아의 여행노트/ });
+    const row = within(channels).getByRole("row", {
+      name: /Facebook 플랫폼 지아의 여행노트/,
+    });
     expect(within(row).getByText("Facebook")).toBeInTheDocument();
     expect(within(row).getByRole("img", { name: "Facebook 플랫폼" })).toBeInTheDocument();
+    expect(
+      within(channels).queryAllByRole("row", { name: /Facebook 플랫폼\s*Facebook/ }),
+    ).toHaveLength(0);
   });
 
   test("keeps the detail frame and shows a missing-record state", () => {
