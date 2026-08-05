@@ -76,6 +76,13 @@ export interface ContentInfluence {
   comments: number;
 }
 
+export interface PerformanceTrendPoint {
+  date: string;
+  label: string;
+  clicks: number;
+  conversions: number;
+}
+
 const CAMPAIGN_METADATA: readonly CampaignMetadata[] = [
   {
     id: "cp-001",
@@ -213,6 +220,27 @@ export const CONTENT_INFLUENCE: readonly ContentInfluence[] = [
     views: 154_200,
     likes: 11_920,
     comments: 940,
+  },
+];
+
+export const PERFORMANCE_TREND: readonly PerformanceTrendPoint[] = [
+  {
+    date: "2026-08-01",
+    label: "8월 1일",
+    clicks: 13_200,
+    conversions: 410,
+  },
+  {
+    date: "2026-08-02",
+    label: "8월 2일",
+    clicks: 14_100,
+    conversions: 463,
+  },
+  {
+    date: "2026-08-03",
+    label: "8월 3일",
+    clicks: 14_900,
+    conversions: 526,
   },
 ];
 

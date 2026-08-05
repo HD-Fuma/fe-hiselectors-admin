@@ -4,6 +4,7 @@ import {
   CAMPAIGN_PERFORMANCE,
   CONTENT_INFLUENCE,
   CREATOR_INFLUENCE,
+  PERFORMANCE_TREND,
   SELECTOR_PERFORMANCE,
   formatCount,
   formatRate,
@@ -43,6 +44,29 @@ test("formats zero, thousands, and conversion rates for dense analytics tables",
   expect(formatCount(42200)).toBe("42,200");
   expect(formatRate(0, 0)).toBe("0.00%");
   expect(formatRate(829, 24820)).toBe("3.34%");
+});
+
+test("keeps the selected-period daily trend equal to the dashboard totals", () => {
+  const dashboardClicks = CAMPAIGN_PERFORMANCE.reduce(
+    (total, campaign) => total + campaign.clicks,
+    0,
+  );
+  const dashboardConversions = CAMPAIGN_PERFORMANCE.reduce(
+    (total, campaign) => total + campaign.conversions,
+    0,
+  );
+
+  expect(PERFORMANCE_TREND.map((point) => point.date)).toEqual([
+    "2026-08-01",
+    "2026-08-02",
+    "2026-08-03",
+  ]);
+  expect(
+    PERFORMANCE_TREND.reduce((total, point) => total + point.clicks, 0),
+  ).toBe(dashboardClicks);
+  expect(
+    PERFORMANCE_TREND.reduce((total, point) => total + point.conversions, 0),
+  ).toBe(dashboardConversions);
 });
 
 test("keeps campaign totals equal to canonical content attribution", () => {
