@@ -2852,6 +2852,56 @@
   background: #1b8060;
 }
 
+.fuma-creator-card__metrics {
+  min-height: 44px;
+  margin: 0 14px 14px;
+  overflow: visible;
+  border: 0;
+  border-top: 1px solid #e5ece8;
+  border-radius: 0;
+  background: transparent;
+}
+
+.fuma-creator-card__metric {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 10px 0 0;
+}
+
+.fuma-creator-card__metric--engagement {
+  margin-left: 16px;
+  padding-left: 16px;
+  border-left: 1px solid #e5ece8;
+}
+
+.fuma-creator-card__metric dt {
+  color: #78847e;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.fuma-creator-card__metric dd {
+  margin: 0;
+  font-size: 17px;
+  line-height: 20px;
+}
+
+.fuma-creator-detail-hero__metrics {
+  gap: 0;
+}
+
+.fuma-creator-detail-hero__metrics div {
+  padding: 10px 14px 0;
+  border-left: 1px solid #e3ebe6;
+}
+
+.fuma-creator-detail-hero__metrics div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
 .fuma-creator-detail-page .fuma-page__body {
   gap: 16px;
 }
