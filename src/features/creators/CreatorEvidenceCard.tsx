@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ArrowUpRight, Send } from "lucide-react";
 import { type StatusPillProps } from "../../components/ui/StatusPill";
 import type { CreatorFixture, ProposalStatus } from "./fixtures";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
@@ -15,7 +16,7 @@ export const compactNumber = new Intl.NumberFormat("ko-KR", {
 // eslint-disable-next-line react-refresh/only-export-components
 export function proposalAction(creator: CreatorFixture) {
   return {
-    label: "제안하기",
+    label: "제안 보내기",
     to: `/creators/${creator.id}#proposal`,
   };
 }
@@ -43,10 +44,9 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
   const action = proposalAction(creator);
   const isInstagram = creator.profile.platform === "Instagram";
   const engagement = engagementResultForCreator(creator);
-  const primaryMetrics = [
-    { label: isInstagram ? "팔로워" : "구독자", value: creator.profile.followers },
-    { label: "ER", value: engagement.value === null ? "집계 불가" : `${engagement.value.toFixed(1)}%` },
-  ];
+  const audienceLabel = isInstagram ? "팔로워" : "구독자";
+  const engagementValue =
+    engagement.value === null ? "집계 불가" : `${engagement.value.toFixed(1)}%`;
 
   return (
     <li className="fuma-creator-card" role="listitem">
@@ -85,32 +85,31 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
             </div>
           </header>
           <dl className="fuma-creator-card__metrics">
-            {primaryMetrics.map((metric, index) => (
-              <div className="fuma-creator-card__metric" key={metric.label}>
-                <dt>
-                  {index === 0 ? (
-                    <span className="hsas-visually-hidden">팔로워·구독자</span>
-                  ) : null}
-                  {metric.label}
-                </dt>
-                <dd>{typeof metric.value === "number" ? compactNumber.format(metric.value) : metric.value}</dd>
-              </div>
-            ))}
+            <div className="fuma-creator-card__metric fuma-creator-card__metric--audience">
+              <dt>{audienceLabel}</dt>
+              <dd>{compactNumber.format(creator.profile.followers)}</dd>
+            </div>
+            <div className="fuma-creator-card__metric fuma-creator-card__metric--engagement">
+              <dt>ER</dt>
+              <dd>{engagementValue}</dd>
+            </div>
           </dl>
         </div>
         <footer className="fuma-creator-card__actions">
           <Link
-            aria-label={`${creator.name} 상세 보기`}
+            aria-label={`${creator.name} 프로필 보기`}
             className="fuma-creator-card__action"
             to={`/creators/${creator.id}`}
           >
-            상세 보기
+            프로필 보기
+            <ArrowUpRight aria-hidden="true" />
           </Link>
           <Link
             aria-label={`${creator.name} ${action.label}`}
             className="fuma-creator-card__action fuma-creator-card__action--primary"
             to={action.to}
           >
+            <Send aria-hidden="true" />
             {action.label}
           </Link>
         </footer>

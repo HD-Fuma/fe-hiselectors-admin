@@ -52,17 +52,17 @@ describe("CreatorEvidenceCard", () => {
       ".fuma-creator-card__metrics > div",
     );
     expect(metrics).toHaveLength(2);
-    expect(within(metrics[0]).getByText("팔로워·구독자")).toHaveClass(
-      "hsas-visually-hidden",
-    );
+    expect(within(metrics[0]).getByText("팔로워")).toBeInTheDocument();
+    expect(metrics[0]).toHaveClass("fuma-creator-card__metric--audience");
+    expect(metrics[1]).toHaveClass("fuma-creator-card__metric--engagement");
     expect(container.querySelector(".fuma-creator-card__portrait .fuma-creator-card__platform-badge")).toBeInTheDocument();
     expect(container.querySelector(".fuma-creator-card__identity .fuma-creator-card__actions")).not.toBeInTheDocument();
 
-    expect(within(card).getByRole("link", { name: "이지아 상세 보기" })).toHaveAttribute(
+    expect(within(card).getByRole("link", { name: "이지아 프로필 보기" })).toHaveAttribute(
       "href",
       "/creators/cr-003",
     );
-    expect(within(card).getByRole("link", { name: "이지아 제안하기" })).toHaveAttribute(
+    expect(within(card).getByRole("link", { name: "이지아 제안 보내기" })).toHaveAttribute(
       "href",
       "/creators/cr-003#proposal",
     );
@@ -83,7 +83,7 @@ describe("CreatorEvidenceCard", () => {
 
   test.each(["미제안", "발송 실패", "발송 대기", "발송 완료", "셀렉터스 전환"] as const)("keeps the generic proposal action for %s", (status) => {
     renderCard(withStatus(status));
-    expect(screen.getByRole("link", { name: "이지아 제안하기" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "이지아 제안 보내기" })).toHaveAttribute(
       "href",
       "/creators/cr-003#proposal",
     );
@@ -93,7 +93,7 @@ describe("CreatorEvidenceCard", () => {
 test("keeps compact metrics and proposal helper contracts", () => {
   expect(compactNumber.format(32_700)).toBe("3.3만");
   expect(proposalAction(withStatus("미제안"))).toEqual({
-    label: "제안하기",
+    label: "제안 보내기",
     to: "/creators/cr-003#proposal",
   });
   expect(proposalTone("발송 완료")).toBe("approved");
