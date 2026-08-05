@@ -66,7 +66,6 @@ export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
             alt="더현대Hi"
           />
         </span>
-        <span className="hsas-admin-sidebar__brand-caption">SELECTORS</span>
       </div>
       <nav
         className="hsas-admin-sidebar__navigation"
