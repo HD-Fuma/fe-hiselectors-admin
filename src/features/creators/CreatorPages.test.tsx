@@ -121,20 +121,20 @@ describe("creator pool", () => {
 });
 
 describe("creator detail", () => {
-  test("renders the ready AI report, channel metrics, and both proposal methods", () => {
+  test("renders the creator analysis report, channel metrics, and both proposal methods", () => {
     renderRoute("/creators/cr-001");
 
     expect(screen.getByRole("heading", { name: "크리에이터 상세" })).toBeInTheDocument();
     expect(screen.getByText("CR102")).toBeInTheDocument();
     const sections = screen.getByRole("navigation", { name: "섹션" });
     expect(within(sections).getByText("기본 정보")).toHaveAttribute("aria-current", "page");
-    expect(within(sections).getByText("AI 요약 리포트")).toBeInTheDocument();
+    expect(within(sections).getByText("크리에이터 분석")).toBeInTheDocument();
     expect(within(sections).getByText("영입 제안")).toBeInTheDocument();
 
     expect(screen.getByText("cr-001")).toBeInTheDocument();
     expect(screen.getByText("김서연")).toBeInTheDocument();
     expect(screen.getByText("뷰티 / 패션")).toBeInTheDocument();
-    expect(screen.getAllByText("82,400")).toHaveLength(2);
+    expect(screen.getAllByText("82,400")).toHaveLength(3);
     expectColumnHeaders([
       "플랫폼",
       "채널",
@@ -143,23 +143,18 @@ describe("creator detail", () => {
       "평균 반응 수",
     ]);
     expect(screen.getByText("@seo.yeon")).toBeInTheDocument();
-    expect(screen.getByText("48,200")).toBeInTheDocument();
-    expect(screen.getByText("3,278")).toBeInTheDocument();
+    expect(screen.getAllByText("48,200")).toHaveLength(2);
+    expect(screen.getAllByText("3,278")).toHaveLength(1);
     const channels = screen.getByRole("region", { name: "플랫폼별 채널" });
     expect(within(channels).getAllByRole("row")).toHaveLength(2);
 
-    expect(screen.getByRole("heading", { name: "AI 요약 리포트" })).toBeInTheDocument();
-    expect(screen.getByText("AI 적합도")).toBeInTheDocument();
-    expect(screen.getByText("92점")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "뷰티·패션 콘텐츠의 반응률이 높고 최근 브랜드 협업 활동이 꾸준한 크리에이터입니다.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText("근거 지표")).toBeInTheDocument();
-    expect(screen.getByText("최근 30일 평균 조회 수 48,200회")).toBeInTheDocument();
-    expect(screen.getByText("평균 반응률 6.8%")).toBeInTheDocument();
-    expect(screen.getByText("브랜드 협업 콘텐츠 비중 34%")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "크리에이터 분석" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "정량 분석" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "AI 정성 분석" })).toBeInTheDocument();
+    expect(screen.getByText("ER (Engagement Rate)")).toBeInTheDocument();
+    expect(screen.getByText(/ER 4.0%/)).toBeInTheDocument();
+    expect(screen.getByText("1차 2N 선정")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "AI 분석 근거 게시글" })).toHaveLength(8);
 
     expect(screen.getByText("Instagram DM", { selector: "h3" })).toBeInTheDocument();
     expect(screen.getByText("Meta 정책상 자동 선접촉이 불가합니다. 관리자 확인 후 수동 발송이 필요합니다.")).toBeInTheDocument();
@@ -169,17 +164,14 @@ describe("creator detail", () => {
     expect(screen.getByRole("button", { name: "이메일 제안 발송" })).toBeInTheDocument();
   });
 
-  test("renders the pending AI fixture without a ready score or evidence", () => {
+  test("renders the analysis report for a pending legacy fixture", () => {
     renderRoute("/creators/cr-001?fixture=ai-pending");
 
     expect(screen.getByRole("heading", { name: "크리에이터 상세" })).toBeInTheDocument();
-    expect(screen.getByText("생성 대기")).toBeInTheDocument();
-    expect(screen.getByText("AI 리포트 생성 전")).toBeInTheDocument();
-    expect(
-      screen.getByText("분석 데이터가 준비되면 요약 리포트가 표시됩니다."),
-    ).toBeInTheDocument();
-    expect(screen.queryByText("92점")).not.toBeInTheDocument();
-    expect(screen.queryByText("최근 30일 평균 조회 수 48,200회")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "크리에이터 분석" })).toBeInTheDocument();
+    expect(screen.getByText(/최종 업데이트 2026.08.05/)).toBeInTheDocument();
+    expect(screen.getByText("정량 분석")).toBeInTheDocument();
+    expect(screen.queryByText("AI 적합도")).not.toBeInTheDocument();
   });
 
   test("renders only declared proposal channels for an Instagram-only creator", () => {

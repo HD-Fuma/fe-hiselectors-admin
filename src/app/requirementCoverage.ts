@@ -54,8 +54,10 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     rows: [5, 6, 7, 8],
     expectedTexts: [
       "기본 정보",
-      "AI 적합도",
-      "근거 지표",
+      "크리에이터 분석",
+      "정량 분석",
+      "ER (Engagement Rate)",
+      "크리에이터 풀 TopN 선정",
       "Instagram DM",
       "Meta 정책상 자동 선접촉이 불가합니다. 관리자 확인 후 수동 발송이 필요합니다.",
       "이메일",

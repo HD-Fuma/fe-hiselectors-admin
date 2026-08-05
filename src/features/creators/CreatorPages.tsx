@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { AiSummaryPanel } from "../../components/content/AiSummaryPanel";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
@@ -10,6 +9,7 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SectionTabs } from "../../components/ui/SectionTabs";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { CreatorCardGrid } from "./CreatorCardGrid";
+import { CreatorAnalysisReport } from "./CreatorAnalysisReport";
 import {
   CreatorResultToolbar,
   type CreatorPoolView,
@@ -380,7 +380,7 @@ export function CreatorDetailPage() {
               activeId="basic"
               items={[
                 { id: "basic", label: "기본 정보" },
-                { id: "ai", label: "AI 요약 리포트" },
+                { id: "ai", label: "크리에이터 분석" },
                 { id: "proposal", label: "영입 제안" },
               ]}
             />
@@ -395,7 +395,7 @@ export function CreatorDetailPage() {
                 rows={[creator.profile]}
               />
             </section>
-            <AiSummaryPanel report={creator.aiReport} />
+            <CreatorAnalysisReport creator={creator} />
             <ProposalMethods creator={creator} />
           </>
         ) : (

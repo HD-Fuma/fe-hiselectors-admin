@@ -64,8 +64,8 @@ const SEMANTIC_ROUTE_CONTRACTS = [
     route: "/creators",
     expectedControls: [
       { role: "textbox", name: "키워드" },
-      { role: "combobox", name: "카테고리" },
-      { role: "combobox", name: "티어" },
+      { role: "textbox", name: "최소 팔로워·구독자" },
+      { role: "textbox", name: "최대 팔로워·구독자" },
       { role: "combobox", name: "플랫폼" },
     ],
   },
@@ -383,7 +383,7 @@ describe("deterministic fixture route states", () => {
   test.each([
     ["/creators?fixture=empty", "검색 결과가 없습니다."],
     ["/proposals?fixture=empty", "등록된 제안 이력이 없습니다."],
-    ["/creators/cr-001?fixture=ai-pending", "AI 리포트 생성 전"],
+    ["/creators/cr-001?fixture=ai-pending", "정량 분석"],
     ["/content/reviews?fixture=no-selection", "선택된 콘텐츠가 없습니다."],
     ["/content/reviews/ct-002?fixture=violation-correction", "URL 2 → 1"],
     ["/content/reviews/ct-003?fixture=edited", "URL 1 → 2"],
