@@ -21,6 +21,7 @@ test("renders supplied KPI no-result and all-zero values in a semantic descripti
 
   const grid = screen.getByRole("group", { name: "성과 요약" });
   expect(grid.tagName).toBe("DL");
+  expect(grid).toHaveAttribute("data-visual-contract", "metric-strip");
   expect(within(grid).getByText("조회 결과").tagName).toBe("DT");
   expect(within(grid).getByText("-").tagName).toBe("DD");
   expect(within(grid).getByText("구매 전환")).toBeInTheDocument();

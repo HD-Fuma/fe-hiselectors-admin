@@ -34,6 +34,7 @@ export function PerformanceKpiGrid({
     <dl
       aria-label={ariaLabel}
       className="fuma-performance-kpi-grid"
+      data-visual-contract="metric-strip"
       role="group"
     >
       {items.map((item) => (

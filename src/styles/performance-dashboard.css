@@ -1,3 +1,9 @@
+body:has(.fuma-performance-page) .hsas-admin-shell,
+body:has(.fuma-performance-page) .hsas-admin-shell__workspace,
+body:has(.fuma-performance-page) .hsas-admin-shell__content {
+  min-width: 0;
+}
+
 .fuma-performance-page {
   --fuma-performance-ink: #263438;
   --fuma-performance-muted: #66767a;
