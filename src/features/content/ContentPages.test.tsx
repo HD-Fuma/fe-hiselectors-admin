@@ -23,7 +23,9 @@ function expectSnapshotEditor(
 ) {
   const editor = within(snapshot).getByRole("region", { name: `${label} 본문` });
 
-  expect(editor).toHaveTextContent(`<p>${expectedText}</p>`);
+  expect(editor).toHaveTextContent(expectedText);
+  expect(editor.querySelector("pre, code")).not.toBeInTheDocument();
+  expect(editor.querySelector(".fuma-editor-frame__toolbar")).not.toBeInTheDocument();
   expect(editor.querySelector("textarea")).not.toBeInTheDocument();
   expect(editor.querySelector("[contenteditable]")).not.toBeInTheDocument();
 }

@@ -1847,43 +1847,16 @@
   background: var(--hsas-surface);
 }
 
-.fuma-editor-frame__toolbar {
-  border-bottom: 1px solid #d8dcdd;
-  background: #f2f4f4;
-  color: #a1a8ab;
-  font-size: 10px;
-  user-select: none;
-}
-
-.fuma-editor-frame__toolbar-row {
-  display: flex;
-  min-height: 23px;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 5px;
-  border-bottom: 1px solid #e3e6e8;
-}
-
-.fuma-editor-frame__toolbar-row:last-child {
-  border-bottom: 0;
-}
-
-.fuma-editor-frame__toolbar-row span {
-  height: 17px;
-  padding: 1px 5px;
-  border-right: 1px solid #dfe3e4;
-  line-height: 15px;
-}
-
-.fuma-editor-frame__source {
+.fuma-editor-frame__text {
   min-height: 158px;
   margin: 0;
-  padding: var(--hsas-space-8);
+  padding: 14px;
   overflow: auto;
-  color: #4a5054;
-  font-family: "Malgun Gothic", "맑은 고딕", monospace;
-  font-size: 11px;
-  line-height: 17px;
+  color: #30383c;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
