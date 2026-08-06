@@ -32,7 +32,7 @@ describe("CreatorEvidenceCard", () => {
     expect(card.parentElement).toHaveAttribute("role", "listitem");
     expect(within(card).getByAltText("이지아 프로필 이미지")).toHaveAttribute(
       "src",
-      "/creator-media/cr-003-profile.jpg",
+      "/creator-media/kr-cr-003-profile.jpg",
     );
     const mosaic = within(card).getByRole("list", { name: "이지아 대표 게시글" });
     expect(within(mosaic).getAllByRole("listitem")).toHaveLength(3);
