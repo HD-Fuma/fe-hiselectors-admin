@@ -85,10 +85,10 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   {
     path: "/selectors/qualifications",
     group: "selectors",
-    menuLabel: "자격 관리",
-    title: "셀렉터스 자격 관리",
+    menuLabel: "블랙리스트 관리",
+    title: "블랙리스트 관리",
     screenCode: "SL301",
-    workTabLabel: "자격 관리",
+    workTabLabel: "블랙리스트 관리",
   },
   {
     path: "/selectors/:selectorId",
@@ -101,7 +101,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   {
     path: "/applicants",
     group: "applicants",
-    menuLabel: "지원자 목록",
+    menuLabel: "지원자 승인",
     title: "지원자 심사",
     screenCode: "AP101",
     workTabLabel: "지원자 심사",
@@ -109,7 +109,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   {
     path: "/applicants/:applicantId",
     group: "applicants",
-    menuLabel: "지원자 목록",
+    menuLabel: "지원자 승인",
     title: "지원자 상세 심사",
     screenCode: "AP102",
     workTabLabel: "지원자 상세",
@@ -163,14 +163,6 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     workTabLabel: "검수 상세",
   },
   {
-    path: "/content/violations",
-    group: "content",
-    menuLabel: "위반 관리",
-    title: "위반 콘텐츠 관리",
-    screenCode: "CT201",
-    workTabLabel: "위반 관리",
-  },
-  {
     path: "/performance",
     group: "performance",
     menuLabel: "성과 대시보드",
@@ -193,6 +185,14 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     title: "콘텐츠 영향력 분석",
     screenCode: "PF202",
     workTabLabel: "콘텐츠 분석",
+  },
+  {
+    path: "/performance/products",
+    group: "performance",
+    menuLabel: "상품 분석",
+    title: "상품 성과 분석",
+    screenCode: "PF203",
+    workTabLabel: "상품 분석",
   },
   {
     path: "/settlements",

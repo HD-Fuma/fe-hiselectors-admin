@@ -320,7 +320,7 @@ export function SelectorDetailPage() {
               </header>
               <div className="fuma-selector-operation-note">
                 <strong>{selector.violationCount === 0 ? "정상 활동 중" : `위반 ${selector.violationCount}건 확인 필요`}</strong>
-                <p>콘텐츠 검수와 자격 관리 화면에서 세부 이력 및 처리 상태를 확인할 수 있습니다.</p>
+                <p>콘텐츠 검수와 블랙리스트 관리 화면에서 세부 이력 및 처리 상태를 확인할 수 있습니다.</p>
               </div>
             </section>
           </>
@@ -457,7 +457,7 @@ function ManualQualificationSection({
 export function QualificationManagementPage() {
   return (
     <section className="fuma-page">
-      <PageHeader screenCode="SL301" title="셀렉터스 자격 관리" />
+      <PageHeader screenCode="SL301" title="블랙리스트 관리" />
       <div className="fuma-page__body">
         <SearchPanel actions={<SearchActions />}>
           <FilterField htmlFor="qualification-name" label="셀렉터스명">
@@ -485,8 +485,8 @@ export function QualificationManagementPage() {
             />
           </FilterField>
         </SearchPanel>
-        <ResultToolbar count={QUALIFICATIONS.length} title="자격 관리 목록" />
-        <div aria-label="자격 관리 목록" className="fuma-wide-table" role="region">
+        <ResultToolbar count={QUALIFICATIONS.length} title="블랙리스트 관리 목록" />
+        <div aria-label="블랙리스트 관리 목록" className="fuma-wide-table" role="region">
           <DenseTable
             columns={QUALIFICATION_COLUMNS}
             rowKey={(qualification) => qualification.selectorId}

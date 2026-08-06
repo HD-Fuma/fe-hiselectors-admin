@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import {
   formatCount,
   type PerformanceTrendPoint,
@@ -19,6 +19,8 @@ export interface PerformanceKpiItem {
   label: string;
   value: string;
   description?: string;
+  featured?: boolean;
+  icon?: ReactNode;
 }
 
 interface PerformanceKpiGridProps {
@@ -38,12 +40,19 @@ export function PerformanceKpiGrid({
       role="group"
     >
       {items.map((item) => (
-        <div className="fuma-performance-kpi-grid__item" key={item.label}>
-          <dt>{item.label}</dt>
-          <dd>
-            {item.value}
-            {item.description ? <small>{item.description}</small> : null}
-          </dd>
+        <div
+          className={`fuma-performance-kpi-grid__item${item.featured ? " is-featured" : ""}`}
+          key={item.label}
+        >
+          {item.icon ? <span className="fuma-performance-kpi-grid__icon">{item.icon}</span> : null}
+          <div className="fuma-performance-kpi-grid__copy">
+            <dt>{item.label}</dt>
+            <dd>
+              {item.value}
+              {item.description ? <small>{item.description}</small> : null}
+            </dd>
+          </div>
+          <span aria-hidden="true" className="fuma-performance-kpi-grid__chevron">›</span>
         </div>
       ))}
     </dl>

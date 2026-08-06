@@ -377,14 +377,13 @@ Define these exact entries; dynamic detail paths share their parent menu selecti
 | `/cohorts` | selectors | 기수 관리 | 셀렉터스 기수 관리 | SL101 | 기수 관리 |
 | `/selectors` | selectors | 셀렉터스 현황 | 기수별 셀렉터스 현황 | SL201 | 셀렉터스 현황 |
 | `/selectors/qualifications` | selectors | 자격 관리 | 셀렉터스 자격 관리 | SL301 | 자격 관리 |
-| `/applicants` | applicants | 지원자 목록 | 지원자 심사 | AP101 | 지원자 심사 |
-| `/applicants/:applicantId` | applicants | 지원자 목록 | 지원자 상세 심사 | AP102 | 지원자 상세 |
+| `/applicants` | applicants | 지원자 승인 | 지원자 심사 | AP101 | 지원자 심사 |
+| `/applicants/:applicantId` | applicants | 지원자 승인 | 지원자 상세 심사 | AP102 | 지원자 상세 |
 | `/campaigns` | campaigns | 캠페인 관리 | 캠페인 관리 | CP101 | 캠페인 관리 |
 | `/campaigns/new` | campaigns | 캠페인 관리 | 캠페인 등록 | CP102 | 캠페인 등록 |
 | `/campaigns/:campaignId/edit` | campaigns | 캠페인 관리 | 캠페인 수정 | CP103 | 캠페인 수정 |
 | `/content/reviews` | content | 콘텐츠 검수 | 콘텐츠 검수 | CT101 | 콘텐츠 검수 |
 | `/content/reviews/:contentId` | content | 콘텐츠 검수 | 콘텐츠 검수 상세 | CT102 | 검수 상세 |
-| `/content/violations` | content | 위반 관리 | 위반 콘텐츠 관리 | CT201 | 위반 관리 |
 | `/performance` | performance | 성과 대시보드 | 관리자 성과 대시보드 | PF101 | 성과 대시보드 |
 | `/performance/creators` | performance | 크리에이터 분석 | 크리에이터 영향력 분석 | PF201 | 크리에이터 분석 |
 | `/performance/contents` | performance | 콘텐츠 분석 | 콘텐츠 영향력 분석 | PF202 | 콘텐츠 분석 |

@@ -8,7 +8,6 @@ export interface SettlementFixture {
   selectorName: string;
   expectedAmount: number;
   confirmedAmount: number;
-  editable: boolean;
   confirmationStatus: ConfirmationStatus;
   paymentStatus: PaymentStatus;
 }
@@ -21,7 +20,6 @@ export const SETTLEMENTS: readonly SettlementFixture[] = [
     selectorName: "김서연",
     expectedAmount: 486000,
     confirmedAmount: 486000,
-    editable: true,
     confirmationStatus: "미확정",
     paymentStatus: "지급 전",
   },
@@ -32,7 +30,6 @@ export const SETTLEMENTS: readonly SettlementFixture[] = [
     selectorName: "박도윤",
     expectedAmount: 352000,
     confirmedAmount: 340000,
-    editable: true,
     confirmationStatus: "미확정",
     paymentStatus: "지급 전",
   },
@@ -43,7 +40,6 @@ export const SETTLEMENTS: readonly SettlementFixture[] = [
     selectorName: "이지아",
     expectedAmount: 275000,
     confirmedAmount: 275000,
-    editable: false,
     confirmationStatus: "확정",
     paymentStatus: "지급 대기",
   },
@@ -54,7 +50,6 @@ export const SETTLEMENTS: readonly SettlementFixture[] = [
     selectorName: "오하늘",
     expectedAmount: 410000,
     confirmedAmount: 410000,
-    editable: false,
     confirmationStatus: "확정",
     paymentStatus: "지급 완료",
   },

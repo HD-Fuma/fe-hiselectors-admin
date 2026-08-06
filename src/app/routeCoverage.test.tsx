@@ -52,7 +52,6 @@ const REQUIRED_ROUTES = [
   "/content/reviews/ct-001",
   "/content/reviews/ct-002?fixture=violation-correction",
   "/content/reviews/ct-003?fixture=edited",
-  "/content/violations",
   "/performance",
   "/performance/creators",
   "/performance/contents",
@@ -107,7 +106,7 @@ const SEMANTIC_ROUTE_CONTRACTS = [
     ],
     expectedTables: [
       {
-        region: "지원자 목록",
+        region: "지원자 승인",
         columns: [
           "지원자 ID",
           "SNS 채널",
@@ -127,26 +126,13 @@ const SEMANTIC_ROUTE_CONTRACTS = [
       { role: "combobox", name: "검수 유형" },
       { role: "combobox", name: "플랫폼" },
       { role: "combobox", name: "검수 상태" },
+      { role: "combobox", name: "위반 필터" },
       { role: "combobox", name: "처리 상태" },
     ],
     expectedTables: [
       {
         region: "콘텐츠 검수 대기열",
         columns: ["검수 유형", "작성자", "기수", "플랫폼", "AI 상태", "검수 상태", "처리 상태"],
-      },
-    ],
-  },
-  {
-    route: "/content/violations",
-    expectedControls: [
-      { role: "combobox", name: "기수" },
-      { role: "combobox", name: "위반 유형" },
-      { role: "combobox", name: "처리 상태" },
-    ],
-    expectedTables: [
-      {
-        region: "위반 콘텐츠 목록",
-        columns: ["안내 문구", "안내 상태", "누적 패널티"],
       },
     ],
   },
@@ -202,14 +188,13 @@ const SEMANTIC_ROUTE_CONTRACTS = [
     expectedControls: [
       { name: "귀속월" },
       { role: "textbox", name: "셀렉터스" },
-      { role: "combobox", name: "수정 가능 여부" },
       { role: "combobox", name: "확정 상태" },
       { role: "combobox", name: "지급 상태" },
     ],
     expectedTables: [
       {
         region: "정산 지급 목록",
-        columns: ["귀속월", "셀렉터스", "예상액", "확정액", "수정 가능 여부", "확정 상태", "지급 상태"],
+        columns: ["귀속월", "셀렉터스", "예상액", "확정액", "확정 상태", "지급 상태"],
       },
     ],
   },

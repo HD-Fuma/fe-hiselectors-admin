@@ -76,6 +76,16 @@ export interface ContentInfluence {
   comments: number;
 }
 
+export interface ProductInfluence {
+  id: string;
+  name: string;
+  category: string;
+  campaignId: string;
+  contentCount: number;
+  clicks: number;
+  conversions: number;
+}
+
 export interface PerformanceTrendPoint {
   date: string;
   label: string;
@@ -220,6 +230,36 @@ export const CONTENT_INFLUENCE: readonly ContentInfluence[] = [
     views: 154_200,
     likes: 11_920,
     comments: 940,
+  },
+];
+
+export const PRODUCT_INFLUENCE: readonly ProductInfluence[] = [
+  {
+    id: "pd-001",
+    name: "에어핏 라운딩 패딩 팬츠",
+    category: "골프웨어",
+    campaignId: "cp-001",
+    contentCount: 2,
+    clicks: 14_060,
+    conversions: 370,
+  },
+  {
+    id: "pd-002",
+    name: "리조트 린넨 셋업",
+    category: "여성 패션",
+    campaignId: "cp-002",
+    contentCount: 2,
+    clicks: 25_020,
+    conversions: 975,
+  },
+  {
+    id: "pd-003",
+    name: "썸머 에센셜 가디건",
+    category: "여성 패션",
+    campaignId: "cp-003",
+    contentCount: 1,
+    clicks: 3_120,
+    conversions: 54,
   },
 ];
 

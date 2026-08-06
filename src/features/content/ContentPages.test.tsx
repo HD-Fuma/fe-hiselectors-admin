@@ -54,6 +54,9 @@ describe("content review queue", () => {
       within(search).getByRole("combobox", { name: "검수 상태" }),
     ).toHaveTextContent("전체검수 대기수정 요청승인위반 확정");
     expect(
+      within(search).getByRole("combobox", { name: "위반 필터" }),
+    ).toHaveTextContent("전체위반 콘텐츠일반 콘텐츠");
+    expect(
       within(search).getByRole("combobox", { name: "처리 상태" }),
     ).toHaveTextContent("전체미처리안내 대기처리 완료");
     expectButton(within(search).getByRole("button", { name: "조회" }));
@@ -394,96 +397,5 @@ describe("content review detail", () => {
     expect(screen.queryByRole("region", { name: "기본 정보" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "현재 콘텐츠" })).not.toBeInTheDocument();
     expect(screen.queryByText("ct-001")).not.toBeInTheDocument();
-  });
-});
-
-describe("violation management", () => {
-  test("renders exact violation filters, notices, status, penalties, and row-scoped actions", () => {
-    renderRoute("/content/violations");
-
-    expect(screen.getByRole("heading", { name: "위반 콘텐츠 관리" })).toBeInTheDocument();
-    expect(screen.getByText("CT201")).toBeInTheDocument();
-
-    const search = screen.getByRole("search", { name: "검색 조건" });
-    expect(within(search).getByRole("combobox", { name: "기수" })).toHaveTextContent(
-      "전체3기2기",
-    );
-    expect(
-      within(search).getByRole("combobox", { name: "위반 유형" }),
-    ).toHaveTextContent("전체상품 링크 누락필수 광고 표기 누락허위·과장 표현");
-    expect(
-      within(search).getByRole("combobox", { name: "처리 상태" }),
-    ).toHaveTextContent("전체미처리처리 중처리 완료");
-    expectButton(within(search).getByRole("button", { name: "조회" }));
-    expectButton(within(search).getByRole("button", { name: "초기화" }));
-
-    expect(
-      screen.getByText("패널티 3회 이상 누적 시 차기 기수 셀렉터스 활동이 제한됩니다."),
-    ).toBeInTheDocument();
-    expect(screen.getByText("총 3건")).toBeInTheDocument();
-
-    const table = screen.getByRole("region", { name: "위반 콘텐츠 목록" });
-    expectColumnHeaders(table, [
-      "위반 ID",
-      "기수",
-      "셀렉터스",
-      "콘텐츠 ID",
-      "위반 유형",
-      "안내 문구",
-      "안내 상태",
-      "처리 상태",
-      "누적 패널티",
-      "관리",
-    ]);
-
-    const cases = [
-      {
-        rowName: /vr-001 3기 김서연 ct-005/,
-        selector: "김서연",
-        values: [
-          "상품 링크 누락",
-          "공식 상품 링크를 추가한 뒤 수정본을 제출해 주세요.",
-          "미발송",
-          "미처리",
-          "0",
-        ],
-      },
-      {
-        rowName: /vr-002 3기 박도윤 ct-002/,
-        selector: "박도윤",
-        values: [
-          "필수 광고 표기 누락",
-          "광고 표기를 본문 첫 줄에 추가하고 공식 상품 링크로 수정해 주세요.",
-          "발송 대기",
-          "처리 중",
-          "2",
-        ],
-      },
-      {
-        rowName: /vr-003 2기 이지아 ct-004/,
-        selector: "이지아",
-        values: [
-          "허위·과장 표현",
-          "최저가를 단정하는 표현을 삭제한 수정본을 제출해 주세요.",
-          "발송 완료",
-          "처리 완료",
-          "3",
-          "차기 기수 활동 불가",
-        ],
-      },
-    ];
-
-    for (const item of cases) {
-      const row = within(table).getByRole("row", { name: item.rowName });
-      for (const value of item.values) {
-        expect(within(row).getByText(value)).toBeInTheDocument();
-      }
-      expectButton(
-        within(row).getByRole("button", { name: `${item.selector} 위반사항 안내` }),
-      );
-      expectButton(
-        within(row).getByRole("button", { name: `${item.selector} 패널티 부여` }),
-      );
-    }
   });
 });

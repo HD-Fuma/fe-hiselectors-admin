@@ -25,7 +25,6 @@ export const ADMIN_REQUIREMENT_ROWS = [
   { route: "/content/reviews/ct-001", rows: [21] },
   { route: "/content/reviews/ct-002?fixture=violation-correction", rows: [22] },
   { route: "/content/reviews/ct-003?fixture=edited", rows: [22] },
-  { route: "/content/violations", rows: [23, 24] },
   { route: "/performance", rows: [25] },
   { route: "/performance/creators", rows: [26] },
   { route: "/performance/contents", rows: [27] },

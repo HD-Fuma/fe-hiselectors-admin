@@ -16,8 +16,39 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 }
 
 .fuma-performance-page .fuma-page__body {
-  gap: 20px;
+  gap: 16px;
   margin-top: 18px;
+}
+
+.fuma-performance-scope-nav {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: fit-content;
+  padding: 3px;
+  border: 1px solid #dce5e3;
+  border-radius: 8px;
+  background: #f6f8f7;
+}
+
+.fuma-performance-scope-nav a {
+  padding: 8px 12px;
+  border-radius: 5px;
+  color: #697773;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.fuma-performance-scope-nav a:hover {
+  color: #1d5d52;
+}
+
+.fuma-performance-scope-nav a.is-active {
+  color: #174f45;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(28 55 49 / 13%);
 }
 
 .fuma-performance-page .fuma-performance-search .hsas-search-panel {
@@ -31,35 +62,34 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   display: grid;
   min-width: 0;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  gap: 10px;
   margin: 0;
 }
 
 .fuma-performance-kpi-grid__item {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
   min-width: 0;
-  min-height: 112px;
-  padding: 21px 22px 18px;
+  min-height: 104px;
+  padding: 18px;
   overflow: hidden;
   border: 1px solid #d9e3e1;
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--fuma-performance-panel);
-  box-shadow: 0 8px 22px rgb(36 56 59 / 6%);
+  box-shadow: none;
 }
 
 .fuma-performance-kpi-grid__item::before {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 4px;
-  background: var(--fuma-performance-teal);
-  content: "";
+  display: none;
 }
 
-.fuma-performance-kpi-grid__item:nth-child(2)::before,
-.fuma-performance-kpi-grid__item:nth-child(4)::before {
-  background: var(--fuma-performance-orange);
+.fuma-performance-kpi-grid__item.is-featured {
+  border-color: #237763;
+  color: #fff;
+  background: #237763;
+  box-shadow: 0 8px 18px rgb(20 84 69 / 16%);
 }
 
 .fuma-performance-kpi-grid dt,
@@ -75,14 +105,52 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   letter-spacing: 0.01em;
 }
 
+.fuma-performance-kpi-grid__copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.fuma-performance-kpi-grid__icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border-radius: 50%;
+  color: #237763;
+  background: #e5f3ed;
+  font-family: Arial, sans-serif;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.fuma-performance-kpi-grid__chevron {
+  color: #93aaa3;
+  font-size: 25px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.fuma-performance-kpi-grid__item.is-featured .fuma-performance-kpi-grid__icon {
+  color: #237763;
+  background: #fff;
+}
+
+.fuma-performance-kpi-grid__item.is-featured .fuma-performance-kpi-grid__chevron,
+.fuma-performance-kpi-grid__item.is-featured dt,
+.fuma-performance-kpi-grid__item.is-featured dd,
+.fuma-performance-kpi-grid__item.is-featured dd small {
+  color: #fff;
+}
+
 .fuma-performance-kpi-grid dd {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 10px;
-  margin-top: 15px;
+  margin-top: 7px;
   color: var(--fuma-performance-ink);
-  font-size: clamp(23px, 2.25vw, 31px);
+  font-size: clamp(22px, 2vw, 28px);
   font-variant-numeric: tabular-nums;
   font-weight: 750;
   letter-spacing: -0.035em;
@@ -104,7 +172,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 }
 
 .fuma-performance-visuals--overview {
-  grid-template-columns: minmax(0, 1.55fr) minmax(290px, 0.85fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.8fr);
 }
 
 .fuma-performance-visuals--single {
@@ -119,11 +187,11 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 .fuma-performance-chart {
   min-width: 0;
   margin: 0;
-  padding: 22px 24px 24px;
+  padding: 19px 20px 20px;
   border: 1px solid #d9e3e1;
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--fuma-performance-panel);
-  box-shadow: 0 8px 24px rgb(36 56 59 / 5%);
+  box-shadow: none;
 }
 
 .fuma-performance-chart figcaption {

@@ -7,11 +7,10 @@ const expectedSidebarLinks = [
   ["제안 이력", "/proposals"],
   ["기수 관리", "/cohorts"],
   ["셀렉터스 현황", "/selectors"],
-  ["자격 관리", "/selectors/qualifications"],
-  ["지원자 목록", "/applicants"],
+  ["블랙리스트 관리", "/selectors/qualifications"],
+  ["지원자 승인", "/applicants"],
   ["캠페인 관리", "/campaigns"],
   ["콘텐츠 검수", "/content/reviews"],
-  ["위반 관리", "/content/violations"],
   ["성과 대시보드", "/performance"],
   ["크리에이터 분석", "/performance/creators"],
   ["콘텐츠 분석", "/performance/contents"],
@@ -42,6 +41,7 @@ test("renders the complete administrator navigation in one sidebar", () => {
       href,
     );
   }
+  expect(within(navigation).queryByRole("link", { name: "위반 관리" })).not.toBeInTheDocument();
 
   for (const groupLabel of [
     "크리에이터",
@@ -196,15 +196,15 @@ const routeCases = [
   {
     path: "/selectors/qualifications",
     group: "selectors",
-    menuLabel: "자격 관리",
-    title: "셀렉터스 자격 관리",
+    menuLabel: "블랙리스트 관리",
+    title: "블랙리스트 관리",
     screenCode: "SL301",
     routeIsExact: true,
   },
   {
     path: "/applicants",
     group: "applicants",
-    menuLabel: "지원자 목록",
+    menuLabel: "지원자 승인",
     title: "지원자 심사",
     screenCode: "AP101",
     routeIsExact: true,
@@ -212,7 +212,7 @@ const routeCases = [
   {
     path: "/applicants/ap-001",
     group: "applicants",
-    menuLabel: "지원자 목록",
+    menuLabel: "지원자 승인",
     title: "지원자 상세 심사",
     screenCode: "AP102",
     routeIsExact: false,
@@ -256,14 +256,6 @@ const routeCases = [
     title: "콘텐츠 검수 상세",
     screenCode: "CT102",
     routeIsExact: false,
-  },
-  {
-    path: "/content/violations",
-    group: "content",
-    menuLabel: "위반 관리",
-    title: "위반 콘텐츠 관리",
-    screenCode: "CT201",
-    routeIsExact: true,
   },
   {
     path: "/performance",

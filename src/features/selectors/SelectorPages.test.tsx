@@ -170,7 +170,7 @@ describe("selector qualification management", () => {
   test("renders qualification records and the inert manual qualification form", () => {
     renderRoute("/selectors/qualifications");
 
-    expect(screen.getByRole("heading", { name: "셀렉터스 자격 관리" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "블랙리스트 관리" })).toBeInTheDocument();
     expect(screen.getByText("SL301")).toBeInTheDocument();
 
     const search = screen.getByRole("search", { name: "검색 조건" });
@@ -186,7 +186,7 @@ describe("selector qualification management", () => {
     );
 
     expect(screen.getByText("총 3건")).toBeInTheDocument();
-    const results = screen.getByRole("region", { name: "자격 관리 목록" });
+    const results = screen.getByRole("region", { name: "블랙리스트 관리 목록" });
     expectColumnHeaders(results, [
       "셀렉터스",
       "기수",

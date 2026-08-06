@@ -27,12 +27,12 @@ import {
 import {
   ContentReviewDetailPage,
   ContentReviewListPage,
-  ContentViolationPage,
 } from "../features/content/ContentPages";
 import {
   ContentPerformancePage,
   CreatorPerformancePage,
   PerformanceDashboardPage,
+  ProductPerformancePage,
 } from "../features/performance/PerformancePages";
 import {
   SettlementManagementPage,
@@ -73,14 +73,14 @@ function adminRouteElement(path: string, title: string, screenCode: string) {
       return <ContentReviewListPage />;
     case "/content/reviews/:contentId":
       return <ContentReviewDetailPage />;
-    case "/content/violations":
-      return <ContentViolationPage />;
     case "/performance":
       return <PerformanceDashboardPage />;
     case "/performance/creators":
       return <CreatorPerformancePage />;
     case "/performance/contents":
       return <ContentPerformancePage />;
+    case "/performance/products":
+      return <ProductPerformancePage />;
     case "/settlements":
       return <SettlementManagementPage />;
     default:

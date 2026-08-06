@@ -65,13 +65,6 @@ function SettlementFilters() {
             placeholder="셀렉터스 ID 또는 이름 검색"
           />
         </FilterField>
-        <FilterField htmlFor="settlement-editable" label="수정 가능 여부">
-          <Select
-            aria-label="수정 가능 여부"
-            id="settlement-editable"
-            options={options(["전체", "가능", "불가"])}
-          />
-        </FilterField>
         <FilterField htmlFor="settlement-confirmed" label="확정 상태">
           <Select
             aria-label="확정 상태"
@@ -113,33 +106,11 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SettlementFixture>[] = [
     render: (settlement) => formatWon(settlement.expectedAmount),
   },
   {
-    id: "confirmedAmount",
+    key: "confirmedAmount",
     header: "확정액",
     width: 142,
     align: "right",
-    render: (settlement) => {
-      const canConfirm = settlement.editable && settlement.confirmationStatus === "미확정";
-      return (
-        <TextInput
-          aria-label={`${settlement.selectorName} 확정액`}
-          className="fuma-settlement-amount-input"
-          defaultValue={formatWon(settlement.confirmedAmount)}
-          disabled={!canConfirm}
-          inputMode="numeric"
-        />
-      );
-    },
-  },
-  {
-    id: "editable",
-    header: "수정 가능 여부",
-    width: 104,
-    align: "center",
-    render: (settlement) => (
-      <StatusPill tone={settlement.editable ? "approved" : "neutral"}>
-        {settlement.editable ? "가능" : "불가"}
-      </StatusPill>
-    ),
+    render: (settlement) => formatWon(settlement.confirmedAmount),
   },
   {
     key: "confirmationStatus",
@@ -162,34 +133,6 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SettlementFixture>[] = [
         {settlement.paymentStatus}
       </StatusPill>
     ),
-  },
-  {
-    id: "management",
-    header: "관리",
-    width: 112,
-    align: "center",
-    render: (settlement) => {
-      const canConfirm = settlement.editable && settlement.confirmationStatus === "미확정";
-      return (
-        <div className="fuma-table-actions">
-          <Button
-            aria-label={`${settlement.selectorName} 지급액 수정`}
-            className="fuma-table-action"
-            disabled={!canConfirm}
-          >
-            수정
-          </Button>
-          <Button
-            aria-label={`${settlement.selectorName} 지급 확정`}
-            className="fuma-table-action"
-            disabled={!canConfirm}
-            variant="primary"
-          >
-            확정
-          </Button>
-        </div>
-      );
-    },
   },
 ];
 

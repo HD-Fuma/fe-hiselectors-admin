@@ -2,25 +2,34 @@
   min-width: 52px;
   height: var(--hsas-control-height);
   padding: 0 var(--hsas-space-8);
-  border: 1px solid var(--hsas-border-dark);
+  border: 1px solid #c5ced0;
   border-radius: var(--hsas-radius);
   background: var(--hsas-surface);
+  box-shadow: none;
   color: var(--hsas-text);
   font-weight: 600;
   line-height: calc(var(--hsas-control-height) - 2px);
   text-align: center;
   white-space: nowrap;
   cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
 }
 
 .hsas-button:hover:not(:disabled) {
-  border-color: #7d898f;
-  background: var(--hsas-surface-muted);
+  border-color: #89979b;
+  background: #f4f7f6;
+}
+
+.hsas-button:focus-visible,
+.hsas-control:focus-visible {
+  outline: 3px solid rgb(22 143 120 / 22%);
+  outline-offset: 2px;
 }
 
 .hsas-button:disabled {
+  border-color: #dfe3e4;
+  background: #eef0f1;
   color: #9da3a7;
-  background: #eceeef;
   cursor: not-allowed;
 }
 
@@ -36,23 +45,26 @@
 }
 
 .hsas-button--danger {
-  border-color: #a44646;
-  background: #b94b4b;
-  color: var(--hsas-text-inverse);
+  border-color: #d9b0b0;
+  background: #fffafa;
+  color: #a54444;
 }
 
 .hsas-button--ghost {
   border-color: transparent;
   background: transparent;
+  box-shadow: none;
 }
 
 .hsas-control {
   width: 100%;
   height: var(--hsas-control-height);
-  border: 1px solid var(--hsas-border);
+  border: 1px solid #d3d9da;
   border-radius: var(--hsas-radius);
   background-color: var(--hsas-surface);
+  box-shadow: none;
   color: var(--hsas-text);
+  transition: border-color 120ms ease;
 }
 
 .hsas-control:hover:not(:disabled) {
@@ -94,7 +106,9 @@
 
 .hsas-segmented-control {
   display: inline-flex;
-  border: 1px solid var(--hsas-border-dark);
+  gap: 0;
+  padding: 0;
+  border: 1px solid #c5ced0;
   border-radius: var(--hsas-radius);
   background: var(--hsas-surface);
 }
@@ -104,6 +118,7 @@
   padding: 0 var(--hsas-space-8);
   border: 0;
   border-left: 1px solid var(--hsas-border);
+  border-radius: 0;
   background: transparent;
   color: var(--hsas-text-muted);
   line-height: calc(var(--hsas-control-height) - 2px);
@@ -116,6 +131,7 @@
 
 .hsas-segmented-control__item--active {
   background: var(--hsas-teal);
+  box-shadow: none;
   color: var(--hsas-text-inverse);
   font-weight: 700;
 }
@@ -136,20 +152,20 @@
 }
 
 .hsas-status-pill--approved {
-  border-color: var(--hsas-status-approved-border);
-  background: var(--hsas-status-approved-bg);
+  border-color: #9acdbf;
+  background: #e8f4f0;
   color: var(--hsas-status-approved);
 }
 
 .hsas-status-pill--pending {
-  border-color: var(--hsas-status-pending-border);
-  background: var(--hsas-status-pending-bg);
+  border-color: #e0cb84;
+  background: #fff7df;
   color: var(--hsas-status-pending);
 }
 
 .hsas-status-pill--rejected {
-  border-color: var(--hsas-status-rejected-border);
-  background: var(--hsas-status-rejected-bg);
+  border-color: #dcadad;
+  background: #faeeee;
   color: var(--hsas-status-rejected);
 }
 
@@ -272,6 +288,7 @@
   border: 1px solid var(--hsas-border);
   border-radius: var(--hsas-radius);
   background: var(--hsas-surface);
+  box-shadow: none;
   color: #777f84;
 }
 
@@ -822,30 +839,59 @@
 
 .hsas-work-tabs {
   display: flex;
-  min-height: 35px;
-  align-items: end;
-  gap: 2px;
-  padding: 0 10px;
-  border-bottom: 1px solid var(--hsas-border);
-  background: #e8ebec;
+  width: 100%;
+  max-width: 100%;
+  height: 37px;
+  box-sizing: border-box;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  padding: 0;
+  border-bottom: 1px solid #cfd2d1;
+  background: #eff0f0;
+  white-space: nowrap;
+}
+
+.hsas-work-tabs::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .hsas-work-tabs__tab {
+  position: relative;
   display: flex;
-  height: 30px;
+  flex: 0 0 auto;
+  height: 36px;
+  box-sizing: border-box;
   align-items: center;
-  border: 1px solid transparent;
-  border-bottom: 0;
-  border-radius: 5px 5px 0 0;
-  color: #69726e;
+  border: 0;
+  border-right: 1px solid #d7dad8;
+  border-radius: 0;
+  background: transparent;
+  color: #6b706d;
+  white-space: nowrap;
 }
 
 .hsas-work-tabs__tab--active {
-  border-color: var(--hsas-border);
-  background: var(--hsas-surface);
-  color: var(--hsas-text);
-  box-shadow: inset 0 2px 0 var(--hsas-teal);
-  font-weight: 700;
+  background: #fff;
+  color: #252a27;
+  font-weight: 600;
+}
+
+.hsas-work-tabs__tab--active::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: #343a37;
+  content: "";
+}
+
+.hsas-work-tabs__tab:not(.hsas-work-tabs__tab--active):hover {
+  background: #e5e7e6;
 }
 
 .hsas-work-tabs__tab > a {
@@ -854,8 +900,9 @@
   align-items: center;
   padding: 0 7px 0 10px;
   color: inherit;
-  font-size: 11px;
+  font-size: 12px;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .hsas-work-tabs__close {
@@ -869,7 +916,16 @@
   background: transparent;
   color: #7a837f;
   cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
   place-items: center;
+}
+
+.hsas-work-tabs__tab--active .hsas-work-tabs__close,
+.hsas-work-tabs__tab:hover .hsas-work-tabs__close,
+.hsas-work-tabs__tab:focus-within .hsas-work-tabs__close {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .hsas-work-tabs__close:hover {
@@ -880,6 +936,13 @@
 .hsas-work-tabs__close svg {
   width: 13px;
   height: 13px;
+}
+
+@media (hover: none) {
+  .hsas-work-tabs__close {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 .hsas-work-tabs__tab > a:focus-visible,
@@ -2178,11 +2241,6 @@
   height: 29px;
   padding-top: 2px;
   padding-bottom: 2px;
-}
-
-.fuma-settlement-amount-input {
-  height: 23px;
-  text-align: right;
 }
 
 .fuma-operations-period-filter {

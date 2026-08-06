@@ -127,7 +127,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
       "변경 사유",
     ],
     expectedActions: ["자격 변경"],
-    primaryRole: { role: "heading", name: "셀렉터스 자격 관리" },
+    primaryRole: { role: "heading", name: "블랙리스트 관리" },
   },
   {
     route: "/selectors/sl-001",
@@ -157,7 +157,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     ],
     expectedTables: [
       {
-        region: "지원자 목록",
+        region: "지원자 승인",
         columns: [
           "지원자 ID",
           "SNS 채널",
@@ -233,6 +233,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
       { role: "combobox", name: "검수 유형" },
       { role: "combobox", name: "플랫폼" },
       { role: "combobox", name: "검수 상태" },
+      { role: "combobox", name: "위반 필터" },
       { role: "combobox", name: "처리 상태" },
     ],
     expectedTables: [
@@ -307,31 +308,6 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     primaryRole: { role: "heading", name: "콘텐츠 검수 상세" },
   },
   {
-    route: "/content/violations",
-    rows: [23, 24],
-    expectedTexts: [
-      "기수",
-      "위반 유형",
-      "처리 상태",
-      "안내 문구",
-      "안내 상태",
-      "누적 패널티",
-    ],
-    expectedActions: ["김서연 위반사항 안내", "김서연 패널티 부여"],
-    expectedControls: [
-      { role: "combobox", name: "기수" },
-      { role: "combobox", name: "위반 유형" },
-      { role: "combobox", name: "처리 상태" },
-    ],
-    expectedTables: [
-      {
-        region: "위반 콘텐츠 목록",
-        columns: ["안내 문구", "안내 상태", "누적 패널티"],
-      },
-    ],
-    primaryRole: { role: "heading", name: "위반 콘텐츠 관리" },
-  },
-  {
     route: "/performance",
     rows: [25],
     expectedTexts: ["캠페인명", "셀렉터스", "클릭 수", "구매 전환 수", "전환율"],
@@ -398,15 +374,13 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
       "셀렉터스",
       "예상액",
       "확정액",
-      "수정 가능 여부",
       "확정 상태",
       "지급 상태",
     ],
-    expectedActions: ["김서연 지급액 수정", "김서연 지급 확정"],
+    expectedActions: ["조회", "초기화"],
     expectedControls: [
       { name: "귀속월" },
       { role: "textbox", name: "셀렉터스" },
-      { role: "combobox", name: "수정 가능 여부" },
       { role: "combobox", name: "확정 상태" },
       { role: "combobox", name: "지급 상태" },
     ],
@@ -418,7 +392,6 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
           "셀렉터스",
           "예상액",
           "확정액",
-          "수정 가능 여부",
           "확정 상태",
           "지급 상태",
         ],
