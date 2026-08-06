@@ -25,17 +25,19 @@ export interface PerformanceKpiItem {
 
 interface PerformanceKpiGridProps {
   ariaLabel: string;
+  className?: string;
   items: readonly PerformanceKpiItem[];
 }
 
 export function PerformanceKpiGrid({
   ariaLabel,
+  className,
   items,
 }: PerformanceKpiGridProps) {
   return (
     <dl
       aria-label={ariaLabel}
-      className="fuma-performance-kpi-grid"
+      className={`fuma-performance-kpi-grid${className ? ` ${className}` : ""}`}
       data-visual-contract="metric-strip"
       role="group"
     >

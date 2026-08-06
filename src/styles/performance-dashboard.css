@@ -476,6 +476,74 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   gap: 14px;
 }
 
+.fuma-performance-dashboard-hero {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) 156px 182px;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.fuma-performance-dashboard-hero__trend {
+  min-width: 0;
+}
+
+.fuma-performance-dashboard-hero__trend .fuma-performance-chart {
+  height: 100%;
+  min-height: 310px;
+}
+
+.fuma-performance-dashboard-hero__trend .fuma-performance-chart svg {
+  max-height: 255px;
+}
+
+.fuma-performance-goal-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 310px;
+  padding: 17px;
+  border-radius: 9px;
+  color: #f7fffb;
+  background: linear-gradient(160deg, #1d705e, #115041);
+  box-shadow: 0 10px 22px rgb(19 89 71 / 17%);
+}
+
+.fuma-performance-goal-card__ring {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-content: center;
+  border: 2px solid rgb(237 255 247 / 72%);
+  border-radius: 50%;
+  text-align: center;
+}
+
+.fuma-performance-goal-card__ring strong { display: block; font-size: 27px; letter-spacing: -0.06em; }
+.fuma-performance-goal-card__ring span { margin-top: -2px; color: #c8e7da; font-size: 9px; font-weight: 700; }
+.fuma-performance-goal-card p { margin: 0 0 6px; color: #9ed0bf; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+.fuma-performance-goal-card > div:last-child > strong { display: block; font-size: 13px; letter-spacing: -0.025em; }
+.fuma-performance-goal-card > div:last-child > span { display: block; margin-top: 5px; color: #b8ded0; font-size: 10px; line-height: 1.45; }
+
+.fuma-performance-kpi-grid--dashboard {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__item {
+  min-height: 150px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 15px;
+}
+
+.fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__copy { flex: 0; }
+.fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__icon { order: 2; width: 34px; height: 34px; flex-basis: 34px; font-size: 15px; }
+.fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__chevron { position: absolute; top: 13px; right: 14px; }
+.fuma-performance-kpi-grid--dashboard dd { font-size: 23px; }
+.fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__item.is-featured { background: #247964; }
+
 .fuma-performance-operations-rail {
   display: grid;
   gap: 10px;
@@ -927,6 +995,11 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 
   .fuma-performance-dashboard-layout { grid-template-columns: minmax(0, 1fr); }
 
+  .fuma-performance-dashboard-hero { grid-template-columns: minmax(0, 1fr) 160px; }
+  .fuma-performance-kpi-grid--dashboard { grid-column: 1 / -1; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__item { min-height: 100px; flex-direction: row; align-items: center; }
+  .fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__icon { order: 0; }
+
   .fuma-performance-operations-rail {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -987,6 +1060,9 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 
   .fuma-performance-operations-rail { grid-template-columns: minmax(0, 1fr); }
   .fuma-performance-ai-card { grid-column: auto; grid-template-columns: minmax(0, 1fr); }
+  .fuma-performance-dashboard-hero { grid-template-columns: minmax(0, 1fr); }
+  .fuma-performance-goal-card { min-height: 180px; }
+  .fuma-performance-kpi-grid--dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
   .fuma-performance-content-card__cover {
     min-height: 98px;

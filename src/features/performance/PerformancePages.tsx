@@ -317,6 +317,19 @@ function PerformanceEntityCardGrid({
   );
 }
 
+function DashboardGoalCard() {
+  return (
+    <section className="fuma-performance-goal-card" aria-label="이번 달 캠페인 목표">
+      <div className="fuma-performance-goal-card__ring"><strong>7</strong><span>진행 중</span></div>
+      <div>
+        <p>MONTHLY GOAL</p>
+        <strong>이번 달 캠페인</strong>
+        <span>목표 21건 중 7건 진행</span>
+      </div>
+    </section>
+  );
+}
+
 interface PerformanceResultTableProps<T extends object> {
   className: string;
   columns: DenseTableColumn<T>[];
@@ -698,18 +711,22 @@ export function PerformanceDashboardPage() {
         <PerformanceFilters />
         <div className="fuma-performance-dashboard-layout">
           <div className="fuma-performance-dashboard-main">
-            <PerformanceKpiGrid
-              ariaLabel="성과 요약"
-              items={visualData.kpis}
-            />
-            <div className="fuma-performance-visuals fuma-performance-visuals--overview">
-              <div className="fuma-performance-visuals__wide">
+            <div className="fuma-performance-dashboard-hero">
+              <div className="fuma-performance-dashboard-hero__trend">
                 <PerformanceTrendChart
                   points={visualData.trendPoints}
                   title="캠페인 수익 추이"
                   description="선택 기간 기준 클릭과 구매 전환 성과"
                 />
               </div>
+              <DashboardGoalCard />
+              <PerformanceKpiGrid
+                ariaLabel="성과 요약"
+                className="fuma-performance-kpi-grid--dashboard"
+                items={visualData.kpis}
+              />
+            </div>
+            <div className="fuma-performance-visuals fuma-performance-visuals--overview">
               <PerformanceBarChart
                 items={visualData.campaignItems}
                 mode="single"
