@@ -60,7 +60,7 @@ export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
         <span className="hsas-admin-sidebar__brand-logo-shell">
           <img
             className="hsas-admin-sidebar__brand-logo"
-            src="/brand/thehyundai-hi.svg"
+            src={`${import.meta.env.BASE_URL}brand/thehyundai-hi.svg`}
             alt="더현대Hi"
           />
         </span>
