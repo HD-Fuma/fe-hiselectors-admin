@@ -234,7 +234,7 @@ describe("content review detail", () => {
       expectButton(within(actions).getByRole("button", { name }));
     }
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(current.querySelector("img")).not.toBeInTheDocument();
+    expect(current.querySelectorAll("img")).toHaveLength(3);
   });
 
   test("renders the exact violation-correction before/after differences and actions", () => {
