@@ -7,6 +7,8 @@ import {
   Package,
   PlaySquare,
   ShoppingBag,
+  Sparkles,
+  TrendingUp,
   UsersRound,
 } from "lucide-react";
 import { PageHeader } from "../../components/shell/PageHeader";
@@ -179,6 +181,47 @@ function PerformanceWorkspaceIntro({
   );
 }
 
+function PerformanceInsightCard({
+  description,
+  title = "AI 성과 인사이트",
+}: {
+  description: string;
+  title?: string;
+}) {
+  return (
+    <section className="fuma-performance-insight-card">
+      <div className="fuma-performance-insight-card__orb" aria-hidden="true" />
+      <header>
+        <span>AI REPORT</span>
+        <Sparkles aria-hidden="true" size={15} />
+      </header>
+      <h2>{title}</h2>
+      <p>{description}</p>
+      <button type="button">인사이트 확인</button>
+    </section>
+  );
+}
+
+function PerformanceLiftCards({
+  items,
+}: {
+  items: readonly { label: string; value: string }[];
+}) {
+  return (
+    <section aria-label="주요 지표 증감" className="fuma-performance-lift-list">
+      {items.map((item, index) => (
+        <article key={item.label}>
+          <span>{item.label}</span>
+          <div>
+            <strong>{item.value}</strong>
+            <em><TrendingUp aria-hidden="true" size={12} /> +{index + 1}.{index + 2}%</em>
+          </div>
+        </article>
+      ))}
+    </section>
+  );
+}
+
 interface PerformanceEntityCard {
   detail: string;
   id: string;
@@ -255,28 +298,33 @@ function PerformanceAnalysisHero({
 }) {
   return (
     <div className="fuma-performance-analysis-hero">
-      <PerformanceAreaChart
-        description="상위 성과 항목 기준 비교"
-        points={points}
-        primaryLabel={primaryLabel}
-        secondaryLabel={secondaryLabel}
-        title={title}
-      />
-      <section className="fuma-performance-analysis-focus">
-        <span>TOP PERFORMANCE</span>
-        <div aria-hidden="true" className="fuma-performance-analysis-focus__ring"><b>1</b></div>
-        <div aria-hidden="true" className="fuma-performance-analysis-focus__bars">
-          {[38, 52, 46, 72, 61, 86, 68, 92].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}
-        </div>
-        <strong>{focusValue}</strong>
-        <p>{focusLabel}</p>
-        <small>{focusDetail}</small>
-      </section>
-      <PerformanceKpiGrid
-        ariaLabel={summaryLabel}
-        className="fuma-performance-kpi-grid--analysis"
-        items={kpis}
-      />
+      <div className="fuma-performance-analysis-hero__main">
+        <PerformanceKpiGrid
+          ariaLabel={summaryLabel}
+          className="fuma-performance-kpi-grid--analysis"
+          items={kpis}
+        />
+        <PerformanceAreaChart
+          description="상위 성과 항목 기준 비교"
+          points={points}
+          primaryLabel={primaryLabel}
+          secondaryLabel={secondaryLabel}
+          title={title}
+        />
+      </div>
+      <aside className="fuma-performance-analysis-hero__rail">
+        <section className="fuma-performance-analysis-focus">
+          <span>TOP PERFORMANCE</span>
+          <div aria-hidden="true" className="fuma-performance-analysis-focus__ring"><b>1</b></div>
+          <div aria-hidden="true" className="fuma-performance-analysis-focus__bars">
+            {[38, 52, 46, 72, 61, 86, 68, 92].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}
+          </div>
+          <strong>{focusValue}</strong>
+          <p>{focusLabel}</p>
+          <small>{focusDetail}</small>
+        </section>
+        <PerformanceInsightCard description={`${focusLabel}의 전환 기여도가 가장 높습니다. 상위 성과 콘텐츠의 공통 패턴을 확인해 보세요.`} />
+      </aside>
     </div>
   );
 }
@@ -707,24 +755,38 @@ export function PerformanceDashboardPage() {
       <div className="fuma-page__body">
         <PerformanceWorkspaceIntro active="overview" caption="캠페인 성과와 전환 흐름을 한눈에 확인하세요." />
         <PerformanceFilters />
-        <PerformanceKpiGrid ariaLabel="성과 요약" items={visualData.kpis} />
-        <div className="fuma-performance-visuals fuma-performance-visuals--overview">
-          <div className="fuma-performance-visuals__wide">
+        <div className="fuma-performance-command-layout">
+          <div className="fuma-performance-command-layout__main">
+            <PerformanceKpiGrid
+              ariaLabel="성과 요약"
+              className="fuma-performance-kpi-grid--dashboard"
+              items={visualData.kpis}
+            />
             <PerformanceTrendChart
               points={visualData.trendPoints}
               title="선택 기간 성과 추이"
             />
+            <PerformanceBarChart
+              items={visualData.campaignItems}
+              mode="single"
+              primaryLabel="전환율"
+              title="캠페인 전환 성과"
+            />
           </div>
-          <PerformanceBarChart
-            items={visualData.campaignItems}
-            mode="single"
-            primaryLabel="전환율"
-            title="캠페인 전환 성과"
-          />
-          <PerformanceRanking
-            items={visualData.selectorItems}
-            title="셀렉터스 성과 순위"
-          />
+          <aside className="fuma-performance-command-layout__rail">
+            <PerformanceInsightCard description="여름 바캉스 스타일링 캠페인이 전체 구매 전환을 주도하고 있습니다. 전환 상위 셀렉터스와 콘텐츠를 함께 확인해 보세요." />
+            <PerformanceRanking
+              items={visualData.selectorItems}
+              title="셀렉터스 성과 순위"
+            />
+            <PerformanceLiftCards
+              items={[
+                { label: "콘텐츠 조회 증가", value: "309,300" },
+                { label: "구매 전환 증가", value: "1,399" },
+                { label: "참여 셀렉터스", value: "4명" },
+              ]}
+            />
+          </aside>
         </div>
         <PerformanceResultTable
           className="fuma-performance-campaign-table"
