@@ -42,6 +42,7 @@ export function ApplicantFeaturedContents({ applicant }: { applicant: ApplicantF
                 <div><dt>조회</dt><dd>{formatNumber(content.views)}</dd></div>
                 <div><dt>좋아요</dt><dd>{formatNumber(content.likes)}</dd></div>
                 <div><dt>댓글</dt><dd>{formatNumber(content.comments)}</dd></div>
+                <div><dt>반응률</dt><dd>{(((content.likes + content.comments) / applicant.followerCount) * 100).toFixed(1)}%</dd></div>
               </dl>
             </div>
           </a>
@@ -125,15 +126,16 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: ApplicantFix
             <div><h3 id="applicant-quantitative-title">정량적 지표</h3><p>활동성과 콘텐츠 반응을 한눈에 비교합니다.</p></div>
           </div>
           <dl className="fuma-applicant-analysis__metric-grid">
-            <Metric label={audienceLabel} value={formatNumber(applicant.followerCount)} meta={`${applicant.platform} 공개 계정`} />
-            <Metric label="최근 90일 콘텐츠" value={`${analysis.recent90ContentCount}건`} meta={`전체 공개 ${formatNumber(applicant.contentCount)}건`} />
+            <Metric label="팔로워·구독자 수" value={formatNumber(applicant.followerCount)} meta={`${applicant.platform} 공개 계정`} />
+            <Metric label="콘텐츠 수" value={`${formatNumber(applicant.contentCount)}건`} meta={`최근 90일 ${analysis.recent90ContentCount}건`} />
             <Metric label="업로드 주기" value={`주 ${analysis.uploadFrequency.toFixed(1)}회`} meta={`최대 공백 ${analysis.maxGapDays}일`} />
             <Metric label="ER (Engagement Rate)" value={`${analysis.engagementRate.toFixed(1)}%`} meta={`반응 ÷ ${audienceLabel}`} />
           </dl>
           <dl className="fuma-applicant-analysis__detail-grid">
             <div><dt>SNS 계정</dt><dd><a href={applicantProfileUrl(applicant)} rel="noreferrer" target="_blank"><PlatformIcon decorative platform={applicant.platform} /> {applicant.channelName} <span aria-hidden="true">↗</span></a></dd></div>
+            <div><dt>최종 업데이트 일자</dt><dd>{analysis.updatedAt} · 최근 90일 수집</dd></div>
             <div><dt>마지막 게시일</dt><dd>{analysis.lastPostDate}</dd></div>
-            <div><dt>평균 반응</dt><dd>조회 {formatNumber(applicant.averageViews)} · 좋아요 {formatNumber(analysis.averageLikes)} · 댓글 {formatNumber(analysis.averageComments)}</dd></div>
+            <div><dt>평균 조회·좋아요·댓글</dt><dd>조회 {formatNumber(applicant.averageViews)} · 좋아요 {formatNumber(analysis.averageLikes)} · 댓글 {formatNumber(analysis.averageComments)}</dd></div>
             <div><dt>콘텐츠 형식 통계</dt><dd>{analysis.contentFormats.map((item) => `${item.label} ${item.count}건`).join(" · ")}</dd></div>
           </dl>
           <p className="fuma-applicant-analysis__formula">ER = (좋아요 + 댓글 + 공유) ÷ {audienceLabel} × 100</p>
@@ -146,11 +148,11 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: ApplicantFix
           </div>
           <dl className="fuma-applicant-insight-grid">
             <Insight className="fuma-applicant-insight--summary" label="한 줄 요약">{analysis.summary}</Insight>
-            <Insight label="카테고리"><div className="fuma-applicant-analysis__chips">{analysis.categories.map((category) => <span key={category}>{category}</span>)}</div></Insight>
+            <Insight label="카테고리"><div className="fuma-applicant-analysis__chips"><span>{analysis.category}</span></div></Insight>
             <Insight label="핵심 키워드"><div className="fuma-applicant-analysis__keywords">{analysis.keywords.map((keyword) => <span key={keyword.label}><strong>#{keyword.label}</strong><small>{keyword.percentage}%</small></span>)}</div></Insight>
-            <Insight label="콘텐츠 스타일">{analysis.contentStyle}</Insight>
+            <Insight label="콘텐츠 유형">{analysis.contentStyle}</Insight>
             <Insight label="톤앤매너">{analysis.toneAndManner}</Insight>
-            <Insight label="협업 브랜드">{analysis.collaborationBrands.length > 0 ? `${analysis.collaborationBrands.join(" · ")} (최근 90일 ${analysis.collaborationBrands.length}개 브랜드)` : "최근 90일 확인된 협업 브랜드 없음"}</Insight>
+            <Insight label="협업 이력">{analysis.collaborationBrands.length > 0 ? `${analysis.collaborationBrands.join(" · ")} (최근 90일 ${analysis.collaborationBrands.length}개 브랜드)` : "최근 90일 확인된 협업 브랜드 없음"}</Insight>
             <Insight className="fuma-applicant-insight--risk" label="위험 요소">{analysis.riskFactors}</Insight>
             <Insight className="fuma-applicant-insight--wide" label="강점/유의점">{analysis.strengthsAndNotes}</Insight>
           </dl>

@@ -33,6 +33,7 @@ export interface DenseTableProps<T extends object> {
   emptyMessage?: ReactNode;
   footer?: ReactNode;
   onRowClick?: (row: T) => void;
+  selectedRowKeys?: readonly Key[];
 }
 
 function isInteractiveTarget(target: EventTarget | null) {
@@ -75,6 +76,7 @@ export function DenseTable<T extends object>({
   emptyMessage = "조회 결과가 없습니다.",
   footer,
   onRowClick,
+  selectedRowKeys,
   rowKey,
   rows,
 }: DenseTableProps<T>) {
@@ -127,7 +129,7 @@ export function DenseTable<T extends object>({
               const key = rowKey(row);
               return (
                 <tr
-                  aria-selected={selectedRowKey === key}
+                  aria-selected={selectedRowKeys ? selectedRowKeys.includes(key) : selectedRowKey === key}
                   className="hsas-dense-table__row"
                   key={key}
                   onClick={(event) => handleRowClick(event, row)}

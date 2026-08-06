@@ -1,6 +1,10 @@
 export type ProposalChannel = "Instagram DM" | "이메일";
-export type ProposalStatus = "발송 대기" | "발송 완료" | "발송 실패" | "셀렉터스 전환";
+export type ProposalStatus = "발송 대기" | "발송 완료" | "발송 실패";
 export type CreatorPlatform = "Instagram" | "YouTube";
+export const CREATOR_CATEGORIES = [
+  "뷰티", "패션", "푸드", "리빙/라이프", "유아동/패밀리", "컬처/서비스", "스포츠/레저", "여행", "반려생활", "아울렛",
+] as const;
+export type CreatorCategory = (typeof CREATOR_CATEGORIES)[number];
 export type CreatorMediaVisual =
   | "beauty"
   | "fashion"
@@ -44,7 +48,7 @@ interface CreatorBaseFixture {
   id: string;
   name: string;
   profile: CreatorProfileFixture;
-  categories: string[];
+  category: CreatorCategory;
   keywords: string[];
   tier: "T0" | "T1" | "T2" | "T3";
   contentCount: number;
@@ -108,7 +112,7 @@ export const CREATORS: CreatorFixture[] = [
       engagementRate: 4,
       profileImageUrl: "/creator-media/kr-cr-001-profile.jpg",
     },
-    categories: ["뷰티", "패션"],
+    category: "뷰티",
     keywords: ["#데일리룩", "#톤메이크업", "#뷰티리뷰"],
     tier: "T1",
     contentCount: 184,
@@ -157,7 +161,7 @@ export const CREATORS: CreatorFixture[] = [
       engagementRate: 1.7,
       profileImageUrl: "/creator-media/kr-cr-002-profile.jpg",
     },
-    categories: ["리빙/라이프", "푸드"],
+    category: "리빙/라이프",
     keywords: ["#집밥", "#홈카페", "#주말요리"],
     tier: "T2",
     contentCount: 96,
@@ -194,7 +198,7 @@ export const CREATORS: CreatorFixture[] = [
       fitnessScore: 86,
       evidence: ["최근 30일 평균 조회 수 26,800회"],
     },
-    proposalStatus: "셀렉터스 전환",
+    proposalStatus: "발송 완료",
     availableProposalChannels: ["이메일"],
     email: "doyoon@example.com",
   },
@@ -211,7 +215,7 @@ export const CREATORS: CreatorFixture[] = [
       engagementRate: 3,
       profileImageUrl: "/creator-media/kr-cr-003-profile.jpg",
     },
-    categories: ["여행", "리빙/라이프"],
+    category: "여행",
     keywords: ["#국내여행", "#여행브이로그", "#주말여행"],
     tier: "T3",
     contentCount: 142,
@@ -260,7 +264,7 @@ export const CREATORS: CreatorFixture[] = [
       engagementRate: 2.6,
       profileImageUrl: "/creator-media/kr-cr-004-profile.jpg",
     },
-    categories: ["푸드"],
+    category: "푸드",
     keywords: ["#브런치", "#디저트", "#카페리뷰"],
     tier: "T0",
     contentCount: 356,
@@ -321,7 +325,7 @@ export const PROPOSALS: ProposalFixture[] = [
     channel: "이메일",
     sendMethod: "자동",
     sentAt: "2026-08-02 14:10",
-    status: "셀렉터스 전환",
+    status: "발송 완료",
   },
   {
     id: "pr-003",

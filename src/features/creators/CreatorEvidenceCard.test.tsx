@@ -80,7 +80,7 @@ describe("CreatorEvidenceCard", () => {
     expect(container.querySelectorAll(".fuma-creator-card__metrics > div")).toHaveLength(2);
   });
 
-  test.each(["미제안", "발송 실패", "발송 대기", "발송 완료", "셀렉터스 전환"] as const)("keeps the generic proposal action for %s", (status) => {
+  test.each(["미제안", "발송 실패", "발송 대기", "발송 완료"] as const)("keeps the generic proposal action for %s", (status) => {
     renderCard(withStatus(status));
     expect(screen.getByRole("link", { name: "이지아 제안 작성" })).toHaveAttribute(
       "href",

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { renderRoute } from "../../test/renderRoute";
 
 const expectedSidebarLinks = [
-  ["크리에이터 목록", "/creators"],
+  ["크리에이터 풀", "/creators"],
   ["제안 이력", "/proposals"],
   ["기수 관리", "/cohorts"],
   ["셀렉터스 현황", "/selectors"],
@@ -12,7 +12,7 @@ const expectedSidebarLinks = [
   ["캠페인 관리", "/campaigns"],
   ["콘텐츠 검수", "/content/reviews"],
   ["성과 대시보드", "/performance"],
-  ["크리에이터 분석", "/performance/creators"],
+  ["크리에이터 분석 리포트", "/performance/creators"],
   ["콘텐츠 분석", "/performance/contents"],
   ["정산 관리", "/settlements"],
 ] as const;
@@ -81,7 +81,7 @@ test("treats a trailing-slash direct route as the current exact page", () => {
 
   const navigation = screen.getByRole("navigation", { name: "관리자 메뉴" });
   const menuLink = within(navigation).getByRole("link", {
-    name: "크리에이터 목록",
+    name: "크리에이터 풀",
   });
 
   expect(menuLink).toHaveClass("hsas-admin-sidebar__link--active");
@@ -168,7 +168,7 @@ const routeCases = [
   {
     path: "/creators",
     group: "creators",
-    menuLabel: "크리에이터 목록",
+    menuLabel: "크리에이터 풀",
     title: "크리에이터 풀",
     screenCode: "CR101",
     routeIsExact: true,
@@ -176,7 +176,7 @@ const routeCases = [
   {
     path: "/creators/cr-001",
     group: "creators",
-    menuLabel: "크리에이터 목록",
+    menuLabel: "크리에이터 풀",
     title: "크리에이터 상세",
     screenCode: "CR102",
     routeIsExact: false,
@@ -280,8 +280,8 @@ const routeCases = [
   {
     path: "/performance/creators",
     group: "performance",
-    menuLabel: "크리에이터 분석",
-    title: "크리에이터 영향력 분석",
+    menuLabel: "크리에이터 분석 리포트",
+    title: "크리에이터 분석 리포트",
     screenCode: "PF201",
     routeIsExact: true,
   },

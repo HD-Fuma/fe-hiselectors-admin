@@ -1,10 +1,11 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Checkbox, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
+import { Modal } from "../../components/ui/Modal";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import {
@@ -114,7 +115,6 @@ function cohortStatusTone(
 
 const COHORT_COLUMNS: DenseTableColumn<CohortFixture>[] = [
   { key: "name", header: "기수명", width: 84 },
-  { key: "recruitmentPeriod", header: "모집 기간", width: 210, align: "center" },
   { key: "activityPeriod", header: "활동 기간", width: 210, align: "center" },
   {
     key: "status",
@@ -146,32 +146,88 @@ const COHORT_COLUMNS: DenseTableColumn<CohortFixture>[] = [
 ];
 
 export function CohortManagementPage() {
+  const [cohorts, setCohorts] = useState<CohortFixture[]>(() => [...COHORTS]);
+  const [keyword, setKeyword] = useState("");
+  const [status, setStatus] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
+  const [appliedStatus, setAppliedStatus] = useState("");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newCohort, setNewCohort] = useState({
+    activityEnd: "2027-03-31",
+    activityStart: "2027-01-01",
+    name: "5기",
+    status: "모집 예정" as CohortFixture["status"],
+  });
+  const filteredCohorts = cohorts.filter((cohort) => (
+    (!appliedKeyword || cohort.name.toLowerCase().includes(appliedKeyword.toLowerCase()))
+    && (!appliedStatus || cohort.status === appliedStatus)
+  ));
+
+  const resetFilters = () => {
+    setKeyword("");
+    setStatus("");
+    setAppliedKeyword("");
+    setAppliedStatus("");
+  };
+
+  const createCohort = () => {
+    const name = newCohort.name.trim();
+    if (!name) return;
+
+    setCohorts((current) => [
+      {
+        activityPeriod: `${newCohort.activityStart} ~ ${newCohort.activityEnd}`,
+        id: `cohort-${String(current.length + 1).padStart(2, "0")}`,
+        name,
+        participantCount: 0,
+        status: newCohort.status,
+      },
+      ...current,
+    ]);
+    resetFilters();
+    setIsCreateOpen(false);
+  };
+
   return (
     <section className="fuma-page">
       <PageHeader screenCode="SL101" title="셀렉터스 기수 관리" />
       <div className="fuma-page__body">
-        <SearchPanel actions={<SearchActions />}>
+        <SearchPanel actions={<><Button onClick={() => { setAppliedKeyword(keyword); setAppliedStatus(status); }} variant="primary">조회</Button><Button onClick={resetFilters}>초기화</Button></>}>
           <FilterField htmlFor="cohort-name" label="기수명">
-            <TextInput id="cohort-name" name="cohortName" placeholder="기수명 검색" />
+            <TextInput id="cohort-name" name="cohortName" onChange={(event) => setKeyword(event.target.value)} placeholder="기수명 검색" value={keyword} />
           </FilterField>
           <FilterField htmlFor="cohort-status" label="모집 상태">
             <Select
               id="cohort-status"
               name="cohortStatus"
+              onChange={(event) => setStatus(event.target.value)}
               options={COHORT_STATUS_OPTIONS}
+              value={status}
             />
           </FilterField>
         </SearchPanel>
         <ResultToolbar
-          action={<Button variant="primary">기수 생성</Button>}
-          count={COHORTS.length}
+          action={<Button onClick={() => setIsCreateOpen(true)} variant="primary">기수 생성</Button>}
+          count={filteredCohorts.length}
           title="기수 목록"
         />
         <div aria-label="기수 목록" className="fuma-wide-table" role="region">
-          <DenseTable columns={COHORT_COLUMNS} rowKey={(cohort) => cohort.id} rows={COHORTS} />
+          <DenseTable columns={COHORT_COLUMNS} rowKey={(cohort) => cohort.id} rows={filteredCohorts} />
         </div>
         <Pagination page={1} pageSize={20} totalPages={1} />
       </div>
+      <Modal
+        actions={<><Button onClick={() => setIsCreateOpen(false)}>취소</Button><Button onClick={createCohort} variant="primary">생성</Button></>}
+        open={isCreateOpen}
+        title="새 기수 생성"
+      >
+        <div className="fuma-cohort-create-form">
+          <FormRow label="기수명" required><TextInput aria-label="기수명" onChange={(event) => setNewCohort((current) => ({ ...current, name: event.target.value }))} value={newCohort.name} /></FormRow>
+          <FormRow label="모집 상태" required><Select aria-label="모집 상태" onChange={(event) => setNewCohort((current) => ({ ...current, status: event.target.value as CohortFixture["status"] }))} options={COHORT_STATUS_OPTIONS.slice(1)} value={newCohort.status} /></FormRow>
+          <FormRow label="활동 시작일" required><TextInput aria-label="활동 시작일" onChange={(event) => setNewCohort((current) => ({ ...current, activityStart: event.target.value }))} type="date" value={newCohort.activityStart} /></FormRow>
+          <FormRow label="활동 종료일" required><TextInput aria-label="활동 종료일" onChange={(event) => setNewCohort((current) => ({ ...current, activityEnd: event.target.value }))} type="date" value={newCohort.activityEnd} /></FormRow>
+        </div>
+      </Modal>
     </section>
   );
 }

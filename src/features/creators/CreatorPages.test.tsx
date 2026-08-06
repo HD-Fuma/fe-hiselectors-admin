@@ -158,7 +158,7 @@ describe("creator detail", () => {
     const panel = within(detail);
 
     expect(panel.getByRole("heading", { name: "크리에이터 상세" })).toBeInTheDocument();
-    expect(panel.getByText("CR102")).toBeInTheDocument();
+    expect(panel.queryByText("CR102")).not.toBeInTheDocument();
     const sections = panel.getByRole("navigation", { name: "섹션" });
     expect(within(sections).getByText("대표 콘텐츠")).toHaveAttribute("aria-current", "page");
     expect(within(sections).getByText("기본 정보")).toBeInTheDocument();
@@ -270,7 +270,7 @@ describe("creator detail", () => {
     const detail = screen.getByRole("dialog", { name: "크리에이터 상세" });
 
     expect(within(detail).getByRole("heading", { name: "크리에이터 상세" })).toBeInTheDocument();
-    expect(within(detail).getByText("CR102")).toBeInTheDocument();
+    expect(within(detail).queryByText("CR102")).not.toBeInTheDocument();
     expect(within(detail).getByRole("heading", { name: "대상을 찾을 수 없습니다" })).toBeInTheDocument();
     expect(within(detail).getByText("요청한 크리에이터 정보를 확인할 수 없습니다.")).toBeInTheDocument();
     expect(within(detail).queryByText("김서연")).not.toBeInTheDocument();
@@ -295,7 +295,7 @@ describe("proposal history", () => {
 
     expect(screen.getByRole("heading", { name: "크리에이터 제안 작성" })).toBeInTheDocument();
     expect(screen.getByText("CR202")).toBeInTheDocument();
-    expect(screen.getByText("김서연님에게 보낼 제안을 작성합니다.")).toBeInTheDocument();
+    expect(screen.queryByText("김서연님에게 보낼 제안을 작성합니다.")).not.toBeInTheDocument();
     const target = screen.getByRole("complementary", { name: "제안 대상" });
     expect(within(target).getByRole("img", { name: "김서연 프로필 이미지" })).toHaveAttribute(
       "src",
@@ -330,7 +330,7 @@ describe("proposal history", () => {
       "전체Instagram DM이메일",
     );
     expect(within(search).getByRole("combobox", { name: "상태" })).toHaveTextContent(
-      "전체발송 대기발송 완료발송 실패셀렉터스 전환",
+      "전체발송 대기발송 완료발송 실패",
     );
     expect(within(search).getByRole("button", { name: "조회" })).toBeInTheDocument();
     expect(within(search).getByRole("button", { name: "초기화" })).toBeInTheDocument();
@@ -345,7 +345,7 @@ describe("proposal history", () => {
     expect(within(results).getAllByText("이메일")).toHaveLength(2);
     expect(within(results).getAllByText("수동")).toHaveLength(2);
     expect(within(results).getAllByText("자동")).toHaveLength(2);
-    for (const status of ["발송 대기", "발송 완료", "발송 실패", "셀렉터스 전환"]) {
+    for (const status of ["발송 대기", "발송 완료", "발송 실패"]) {
       expect(within(results).getByText(status)).toBeInTheDocument();
     }
     expect(within(results).getAllByText(/Meta 정책상 자동 선접촉이 불가합니다/)).toHaveLength(2);

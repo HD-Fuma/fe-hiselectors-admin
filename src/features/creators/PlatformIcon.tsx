@@ -6,29 +6,29 @@ const iconPaths: Record<CreatorPlatform, ReactNode> = {
     <>
       <rect
         fill="none"
-        height="13"
+        height="15"
         rx="4"
         stroke="currentColor"
         strokeWidth="2"
-        width="13"
-        x="3.5"
-        y="3.5"
+        width="15"
+        x="2.5"
+        y="2.5"
       />
       <circle
         cx="10"
         cy="10"
         fill="none"
-        r="3"
+        r="3.3"
         stroke="currentColor"
         strokeWidth="2"
       />
-      <circle cx="14.4" cy="5.7" fill="currentColor" r="1" />
+      <circle cx="14.6" cy="5.5" fill="currentColor" r="1.1" />
     </>
   ),
   YouTube: (
     <>
-      <rect fill="currentColor" height="12" rx="3.5" width="18" x="1" y="4" />
-      <path d="m8 7 5 3-5 3V7Z" fill="white" />
+      <path d="M18.2 6.05a2.52 2.52 0 0 0-1.77-1.78C14.87 3.85 10 3.85 10 3.85s-4.87 0-6.43.42A2.52 2.52 0 0 0 1.8 6.05C1.38 7.61 1.38 10 1.38 10s0 2.39.42 3.95a2.52 2.52 0 0 0 1.77 1.78c1.56.42 6.43.42 6.43.42s4.87 0 6.43-.42a2.52 2.52 0 0 0 1.77-1.78c.42-1.56.42-3.95.42-3.95s0-2.39-.42-3.95Z" fill="currentColor" />
+      <path d="m8.4 12.92 4.05-2.92L8.4 7.08v5.84Z" fill="white" />
     </>
   ),
 };

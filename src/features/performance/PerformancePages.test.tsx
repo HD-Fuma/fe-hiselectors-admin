@@ -392,7 +392,7 @@ test("renders the exact dashboard metrics and campaign and selector performance 
 test("renders creator influence filters and exact engagement metrics", () => {
   renderRoute("/performance/creators");
 
-  expect(screen.getByRole("heading", { name: "크리에이터 영향력 분석" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "크리에이터 분석 리포트" })).toBeInTheDocument();
   expect(screen.getByText("PF201")).toBeInTheDocument();
   const search = screen.getByRole("search", { name: "검색 조건" });
   expectCommonFilters(search);

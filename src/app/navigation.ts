@@ -37,7 +37,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   {
     path: "/creators",
     group: "creators",
-    menuLabel: "크리에이터 목록",
+    menuLabel: "크리에이터 풀",
     title: "크리에이터 풀",
     screenCode: "CR101",
     workTabLabel: "크리에이터 풀",
@@ -45,7 +45,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   {
     path: "/creators/:creatorId",
     group: "creators",
-    menuLabel: "크리에이터 목록",
+    menuLabel: "크리에이터 풀",
     title: "크리에이터 상세",
     screenCode: "CR102",
     workTabLabel: "크리에이터 상세",
@@ -61,7 +61,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   {
     path: "/proposals/new",
     group: "creators",
-    menuLabel: "제안 이력",
+    menuLabel: "크리에이터 풀",
     title: "크리에이터 제안 작성",
     screenCode: "CR202",
     workTabLabel: "제안 작성",
@@ -173,10 +173,10 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   {
     path: "/performance/creators",
     group: "performance",
-    menuLabel: "크리에이터 분석",
-    title: "크리에이터 영향력 분석",
+    menuLabel: "크리에이터 분석 리포트",
+    title: "크리에이터 분석 리포트",
     screenCode: "PF201",
-    workTabLabel: "크리에이터 분석",
+    workTabLabel: "크리에이터 분석 리포트",
   },
   {
     path: "/performance/contents",
@@ -189,10 +189,10 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   {
     path: "/performance/products",
     group: "performance",
-    menuLabel: "상품 분석",
-    title: "상품 성과 분석",
+    menuLabel: "캠페인 분석",
+    title: "캠페인 단위 성과 분석",
     screenCode: "PF203",
-    workTabLabel: "상품 분석",
+    workTabLabel: "캠페인 분석",
   },
   {
     path: "/settlements",

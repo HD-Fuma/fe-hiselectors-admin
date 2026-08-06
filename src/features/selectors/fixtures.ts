@@ -1,7 +1,6 @@
 export interface CohortFixture {
   id: string;
   name: string;
-  recruitmentPeriod: string;
   activityPeriod: string;
   status: "모집 예정" | "모집 중" | "마감";
   participantCount: number;
@@ -37,7 +36,6 @@ export const COHORTS: CohortFixture[] = [
   {
     id: "cohort-04",
     name: "4기",
-    recruitmentPeriod: "2026-08-10 ~ 2026-08-24",
     activityPeriod: "2026-09-01 ~ 2026-11-30",
     status: "모집 예정",
     participantCount: 0,
@@ -45,7 +43,6 @@ export const COHORTS: CohortFixture[] = [
   {
     id: "cohort-03",
     name: "3기",
-    recruitmentPeriod: "2026-07-20 ~ 2026-08-10",
     activityPeriod: "2026-08-17 ~ 2026-11-16",
     status: "모집 중",
     participantCount: 38,
@@ -53,7 +50,6 @@ export const COHORTS: CohortFixture[] = [
   {
     id: "cohort-02",
     name: "2기",
-    recruitmentPeriod: "2026-03-01 ~ 2026-03-15",
     activityPeriod: "2026-04-01 ~ 2026-06-30",
     status: "마감",
     participantCount: 54,

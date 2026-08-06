@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight } from "lucide-react";
+import { Send } from "lucide-react";
 import type { CreatorFixture } from "./fixtures";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
 import { CreatorProfilePhoto } from "./CreatorArtwork";
@@ -15,12 +15,24 @@ export const compactNumber = new Intl.NumberFormat("ko-KR", {
 // eslint-disable-next-line react-refresh/only-export-components
 export function proposalAction(creator: CreatorFixture) {
   return {
-    label: "제안 작성",
+    label: "제안 보내기",
     to: `/proposals/new?creator=${creator.id}`,
   };
 }
 
-export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
+export function CreatorEvidenceCard({
+  creator,
+  onOpen,
+  onSelect,
+  selected,
+  selectionMode,
+}: {
+  creator: CreatorFixture;
+  onOpen: (creator: CreatorFixture) => void;
+  onSelect: (creatorId: string) => void;
+  selected: boolean;
+  selectionMode: boolean;
+}) {
   const action = proposalAction(creator);
   const isInstagram = creator.profile.platform === "Instagram";
   const engagement = engagementResultForCreator(creator);
@@ -29,10 +41,19 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
     engagement.value === null ? "집계 불가" : `${engagement.value.toFixed(1)}%`;
 
   return (
-    <li className="fuma-creator-card" role="listitem">
+    <li className="fuma-creator-card" data-selected={selected} role="listitem">
       <article
         aria-label={`${creator.name} 크리에이터 카드`}
         className="fuma-creator-card__article"
+        onClick={() => selectionMode ? onSelect(creator.id) : onOpen(creator)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectionMode ? onSelect(creator.id) : onOpen(creator);
+          }
+        }}
+        role="button"
+        tabIndex={0}
       >
         <CreatorMediaMosaic
           contents={creator.featuredContents}
@@ -60,7 +81,7 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
                 <span>{creator.profile.handle}</span>
               </p>
               <p className="fuma-creator-card__categories">
-                {creator.categories.join(" / ")}
+                {creator.category}
               </p>
               <div aria-label="키워드" className="fuma-creator-card__keywords">
                 {creator.keywords.map((keyword) => (
@@ -82,18 +103,12 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
         </div>
         <footer className="fuma-creator-card__actions">
           <Link
-            aria-label={`${creator.name} 프로필 보기`}
-            className="fuma-creator-card__action"
-            to={`/creators?detail=${creator.id}`}
-          >
-            프로필
-            <ArrowUpRight aria-hidden="true" />
-          </Link>
-          <Link
             aria-label={`${creator.name} ${action.label}`}
             className="fuma-creator-card__action fuma-creator-card__action--primary"
+            onClick={(event) => event.stopPropagation()}
             to={action.to}
           >
+            <Send aria-hidden="true" />
             {action.label}
           </Link>
         </footer>

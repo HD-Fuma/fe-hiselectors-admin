@@ -79,7 +79,7 @@ const CREATOR_ANALYSES: Record<string, CreatorAnalysisFixture> = {
       },
       {
         label: "카테고리",
-        value: "뷰티 · 패션",
+        value: "뷰티",
         evidence: { label: "AI 분석 근거 게시글", url: "https://www.instagram.com/p/C_02evidence/" },
       },
       {
@@ -88,12 +88,12 @@ const CREATOR_ANALYSES: Record<string, CreatorAnalysisFixture> = {
         evidence: { label: "AI 분석 근거 게시글", url: "https://www.instagram.com/p/C_03evidence/" },
       },
       {
-        label: "협업 브랜드",
+        label: "협업 이력",
         value: "올리브영 · 무신사 · A브랜드 (최근 90일 8건)",
         evidence: { label: "AI 분석 근거 게시글", url: "https://www.instagram.com/p/C_04evidence/" },
       },
       {
-        label: "콘텐츠 스타일",
+        label: "콘텐츠 유형",
         value: "리뷰 · 하울 · 튜토리얼",
         evidence: { label: "AI 분석 근거 게시글", url: "https://www.instagram.com/p/C_05evidence/" },
       },
@@ -242,10 +242,10 @@ export function selectTopNWithCategoryQuota(
   const categoryCounts = new Map<string, number>();
   const selected: CreatorFixture[] = [];
   for (const creator of candidates) {
-    if (selected.length === targetCount || creator.categories.some((category) => (categoryCounts.get(category) ?? 0) >= maxPerCategory)) {
+    if (selected.length === targetCount || (categoryCounts.get(creator.category) ?? 0) >= maxPerCategory) {
       continue;
     }
-    creator.categories.forEach((category) => categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1));
+    categoryCounts.set(creator.category, (categoryCounts.get(creator.category) ?? 0) + 1);
     selected.push(creator);
   }
   return selected;
@@ -266,8 +266,21 @@ export function CreatorAnalysisReport({ creator }: { creator: CreatorFixture }) 
   const cadence = deriveCadence(analysis.postDates, analysis.updatedAt.replaceAll(".", "-"), analysis.collectionDays);
   const collectedContentCount = Math.round(cadence.dailyAverage * analysis.collectionDays);
   const engagement = engagementResultForCreator(creator);
-  const topTwoN = rankTopTwoN(CREATORS, 2);
-  const finalTopN = selectTopNWithCategoryQuota(topTwoN, 2, 1);
+  const requiredClaims: Array<[string, string]> = [
+    ["카테고리", creator.category],
+    ["키워드", creator.keywords.join(" · ")],
+    ["협업 이력", "최근 90일 수집 데이터에서 분석 중"],
+    ["콘텐츠 유형", analysis.formatMix.map((format) => `${format.label} ${format.count}건`).join(" · ")],
+    ["톤앤매너", "AI 이미지·텍스트 분석 중"],
+    ["위험 요소", "최근 수집 콘텐츠 기준 특이 위험 요소 분석 중"],
+    ["강점/유의점", "AI 분석 결과 생성 중"],
+  ];
+  const qualitativeClaims = [...analysis.qualitativeClaims];
+  for (const [label, value] of requiredClaims) {
+    if (!qualitativeClaims.some((claim) => claim.label === label)) {
+      qualitativeClaims.push({ label, value, evidence: { label: "콘텐츠 URL", url: creator.profile.profileUrl } });
+    }
+  }
 
   return (
     <section aria-labelledby="creator-analysis-title" className="fuma-content-section" id="analysis">
@@ -289,23 +302,23 @@ export function CreatorAnalysisReport({ creator }: { creator: CreatorFixture }) 
               {creator.profile.platform} · {creator.profile.handle}
             </a>
           </AnalysisFields>
-          <AnalysisFields label={audience}>{formatNumber(creator.profile.followers)}</AnalysisFields>
+          <AnalysisFields label="최종 업데이트 일자">{analysis.updatedAt} 기준 최근 {analysis.collectionDays}일 수집 데이터</AnalysisFields>
+          <AnalysisFields label="팔로워·구독자 수">{formatNumber(creator.profile.followers)}</AnalysisFields>
           <AnalysisFields label="업로드 주기">주 {cadence.weeklyAverage.toFixed(1)}회 · 최근 {analysis.collectionDays}일 {collectedContentCount}건 · 공백 최대 {cadence.longestGapDays}일</AnalysisFields>
-          <AnalysisFields label="콘텐츠 수">공개 콘텐츠 {formatNumber(creator.contentCount)}건 · 수집 콘텐츠 {collectedContentCount}건</AnalysisFields>
-          <AnalysisFields label="마지막 게시일">마지막 게시일 {analysis.lastPostDate}</AnalysisFields>
-          <AnalysisFields label="평균 조회 수">{metricValue(analysis.averages.views)}</AnalysisFields>
-          <AnalysisFields label="평균 좋아요">{metricValue(analysis.averages.likes)}</AnalysisFields>
-          <AnalysisFields label="평균 댓글">{metricValue(analysis.averages.comments)}</AnalysisFields>
+          <AnalysisFields label="콘텐츠 수">{formatNumber(creator.contentCount)}건</AnalysisFields>
+          <AnalysisFields label="최근 90일 게시물 수">{collectedContentCount}건</AnalysisFields>
+          <AnalysisFields label="마지막 게시일">{analysis.lastPostDate}</AnalysisFields>
+          <AnalysisFields label="평균 조회·좋아요·댓글">조회 {metricValue(analysis.averages.views)} · 좋아요 {metricValue(analysis.averages.likes)} · 댓글 {metricValue(analysis.averages.comments)}</AnalysisFields>
           <AnalysisFields label="콘텐츠 형식 통계">{analysis.formatMix.map((format) => `${format.label} ${format.count}건`).join(" · ")}</AnalysisFields>
-          <AnalysisFields label="ER (Engagement Rate)">{engagement.value === null ? "ER 집계 불가 · 댓글 수가 있는 유효 표본 없음" : `ER ${engagement.value.toFixed(1)}%`} · (좋아요 + 댓글) ÷ {audience} × 100 · 표본 {engagement.sampleSize}건</AnalysisFields>
+          <AnalysisFields label="ER (Engagement Rate)">{engagement.value === null ? "ER 집계 불가 · 댓글 수가 있는 유효 표본 없음" : `ER ${engagement.value.toFixed(1)}%`} · (좋아요 + 댓글 + 공유) ÷ {audience} × 100 · 표본 {engagement.sampleSize}건</AnalysisFields>
           <AnalysisFields label="플랫폼 보조 상호작용">{analysis.supplementalInteractions.length > 0 ? analysis.supplementalInteractions.map((item) => `${item.label} ${formatNumber(item.value)}`).join(" · ") : "집계 불가"}</AnalysisFields>
         </dl>
       </section>
 
       <section aria-label="AI 정성 분석" className="fuma-content-section">
-        <header className="fuma-content-section__header"><h2>AI 정성 분석</h2></header>
+        <header className="fuma-content-section__header"><h2>정성적 지표 (AI)</h2><span>이미지 분석을 포함하며, AI 판단에는 콘텐츠 URL 근거를 남깁니다.</span></header>
         <dl className="fuma-key-value-grid">
-          {analysis.qualitativeClaims.map((claim) => (
+          {qualitativeClaims.map((claim) => (
             <AnalysisFields key={claim.label} label={claim.label}>
               <span>{claim.value}</span>{" "}
               <a href={claim.evidence.url} rel="noreferrer" target="_blank">{claim.evidence.label}</a>
@@ -314,13 +327,6 @@ export function CreatorAnalysisReport({ creator }: { creator: CreatorFixture }) 
         </dl>
       </section>
 
-      <section aria-label="크리에이터 풀 TopN 선정" className="fuma-content-section">
-        <header className="fuma-content-section__header"><h2>크리에이터 풀 TopN 선정</h2></header>
-        <dl className="fuma-key-value-grid">
-          <AnalysisFields label="1차 2N 선정">ER × log(1 + 팔로워·구독자 수) · 현재 점수 {topNScore(creator)?.toFixed(2) ?? "집계 불가"} · 후보 {topTwoN.map((candidate) => candidate.name).join(" · ")}</AnalysisFields>
-          <AnalysisFields label="최종 N 선정">카테고리별 최대 1명 · 최종 후보 {finalTopN.map((candidate) => candidate.name).join(" · ")}</AnalysisFields>
-        </dl>
-      </section>
     </section>
   );
 }

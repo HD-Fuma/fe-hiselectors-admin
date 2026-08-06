@@ -28,11 +28,11 @@ describe("settlement payment management", () => {
     expect(screen.getByText("ST101")).toBeInTheDocument();
 
     const search = screen.getByRole("search", { name: "검색 조건" });
-    expect(within(search).getByLabelText("귀속월")).toHaveAttribute("type", "month");
-    expect(within(search).getByLabelText("귀속월")).toHaveValue("2026-08");
-    expect(within(search).getByRole("textbox", { name: "셀렉터스" })).toHaveAttribute(
+    expect(within(search).getByLabelText("정산월")).toHaveAttribute("type", "month");
+    expect(within(search).getByLabelText("정산월")).toHaveValue("2026-08");
+    expect(within(search).getByRole("textbox", { name: "ID 또는 이름" })).toHaveAttribute(
       "placeholder",
-      "셀렉터스 ID 또는 이름 검색",
+      "ID 또는 이름 검색",
     );
     expect(
       within(search).queryByRole("combobox", { name: "수정 가능 여부" }),
@@ -42,17 +42,18 @@ describe("settlement payment management", () => {
     ).toHaveTextContent("전체미확정확정");
     expect(
       within(search).getByRole("combobox", { name: "지급 상태" }),
-    ).toHaveTextContent("전체지급 전지급 대기지급 완료");
+    ).toHaveTextContent("전체대기확정지급 완료");
     expectButtonType(search, "조회");
     expectButtonType(search, "초기화");
 
-    expect(screen.getByText("토스 페이먼츠 연동 후순위")).toBeInTheDocument();
+    expect(screen.queryByText("토스 페이먼츠 연동 후순위")).not.toBeInTheDocument();
     expect(screen.getByText("정산 지급 목록", { selector: "strong" })).toBeInTheDocument();
     expect(screen.getByText("총 4건")).toBeInTheDocument();
 
     const results = screen.getByRole("region", { name: "정산 지급 목록" });
     expectColumnHeaders(results, [
-      "귀속월",
+      "정산월",
+      "셀렉터스 ID",
       "셀렉터스",
       "예상액",
       "확정액",
@@ -66,7 +67,7 @@ describe("settlement payment management", () => {
     expect(within(kim).getByText("sl-001")).toBeInTheDocument();
     expect(within(kim).getAllByText("486,000원")).toHaveLength(2);
     expect(within(kim).getByText("미확정")).toHaveClass("hsas-status-pill--pending");
-    expect(within(kim).getByText("지급 전")).toHaveClass("hsas-status-pill--neutral");
+    expect(within(kim).getByText("대기")).toHaveClass("hsas-status-pill--neutral");
 
     const park = within(results).getByRole("row", { name: /st-002.*박도윤/ });
     expect(within(park).getByText("352,000원")).toBeInTheDocument();
@@ -75,7 +76,7 @@ describe("settlement payment management", () => {
     const lee = within(results).getByRole("row", { name: /st-003.*이지아/ });
     expect(within(lee).getByText("확정", { selector: ".hsas-status-pill" }))
       .toHaveClass("hsas-status-pill--approved");
-    expect(within(lee).getByText("지급 대기")).toHaveClass("hsas-status-pill--pending");
+    expect(within(lee).getByText("대기")).toHaveClass("hsas-status-pill--neutral");
 
     const oh = within(results).getByRole("row", { name: /st-004.*오하늘/ });
     expect(within(oh).getByText("2026-07")).toBeInTheDocument();

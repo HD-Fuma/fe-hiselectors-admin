@@ -44,7 +44,6 @@ describe("cohort management", () => {
     const results = screen.getByRole("region", { name: "기수 목록" });
     expectColumnHeaders(results, [
       "기수명",
-      "모집 기간",
       "활동 기간",
       "모집 상태",
       "참여자 수",
