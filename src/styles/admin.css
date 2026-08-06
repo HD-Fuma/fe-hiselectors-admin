@@ -1757,6 +1757,10 @@
   gap: var(--hsas-space-8);
 }
 
+.fuma-content-comparison--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .fuma-content-snapshot {
   min-width: 0;
   border: 1px solid var(--hsas-border);

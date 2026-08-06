@@ -403,11 +403,15 @@ export function ContentReviewDetailPage() {
               </StatusPill>
             </div>
             <BasicInformation content={content} />
-            <div className="fuma-content-comparison">
-              <SnapshotPanel ariaLabel="이전 콘텐츠" snapshot={content.previousSnapshot} />
+            <div
+              className={`fuma-content-comparison${content.previousSnapshot ? "" : " fuma-content-comparison--single"}`}
+            >
+              {content.previousSnapshot ? (
+                <SnapshotPanel ariaLabel="이전 콘텐츠" snapshot={content.previousSnapshot} />
+              ) : null}
               <SnapshotPanel ariaLabel="현재 콘텐츠" snapshot={content.currentSnapshot} />
             </div>
-            <ChangeSummary items={content.changeItems} />
+            {content.previousSnapshot ? <ChangeSummary items={content.changeItems} /> : null}
             <ContentAiSummary content={content} />
             <ReviewActions actions={content.availableActions} />
           </>

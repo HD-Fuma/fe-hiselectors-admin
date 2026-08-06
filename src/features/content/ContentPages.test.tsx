@@ -204,8 +204,8 @@ describe("content review detail", () => {
       expect(within(basic).getByText(value)).toBeInTheDocument();
     }
 
-    const previous = screen.getByRole("region", { name: "이전 콘텐츠" });
-    expect(within(previous).getByText("이전 스냅샷이 없습니다.")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "이전 콘텐츠" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "변경 요약" })).not.toBeInTheDocument();
 
     const current = screen.getByRole("region", { name: "현재 콘텐츠" });
     expect(within(current).getByText("최초 수집 원본")).toBeInTheDocument();
