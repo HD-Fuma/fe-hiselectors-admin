@@ -260,12 +260,17 @@ describe("creator detail", () => {
 
 describe("proposal history", () => {
   test("opens a creator-specific proposal compose workspace", () => {
+    vi.stubEnv("BASE_URL", "/fe-selectors-admin/");
     renderRoute("/proposals/new?creator=cr-001");
 
     expect(screen.getByRole("heading", { name: "크리에이터 제안 작성" })).toBeInTheDocument();
     expect(screen.getByText("CR202")).toBeInTheDocument();
     expect(screen.getByText("김서연님에게 보낼 제안을 작성합니다.")).toBeInTheDocument();
     const target = screen.getByRole("complementary", { name: "제안 대상" });
+    expect(within(target).getByRole("img", { name: "김서연 프로필 이미지" })).toHaveAttribute(
+      "src",
+      "/fe-selectors-admin/creator-media/kr-cr-001-profile.jpg",
+    );
     expect(within(target).getByText("Instagram")).toBeInTheDocument();
     expect(within(target).getByText("@seo.yeon")).toBeInTheDocument();
     const form = screen.getByRole("form", { name: "제안 작성" });
@@ -274,6 +279,7 @@ describe("proposal history", () => {
       "더현대Hi 셀렉터스 활동 제안드립니다, 김서연님",
     );
     expect(within(form).getByRole("button", { name: "제안 발송" })).toBeInTheDocument();
+    vi.unstubAllEnvs();
   });
 
   test("honors the proposal channel selected from creator detail", () => {

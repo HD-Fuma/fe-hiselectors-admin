@@ -8,12 +8,13 @@ test.beforeAll(async () => {
 
 async function expectCreatorMedia(
   page: Page,
-  path: string,
+  relativePath: string,
   screenshotPath: string,
   testInfo: TestInfo,
 ) {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto(new URL(path, String(testInfo.project.use.baseURL)).toString());
+  const baseURL = String(testInfo.project.use.baseURL).replace(/\/?$/, "/");
+  await page.goto(new URL(relativePath, baseURL).toString());
   await page.locator('[data-app-ready="true"]').waitFor();
 
   const images = page.locator('img[src*="/creator-media/kr-cr-"]');
@@ -33,7 +34,7 @@ async function expectCreatorMedia(
 test("creator media loads on list", async ({ page }, testInfo) => {
   await expectCreatorMedia(
     page,
-    "/creators",
+    "creators",
     "test-results/visual/creator-media-list.png",
     testInfo,
   );
@@ -42,7 +43,7 @@ test("creator media loads on list", async ({ page }, testInfo) => {
 test("creator media loads on detail", async ({ page }, testInfo) => {
   await expectCreatorMedia(
     page,
-    "/creators/cr-001",
+    "creators/cr-001",
     "test-results/visual/creator-media-detail.png",
     testInfo,
   );
@@ -51,7 +52,7 @@ test("creator media loads on detail", async ({ page }, testInfo) => {
 test("creator media loads on proposal", async ({ page }, testInfo) => {
   await expectCreatorMedia(
     page,
-    "/proposals/new?creator=cr-001",
+    "proposals/new?creator=cr-001",
     "test-results/visual/creator-media-proposal.png",
     testInfo,
   );

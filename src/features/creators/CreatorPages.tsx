@@ -11,6 +11,7 @@ import { SectionTabs } from "../../components/ui/SectionTabs";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { CreatorCardGrid } from "./CreatorCardGrid";
 import { CreatorContentPhoto, CreatorProfilePhoto } from "./CreatorArtwork";
+import { assetUrl } from "./assetUrl";
 import { engagementResultForCreator } from "./CreatorAnalysisReport";
 import { CreatorAnalysisReport } from "./CreatorAnalysisReport";
 import {
@@ -521,7 +522,10 @@ function ProposalCreatorSummary({ creator }: { creator: CreatorFixture }) {
     <aside aria-label="제안 대상" className="fuma-proposal-compose__creator">
       <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
       <div className="fuma-proposal-compose__creator-profile">
-        <img alt={`${creator.name} 프로필 이미지`} src={creator.profile.profileImageUrl} />
+        <img
+          alt={`${creator.name} 프로필 이미지`}
+          src={assetUrl(creator.profile.profileImageUrl)}
+        />
         <div>
           <strong>{creator.name}</strong>
           <span>
