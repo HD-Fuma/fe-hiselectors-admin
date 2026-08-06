@@ -1,5 +1,14 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import {
+  ArrowUpRight,
+  ChartNoAxesCombined,
+  MousePointer2,
+  Package,
+  PlaySquare,
+  ShoppingBag,
+  UsersRound,
+} from "lucide-react";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
@@ -149,6 +158,113 @@ function PerformanceScopeNav({ active }: { active: PerformanceScope }) {
         </Link>
       ))}
     </nav>
+  );
+}
+
+function PerformanceWorkspaceIntro({
+  active,
+  caption,
+}: {
+  active: PerformanceScope;
+  caption: string;
+}) {
+  return (
+    <div className="fuma-performance-workspace-intro">
+      <div>
+        <p>PERFORMANCE WORKSPACE</p>
+        <strong>{caption}</strong>
+      </div>
+      <PerformanceScopeNav active={active} />
+    </div>
+  );
+}
+
+function TopContentCards() {
+  return (
+    <section aria-label="대표 콘텐츠 성과" className="fuma-performance-top-content">
+      <div className="fuma-performance-section-heading">
+        <div>
+          <p>TOP CONTENT</p>
+          <h2>대표 콘텐츠</h2>
+        </div>
+        <Link to="/performance/contents">전체 콘텐츠 보기 <ArrowUpRight size={15} /></Link>
+      </div>
+      <div className="fuma-performance-top-content__grid">
+        {[...CONTENT_INFLUENCE]
+          .sort((a, b) => b.conversions - a.conversions)
+          .slice(0, 3)
+          .map((content, index) => (
+            <article className="fuma-performance-content-card" key={content.id}>
+              <div className={`fuma-performance-content-card__cover is-cover-${index + 1}`}>
+                <span>{content.platform === "YouTube" ? "YT" : "IG"}</span>
+                <em>#{String(index + 1).padStart(2, "0")}</em>
+              </div>
+              <div className="fuma-performance-content-card__body">
+                <p>{creatorNameById(content.creatorId)} · {content.platform}</p>
+                <h3>{content.title}</h3>
+                <div>
+                  <span>조회 {formatCount(content.views)}</span>
+                  <strong>전환 {formatCount(content.conversions)}</strong>
+                </div>
+              </div>
+            </article>
+          ))}
+      </div>
+    </section>
+  );
+}
+
+function PerformanceOperationsRail() {
+  const notices = [
+    "여름 바캉스 스타일링 콘텐츠 검수 대기",
+    "김서연 크리에이터 성과 리포트 갱신",
+    "에어핏 라운딩 팬츠 캠페인 종료 임박",
+    "제안 발송 후 응답 없는 크리에이터 3명",
+  ];
+
+  return (
+    <aside aria-label="성과 운영 인사이트" className="fuma-performance-operations-rail">
+      <section className="fuma-performance-ai-card">
+        <div>
+          <span>AI REPORT</span>
+          <strong>이번 기간, 전환이 가장 높은 채널은 Instagram입니다.</strong>
+          <p>릴스 중심 콘텐츠가 전체 구매 전환의 61%를 만들었어요.</p>
+        </div>
+        <Button variant="primary">리포트 확인</Button>
+      </section>
+      <section className="fuma-performance-rail-card">
+        <div className="fuma-performance-rail-card__heading">
+          <h2>최근 운영 요청</h2>
+          <span>12</span>
+        </div>
+        <ul className="fuma-performance-request-list">
+          {notices.map((notice) => (
+            <li key={notice}><span>{notice}</span><ArrowUpRight size={14} /></li>
+          ))}
+        </ul>
+        <button type="button">요청 전체 보기</button>
+      </section>
+      <section className="fuma-performance-rail-card fuma-performance-topic-card">
+        <div className="fuma-performance-rail-card__heading"><h2>연관 해시태그</h2></div>
+        <div>
+          {['#여름바캉스', '#골프웨어', '#데일리룩', '#리조트룩', '#패션하울'].map((tag) => (
+            <span key={tag}>{tag}</span>
+          ))}
+        </div>
+      </section>
+      <section aria-label="채널별 팔로워 증가" className="fuma-performance-follower-list">
+        {[
+          ["Instagram", "+5", "1.2%"],
+          ["YouTube", "+10", "1.7%"],
+          ["TikTok", "+21", "2.4%"],
+        ].map(([channel, amount, rate]) => (
+          <div key={channel}>
+            <span>{channel}</span>
+            <strong>{amount} <em>↑ {rate}</em></strong>
+          </div>
+        ))}
+      </section>
+    </aside>
   );
 }
 
@@ -428,17 +544,17 @@ export function buildDashboardVisualData(
           : campaign.conversions / campaign.clicks,
     })),
     kpis: [
-      { label: "총 클릭 수", value: formattedTotal(campaigns.length, totalClicks), icon: "↗", featured: true },
+      { label: "총 클릭 수", value: formattedTotal(campaigns.length, totalClicks), icon: <MousePointer2 size={19} />, featured: true },
       {
         label: "구매 전환 수",
         value: formattedTotal(campaigns.length, totalConversions),
-        icon: "✓",
+        icon: <ShoppingBag size={19} />,
       },
-      { label: "전환율", value: conversionRate, icon: "%" },
+      { label: "전환율", value: conversionRate, icon: <ChartNoAxesCombined size={19} /> },
       {
         label: "집계 셀렉터스",
         value: selectors.length === 0 ? "-" : `${selectors.length}명`,
-        icon: "◎",
+        icon: <UsersRound size={19} />,
       },
     ],
     selectorItems: selectors.map((selector) => ({
@@ -484,13 +600,13 @@ export function buildCreatorVisualData(
       sortValue: creator.conversions,
     })),
     kpis: [
-      { label: "총 조회 수", value: formattedTotal(creators.length, totalViews), icon: "◉" },
-      { label: "총 좋아요", value: formattedTotal(creators.length, totalLikes), icon: "♡" },
-      { label: "총 댓글", value: formattedTotal(creators.length, totalComments), icon: "◌" },
+      { label: "총 조회 수", value: formattedTotal(creators.length, totalViews), icon: <PlaySquare size={19} /> },
+      { label: "총 좋아요", value: formattedTotal(creators.length, totalLikes), icon: <ChartNoAxesCombined size={19} /> },
+      { label: "총 댓글", value: formattedTotal(creators.length, totalComments), icon: <UsersRound size={19} /> },
       {
         label: "구매 전환 수",
         value: formattedTotal(creators.length, totalConversions),
-        icon: "✓",
+        icon: <ShoppingBag size={19} />,
       },
     ],
   };
@@ -525,18 +641,18 @@ export function buildContentVisualData(
       {
         label: "콘텐츠 수",
         value: contents.length === 0 ? "-" : `${contents.length}개`,
-        icon: "▣",
+        icon: <PlaySquare size={19} />,
       },
-      { label: "총 조회 수", value: formattedTotal(contents.length, totalViews), icon: "◉" },
+      { label: "총 조회 수", value: formattedTotal(contents.length, totalViews), icon: <MousePointer2 size={19} /> },
       {
         label: "총 반응",
         value: formattedTotal(contents.length, totalReactions),
-        icon: "♡",
+        icon: <ChartNoAxesCombined size={19} />,
       },
       {
         label: "구매 전환 수",
         value: formattedTotal(contents.length, totalConversions),
-        icon: "✓",
+        icon: <ShoppingBag size={19} />,
       },
     ],
   };
@@ -559,10 +675,10 @@ export function buildProductVisualData(products: readonly ProductInfluence[]) {
       sortValue: product.conversions,
     })),
     kpis: [
-      { label: "분석 상품", value: products.length === 0 ? "-" : `${products.length}개`, icon: "▣" },
-      { label: "연결 콘텐츠", value: products.length === 0 ? "-" : `${totalContents}개`, icon: "◫" },
-      { label: "구매 전환 수", value: formattedTotal(products.length, totalConversions), icon: "✓" },
-      { label: "평균 전환율", value: products.length === 0 ? "-" : formatRate(totalConversions, totalClicks), icon: "%" },
+      { label: "분석 상품", value: products.length === 0 ? "-" : `${products.length}개`, icon: <Package size={19} /> },
+      { label: "연결 콘텐츠", value: products.length === 0 ? "-" : `${totalContents}개`, icon: <PlaySquare size={19} /> },
+      { label: "구매 전환 수", value: formattedTotal(products.length, totalConversions), icon: <ShoppingBag size={19} /> },
+      { label: "평균 전환율", value: products.length === 0 ? "-" : formatRate(totalConversions, totalClicks), icon: <ChartNoAxesCombined size={19} /> },
     ],
   };
 }
@@ -578,29 +694,36 @@ export function PerformanceDashboardPage() {
     <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF101" title="관리자 성과 대시보드" />
       <div className="fuma-page__body">
-        <PerformanceScopeNav active="overview" />
+        <PerformanceWorkspaceIntro active="overview" caption="캠페인 성과를 빠르게 비교하세요." />
         <PerformanceFilters />
-        <PerformanceKpiGrid
-          ariaLabel="성과 요약"
-          items={visualData.kpis}
-        />
-        <div className="fuma-performance-visuals fuma-performance-visuals--overview">
-          <div className="fuma-performance-visuals__wide">
-            <PerformanceTrendChart
-              points={visualData.trendPoints}
-              title="선택 기간 성과 추이"
+        <div className="fuma-performance-dashboard-layout">
+          <div className="fuma-performance-dashboard-main">
+            <PerformanceKpiGrid
+              ariaLabel="성과 요약"
+              items={visualData.kpis}
             />
+            <div className="fuma-performance-visuals fuma-performance-visuals--overview">
+              <div className="fuma-performance-visuals__wide">
+                <PerformanceTrendChart
+                  points={visualData.trendPoints}
+                  title="캠페인 수익 추이"
+                  description="선택 기간 기준 클릭과 구매 전환 성과"
+                />
+              </div>
+              <PerformanceBarChart
+                items={visualData.campaignItems}
+                mode="single"
+                primaryLabel="전환율"
+                title="캠페인 전환 성과"
+              />
+              <PerformanceRanking
+                items={visualData.selectorItems}
+                title="크리에이터 기여 순위"
+              />
+            </div>
+            <TopContentCards />
           </div>
-          <PerformanceBarChart
-            items={visualData.campaignItems}
-            mode="single"
-            primaryLabel="전환율"
-            title="캠페인 전환 성과"
-          />
-          <PerformanceRanking
-            items={visualData.selectorItems}
-            title="셀렉터스 성과 순위"
-          />
+          <PerformanceOperationsRail />
         </div>
         <PerformanceResultTable
           className="fuma-performance-campaign-table"
@@ -628,7 +751,7 @@ export function CreatorPerformancePage() {
     <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF201" title="크리에이터 영향력 분석" />
       <div className="fuma-page__body">
-        <PerformanceScopeNav active="creators" />
+        <PerformanceWorkspaceIntro active="creators" caption="전환을 만든 크리에이터를 확인하세요." />
         <PerformanceFilters
           keyword={{
             id: "performance-creator-name",
@@ -668,7 +791,7 @@ export function ContentPerformancePage() {
     <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF202" title="콘텐츠 영향력 분석" />
       <div className="fuma-page__body">
-        <PerformanceScopeNav active="contents" />
+        <PerformanceWorkspaceIntro active="contents" caption="콘텐츠별 반응과 전환을 비교하세요." />
         <PerformanceFilters
           keyword={{
             id: "performance-content-keyword",
@@ -707,7 +830,7 @@ export function ProductPerformancePage() {
     <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF203" title="상품 성과 분석" />
       <div className="fuma-page__body">
-        <PerformanceScopeNav active="products" />
+        <PerformanceWorkspaceIntro active="products" caption="상품별 콘텐츠 기여도를 확인하세요." />
         <PerformanceFilters
           keyword={{
             id: "performance-product-keyword",
