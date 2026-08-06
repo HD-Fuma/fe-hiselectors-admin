@@ -9,30 +9,32 @@ import {
 import {
   CreatorDetailPage,
   CreatorListPage,
+  ProposalComposePage,
   ProposalHistoryPage,
 } from "../features/creators/CreatorPages";
 import {
   CohortManagementPage,
   QualificationManagementPage,
+  SelectorDetailPage,
   SelectorOverviewPage,
 } from "../features/selectors/SelectorPages";
 import {
   CampaignCreatePage,
+  CampaignDetailPage,
   CampaignEditPage,
   CampaignListPage,
 } from "../features/campaigns/CampaignPages";
 import {
   ContentReviewDetailPage,
   ContentReviewListPage,
-  ContentViolationPage,
 } from "../features/content/ContentPages";
 import {
   ContentPerformancePage,
   CreatorPerformancePage,
   PerformanceDashboardPage,
+  ProductPerformancePage,
 } from "../features/performance/PerformancePages";
 import {
-  NoticeManagementPage,
   SettlementManagementPage,
 } from "../features/operations/OperationsPages";
 import { ADMIN_ROUTES, DEFAULT_ADMIN_ROUTE } from "./navigation";
@@ -45,10 +47,14 @@ function adminRouteElement(path: string, title: string, screenCode: string) {
       return <CreatorDetailPage />;
     case "/proposals":
       return <ProposalHistoryPage />;
+    case "/proposals/new":
+      return <ProposalComposePage />;
     case "/cohorts":
       return <CohortManagementPage />;
     case "/selectors":
       return <SelectorOverviewPage />;
+    case "/selectors/:selectorId":
+      return <SelectorDetailPage />;
     case "/selectors/qualifications":
       return <QualificationManagementPage />;
     case "/applicants":
@@ -59,24 +65,24 @@ function adminRouteElement(path: string, title: string, screenCode: string) {
       return <CampaignListPage />;
     case "/campaigns/new":
       return <CampaignCreatePage />;
+    case "/campaigns/:campaignId":
+      return <CampaignDetailPage />;
     case "/campaigns/:campaignId/edit":
       return <CampaignEditPage />;
     case "/content/reviews":
       return <ContentReviewListPage />;
     case "/content/reviews/:contentId":
       return <ContentReviewDetailPage />;
-    case "/content/violations":
-      return <ContentViolationPage />;
     case "/performance":
       return <PerformanceDashboardPage />;
     case "/performance/creators":
       return <CreatorPerformancePage />;
     case "/performance/contents":
       return <ContentPerformancePage />;
+    case "/performance/products":
+      return <ProductPerformancePage />;
     case "/settlements":
       return <SettlementManagementPage />;
-    case "/system/notices":
-      return <NoticeManagementPage />;
     default:
       return <PlaceholderPage title={title} screenCode={screenCode} />;
   }

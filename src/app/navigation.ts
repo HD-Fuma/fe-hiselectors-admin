@@ -7,8 +7,7 @@ export type NavGroup =
   | "campaigns"
   | "content"
   | "performance"
-  | "settlements"
-  | "system";
+  | "settlements";
 
 export interface AdminRouteMeta {
   path: string;
@@ -32,7 +31,6 @@ export const NAV_GROUPS: readonly NavGroupMeta[] = [
   { id: "content", label: "콘텐츠" },
   { id: "performance", label: "성과" },
   { id: "settlements", label: "정산" },
-  { id: "system", label: "시스템" },
 ];
 
 export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
@@ -61,6 +59,14 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     workTabLabel: "제안 이력",
   },
   {
+    path: "/proposals/new",
+    group: "creators",
+    menuLabel: "제안 이력",
+    title: "크리에이터 제안 작성",
+    screenCode: "CR202",
+    workTabLabel: "제안 작성",
+  },
+  {
     path: "/cohorts",
     group: "selectors",
     menuLabel: "기수 관리",
@@ -79,15 +85,23 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   {
     path: "/selectors/qualifications",
     group: "selectors",
-    menuLabel: "자격 관리",
-    title: "셀렉터스 자격 관리",
+    menuLabel: "블랙리스트 관리",
+    title: "블랙리스트 관리",
     screenCode: "SL301",
-    workTabLabel: "자격 관리",
+    workTabLabel: "블랙리스트 관리",
+  },
+  {
+    path: "/selectors/:selectorId",
+    group: "selectors",
+    menuLabel: "셀렉터스 현황",
+    title: "셀렉터스 상세",
+    screenCode: "SL202",
+    workTabLabel: "셀렉터스 상세",
   },
   {
     path: "/applicants",
     group: "applicants",
-    menuLabel: "지원자 목록",
+    menuLabel: "지원자 승인",
     title: "지원자 심사",
     screenCode: "AP101",
     workTabLabel: "지원자 심사",
@@ -95,7 +109,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   {
     path: "/applicants/:applicantId",
     group: "applicants",
-    menuLabel: "지원자 목록",
+    menuLabel: "지원자 승인",
     title: "지원자 상세 심사",
     screenCode: "AP102",
     workTabLabel: "지원자 상세",
@@ -115,6 +129,14 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     title: "캠페인 등록",
     screenCode: "CP102",
     workTabLabel: "캠페인 등록",
+  },
+  {
+    path: "/campaigns/:campaignId",
+    group: "campaigns",
+    menuLabel: "캠페인 관리",
+    title: "캠페인 상세",
+    screenCode: "CP104",
+    workTabLabel: "캠페인 상세",
   },
   {
     path: "/campaigns/:campaignId/edit",
@@ -141,14 +163,6 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     workTabLabel: "검수 상세",
   },
   {
-    path: "/content/violations",
-    group: "content",
-    menuLabel: "위반 관리",
-    title: "위반 콘텐츠 관리",
-    screenCode: "CT201",
-    workTabLabel: "위반 관리",
-  },
-  {
     path: "/performance",
     group: "performance",
     menuLabel: "성과 대시보드",
@@ -173,6 +187,14 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     workTabLabel: "콘텐츠 분석",
   },
   {
+    path: "/performance/products",
+    group: "performance",
+    menuLabel: "상품 분석",
+    title: "상품 성과 분석",
+    screenCode: "PF203",
+    workTabLabel: "상품 분석",
+  },
+  {
     path: "/settlements",
     group: "settlements",
     menuLabel: "정산 관리",
@@ -180,17 +202,11 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     screenCode: "ST101",
     workTabLabel: "정산 관리",
   },
-  {
-    path: "/system/notices",
-    group: "system",
-    menuLabel: "공지사항",
-    title: "공지사항 관리",
-    screenCode: "SY101",
-    workTabLabel: "공지사항",
-  },
 ];
 
-export const DEFAULT_ADMIN_ROUTE = ADMIN_ROUTES[0];
+export const DEFAULT_ADMIN_ROUTE = ADMIN_ROUTES.find(
+  (route) => route.path === "/performance",
+) ?? ADMIN_ROUTES[0];
 
 export function findAdminRoute(pathname: string) {
   return ADMIN_ROUTES.find((route) => matchPath({ path: route.path, end: true }, pathname));

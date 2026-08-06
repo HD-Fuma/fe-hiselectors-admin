@@ -77,7 +77,14 @@ describe("campaign management list", () => {
       "hsas-status-pill--approved",
     );
     expect(within(autumnRow).getByText("-")).toBeInTheDocument();
-    expectButtonType(autumnRow, "2026 가을 골프웨어 셀렉션 수정");
+    expect(within(autumnRow).getByRole("link", { name: "2026 가을 골프웨어 셀렉션 상세 보기" })).toHaveAttribute(
+      "href",
+      "/campaigns/cp-001",
+    );
+    expect(within(autumnRow).getByRole("link", { name: "2026 가을 골프웨어 셀렉션 수정" })).toHaveAttribute(
+      "href",
+      "/campaigns/cp-001/edit",
+    );
     const autumnDelete = within(autumnRow).getByRole("button", {
       name: "2026 가을 골프웨어 셀렉션 삭제",
     });
@@ -219,6 +226,31 @@ describe("campaign create and edit forms", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: "캠페인명" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "저장" })).not.toBeInTheDocument();
+  });
+});
+
+describe("campaign detail", () => {
+  test("renders campaign information, included products, and management links", () => {
+    renderRoute("/campaigns/cp-001");
+
+    expect(screen.getByRole("heading", { name: "캠페인 상세" })).toBeInTheDocument();
+    expect(screen.getByText("CP104")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "목록" })).toHaveAttribute("href", "/campaigns");
+    expect(screen.getByRole("link", { name: "캠페인 수정" })).toHaveAttribute(
+      "href",
+      "/campaigns/cp-001/edit",
+    );
+
+    const basic = screen.getByRole("region", { name: "기본 정보" });
+    for (const text of ["cp-001", "2026 가을 골프웨어 셀렉션", "2026-08-10", "2026-09-30", "2개", "가능"]) {
+      expect(within(basic).getByText(text)).toBeInTheDocument();
+    }
+
+    const products = screen.getByRole("region", { name: "포함 상품" });
+    expectColumnHeaders(products, ["상품코드", "상품명", "판매 상태", "협력사"]);
+    expect(within(products).getByText(FIRST_PRODUCT_NAME)).toBeInTheDocument();
+    expect(within(products).getByText(SECOND_PRODUCT_NAME)).toBeInTheDocument();
+    expect(screen.getByText("현재 캠페인은 삭제할 수 있습니다.")).toBeInTheDocument();
   });
 });
 

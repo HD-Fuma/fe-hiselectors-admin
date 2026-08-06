@@ -1,0 +1,22 @@
+.hsas-admin-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 var(--hsas-space-16);
+}
+
+.hsas-admin-sidebar__brand-logo-shell {
+  display: block;
+  width: 71px;
+  height: 28px;
+  flex: 0 0 auto;
+}
+
+.hsas-admin-sidebar__brand-logo {
+  display: block;
+  width: 71px;
+  height: 28px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  transform: translateY(4px);
+}

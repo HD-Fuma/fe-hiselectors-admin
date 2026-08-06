@@ -8,7 +8,37 @@ export interface ContentSnapshot {
   urls: string[];
   mediaCount: number;
   mediaKinds: string[];
+  mediaUrls: string[];
   capturedAt: string;
+}
+
+export type ReviewSignalTone = "pass" | "warning" | "critical";
+
+export interface ContentReviewSignal {
+  title: string;
+  detail: string;
+  source: string;
+  evidence: string;
+  tone: ReviewSignalTone;
+}
+
+export interface ContentReviewExtract {
+  type: "OCR" | "STT";
+  text: string;
+  location: string;
+}
+
+export interface ContentReviewHistoryItem {
+  at: string;
+  label: string;
+  actor: string;
+}
+
+export interface ContentReviewReport {
+  generatedAt: string;
+  signals: ContentReviewSignal[];
+  extracts: ContentReviewExtract[];
+  history: ContentReviewHistoryItem[];
 }
 
 export interface ContentReviewFixture {
@@ -28,6 +58,7 @@ export interface ContentReviewFixture {
   processingState: ProcessingState;
   availableActions: string[];
   changeItems: string[];
+  report: ContentReviewReport;
 }
 
 export interface ViolationFixture {
@@ -64,6 +95,11 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
       urls: ["https://www.hmall.com/p/2200098405"],
       mediaCount: 4,
       mediaKinds: ["이미지", "이미지", "이미지", "이미지"],
+      mediaUrls: [
+        "/creator-media/kr-cr-001-01.jpg",
+        "/creator-media/kr-cr-001-02.jpg",
+        "/creator-media/kr-cr-001-03.jpg",
+      ],
     },
     aiStatus: "ready",
     aiSummary:
@@ -74,6 +110,51 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
     processingState: "미처리",
     availableActions: ["검수 완료", "수정 요청", "위반 판정"],
     changeItems: ["이전 비교 대상 없음", "URL 1개", "미디어 4개"],
+    report: {
+      generatedAt: "2026-08-03 10:44",
+      signals: [
+        {
+          title: "광고 표시",
+          detail: "본문에서 필수 광고 표기를 확인했습니다.",
+          source: "본문",
+          evidence: "#광고",
+          tone: "pass",
+        },
+        {
+          title: "상품·링크 일치",
+          detail: "소개 상품과 공식 Hmall 상품 링크가 일치합니다.",
+          source: "본문 · URL",
+          evidence: "세인트앤드류스 패딩 팬츠 · hmall.com",
+          tone: "pass",
+        },
+        {
+          title: "안전성",
+          detail: "욕설, 폭력성, 음란 표현이 감지되지 않았습니다.",
+          source: "본문 · 이미지 분석",
+          evidence: "감지 항목 없음",
+          tone: "pass",
+        },
+        {
+          title: "음성 검사",
+          detail: "이미지 게시물로 음성 트랙이 없어 STT 검사 대상이 아닙니다.",
+          source: "미디어 메타데이터",
+          evidence: "이미지 4개 · 음성 트랙 없음",
+          tone: "pass",
+        },
+      ],
+      extracts: [
+        {
+          type: "OCR",
+          text: "이미지에서 추출된 문구 없음",
+          location: "이미지 1~4 · 전체",
+        },
+      ],
+      history: [
+        { at: "2026-08-03 10:40", label: "원본 수집", actor: "수집 시스템" },
+        { at: "2026-08-03 10:42", label: "검수 접수", actor: "김서연" },
+        { at: "2026-08-03 10:44", label: "자동 검수 완료", actor: "검수 시스템" },
+      ],
+    },
   },
   {
     id: "ct-002",
@@ -92,6 +173,11 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
       ],
       mediaCount: 5,
       mediaKinds: ["이미지", "이미지", "이미지", "이미지", "동영상"],
+      mediaUrls: [
+        "/creator-media/kr-cr-002-01.jpg",
+        "/creator-media/kr-cr-002-02.jpg",
+        "/creator-media/kr-cr-002-03.jpg",
+      ],
     },
     currentSnapshot: {
       label: "위반 후 수정본",
@@ -100,6 +186,11 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
       urls: ["https://www.hmall.com/p/2200098405"],
       mediaCount: 4,
       mediaKinds: ["이미지", "이미지", "이미지", "이미지"],
+      mediaUrls: [
+        "/creator-media/kr-cr-002-01.jpg",
+        "/creator-media/kr-cr-002-02.jpg",
+        "/creator-media/kr-cr-002-03.jpg",
+      ],
     },
     aiStatus: "ready",
     aiSummary:
@@ -110,6 +201,68 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
     processingState: "처리 완료",
     availableActions: ["위반 해제", "재수정 요청", "위반 유지"],
     changeItems: ["본문 변경됨", "URL 2 → 1", "미디어 5 → 4"],
+    report: {
+      generatedAt: "2026-08-03 09:47",
+      signals: [
+        {
+          title: "광고 표시 보완",
+          detail: "직전 판정본에는 광고 표기가 없었고 수정본에는 표기가 추가되었습니다.",
+          source: "본문 비교",
+          evidence: "표기 없음 → ‘유료광고를 포함한’",
+          tone: "pass",
+        },
+        {
+          title: "공식 링크로 교체",
+          detail: "비공식 단축 URL이 삭제되고 공식 상품 링크만 남았습니다.",
+          source: "URL 비교",
+          evidence: "short.example/golf 삭제",
+          tone: "pass",
+        },
+        {
+          title: "과장 표현 삭제",
+          detail: "최저가를 단정한 문구가 수정본에서 삭제되었습니다.",
+          source: "본문 · STT 비교",
+          evidence: "‘지금 가장 저렴하게’ 삭제",
+          tone: "pass",
+        },
+        {
+          title: "수정본 안전성",
+          detail: "수정본에서 욕설, 폭력성, 음란 표현이 감지되지 않았습니다.",
+          source: "본문 · 이미지 분석",
+          evidence: "감지 항목 없음",
+          tone: "pass",
+        },
+      ],
+      extracts: [
+        {
+          type: "OCR",
+          text: "지금 가장 저렴하게",
+          location: "직전 판정본 · 이미지 1 중앙",
+        },
+        {
+          type: "OCR",
+          text: "유료광고 포함",
+          location: "수정본 · 이미지 1 좌측 상단",
+        },
+        {
+          type: "STT",
+          text: "오늘 소개할 패딩 팬츠는 세인트앤드류스 신상입니다. 착용감과 사이즈를 차례로 보여드릴게요.",
+          location: "직전 판정본 · 00:08–00:17",
+        },
+        {
+          type: "STT",
+          text: "상품 정보와 구매 링크는 영상 설명란에서 확인해 주세요.",
+          location: "직전 판정본 · 00:42–00:50",
+        },
+      ],
+      history: [
+        { at: "2026-08-01 14:30", label: "원본 수집", actor: "수집 시스템" },
+        { at: "2026-08-01 14:32", label: "위반 자동 감지", actor: "검수 시스템" },
+        { at: "2026-08-01 15:10", label: "위반 확정", actor: "콘텐츠 운영자" },
+        { at: "2026-08-03 09:45", label: "수정본 접수", actor: "박도윤" },
+        { at: "2026-08-03 09:47", label: "재검수 완료", actor: "검수 시스템" },
+      ],
+    },
   },
   {
     id: "ct-003",
@@ -125,6 +278,10 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
       urls: ["https://www.hmall.com/p/2200098405"],
       mediaCount: 3,
       mediaKinds: ["이미지", "이미지", "이미지"],
+      mediaUrls: [
+        "/creator-media/kr-cr-003-01.jpg",
+        "/creator-media/kr-cr-003-02.jpg",
+      ],
     },
     currentSnapshot: {
       label: "수정 감지본",
@@ -136,6 +293,11 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
       ],
       mediaCount: 4,
       mediaKinds: ["이미지", "이미지", "이미지", "이미지"],
+      mediaUrls: [
+        "/creator-media/kr-cr-003-01.jpg",
+        "/creator-media/kr-cr-003-02.jpg",
+        "/creator-media/kr-cr-003-03.jpg",
+      ],
     },
     aiStatus: "ready",
     aiSummary:
@@ -146,6 +308,57 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
     processingState: "미처리",
     availableActions: ["변경 승인", "수정 요청", "위반 판정"],
     changeItems: ["본문 변경됨", "URL 1 → 2", "미디어 3 → 4"],
+    report: {
+      generatedAt: "2026-08-03 16:27",
+      signals: [
+        {
+          title: "변경 감지",
+          detail: "본문, URL, 이미지 변경을 감지했으며 정책 위반은 없습니다.",
+          source: "이전·현재 버전 비교",
+          evidence: "본문 수정 · URL 1개 추가 · 이미지 1개 추가",
+          tone: "pass",
+        },
+        {
+          title: "광고 표시 유지",
+          detail: "수정 후에도 필수 광고 및 캠페인 해시태그가 유지되었습니다.",
+          source: "본문 비교",
+          evidence: "#현대홈쇼핑 #셀렉터스 #광고",
+          tone: "pass",
+        },
+        {
+          title: "링크 안전성",
+          detail: "추가된 이벤트 URL을 포함해 모든 링크가 공식 Hmall 도메인입니다.",
+          source: "URL 검사",
+          evidence: "hmall.com/p · hmall.com/event/golf",
+          tone: "pass",
+        },
+        {
+          title: "안전성",
+          detail: "욕설, 폭력성, 음란 표현이 감지되지 않았습니다.",
+          source: "본문 · 이미지 분석",
+          evidence: "감지 항목 없음",
+          tone: "pass",
+        },
+      ],
+      extracts: [
+        {
+          type: "OCR",
+          text: "ST.ANDREWS · Stretch padded pants",
+          location: "이미지 1 · 하단",
+        },
+        {
+          type: "OCR",
+          text: "사이즈 팁은 본문에서 확인",
+          location: "이미지 4 · 우측 하단",
+        },
+      ],
+      history: [
+        { at: "2026-08-02 12:18", label: "직전 버전 승인", actor: "콘텐츠 운영자" },
+        { at: "2026-08-03 16:22", label: "수정 감지", actor: "수집 시스템" },
+        { at: "2026-08-03 16:25", label: "재검수 접수", actor: "검수 시스템" },
+        { at: "2026-08-03 16:27", label: "자동 검수 완료", actor: "검수 시스템" },
+      ],
+    },
   },
 ];
 

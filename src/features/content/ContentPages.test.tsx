@@ -23,7 +23,9 @@ function expectSnapshotEditor(
 ) {
   const editor = within(snapshot).getByRole("region", { name: `${label} 본문` });
 
-  expect(editor).toHaveTextContent(`<p>${expectedText}</p>`);
+  expect(editor).toHaveTextContent(expectedText);
+  expect(editor.querySelector("pre, code")).not.toBeInTheDocument();
+  expect(editor.querySelector(".fuma-editor-frame__toolbar")).not.toBeInTheDocument();
   expect(editor.querySelector("textarea")).not.toBeInTheDocument();
   expect(editor.querySelector("[contenteditable]")).not.toBeInTheDocument();
 }
@@ -51,6 +53,9 @@ describe("content review queue", () => {
     expect(
       within(search).getByRole("combobox", { name: "검수 상태" }),
     ).toHaveTextContent("전체검수 대기수정 요청승인위반 확정");
+    expect(
+      within(search).getByRole("combobox", { name: "위반 필터" }),
+    ).toHaveTextContent("전체위반 콘텐츠일반 콘텐츠");
     expect(
       within(search).getByRole("combobox", { name: "처리 상태" }),
     ).toHaveTextContent("전체미처리안내 대기처리 완료");
@@ -91,7 +96,10 @@ describe("content review queue", () => {
       expect(within(newRow).getByText(value)).toBeInTheDocument();
     }
     expect(within(newRow).getByRole("checkbox", { name: "ct-001 선택" })).toBeChecked();
-    expectButton(within(newRow).getByRole("button", { name: "ct-001 상세 보기" }));
+    expect(within(newRow).getByRole("link", { name: "ct-001 상세 보기" })).toHaveAttribute(
+      "href",
+      "/content/reviews/ct-001",
+    );
 
     const correctionRow = within(queue).getByRole("row", {
       name: /ct-002 위반 수정본 박도윤/,
@@ -173,7 +181,7 @@ describe("content review queue", () => {
 
 describe("content review detail", () => {
   test("renders the exact new-content source, four local media tiles, AI result, and inert actions", () => {
-    const { container } = renderRoute("/content/reviews/ct-001");
+    renderRoute("/content/reviews/ct-001");
 
     expect(screen.getByRole("heading", { name: "콘텐츠 검수 상세" })).toBeInTheDocument();
     expect(screen.getByText("CT102")).toBeInTheDocument();
@@ -201,8 +209,8 @@ describe("content review detail", () => {
       expect(within(basic).getByText(value)).toBeInTheDocument();
     }
 
-    const previous = screen.getByRole("region", { name: "이전 콘텐츠" });
-    expect(within(previous).getByText("이전 스냅샷이 없습니다.")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "이전 콘텐츠" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "변경 요약" })).not.toBeInTheDocument();
 
     const current = screen.getByRole("region", { name: "현재 콘텐츠" });
     expect(within(current).getByText("최초 수집 원본")).toBeInTheDocument();
@@ -229,7 +237,7 @@ describe("content review detail", () => {
       expectButton(within(actions).getByRole("button", { name }));
     }
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(container.querySelector("img")).not.toBeInTheDocument();
+    expect(current.querySelectorAll("img")).toHaveLength(3);
   });
 
   test("renders the exact violation-correction before/after differences and actions", () => {
@@ -389,96 +397,5 @@ describe("content review detail", () => {
     expect(screen.queryByRole("region", { name: "기본 정보" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "현재 콘텐츠" })).not.toBeInTheDocument();
     expect(screen.queryByText("ct-001")).not.toBeInTheDocument();
-  });
-});
-
-describe("violation management", () => {
-  test("renders exact violation filters, notices, status, penalties, and row-scoped actions", () => {
-    renderRoute("/content/violations");
-
-    expect(screen.getByRole("heading", { name: "위반 콘텐츠 관리" })).toBeInTheDocument();
-    expect(screen.getByText("CT201")).toBeInTheDocument();
-
-    const search = screen.getByRole("search", { name: "검색 조건" });
-    expect(within(search).getByRole("combobox", { name: "기수" })).toHaveTextContent(
-      "전체3기2기",
-    );
-    expect(
-      within(search).getByRole("combobox", { name: "위반 유형" }),
-    ).toHaveTextContent("전체상품 링크 누락필수 광고 표기 누락허위·과장 표현");
-    expect(
-      within(search).getByRole("combobox", { name: "처리 상태" }),
-    ).toHaveTextContent("전체미처리처리 중처리 완료");
-    expectButton(within(search).getByRole("button", { name: "조회" }));
-    expectButton(within(search).getByRole("button", { name: "초기화" }));
-
-    expect(
-      screen.getByText("패널티 3회 이상 누적 시 차기 기수 셀렉터스 활동이 제한됩니다."),
-    ).toBeInTheDocument();
-    expect(screen.getByText("총 3건")).toBeInTheDocument();
-
-    const table = screen.getByRole("region", { name: "위반 콘텐츠 목록" });
-    expectColumnHeaders(table, [
-      "위반 ID",
-      "기수",
-      "셀렉터스",
-      "콘텐츠 ID",
-      "위반 유형",
-      "안내 문구",
-      "안내 상태",
-      "처리 상태",
-      "누적 패널티",
-      "관리",
-    ]);
-
-    const cases = [
-      {
-        rowName: /vr-001 3기 김서연 ct-005/,
-        selector: "김서연",
-        values: [
-          "상품 링크 누락",
-          "공식 상품 링크를 추가한 뒤 수정본을 제출해 주세요.",
-          "미발송",
-          "미처리",
-          "0",
-        ],
-      },
-      {
-        rowName: /vr-002 3기 박도윤 ct-002/,
-        selector: "박도윤",
-        values: [
-          "필수 광고 표기 누락",
-          "광고 표기를 본문 첫 줄에 추가하고 공식 상품 링크로 수정해 주세요.",
-          "발송 대기",
-          "처리 중",
-          "2",
-        ],
-      },
-      {
-        rowName: /vr-003 2기 이지아 ct-004/,
-        selector: "이지아",
-        values: [
-          "허위·과장 표현",
-          "최저가를 단정하는 표현을 삭제한 수정본을 제출해 주세요.",
-          "발송 완료",
-          "처리 완료",
-          "3",
-          "차기 기수 활동 불가",
-        ],
-      },
-    ];
-
-    for (const item of cases) {
-      const row = within(table).getByRole("row", { name: item.rowName });
-      for (const value of item.values) {
-        expect(within(row).getByText(value)).toBeInTheDocument();
-      }
-      expectButton(
-        within(row).getByRole("button", { name: `${item.selector} 위반사항 안내` }),
-      );
-      expectButton(
-        within(row).getByRole("button", { name: `${item.selector} 패널티 부여` }),
-      );
-    }
   });
 });

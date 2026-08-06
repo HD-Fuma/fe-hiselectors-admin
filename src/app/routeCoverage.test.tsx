@@ -41,6 +41,7 @@ const REQUIRED_ROUTES = [
   "/cohorts",
   "/selectors",
   "/selectors/qualifications",
+  "/selectors/sl-001",
   "/applicants",
   "/applicants/ap-001",
   "/applicants/ap-003?fixture=auto-rejected",
@@ -51,12 +52,10 @@ const REQUIRED_ROUTES = [
   "/content/reviews/ct-001",
   "/content/reviews/ct-002?fixture=violation-correction",
   "/content/reviews/ct-003?fixture=edited",
-  "/content/violations",
   "/performance",
   "/performance/creators",
   "/performance/contents",
   "/settlements",
-  "/system/notices",
 ] as const;
 
 const SEMANTIC_ROUTE_CONTRACTS = [
@@ -64,15 +63,9 @@ const SEMANTIC_ROUTE_CONTRACTS = [
     route: "/creators",
     expectedControls: [
       { role: "textbox", name: "키워드" },
-      { role: "combobox", name: "카테고리" },
-      { role: "combobox", name: "티어" },
+      { role: "textbox", name: "최소 팔로워·구독자" },
+      { role: "textbox", name: "최대 팔로워·구독자" },
       { role: "combobox", name: "플랫폼" },
-    ],
-    expectedTables: [
-      {
-        region: "크리에이터 목록",
-        columns: ["이름", "팔로워·구독자", "콘텐츠 수", "최근 활동일"],
-      },
     ],
   },
   {
@@ -113,7 +106,7 @@ const SEMANTIC_ROUTE_CONTRACTS = [
     ],
     expectedTables: [
       {
-        region: "지원자 목록",
+        region: "지원자 승인",
         columns: [
           "지원자 ID",
           "SNS 채널",
@@ -133,26 +126,13 @@ const SEMANTIC_ROUTE_CONTRACTS = [
       { role: "combobox", name: "검수 유형" },
       { role: "combobox", name: "플랫폼" },
       { role: "combobox", name: "검수 상태" },
+      { role: "combobox", name: "위반 필터" },
       { role: "combobox", name: "처리 상태" },
     ],
     expectedTables: [
       {
         region: "콘텐츠 검수 대기열",
         columns: ["검수 유형", "작성자", "기수", "플랫폼", "AI 상태", "검수 상태", "처리 상태"],
-      },
-    ],
-  },
-  {
-    route: "/content/violations",
-    expectedControls: [
-      { role: "combobox", name: "기수" },
-      { role: "combobox", name: "위반 유형" },
-      { role: "combobox", name: "처리 상태" },
-    ],
-    expectedTables: [
-      {
-        region: "위반 콘텐츠 목록",
-        columns: ["안내 문구", "안내 상태", "누적 패널티"],
       },
     ],
   },
@@ -208,14 +188,13 @@ const SEMANTIC_ROUTE_CONTRACTS = [
     expectedControls: [
       { name: "귀속월" },
       { role: "textbox", name: "셀렉터스" },
-      { role: "combobox", name: "수정 가능 여부" },
       { role: "combobox", name: "확정 상태" },
       { role: "combobox", name: "지급 상태" },
     ],
     expectedTables: [
       {
         region: "정산 지급 목록",
-        columns: ["귀속월", "셀렉터스", "예상액", "확정액", "수정 가능 여부", "확정 상태", "지급 상태"],
+        columns: ["귀속월", "셀렉터스", "예상액", "확정액", "확정 상태", "지급 상태"],
       },
     ],
   },
@@ -357,24 +336,24 @@ describe("requirement row route resolution", () => {
         "/applicants/ap-003",
         "?utm=x&fixture=auto-rejected",
       )?.rows,
-    ).toEqual([19]);
+    ).toEqual([12]);
   });
 
   test.each([
     [
       "/content/reviews/ct-002",
       "?preview=1&fixture=violation-correction&utm=x",
-      [25],
+      [22],
     ],
-    ["/content/reviews/ct-003", "?utm=x&fixture=edited", [26]],
+    ["/content/reviews/ct-003", "?utm=x&fixture=edited", [22]],
   ])("matches fixture metadata for %s with extra params", (pathname, search, rows) => {
     expect(findRequirementCoverage(pathname, search)?.rows).toEqual(rows);
   });
 
   test.each([
-    ["/applicants/ap-003", "?fixture=edited", [19]],
-    ["/content/reviews/ct-002", "?fixture=edited", [25]],
-    ["/content/reviews/ct-003", "?fixture=violation-correction", [26]],
+    ["/applicants/ap-003", "?fixture=edited", [12]],
+    ["/content/reviews/ct-002", "?fixture=edited", [22]],
+    ["/content/reviews/ct-003", "?fixture=violation-correction", [22]],
   ])("does not grant fixture-specific rows for a mismatch on %s", (pathname, search, rows) => {
     expect(findRequirementCoverage(pathname, search)?.rows).not.toEqual(rows);
   });
@@ -389,7 +368,7 @@ describe("deterministic fixture route states", () => {
   test.each([
     ["/creators?fixture=empty", "검색 결과가 없습니다."],
     ["/proposals?fixture=empty", "등록된 제안 이력이 없습니다."],
-    ["/creators/cr-001?fixture=ai-pending", "AI 리포트 생성 전"],
+    ["/creators/cr-001?fixture=ai-pending", "정량 분석"],
     ["/content/reviews?fixture=no-selection", "선택된 콘텐츠가 없습니다."],
     ["/content/reviews/ct-002?fixture=violation-correction", "URL 2 → 1"],
     ["/content/reviews/ct-003?fixture=edited", "URL 1 → 2"],
@@ -407,14 +386,5 @@ describe("deterministic fixture route states", () => {
     renderRoute("/campaigns/new?fixture=product-modal");
 
     expect(screen.getByRole("dialog", { name: "상품 선택" })).toBeInTheDocument();
-  });
-
-  test("renders the mega-menu fixture as a modal overlay", () => {
-    renderRoute("/?fixture=mega-menu");
-
-    expect(screen.getByRole("dialog", { name: "전체메뉴" })).toHaveAttribute(
-      "aria-modal",
-      "true",
-    );
   });
 });

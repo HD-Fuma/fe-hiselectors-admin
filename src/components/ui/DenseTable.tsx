@@ -1,4 +1,12 @@
-import { isValidElement, type CSSProperties, type Key, type ReactNode } from "react";
+import {
+  isValidElement,
+  useState,
+  type CSSProperties,
+  type Key,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 
 interface DenseTableColumnBase {
   header: ReactNode;
@@ -24,6 +32,12 @@ export interface DenseTableProps<T extends object> {
   rowKey: (row: T) => Key;
   emptyMessage?: ReactNode;
   footer?: ReactNode;
+  onRowClick?: (row: T) => void;
+}
+
+function isInteractiveTarget(target: EventTarget | null) {
+  return target instanceof Element
+    && Boolean(target.closest("a, button, input, select, textarea, label, [role='button']"));
 }
 
 function cellValue<T extends object>(row: T, key: keyof T): ReactNode {
@@ -60,9 +74,30 @@ export function DenseTable<T extends object>({
   columns,
   emptyMessage = "조회 결과가 없습니다.",
   footer,
+  onRowClick,
   rowKey,
   rows,
 }: DenseTableProps<T>) {
+  const [selectedRowKey, setSelectedRowKey] = useState<Key | null>(null);
+
+  function activateRow(row: T) {
+    setSelectedRowKey(rowKey(row));
+    onRowClick?.(row);
+  }
+
+  function handleRowClick(event: MouseEvent<HTMLTableRowElement>, row: T) {
+    if (!isInteractiveTarget(event.target)) {
+      activateRow(row);
+    }
+  }
+
+  function handleRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, row: T) {
+    if ((event.key === "Enter" || event.key === " ") && !isInteractiveTarget(event.target)) {
+      event.preventDefault();
+      activateRow(row);
+    }
+  }
+
   return (
     <div className="hsas-dense-table-wrap" data-visual-contract="dense-table">
       <table className="hsas-dense-table">
@@ -88,18 +123,28 @@ export function DenseTable<T extends object>({
               </td>
             </tr>
           ) : (
-            rows.map((row) => (
-              <tr key={rowKey(row)}>
-                {columns.map((column) => (
-                  <td
-                    className={`hsas-dense-table__cell--${column.align ?? "left"}`}
-                    key={columnIdentity(column)}
-                  >
-                    {renderedCell(column, row)}
-                  </td>
-                ))}
-              </tr>
-            ))
+            rows.map((row) => {
+              const key = rowKey(row);
+              return (
+                <tr
+                  aria-selected={selectedRowKey === key}
+                  className="hsas-dense-table__row"
+                  key={key}
+                  onClick={(event) => handleRowClick(event, row)}
+                  onKeyDown={(event) => handleRowKeyDown(event, row)}
+                  tabIndex={0}
+                >
+                  {columns.map((column) => (
+                    <td
+                      className={`hsas-dense-table__cell--${column.align ?? "left"}`}
+                      key={columnIdentity(column)}
+                    >
+                      {renderedCell(column, row)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>

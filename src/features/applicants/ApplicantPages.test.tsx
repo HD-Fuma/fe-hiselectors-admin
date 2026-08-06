@@ -1,4 +1,5 @@
 import { act, fireEvent, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderRoute } from "../../test/renderRoute";
 import { APPLICANTS } from "./fixtures";
 
@@ -45,9 +46,9 @@ describe("applicant review list", () => {
       "button",
     );
 
-    expect(screen.getByText("지원자 목록", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("지원자 승인", { selector: "strong" })).toBeInTheDocument();
     expect(screen.getByText("총 4건")).toBeInTheDocument();
-    const results = screen.getByRole("region", { name: "지원자 목록" });
+    const results = screen.getByRole("region", { name: "지원자 승인" });
     expectColumnHeaders(results, [
       "선택",
       "지원자 ID",
@@ -79,9 +80,9 @@ describe("applicant review list", () => {
       expect(within(minjiRow).getByText(value)).toBeInTheDocument();
     }
     expect(within(minjiRow).getByRole("checkbox", { name: "김민지 선택" })).toBeInTheDocument();
-    expect(within(minjiRow).getByRole("button", { name: "김민지 상세 보기" })).toHaveAttribute(
-      "type",
-      "button",
+    expect(within(minjiRow).getByRole("link", { name: "김민지 상세 보기" })).toHaveAttribute(
+      "href",
+      "/applicants/ap-001",
     );
     expectStatusTone(minjiRow, "검토 대기", "pending");
     expectStatusTone(minjiRow, "비해당", "neutral");
@@ -102,9 +103,9 @@ describe("applicant review list", () => {
       expect(within(soraRow).getByText(value)).toBeInTheDocument();
     }
     expect(within(soraRow).getByRole("checkbox", { name: "윤소라 선택" })).toBeInTheDocument();
-    expect(within(soraRow).getByRole("button", { name: "윤소라 상세 보기" })).toHaveAttribute(
-      "type",
-      "button",
+    expect(within(soraRow).getByRole("link", { name: "윤소라 상세 보기" })).toHaveAttribute(
+      "href",
+      "/applicants/ap-003",
     );
     expectStatusTone(soraRow, "자동 반려", "rejected");
     expectStatusTone(soraRow, "해당", "rejected");
@@ -127,6 +128,17 @@ describe("applicant review list", () => {
       expect(applicant).not.toHaveProperty("deliveryStatus");
     }
   });
+
+  test("opens applicant detail when a table row is clicked", async () => {
+    const user = userEvent.setup();
+    const { router } = renderRoute("/applicants");
+    const results = screen.getByRole("region", { name: "지원자 승인" });
+    const row = within(results).getByRole("row", { name: /ap-001 김민지/ });
+
+    await user.click(row);
+
+    expect(router.state.location.pathname).toBe("/applicants/ap-001");
+  });
 });
 
 describe("applicant detail review", () => {
@@ -135,12 +147,20 @@ describe("applicant detail review", () => {
 
     expect(screen.getByRole("heading", { name: "지원자 상세 심사" })).toBeInTheDocument();
     expect(screen.getByText("AP102")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "목록" })).toHaveAttribute("type", "button");
+    expect(screen.getByRole("link", { name: "목록" })).toHaveAttribute("href", "/applicants");
 
     const tabs = screen.getByRole("navigation", { name: "섹션" });
-    expect(within(tabs).getByText("기본 정보")).toHaveAttribute("aria-current", "page");
-    for (const label of ["SNS 지표", "AI 요약 리포트", "심사 처리", "결과 전송"]) {
+    expect(within(tabs).getByText("대표 콘텐츠")).toHaveAttribute("aria-current", "page");
+    for (const label of ["기본 정보", "SNS 지표", "자동 심사", "AI 분석 리포트", "심사 처리", "결과 전송"]) {
       expect(within(tabs).getByText(label)).toBeInTheDocument();
+    }
+    expect(within(tabs).getByRole("link", { name: "대표 콘텐츠" })).toHaveAttribute(
+      "href",
+      "#featured-content",
+    );
+    const reviewSummary = screen.getByRole("region", { name: "김민지 지원자 심사 요약" });
+    for (const value of ["58,420", "29건", "21,840", "2.5%", "통과"]) {
+      expect(within(reviewSummary).getByText(value)).toBeInTheDocument();
     }
 
     const basic = screen.getByRole("region", { name: "기본 정보" });
@@ -173,19 +193,19 @@ describe("applicant detail review", () => {
       expect(within(metrics).getByText(value)).toBeInTheDocument();
     }
 
-    const ai = screen.getByRole("region", { name: "AI 요약 리포트" });
-    expect(within(ai).getByText("91점")).toBeInTheDocument();
+    const featured = screen.getByRole("region", { name: "대표 콘텐츠" });
+    expect(within(featured).getAllByRole("link", { name: /김민지 대표 콘텐츠:/ })).toHaveLength(3);
+    expect(within(featured).getByText("38,420")).toBeInTheDocument();
+    expect(within(featured).getByText("2,460")).toBeInTheDocument();
+
+    const ai = screen.getByRole("region", { name: "지원자 분석 리포트" });
     expect(
       within(ai).getByText(
-        "뷰티·패션 콘텐츠의 반응이 안정적이며 최근 활동이 꾸준한 지원자입니다.",
+        "실사용 뷰티와 데일리 패션을 균형 있게 소개하는 정보 전달형 지원자",
       ),
     ).toBeInTheDocument();
-    for (const evidence of [
-      "최근 30일 평균 조회 수 21,840회",
-      "평균 반응률 6.7%",
-      "최근 60일 콘텐츠 14건",
-    ]) {
-      expect(within(ai).getByText(evidence)).toBeInTheDocument();
+    for (const label of ["업로드 주기", "콘텐츠 형식 통계", "ER (Engagement Rate)", "협업 브랜드", "톤앤매너", "강점/유의점"]) {
+      expect(within(ai).getByText(label)).toBeInTheDocument();
     }
 
     const review = screen.getByRole("region", { name: "심사 처리" });
@@ -236,17 +256,13 @@ describe("applicant detail review", () => {
     const review = screen.getByRole("region", { name: "심사 처리" });
     expectStatusTone(review, "해당", "rejected");
     expect(within(review).getByRole("heading", { name: "정량 기준 미충족" })).toBeInTheDocument();
-    for (const criterion of [
-      "팔로워·구독자 1,000명 미만",
-      "최근 90일 콘텐츠 3건 미만",
-      "최근 90일 활동 없음",
-    ]) {
-      expect(within(review).getByText(criterion)).toBeInTheDocument();
-    }
+    expect(
+      within(review).getByText("최근 90일 공개 게시물 2건으로 최소 기준 3건 미만"),
+    ).toBeInTheDocument();
     expect(within(review).getByText("내부 반려 사유")).toBeInTheDocument();
     expect(
       within(review).getByText(
-        "필수 정량 기준 3개 항목 미충족으로 자동 반려되었습니다.",
+        "최근 90일 공개 게시물 수가 최소 기준에 미달해 자동 반려되었습니다.",
       ),
     ).toBeInTheDocument();
     expect(within(review).getByRole("combobox", { name: "반려 사유(내부)" })).toHaveValue(
@@ -278,6 +294,19 @@ describe("applicant detail review", () => {
     expect(
       within(review).queryByRole("heading", { name: "정량 기준 미충족" }),
     ).not.toBeInTheDocument();
+  });
+
+  test("activates an applicant detail tab when the section menu is selected", async () => {
+    const user = userEvent.setup();
+    renderRoute("/applicants/ap-001");
+
+    const tabs = screen.getByRole("navigation", { name: "섹션" });
+    await user.click(within(tabs).getByRole("link", { name: "AI 분석 리포트" }));
+
+    expect(within(tabs).getByRole("link", { name: "AI 분석 리포트" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
   test("keeps a missing applicant missing even when the automatic-rejection fixture query is present", () => {

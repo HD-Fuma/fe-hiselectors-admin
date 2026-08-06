@@ -1,63 +1,9 @@
 import { mkdir } from "node:fs/promises";
-import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
-
-interface BrowserDiagnostics {
-  consoleErrors: string[];
-  externalRequests: string[];
-  pageErrors: string[];
-  requestFailures: string[];
-}
-
-const diagnosticsByPage = new WeakMap<Page, BrowserDiagnostics>();
+import type { Locator, Page, TestInfo } from "@playwright/test";
+import { expect, test } from "./browserDiagnostics";
 
 test.beforeAll(async () => {
   await mkdir("test-results/visual", { recursive: true });
-});
-
-test.beforeEach(async ({ page }, testInfo) => {
-  const baseURL = String(testInfo.project.use.baseURL);
-  const allowedOrigin = new URL(baseURL).origin;
-  const diagnostics: BrowserDiagnostics = {
-    consoleErrors: [],
-    externalRequests: [],
-    pageErrors: [],
-    requestFailures: [],
-  };
-
-  diagnosticsByPage.set(page, diagnostics);
-  page.on("console", (message) => {
-    if (message.type() === "error") diagnostics.consoleErrors.push(message.text());
-  });
-  page.on("pageerror", (error) => diagnostics.pageErrors.push(error.message));
-  page.on("requestfailed", (request) => {
-    diagnostics.requestFailures.push(
-      `${request.method()} ${request.url()} ${request.failure()?.errorText ?? "unknown"}`,
-    );
-  });
-
-  await page.route("**/*", async (route) => {
-    const url = new URL(route.request().url());
-    const isInlineResource = url.protocol === "data:" || url.protocol === "blob:";
-    const isAllowedLocalRequest =
-      (url.protocol === "http:" || url.protocol === "https:") &&
-      url.origin === allowedOrigin;
-
-    if (isInlineResource || isAllowedLocalRequest) {
-      await route.continue();
-      return;
-    }
-
-    diagnostics.externalRequests.push(route.request().url());
-    await route.abort("blockedbyclient");
-  });
-});
-
-test.afterEach(async ({ page }) => {
-  const diagnostics = diagnosticsByPage.get(page);
-  expect(diagnostics?.externalRequests ?? []).toEqual([]);
-  expect(diagnostics?.consoleErrors ?? []).toEqual([]);
-  expect(diagnostics?.pageErrors ?? []).toEqual([]);
-  expect(diagnostics?.requestFailures ?? []).toEqual([]);
 });
 
 async function waitForStablePage(page: Page) {
@@ -138,25 +84,36 @@ async function expectFullyInViewport(page: Page, locator: Locator) {
 
 async function expectAdminGeometry(page: Page, viewportWidth: number) {
   const root = page.locator('[data-shell-part="root"]');
-  const rail = page.locator('[data-shell-part="rail"]');
-  const menu = page.locator('[data-shell-part="menu"]');
-  const topbar = page.locator('[data-shell-part="topbar"]');
-  const [rootBox, railBox, menuBox, topbarBox] = await Promise.all([
+  const sidebar = page.locator('[data-shell-part="sidebar"]');
+  const workspace = page.locator(".hsas-admin-shell__workspace");
+  const workTabs = page.locator('[data-shell-part="work-tabs"]');
+  const content = page.locator('[data-shell-part="content"]');
+  const viewport = page.viewportSize();
+  const [rootBox, sidebarBox, workspaceBox, workTabsBox, contentBox] = await Promise.all([
     root.boundingBox(),
-    rail.boundingBox(),
-    menu.boundingBox(),
-    topbar.boundingBox(),
+    sidebar.boundingBox(),
+    workspace.boundingBox(),
+    workTabs.boundingBox(),
+    content.boundingBox(),
   ]);
 
-  for (const box of [rootBox, railBox, menuBox, topbarBox]) expect(box).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  for (const box of [rootBox, sidebarBox, workspaceBox, workTabsBox, contentBox]) {
+    expect(box).not.toBeNull();
+  }
   expect(rootBox!.width).toBeGreaterThanOrEqual(1280);
-  expectApprox(railBox!.width, 40, 2);
-  expectApprox(menuBox!.width, 205, 3);
-  expectApprox(topbarBox!.height, 38, 2);
-  expectApprox(topbarBox!.x, rootBox!.x, 1);
-  expectApprox(topbarBox!.width, rootBox!.width, 2);
-  expectApprox(railBox!.y, topbarBox!.y + topbarBox!.height, 2);
-  expectApprox(menuBox!.y, topbarBox!.y + topbarBox!.height, 2);
+  expectApprox(sidebarBox!.width, 248, 3);
+  expectApprox(sidebarBox!.x, rootBox!.x, 1);
+  expectApprox(sidebarBox!.y, 0, 1);
+  expectApprox(sidebarBox!.height, viewport!.height, 2);
+  expectApprox(workspaceBox!.x, sidebarBox!.x + sidebarBox!.width, 1);
+  expectApprox(workspaceBox!.width, rootBox!.width - sidebarBox!.width, 2);
+  expectApprox(workTabsBox!.x, workspaceBox!.x, 1);
+  expectApprox(workTabsBox!.y, workspaceBox!.y, 1);
+  expectApprox(workTabsBox!.width, workspaceBox!.width, 2);
+  expectApprox(contentBox!.x, workspaceBox!.x, 1);
+  expectApprox(contentBox!.y, workTabsBox!.y + workTabsBox!.height, 1);
+  expectApprox(contentBox!.width, workspaceBox!.width, 2);
 
   const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(scrollWidth).toBeGreaterThanOrEqual(viewportWidth);
@@ -208,23 +165,128 @@ test("creators visual checkpoint at the legacy viewport", async ({ page }, testI
   await openCheckpoint(page, "/creators", testInfo);
 
   await expect(page.locator('[data-visual-contract="admin-shell"]')).toBeVisible();
-  await expect(page.locator('[data-visual-contract="dense-table"]')).toBeVisible();
   await expectAdminGeometry(page, 1310);
-  await expectControlAndDenseRowGeometry(page);
   await expectPageHeaderTextBounds(page, "크리에이터 풀", "CR101");
-  await expectKeyTextBounds(page.getByRole("region", { name: "크리에이터 목록" }), [
-    "ID",
-    "이름",
-    "플랫폼",
-    "AI 리포트 상태",
-    "cr-001",
-    "김서연",
-    "Instagram / YouTube",
-    "128,400",
-    "생성 완료",
-    "발송 완료",
+  const grid = page.locator('[data-visual-contract="creator-card-grid"]');
+  const cards = grid.locator(":scope > .fuma-creator-card");
+  await expect(grid).toBeVisible();
+  await expect(cards).toHaveCount(4);
+  expect(
+    await grid.evaluate(
+      (node) =>
+        getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length,
+    ),
+  ).toBe(3);
+  const tops = await cards.evaluateAll((nodes) =>
+    nodes.slice(0, 3).map((node) => node.getBoundingClientRect().top),
+  );
+  expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(1);
+  const boxes = await cards.evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      width: node.getBoundingClientRect().width,
+      height: node.getBoundingClientRect().height,
+      scrollWidth: node.scrollWidth,
+      clientWidth: node.clientWidth,
+    })),
+  );
+  for (const box of boxes) {
+    expect(box.width).toBeGreaterThan(0);
+    expect(box.height).toBeGreaterThan(0);
+    expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth);
+  }
+  const firstCard = cards.first();
+  const tiles = firstCard.locator(".fuma-creator-media");
+  await expect(tiles).toHaveCount(3);
+  for (let index = 0; index < 3; index += 1) {
+    const box = await tiles.nth(index).boundingBox();
+    expect(box).not.toBeNull();
+    expectApprox(box!.width, box!.height, 1);
+  }
+
+  const [handleColor, metricLabelColor, keywordColor, toolbarSortColor] =
+    await Promise.all([
+      firstCard
+        .locator(".fuma-creator-card__channel")
+        .evaluate((node) => getComputedStyle(node).color),
+      firstCard
+        .locator(".fuma-creator-card__metric dt")
+        .first()
+        .evaluate((node) => getComputedStyle(node).color),
+      firstCard
+        .locator(".fuma-creator-card__keywords span")
+        .first()
+        .evaluate((node) => getComputedStyle(node).color),
+      page
+        .locator(".fuma-creator-toolbar__sort")
+        .evaluate((node) => getComputedStyle(node).color),
+    ]);
+  expect.soft(handleColor).toBe("rgb(89, 97, 102)");
+  expect.soft(metricLabelColor).toBe("rgb(120, 132, 126)");
+  expect.soft(keywordColor).toBe("rgb(93, 107, 101)");
+  expect.soft(toolbarSortColor).toBe("rgb(89, 97, 102)");
+
+  const primaryAction = firstCard.locator(".fuma-creator-card__action--primary");
+  const pressedView = page.locator(
+    '.fuma-creator-toolbar__view[aria-pressed="true"]',
+  );
+  const [primaryBackground, pressedViewBackground] = await Promise.all([
+    primaryAction.evaluate((node) => getComputedStyle(node).backgroundColor),
+    pressedView.evaluate((node) => getComputedStyle(node).backgroundColor),
   ]);
+  expect.soft(primaryBackground).toBe("rgb(27, 128, 96)");
+  expect.soft(pressedViewBackground).toBe("rgb(15, 117, 98)");
+  await primaryAction.focus();
+  await expect(primaryAction).toBeFocused();
+  expect.soft(
+    await primaryAction.evaluate((node) => getComputedStyle(node).outlineColor),
+  ).toBe("rgb(15, 117, 98)");
+  await pressedView.focus();
+  await expect(pressedView).toBeFocused();
+  expect.soft(
+    await pressedView.evaluate((node) => getComputedStyle(node).outlineColor),
+  ).toBe("rgb(255, 255, 255)");
+  await expectKeyTextBounds(
+    page.getByRole("article", { name: "김서연 크리에이터 카드" }),
+    [
+      "김서연",
+      "@seo.yeon",
+      "#데일리룩",
+      "팔로워",
+      "ER",
+      "프로필",
+      "제안 작성",
+    ],
+  );
   await page.screenshot({ path: "test-results/visual/creators.png" });
+});
+
+test("creators visual checkpoint at 1180 two-column viewport", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1180, height: 900 });
+  await openCheckpoint(page, "/creators", testInfo);
+
+  await expect(page.locator('[data-visual-contract="admin-shell"]')).toBeVisible();
+  await expectPageHeaderTextBounds(page, "크리에이터 풀", "CR101");
+  const grid = page.locator('[data-visual-contract="creator-card-grid"]');
+  const cards = grid.locator(":scope > .fuma-creator-card");
+  await expect(grid).toBeVisible();
+  await expect(cards).toHaveCount(4);
+  expect(
+    await grid.evaluate(
+      (node) =>
+        getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length,
+    ),
+  ).toBe(2);
+  const viewport = page.viewportSize();
+  const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(viewport).not.toBeNull();
+  expect(scrollWidth).toBeGreaterThanOrEqual(1280);
+  expect(scrollWidth).toBeGreaterThan(viewport!.width);
+  await page.screenshot({
+    fullPage: true,
+    path: "test-results/visual/creators-1180.png",
+  });
 });
 
 test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
@@ -232,19 +294,119 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
   await openCheckpoint(page, "/creators", testInfo);
 
   await expect(page.locator('[data-visual-contract="admin-shell"]')).toBeVisible();
-  await expect(page.locator('[data-visual-contract="dense-table"]')).toBeVisible();
   await expectAdminGeometry(page, 1440);
-  await expectControlAndDenseRowGeometry(page);
   await expectPageHeaderTextBounds(page, "크리에이터 풀", "CR101");
-  await expectKeyTextBounds(page.getByRole("region", { name: "크리에이터 목록" }), [
-    "ID",
-    "플랫폼",
-    "cr-004",
-    "오하늘",
-    "486,000",
-    "미제안",
+  const sidebar = page.locator('[data-shell-part="sidebar"]');
+  const navigation = sidebar.getByRole("navigation", { name: "관리자 메뉴" });
+  const activeLink = navigation.getByRole("link", { name: "크리에이터 목록" });
+  const hoverLink = navigation.getByRole("link", { name: "제안 이력" });
+  await expect(activeLink).toHaveCSS("background-color", "rgb(22, 143, 120)");
+  const activeState = await activeLink.evaluate((element) => ({
+    fontWeight: Number.parseInt(getComputedStyle(element).fontWeight, 10),
+    markerWidth: Number.parseFloat(getComputedStyle(element, "::before").width),
+  }));
+  expect(activeState.fontWeight).toBeGreaterThanOrEqual(700);
+  expectApprox(activeState.markerWidth, 3, 0.25);
+
+  await activeLink.focus();
+  await expect(activeLink).toBeFocused();
+  await expect(activeLink).toHaveCSS("outline-color", "rgb(255, 255, 255)");
+  const activeFocusState = await activeLink.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      focusVisible: element.matches(":focus-visible"),
+      outlineStyle: styles.outlineStyle,
+      outlineWidth: Number.parseFloat(styles.outlineWidth),
+    };
+  });
+  expect(activeFocusState.focusVisible).toBe(true);
+  expect(activeFocusState.outlineStyle).toBe("solid");
+  expect(activeFocusState.outlineWidth).toBeGreaterThanOrEqual(2);
+  await hoverLink.focus();
+  await expect(hoverLink).toBeFocused();
+  await expect(hoverLink).toHaveCSS("outline-color", "rgb(36, 159, 142)");
+  const focusState = await hoverLink.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      focusVisible: element.matches(":focus-visible"),
+      outlineStyle: styles.outlineStyle,
+      outlineWidth: Number.parseFloat(styles.outlineWidth),
+    };
+  });
+  expect(focusState.focusVisible).toBe(true);
+  expect(focusState.outlineStyle).not.toBe("none");
+  expect(focusState.outlineWidth).toBeGreaterThanOrEqual(2);
+
+  await hoverLink.hover();
+  await expect(hoverLink).toHaveCSS("background-color", "rgb(58, 58, 58)");
+  await page.mouse.move(1439, 899);
+
+  await expectKeyTextBounds(sidebar, [
+    "크리에이터",
+    "크리에이터 목록",
+    "제안 이력",
+    "셀렉터스",
+    "기수 관리",
+    "셀렉터스 현황",
+    "블랙리스트 관리",
+    "지원자",
+    "지원자 승인",
+    "캠페인",
+    "캠페인 관리",
+    "콘텐츠",
+    "콘텐츠 검수",
+    "성과",
+    "성과 대시보드",
+    "크리에이터 분석",
+    "콘텐츠 분석",
+    "정산",
+    "정산 관리",
   ]);
-  await page.screenshot({ path: "test-results/visual/creators-1440.png" });
+  const grid = page.locator('[data-visual-contract="creator-card-grid"]');
+  const cards = grid.locator(":scope > .fuma-creator-card");
+  const firstCard = cards.first();
+  await expect
+    .poll(() =>
+      firstCard.evaluate((node) => Number.parseFloat(getComputedStyle(node).transitionDuration)),
+    )
+    .toBeLessThanOrEqual(0.001);
+  await firstCard.hover();
+  await expect
+    .poll(() => firstCard.evaluate((node) => getComputedStyle(node).transform))
+    .toBe("matrix(1, 0, 0, 1, 0, -4)");
+  await expect(grid).toBeVisible();
+  await expect(cards).toHaveCount(4);
+  expect(
+    await grid.evaluate(
+      (node) =>
+        getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length,
+    ),
+  ).toBe(3);
+  const tops = await cards.evaluateAll((nodes) =>
+    nodes.slice(0, 3).map((node) => node.getBoundingClientRect().top),
+  );
+  expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(4);
+  const boxes = await cards.evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      width: node.getBoundingClientRect().width,
+      height: node.getBoundingClientRect().height,
+      scrollWidth: node.scrollWidth,
+      clientWidth: node.clientWidth,
+    })),
+  );
+  for (const box of boxes) {
+    expect(box.width).toBeGreaterThan(0);
+    expect(box.height).toBeGreaterThan(0);
+    expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth);
+  }
+  await expectKeyTextBounds(
+    page.getByRole("article", { name: "이지아 크리에이터 카드" }),
+    ["이지아", "@zia.trip", "Instagram", "#국내여행", "팔로워", "ER", "제안 작성"],
+  );
+  await page.screenshot({
+    fullPage: true,
+    path: "test-results/visual/creators-1440.png",
+  });
 });
 
 test("applicant detail visual checkpoint", async ({ page }, testInfo) => {
@@ -283,14 +445,40 @@ test("campaign product modal visual checkpoint", async ({ page }, testInfo) => {
   await expect(page.locator('[data-visual-contract="admin-shell"]')).toBeVisible();
   await expect(page.locator('[data-visual-contract="modal"]')).toBeVisible();
   const modal = page.getByRole("dialog", { name: "상품 선택" });
+  const backdrop = page.locator(".hsas-modal-backdrop");
+  const sidebar = page.locator('[data-shell-part="sidebar"]');
+  const workspace = page.locator(".hsas-admin-shell__workspace");
   await expect(modal.locator('[data-visual-contract="dense-table"]')).toBeVisible();
   await expectAdminGeometry(page, 1316);
-  const [modalBox, titleBarBox] = await Promise.all([
+  const [modalBox, titleBarBox, backdropBox, sidebarBox, workspaceBox] = await Promise.all([
     modal.boundingBox(),
     modal.locator(".hsas-modal__header").boundingBox(),
+    backdrop.boundingBox(),
+    sidebar.boundingBox(),
+    workspace.boundingBox(),
   ]);
   expect(modalBox).not.toBeNull();
   expect(titleBarBox).not.toBeNull();
+  expect(backdropBox).not.toBeNull();
+  expect(sidebarBox).not.toBeNull();
+  expect(workspaceBox).not.toBeNull();
+  expectApprox(backdropBox!.x, 0, 1);
+  expectApprox(backdropBox!.y, 0, 1);
+  expectApprox(backdropBox!.width, 1316, 1);
+  expectApprox(backdropBox!.height, 741, 1);
+  const backdropStyles = await backdrop.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      paddingLeft: Number.parseFloat(styles.paddingLeft),
+      zIndex: Number.parseInt(styles.zIndex, 10),
+    };
+  });
+  const sidebarZIndex = await sidebar.evaluate((element) => {
+    const zIndex = getComputedStyle(element).zIndex;
+    return zIndex === "auto" ? 0 : Number.parseInt(zIndex, 10);
+  });
+  expectApprox(backdropStyles.paddingLeft, 264, 2);
+  expect(backdropStyles.zIndex).toBeGreaterThan(sidebarZIndex);
   expectApprox(modalBox!.width, 820, 24);
   expectApprox(titleBarBox!.height, 32, 4);
   const [modalControlBox, modalRowBox] = await Promise.all([
@@ -301,7 +489,7 @@ test("campaign product modal visual checkpoint", async ({ page }, testInfo) => {
   expect(modalRowBox).not.toBeNull();
   expectApprox(modalControlBox!.height, 27, 3);
   expectApprox(modalRowBox!.height, 27, 4);
-  const workspaceCenter = 245 + (1316 - 245) / 2;
+  const workspaceCenter = workspaceBox!.x + workspaceBox!.width / 2;
   expect(Math.abs(modalBox!.x + modalBox!.width / 2 - workspaceCenter)).toBeLessThanOrEqual(16);
   await expectKeyTextBounds(modal, [
     "상품 선택",
@@ -319,6 +507,43 @@ test("campaign product modal visual checkpoint", async ({ page }, testInfo) => {
     "취소",
   ]);
   await page.screenshot({ path: "test-results/visual/campaign-modal.png" });
+});
+
+test("keeps campaign product modal centered after horizontal scroll", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 762, height: 577 });
+  await openCheckpoint(page, "/campaigns/new?fixture=product-modal", testInfo);
+
+  const sidebar = page.locator('[data-shell-part="sidebar"]');
+  const backdrop = page.locator(".hsas-modal-backdrop");
+  const modal = page.getByRole("dialog", { name: "상품 선택" });
+  await expect(modal).toBeVisible();
+
+  await page.evaluate(() => window.scrollTo({ left: 200 }));
+  await expect.poll(() => page.evaluate(() => window.scrollX)).toBeGreaterThanOrEqual(190);
+
+  const viewport = page.viewportSize();
+  const [sidebarBox, backdropBox, modalBox] = await Promise.all([
+    sidebar.boundingBox(),
+    backdrop.boundingBox(),
+    modal.boundingBox(),
+  ]);
+  expect(viewport).not.toBeNull();
+  expect(sidebarBox).not.toBeNull();
+  expect(backdropBox).not.toBeNull();
+  expect(modalBox).not.toBeNull();
+  await expect(sidebar).toHaveCSS("position", "sticky");
+  await expect(sidebar).toHaveCSS("left", "0px");
+  expectApprox(sidebarBox!.x, 0, 1);
+  expectApprox(sidebarBox!.x + sidebarBox!.width, 248, 3);
+  expectApprox(backdropBox!.x, 0, 1);
+  expectApprox(backdropBox!.width, viewport!.width, 1);
+
+  const visibleWorkspaceCenter =
+    (sidebarBox!.x + sidebarBox!.width + viewport!.width) / 2;
+  const modalCenter = modalBox!.x + modalBox!.width / 2;
+  expect(Math.abs(modalCenter - visibleWorkspaceCenter)).toBeLessThanOrEqual(16);
 });
 
 test("edited content review visual checkpoint", async ({ page }, testInfo) => {
@@ -392,46 +617,6 @@ test("edited content review visual checkpoint", async ({ page }, testInfo) => {
   await page.screenshot({ path: "test-results/visual/content-edited.png" });
 });
 
-test("mega menu visual checkpoint", async ({ page }, testInfo) => {
-  await page.setViewportSize({ width: 762, height: 577 });
-  await openCheckpoint(page, "/?fixture=mega-menu", testInfo);
-
-  await expect(page.locator('[data-visual-contract="admin-shell"]')).toBeAttached();
-  const megaMenu = page.locator('[data-visual-contract="mega-menu"]');
-  await expect(megaMenu).toBeVisible();
-  const [megaMenuBox, titleBarBox] = await Promise.all([
-    megaMenu.boundingBox(),
-    megaMenu.locator(".hsas-mega-menu__title-bar").boundingBox(),
-  ]);
-  expect(megaMenuBox).not.toBeNull();
-  expect(titleBarBox).not.toBeNull();
-  expectApprox(megaMenuBox!.x, 0, 1);
-  expectApprox(megaMenuBox!.y, 0, 1);
-  expectApprox(megaMenuBox!.width, 762, 1);
-  expectApprox(megaMenuBox!.height, 577, 1);
-  expectApprox(titleBarBox!.height, 25, 2);
-  const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-  expect(scrollWidth).toBeGreaterThanOrEqual(1280);
-  expect(scrollWidth).toBeLessThanOrEqual(1284);
-  await expectKeyTextBounds(megaMenu.locator(".hsas-mega-menu__title-bar"), ["전체메뉴"]);
-  await expectKeyTextBounds(megaMenu.locator(".hsas-mega-menu__groups"), [
-    "크리에이터",
-    "셀렉터스",
-    "지원자",
-    "캠페인",
-    "콘텐츠",
-    "성과",
-    "정산",
-    "시스템",
-  ]);
-  await expectKeyTextBounds(megaMenu.locator(".hsas-mega-menu__children"), [
-    "크리에이터",
-    "크리에이터 목록",
-    "제안 이력",
-  ]);
-  await page.screenshot({ path: "test-results/visual/mega-menu.png" });
-});
-
 test("performance visual checkpoint", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1316, height: 742 });
   await openCheckpoint(page, "/performance", testInfo);
@@ -478,11 +663,9 @@ test("settlements visual checkpoint", async ({ page }, testInfo) => {
     "셀렉터스",
     "예상액",
     "확정액",
-    "수정 가능 여부",
     "2026-08",
     "김서연",
     "486,000원",
-    "가능",
     "미확정",
     "지급 전",
   ]);

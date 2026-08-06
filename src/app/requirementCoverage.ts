@@ -39,38 +39,25 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   {
     route: "/creators",
     rows: [3, 4],
-    expectedTexts: [
-      "키워드",
-      "카테고리",
-      "티어",
-      "플랫폼",
-      "이름",
-      "팔로워·구독자",
-      "콘텐츠 수",
-      "최근 활동일",
-    ],
+    expectedTexts: ["김서연", "#데일리룩", "팔로워", "ER"],
     expectedActions: ["조회", "초기화"],
     expectedControls: [
       { role: "textbox", name: "키워드" },
-      { role: "combobox", name: "카테고리" },
-      { role: "combobox", name: "티어" },
+      { role: "textbox", name: "최소 팔로워·구독자" },
+      { role: "textbox", name: "최대 팔로워·구독자" },
       { role: "combobox", name: "플랫폼" },
-    ],
-    expectedTables: [
-      {
-        region: "크리에이터 목록",
-        columns: ["이름", "팔로워·구독자", "콘텐츠 수", "최근 활동일"],
-      },
     ],
     primaryRole: { role: "heading", name: "크리에이터 풀" },
   },
   {
     route: "/creators/cr-001",
-    rows: [5, 6, 7, 8],
+    rows: [5, 6, 7],
     expectedTexts: [
       "기본 정보",
-      "AI 적합도",
-      "근거 지표",
+      "크리에이터 분석",
+      "정량 분석",
+      "ER (Engagement Rate)",
+      "크리에이터 풀 TopN 선정",
       "Instagram DM",
       "Meta 정책상 자동 선접촉이 불가합니다. 관리자 확인 후 수동 발송이 필요합니다.",
       "이메일",
@@ -80,7 +67,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/proposals",
-    rows: [9, 10],
+    rows: [8],
     expectedTexts: ["대상", "채널", "발송 방식", "발송 시각", "상태"],
     expectedActions: ["조회", "초기화"],
     expectedControls: [
@@ -97,14 +84,14 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/cohorts",
-    rows: [11],
+    rows: [14],
     expectedTexts: ["기수명", "모집 기간", "활동 기간", "모집 상태", "참여자 수"],
     expectedActions: ["기수 생성"],
     primaryRole: { role: "heading", name: "셀렉터스 기수 관리" },
   },
   {
     route: "/selectors",
-    rows: [12],
+    rows: [15],
     expectedTexts: [
       "SNS",
       "활동 상태",
@@ -130,7 +117,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/selectors/qualifications",
-    rows: [13, 14],
+    rows: [17],
     expectedTexts: [
       "현재 자격",
       "누적 패널티",
@@ -140,11 +127,18 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
       "변경 사유",
     ],
     expectedActions: ["자격 변경"],
-    primaryRole: { role: "heading", name: "셀렉터스 자격 관리" },
+    primaryRole: { role: "heading", name: "블랙리스트 관리" },
+  },
+  {
+    route: "/selectors/sl-001",
+    rows: [16],
+    expectedTexts: ["셀렉터스 정보", "SNS 채널", "콘텐츠 수", "최근 활동일", "구매 전환 수"],
+    expectedActions: ["새로고침"],
+    primaryRole: { role: "heading", name: "셀렉터스 상세" },
   },
   {
     route: "/applicants",
-    rows: [15],
+    rows: [9],
     expectedTexts: [
       "지원자 ID",
       "SNS 채널",
@@ -163,7 +157,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     ],
     expectedTables: [
       {
-        region: "지원자 목록",
+        region: "지원자 승인",
         columns: [
           "지원자 ID",
           "SNS 채널",
@@ -178,12 +172,14 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/applicants/ap-001",
-    rows: [16, 17, 18, 20],
+    rows: [10, 11, 12, 13],
     expectedTexts: [
       "평균 조회 수",
       "평균 반응 수",
-      "AI 적합도",
-      "근거 지표",
+      "대표 콘텐츠",
+      "지원자 분석 리포트",
+      "ER (Engagement Rate)",
+      "협업 브랜드",
       "심사 결과 전송",
       "전송 대기",
     ],
@@ -192,35 +188,35 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/applicants/ap-003?fixture=auto-rejected",
-    rows: [19],
+    rows: [12],
     expectedTexts: ["자동 반려", "정량 기준 미충족", "내부 반려 사유"],
     expectedActions: ["승인", "반려"],
     primaryRole: { role: "heading", name: "지원자 상세 심사" },
   },
   {
     route: "/campaigns",
-    rows: [23],
+    rows: [18, 19, 20],
     expectedTexts: ["상태", "삭제 가능 여부", "삭제 불가 사유"],
     expectedActions: ["2026 가을 골프웨어 셀렉션 삭제"],
     primaryRole: { role: "heading", name: "캠페인 관리" },
   },
   {
     route: "/campaigns/new",
-    rows: [21, 22],
+    rows: [18],
     expectedTexts: ["캠페인명", "기간", "상품 선택"],
     expectedActions: ["상품 선택", "등록"],
     primaryRole: { role: "heading", name: "캠페인 등록" },
   },
   {
     route: "/campaigns/cp-001/edit",
-    rows: [21, 22],
+    rows: [19],
     expectedTexts: ["캠페인명", "기간", "상품 선택"],
     expectedActions: ["상품 선택", "저장"],
     primaryRole: { role: "heading", name: "캠페인 수정" },
   },
   {
     route: "/content/reviews",
-    rows: [24, 25, 26],
+    rows: [21, 22],
     expectedTexts: [
       "검수 유형",
       "작성자",
@@ -237,6 +233,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
       { role: "combobox", name: "검수 유형" },
       { role: "combobox", name: "플랫폼" },
       { role: "combobox", name: "검수 상태" },
+      { role: "combobox", name: "위반 필터" },
       { role: "combobox", name: "처리 상태" },
     ],
     expectedTables: [
@@ -257,16 +254,14 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/content/reviews/ct-001",
-    rows: [24],
+    rows: [21],
     expectedTexts: [
       "검수 유형",
       "작성자",
       "기수",
       "플랫폼",
-      "이전 콘텐츠",
       "현재 콘텐츠",
-      "이전 스냅샷이 없습니다.",
-      "<p>가을 라운딩을 위한 세인트앤드류스 패딩 팬츠를 소개합니다. 가볍고 편안한 스트레치 소재를 확인해 보세요. #현대홈쇼핑 #셀렉터스 #광고</p>",
+      "가을 라운딩을 위한 세인트앤드류스 패딩 팬츠를 소개합니다. 가볍고 편안한 스트레치 소재를 확인해 보세요. #현대홈쇼핑 #셀렉터스 #광고",
       "https://www.hmall.com/p/2200098405",
       "4개",
       "AI 상태",
@@ -277,13 +272,13 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/content/reviews/ct-002?fixture=violation-correction",
-    rows: [25],
+    rows: [22],
     expectedTexts: [
       "위반 수정본",
       "이전 콘텐츠",
       "현재 콘텐츠",
-      "<p>세인트앤드류스 신상 패딩, 지금 가장 저렴하게 구매하세요.</p>",
-      "<p>유료광고를 포함한 세인트앤드류스 패딩 팬츠 후기입니다. 상품 정보는 공식 링크에서 확인해 주세요. #현대홈쇼핑 #광고</p>",
+      "세인트앤드류스 신상 패딩, 지금 가장 저렴하게 구매하세요.",
+      "유료광고를 포함한 세인트앤드류스 패딩 팬츠 후기입니다. 상품 정보는 공식 링크에서 확인해 주세요. #현대홈쇼핑 #광고",
       "https://short.example/golf",
       "https://www.hmall.com/p/2200098405?ref=old",
       "5개",
@@ -296,13 +291,13 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/content/reviews/ct-003?fixture=edited",
-    rows: [26],
+    rows: [22],
     expectedTexts: [
       "일반 수정본",
       "이전 콘텐츠",
       "현재 콘텐츠",
-      "<p>가을 라운딩 코디로 고른 세인트앤드류스 패딩 팬츠입니다. #현대홈쇼핑 #셀렉터스 #광고</p>",
-      "<p>선선한 아침 라운딩에 입어 본 세인트앤드류스 스트레치 패딩 팬츠입니다. 착용감과 사이즈 팁을 확인해 보세요. #현대홈쇼핑 #셀렉터스 #광고</p>",
+      "가을 라운딩 코디로 고른 세인트앤드류스 패딩 팬츠입니다. #현대홈쇼핑 #셀렉터스 #광고",
+      "선선한 아침 라운딩에 입어 본 세인트앤드류스 스트레치 패딩 팬츠입니다. 착용감과 사이즈 팁을 확인해 보세요. #현대홈쇼핑 #셀렉터스 #광고",
       "https://www.hmall.com/event/golf",
       "3개",
       "4개",
@@ -313,33 +308,8 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     primaryRole: { role: "heading", name: "콘텐츠 검수 상세" },
   },
   {
-    route: "/content/violations",
-    rows: [27, 28, 29],
-    expectedTexts: [
-      "기수",
-      "위반 유형",
-      "처리 상태",
-      "안내 문구",
-      "안내 상태",
-      "누적 패널티",
-    ],
-    expectedActions: ["김서연 위반사항 안내", "김서연 패널티 부여"],
-    expectedControls: [
-      { role: "combobox", name: "기수" },
-      { role: "combobox", name: "위반 유형" },
-      { role: "combobox", name: "처리 상태" },
-    ],
-    expectedTables: [
-      {
-        region: "위반 콘텐츠 목록",
-        columns: ["안내 문구", "안내 상태", "누적 패널티"],
-      },
-    ],
-    primaryRole: { role: "heading", name: "위반 콘텐츠 관리" },
-  },
-  {
     route: "/performance",
-    rows: [30],
+    rows: [25],
     expectedTexts: ["캠페인명", "셀렉터스", "클릭 수", "구매 전환 수", "전환율"],
     expectedActions: ["조회", "초기화"],
     expectedControls: [
@@ -362,7 +332,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/performance/creators",
-    rows: [31],
+    rows: [26],
     expectedTexts: ["구매 전환 수", "조회 수", "좋아요", "댓글"],
     expectedActions: ["조회", "초기화"],
     expectedControls: [
@@ -380,7 +350,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/performance/contents",
-    rows: [32],
+    rows: [27],
     expectedTexts: ["구매 전환 수", "조회 수", "좋아요", "댓글"],
     expectedActions: ["조회", "초기화"],
     expectedControls: [
@@ -398,21 +368,19 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   },
   {
     route: "/settlements",
-    rows: [33, 34, 35],
+    rows: [28],
     expectedTexts: [
       "귀속월",
       "셀렉터스",
       "예상액",
       "확정액",
-      "수정 가능 여부",
       "확정 상태",
       "지급 상태",
     ],
-    expectedActions: ["김서연 지급액 수정", "김서연 지급 확정"],
+    expectedActions: ["조회", "초기화"],
     expectedControls: [
       { name: "귀속월" },
       { role: "textbox", name: "셀렉터스" },
-      { role: "combobox", name: "수정 가능 여부" },
       { role: "combobox", name: "확정 상태" },
       { role: "combobox", name: "지급 상태" },
     ],
@@ -424,23 +392,11 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
           "셀렉터스",
           "예상액",
           "확정액",
-          "수정 가능 여부",
           "확정 상태",
           "지급 상태",
         ],
       },
     ],
     primaryRole: { role: "heading", name: "정산 지급 관리" },
-  },
-  {
-    route: "/system/notices",
-    rows: [36],
-    expectedTexts: ["제목", "대상", "게시 기간", "게시 상태", "작성자", "수정일"],
-    expectedActions: [
-      "신규 작성",
-      "8월 셀렉터스 활동 안내 수정",
-      "8월 셀렉터스 활동 안내 삭제",
-    ],
-    primaryRole: { role: "heading", name: "공지사항 관리" },
   },
 ] as const satisfies readonly AdminRequirementCoverageCase[];

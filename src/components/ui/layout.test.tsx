@@ -351,6 +351,38 @@ test("renders typed table columns, rows, custom cells, and a footer", () => {
   expect(screen.getByText("1 product")).toBeInTheDocument();
 });
 
+test("selects rows by mouse and keyboard and ignores nested controls", async () => {
+  const user = userEvent.setup();
+  const onRowClick = vi.fn();
+  const columns: DenseTableColumn<ProductRow>[] = [
+    { key: "name", header: "Product name" },
+    { id: "action", header: "Action", render: () => <button type="button">Open</button> },
+  ];
+  const rows: ProductRow[] = [
+    { id: 101, code: "P-001", name: "Clickable product", status: "approved" },
+  ];
+  render(
+    <DenseTable
+      columns={columns}
+      onRowClick={onRowClick}
+      rowKey={(row) => row.id}
+      rows={rows}
+    />,
+  );
+
+  const row = screen.getByRole("row", { name: /Clickable product/ });
+  await user.click(row);
+  expect(row).toHaveAttribute("aria-selected", "true");
+  expect(onRowClick).toHaveBeenCalledTimes(1);
+
+  await user.click(screen.getByRole("button", { name: "Open" }));
+  expect(onRowClick).toHaveBeenCalledTimes(1);
+
+  row.focus();
+  await user.keyboard("{Enter}");
+  expect(onRowClick).toHaveBeenCalledTimes(2);
+});
+
 test("renders a table-specific empty message when there are no rows", () => {
   render(
     <DenseTable

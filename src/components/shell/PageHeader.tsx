@@ -1,4 +1,4 @@
-import { RotateCw, Star } from "lucide-react";
+import { RotateCw } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { findRequirementCoverage } from "../../app/requirementRows";
 
@@ -17,9 +17,6 @@ export function PageHeader({ title, screenCode }: PageHeaderProps) {
       data-requirement-rows={requirement?.rows.join(",")}
     >
       <div className="hsas-page-header__identity">
-        <button type="button" className="hsas-page-header__favorite" aria-label="현재 화면 즐겨찾기">
-          <Star aria-hidden="true" />
-        </button>
         <h1 className="hsas-page-header__title">{title}</h1>
         <span className="hsas-page-header__code">{screenCode}</span>
       </div>

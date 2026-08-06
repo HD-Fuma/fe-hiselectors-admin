@@ -1,36 +1,36 @@
-import { useCallback, useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { DEFAULT_ADMIN_ROUTE, findAdminRoute } from "../../app/navigation";
-import { IconRail } from "./IconRail";
-import { MegaMenu } from "./MegaMenu";
-import { MyMenu } from "./MyMenu";
-import { WorkTabs } from "./WorkTabs";
+import { AdminSidebar } from "./AdminSidebar";
+import { WorkTabs, type WorkTab } from "./WorkTabs";
 import "../../styles/admin.css";
 
 export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isMegaMenuRequested, setIsMegaMenuRequested] = useState(false);
   const activeRoute = findAdminRoute(location.pathname) ?? DEFAULT_ADMIN_ROUTE;
-  const fixture = new URLSearchParams(location.search).get("fixture");
-  const isMegaMenuOpen = fixture === "mega-menu" || isMegaMenuRequested;
-  const closeMegaMenu = useCallback(() => {
-    setIsMegaMenuRequested(false);
+  const currentPath = `${location.pathname}${location.search}`;
+  const [tabs, setTabs] = useState<WorkTab[]>(() => [
+    { id: currentPath, label: activeRoute.workTabLabel, to: currentPath },
+  ]);
 
-    if (fixture === "mega-menu") {
-      const searchParams = new URLSearchParams(location.search);
-      searchParams.delete("fixture");
-      const nextSearch = searchParams.toString();
+  useEffect(() => {
+    setTabs((current) =>
+      current.some((tab) => tab.id === currentPath)
+        ? current
+        : [...current, { id: currentPath, label: activeRoute.workTabLabel, to: currentPath }],
+    );
+  }, [activeRoute.workTabLabel, currentPath]);
 
-      void navigate(
-        {
-          pathname: location.pathname,
-          search: nextSearch ? `?${nextSearch}` : "",
-        },
-        { replace: true },
-      );
+  const closeTab = (tabId: string) => {
+    const remaining = tabs.filter((tab) => tab.id !== tabId);
+    if (remaining.length === 0) return;
+
+    setTabs(remaining);
+    if (tabId === currentPath) {
+      navigate(remaining.at(-1)?.to ?? DEFAULT_ADMIN_ROUTE.path);
     }
-  }, [fixture, location.pathname, location.search, navigate]);
+  };
 
   return (
     <div
@@ -40,25 +40,13 @@ export function AppShell() {
       data-ui="admin-shell"
       data-visual-contract="admin-shell"
     >
-      <header className="hsas-admin-shell__topbar" data-shell-part="topbar">
-        <strong>FUMA 관리자 시스템</strong>
-      </header>
-      <div className="hsas-admin-shell__body">
-        <IconRail onOpenMegaMenu={() => setIsMegaMenuRequested(true)} />
-        <MyMenu activeRoute={activeRoute} currentPath={location.pathname} />
-        <div className="hsas-admin-shell__workspace">
-          <WorkTabs
-            activeRoute={activeRoute}
-            currentPath={`${location.pathname}${location.search}`}
-          />
-          <main className="hsas-admin-shell__content" data-shell-part="content">
-            <Outlet />
-          </main>
-        </div>
+      <AdminSidebar activeRoute={activeRoute} currentPath={location.pathname} />
+      <div className="hsas-admin-shell__workspace">
+        <WorkTabs activeTabId={currentPath} onClose={closeTab} tabs={tabs} />
+        <main className="hsas-admin-shell__content" data-shell-part="content">
+          <Outlet />
+        </main>
       </div>
-      {isMegaMenuOpen ? (
-        <MegaMenu activeGroup={activeRoute.group} onClose={closeMegaMenu} />
-      ) : null}
     </div>
   );
 }

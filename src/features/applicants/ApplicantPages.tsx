@@ -1,6 +1,5 @@
-import type { ReactNode } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
-import { AiSummaryPanel } from "../../components/content/AiSummaryPanel";
+import { useState, type ReactNode } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Checkbox, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
@@ -11,7 +10,16 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SectionTabs } from "../../components/ui/SectionTabs";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import {
+  ApplicantAnalysisReport,
+  ApplicantAutomaticReview,
+  ApplicantFeaturedContents,
+} from "./ApplicantAnalysisReport";
+import { PlatformIcon } from "../creators/PlatformIcon";
+import {
   APPLICANTS,
+  applicantAnalysisFor,
+  applicantProfileImageUrl,
+  applicantProfileUrl,
   findApplicantFixture,
   type ApplicantDeliveryRecord,
   type ApplicantFixture,
@@ -178,14 +186,20 @@ const APPLICANT_COLUMNS: DenseTableColumn<ApplicantFixture>[] = [
     width: 58,
     align: "center",
     render: (applicant) => (
-      <Button aria-label={`${applicant.name} 상세 보기`} className="fuma-table-action">
+      <Link
+        aria-label={`${applicant.name} 상세 보기`}
+        className="fuma-table-action fuma-table-link"
+        to={`/applicants/${applicant.id}`}
+      >
         보기
-      </Button>
+      </Link>
     ),
   },
 ];
 
 export function ApplicantListPage() {
+  const navigate = useNavigate();
+
   return (
     <section className="fuma-page">
       <PageHeader screenCode="AP101" title="지원자 심사" />
@@ -228,16 +242,17 @@ export function ApplicantListPage() {
           </FilterField>
         </SearchPanel>
         <div className="fuma-result-toolbar">
-          <strong>지원자 목록</strong>
+          <strong>지원자 승인</strong>
           <span>총 {APPLICANTS.length}건</span>
         </div>
         <div
-          aria-label="지원자 목록"
+          aria-label="지원자 승인"
           className="fuma-wide-table fuma-applicant-list-table"
           role="region"
         >
           <DenseTable
             columns={APPLICANT_COLUMNS}
+            onRowClick={(applicant) => navigate(`/applicants/${applicant.id}`)}
             rowKey={(applicant) => applicant.id}
             rows={[...APPLICANTS]}
           />
@@ -251,12 +266,13 @@ export function ApplicantListPage() {
 interface KeyValueSectionProps {
   fields: Array<[string, ReactNode]>;
   id: string;
+  sectionId: string;
   title: string;
 }
 
-function KeyValueSection({ fields, id, title }: KeyValueSectionProps) {
+function KeyValueSection({ fields, id, sectionId, title }: KeyValueSectionProps) {
   return (
-    <section aria-labelledby={id} className="fuma-content-section">
+    <section aria-labelledby={id} className="fuma-content-section" id={sectionId}>
       <header className="fuma-content-section__header">
         <h2 id={id}>{title}</h2>
       </header>
@@ -289,8 +305,55 @@ function BasicInformation({ applicant }: { applicant: ApplicantFixture }) {
         ],
       ]}
       id="applicant-basic-title"
+      sectionId="basic"
       title="기본 정보"
     />
+  );
+}
+
+function ApplicantReviewHero({ applicant }: { applicant: ApplicantFixture }) {
+  const analysis = applicantAnalysisFor(applicant);
+  const audienceLabel = applicant.platform === "Instagram" ? "팔로워" : "구독자";
+  const passes = applicant.followerCount >= 500 && analysis.recent90ContentCount >= 3;
+
+  return (
+    <section aria-label={`${applicant.name} 지원자 심사 요약`} className="fuma-creator-detail-hero fuma-applicant-detail-hero fuma-unified-detail-hero">
+      <div className="fuma-creator-detail-hero__portrait">
+        <img alt={`${applicant.name} 프로필`} src={applicantProfileImageUrl(applicant)} />
+        <span className="fuma-creator-detail-hero__platform"><PlatformIcon platform={applicant.platform} /></span>
+      </div>
+      <div className="fuma-creator-detail-hero__content">
+        <div className="fuma-creator-detail-hero__identity">
+          <div className="fuma-creator-detail-hero__title-row">
+            <h2>{applicant.name}</h2>
+            <StatusPill tone={reviewStatusTone(applicant.reviewStatus)}>{applicant.reviewStatus}</StatusPill>
+          </div>
+          <a className="fuma-creator-detail-hero__channel" href={applicantProfileUrl(applicant)} rel="noreferrer" target="_blank">
+            <PlatformIcon decorative platform={applicant.platform} />
+            <span>{applicant.channelName}</span>
+            <span aria-hidden="true">↗</span>
+          </a>
+          <div aria-label="카테고리와 키워드" className="fuma-creator-detail-hero__categories">
+            <strong>{analysis.categories.join(" · ")}</strong>
+            <span aria-hidden="true">/</span>
+            <span>{analysis.keywords.slice(0, 3).map((keyword) => `#${keyword.label}`).join("  ")}</span>
+          </div>
+        </div>
+        <p className="fuma-unified-detail-hero__summary">{analysis.summary}</p>
+        <dl className="fuma-creator-detail-hero__metrics">
+          <div><dt>{audienceLabel}</dt><dd>{formatNumber(applicant.followerCount)}</dd></div>
+          <div><dt>최근 90일 콘텐츠</dt><dd>{analysis.recent90ContentCount}건</dd></div>
+          <div><dt>평균 조회</dt><dd>{formatNumber(applicant.averageViews)}</dd></div>
+          <div><dt>ER</dt><dd>{analysis.engagementRate.toFixed(1)}%</dd></div>
+        </dl>
+      </div>
+      <aside className={`fuma-creator-detail-hero__actions fuma-applicant-unified-decision fuma-applicant-unified-decision--${passes ? "pass" : "fail"}`}>
+        <span>자동 심사</span>
+        <strong>{passes ? "통과" : "반려 대상"}</strong>
+        <p>{passes ? "최소 요건을 모두 충족했습니다." : "최소 요건 미충족 항목이 있습니다."}</p>
+        <a href="#review">심사 처리로 이동 <span aria-hidden="true">↓</span></a>
+      </aside>
+    </section>
   );
 }
 
@@ -307,6 +370,7 @@ function SnsMetrics({ applicant }: { applicant: ApplicantFixture }) {
         ["평균 반응 수", formatNumber(applicant.averageReactions)],
       ]}
       id="applicant-metrics-title"
+      sectionId="metrics"
       title="SNS 채널 정보"
     />
   );
@@ -352,6 +416,7 @@ function ReviewSection({
     <section
       aria-labelledby="applicant-review-title"
       className="fuma-content-section fuma-applicant-review"
+      id="review"
     >
       <header className="fuma-content-section__header">
         <h2 id="applicant-review-title">심사 처리</h2>
@@ -406,6 +471,7 @@ function DeliverySection({ applicant }: { applicant: ApplicantFixture }) {
     <section
       aria-labelledby="applicant-delivery-title"
       className="fuma-content-section fuma-applicant-delivery"
+      id="delivery"
     >
       <header className="fuma-content-section__header">
         <h2 id="applicant-delivery-title">심사 결과 전송</h2>
@@ -426,9 +492,11 @@ function DeliverySection({ applicant }: { applicant: ApplicantFixture }) {
 }
 
 const DETAIL_TABS = [
+  { id: "featured", label: "대표 콘텐츠", targetId: "featured-content" },
   { id: "basic", label: "기본 정보" },
   { id: "metrics", label: "SNS 지표" },
-  { id: "ai-report", label: "AI 요약 리포트" },
+  { id: "screening", label: "자동 심사" },
+  { id: "analysis", label: "AI 분석 리포트" },
   { id: "review", label: "심사 처리" },
   { id: "delivery", label: "결과 전송" },
 ];
@@ -439,20 +507,26 @@ export function ApplicantDetailPage() {
   const applicant = findApplicantFixture(applicantId);
   const showAutoRejectionDetails =
     applicant?.id === "ap-003" && searchParams.get("fixture") === "auto-rejected";
+  const [activeSection, setActiveSection] = useState("featured");
 
   return (
-    <section className="fuma-page">
+    <section className="fuma-page fuma-applicant-detail-page">
       <PageHeader screenCode="AP102" title="지원자 상세 심사" />
       <div className="fuma-page__body">
         {applicant ? (
           <>
             <div className="fuma-detail-toolbar">
-              <Button>목록</Button>
+              <Link className="hsas-button fuma-detail-toolbar__link" to="/applicants">
+                목록
+              </Link>
             </div>
-            <SectionTabs activeId="basic" items={DETAIL_TABS} />
+            <ApplicantReviewHero applicant={applicant} />
+            <SectionTabs activeId={activeSection} items={DETAIL_TABS} onChange={setActiveSection} />
+            <ApplicantFeaturedContents applicant={applicant} />
             <BasicInformation applicant={applicant} />
             <SnsMetrics applicant={applicant} />
-            <AiSummaryPanel report={applicant.aiReport} />
+            <ApplicantAutomaticReview applicant={applicant} />
+            <ApplicantAnalysisReport applicant={applicant} />
             <ReviewSection
               applicant={applicant}
               key={`${applicant.id}-${showAutoRejectionDetails}`}

@@ -2,6 +2,7 @@ interface MediaTilesProps {
   count: number;
   kinds: string[];
   label: string;
+  urls?: string[];
 }
 
 function MediaSilhouette({ index, kind }: { index: number; kind: string }) {
@@ -30,10 +31,11 @@ function MediaSilhouette({ index, kind }: { index: number; kind: string }) {
   );
 }
 
-export function MediaTiles({ count, kinds, label }: MediaTilesProps) {
+export function MediaTiles({ count, kinds, label, urls = [] }: MediaTilesProps) {
   const tiles = Array.from({ length: count }, (_, index) => ({
     index,
     kind: kinds[index] ?? "이미지",
+    url: urls[index],
   }));
 
   return (
@@ -43,9 +45,17 @@ export function MediaTiles({ count, kinds, label }: MediaTilesProps) {
         <span>{count}개</span>
       </div>
       <div className="fuma-media-tiles__track" role="list">
-        {tiles.map(({ index, kind }) => (
+        {tiles.map(({ index, kind, url }) => (
           <figure className="fuma-media-tile" key={`${kind}-${index}`} role="listitem">
-            <MediaSilhouette index={index} kind={kind} />
+            {url ? (
+              <img
+                alt={`${label} ${kind} ${index + 1}`}
+                className="fuma-media-tile__visual"
+                src={url}
+              />
+            ) : (
+              <MediaSilhouette index={index} kind={kind} />
+            )}
             <figcaption>
               <span>{kind}</span>
               <span>{index + 1}</span>
