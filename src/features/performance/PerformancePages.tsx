@@ -485,12 +485,6 @@ export function buildDashboardVisualData(
         : formatRate(totalConversions, totalClicks);
 
   return {
-    areaPoints: creators.map((creator) => ({
-      id: creator.id,
-      label: creator.name,
-      primary: creator.views,
-      secondary: creator.conversions,
-    })),
     campaignItems: campaigns.map((campaign) => ({
       id: campaign.id,
       label: campaign.name,
@@ -551,11 +545,11 @@ export function buildCreatorVisualData(
   );
 
   return {
-    areaPoints: contents.map((content) => ({
-      id: content.id,
-      label: content.title.slice(0, 5),
-      primary: content.views,
-      secondary: content.conversions,
+    areaPoints: creators.map((creator) => ({
+      id: creator.id,
+      label: creator.name,
+      primary: creator.views,
+      secondary: creator.conversions,
     })),
     chartItems: creators.map((creator) => ({
       id: creator.id,
@@ -597,11 +591,11 @@ export function buildContentVisualData(
   );
 
   return {
-    areaPoints: products.map((product) => ({
-      id: product.id,
-      label: product.name.slice(0, 5),
-      primary: product.clicks,
-      secondary: product.conversions,
+    areaPoints: contents.map((content) => ({
+      id: content.id,
+      label: content.title.slice(0, 5),
+      primary: content.views,
+      secondary: content.conversions,
     })),
     chartItems: contents.map((content) => ({
       id: content.id,
@@ -638,6 +632,12 @@ export function buildProductVisualData(products: readonly ProductInfluence[]) {
   const totalContents = products.reduce((total, product) => total + product.contentCount, 0);
 
   return {
+    areaPoints: products.map((product) => ({
+      id: product.id,
+      label: product.name.slice(0, 5),
+      primary: product.clicks,
+      secondary: product.conversions,
+    })),
     chartItems: products.map((product) => ({
       id: product.id,
       label: product.name,
