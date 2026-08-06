@@ -2,6 +2,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell,
 body:has(.fuma-performance-page) .hsas-admin-shell__workspace,
 body:has(.fuma-performance-page) .hsas-admin-shell__content {
   min-width: 0;
+  background: #f3f6f4;
 }
 
 .fuma-performance-page {
@@ -16,8 +17,9 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 }
 
 .fuma-performance-page .fuma-page__body {
-  gap: 16px;
+  gap: 18px;
   margin-top: 18px;
+  padding-bottom: 32px;
 }
 
 .fuma-performance-scope-nav {
@@ -36,8 +38,11 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   align-items: end;
   justify-content: space-between;
   gap: 20px;
-  padding: 2px 0 14px;
-  border-bottom: 1px solid var(--fuma-performance-line);
+  padding: 18px 20px;
+  border: 1px solid var(--fuma-performance-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgb(29 70 57 / 5%);
 }
 
 .fuma-performance-workspace-intro p,
@@ -76,10 +81,11 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 }
 
 .fuma-performance-page .fuma-performance-search .hsas-search-panel {
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-color: var(--fuma-performance-line);
-  border-radius: 7px;
-  background: #fbfcfb;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgb(29 70 57 / 4%);
 }
 
 .fuma-performance-kpi-grid {
@@ -100,9 +106,9 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   padding: 16px;
   overflow: hidden;
   border: 1px solid #d9e3e1;
-  border-radius: 7px;
+  border-radius: 14px;
   background: var(--fuma-performance-panel);
-  box-shadow: none;
+  box-shadow: 0 5px 16px rgb(29 70 57 / 5%);
 }
 
 .fuma-performance-kpi-grid__item::before {
@@ -218,9 +224,9 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   margin: 0;
   padding: 18px 20px 20px;
   border: 1px solid #d9e3e1;
-  border-radius: 7px;
+  border-radius: 16px;
   background: var(--fuma-performance-panel);
-  box-shadow: none;
+  box-shadow: 0 6px 22px rgb(29 70 57 / 6%);
 }
 
 .fuma-performance-chart figcaption {
@@ -289,12 +295,12 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 
 .fuma-performance-analysis-hero {
   display: grid;
-  grid-template-columns: minmax(360px, 1fr) 156px 182px;
-  gap: 12px;
+  grid-template-columns: minmax(480px, 1fr) 176px minmax(300px, .5fr);
+  gap: 14px;
   align-items: stretch;
 }
 
-.fuma-performance-analysis-hero .fuma-performance-area-chart { min-height: 308px; }
+.fuma-performance-analysis-hero .fuma-performance-area-chart { min-height: 326px; }
 .fuma-performance-area-chart svg { display: block; width: 100%; min-height: 232px; margin-top: 6px; overflow: visible; }
 .fuma-performance-area-chart svg text { fill: #72827d; font-family: var(--hsas-font-family); font-size: 10px; }
 .fuma-performance-area-chart__grid { stroke: #edf2f0; stroke-width: 1; }
@@ -307,24 +313,55 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 .fuma-performance-analysis-focus {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  min-height: 308px;
-  padding: 17px;
+  justify-content: flex-start;
+  min-height: 326px;
+  padding: 19px;
   overflow: hidden;
-  border-radius: 9px;
+  border-radius: 16px;
   color: #f5fffa;
-  background: linear-gradient(160deg, #1d705e, #115041);
-  box-shadow: 0 9px 20px rgb(21 88 71 / 14%);
+  background: #1f735e;
+  box-shadow: 0 12px 28px rgb(21 88 71 / 18%);
 }
 
-.fuma-performance-analysis-focus::before { display: block; width: 70px; height: 70px; margin: 0 auto auto; border: 2px solid rgb(245 255 250 / 62%); border-radius: 50%; content: ""; }
 .fuma-performance-analysis-focus > span { color: #a4d5c4; font-size: 9px; font-weight: 800; letter-spacing: .09em; }
-.fuma-performance-analysis-focus > strong { margin-top: 8px; font-size: 29px; letter-spacing: -.06em; line-height: 1; }
+.fuma-performance-analysis-focus > strong { margin-top: auto; font-size: 29px; letter-spacing: -.06em; line-height: 1; }
 .fuma-performance-analysis-focus p { margin: 5px 0 0; font-size: 13px; font-weight: 800; letter-spacing: -.03em; }
 .fuma-performance-analysis-focus small { margin-top: 4px; color: #b7ded0; font-size: 10px; }
 
-.fuma-performance-kpi-grid--analysis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.fuma-performance-kpi-grid--analysis .fuma-performance-kpi-grid__item { min-height: 149px; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 15px; }
+.fuma-performance-analysis-focus__ring {
+  display: grid;
+  width: 78px;
+  height: 78px;
+  place-items: center;
+  margin: 18px auto 12px;
+  border: 1px solid rgb(255 255 255 / 42%);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 8px rgb(255 255 255 / 6%);
+}
+
+.fuma-performance-analysis-focus__ring b {
+  color: #fff;
+  font-size: 27px;
+  font-weight: 650;
+}
+
+.fuma-performance-analysis-focus__bars {
+  display: flex;
+  height: 36px;
+  align-items: end;
+  gap: 4px;
+  margin: 0 6px 16px;
+}
+
+.fuma-performance-analysis-focus__bars i {
+  width: 100%;
+  min-height: 5px;
+  border-radius: 2px 2px 0 0;
+  background: rgb(255 255 255 / 66%);
+}
+
+.fuma-performance-kpi-grid--analysis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.fuma-performance-kpi-grid--analysis .fuma-performance-kpi-grid__item { min-height: 157px; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 17px; }
 .fuma-performance-kpi-grid--analysis .fuma-performance-kpi-grid__copy { flex: 0; }
 .fuma-performance-kpi-grid--analysis .fuma-performance-kpi-grid__icon { order: 2; width: 34px; height: 34px; flex-basis: 34px; }
 .fuma-performance-kpi-grid--analysis .fuma-performance-kpi-grid__chevron { position: absolute; top: 13px; right: 14px; }
@@ -503,7 +540,12 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 }
 
 .fuma-performance-page .fuma-performance-results {
-  padding: 4px 0 0;
+  padding: 14px 18px 18px;
+  overflow: hidden;
+  border: 1px solid var(--fuma-performance-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgb(29 70 57 / 4%);
 }
 
 .fuma-performance-dashboard-layout {
@@ -747,10 +789,11 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 }
 
 .fuma-performance-entity-section {
-  padding: 20px;
+  padding: 22px;
   border: 1px solid var(--fuma-performance-line);
-  border-radius: 7px;
+  border-radius: 16px;
   background: #fff;
+  box-shadow: 0 6px 22px rgb(29 70 57 / 5%);
 }
 
 .fuma-performance-entity-section .fuma-performance-section-heading > span {
@@ -762,7 +805,8 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 .fuma-performance-entity-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
   margin-top: 16px;
 }
 
@@ -770,10 +814,10 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   display: grid;
   gap: 16px;
   min-width: 0;
-  padding: 15px;
+  padding: 17px;
   border: 1px solid #e0eae6;
-  border-radius: 7px;
-  background: linear-gradient(140deg, #fff, #fbfdfc);
+  border-radius: 13px;
+  background: #fbfdfc;
   transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
 }
 
@@ -863,6 +907,20 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 .fuma-performance-entity-card dl > div + div { padding-left: 10px; border-left: 1px solid #edf2f0; }
 .fuma-performance-entity-card dt { color: #82928e; font-size: 10px; }
 .fuma-performance-entity-card dd { margin: 4px 0 0; color: #1d463b; font-size: 15px; font-variant-numeric: tabular-nums; font-weight: 800; letter-spacing: -0.035em; }
+
+.fuma-performance-entity-card__meter {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #e7efeb;
+}
+
+.fuma-performance-entity-card__meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2f806b;
+}
 
 .fuma-performance-section-heading {
   display: flex;

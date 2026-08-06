@@ -208,20 +208,23 @@ function PerformanceEntityCardGrid({
         <span>총 {items.length}건</span>
       </div>
       <div className="fuma-performance-entity-grid">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <article className={`fuma-performance-entity-card is-${item.tone}`} key={item.id}>
             <header>
-              <span>{item.meta}</span>
+              <span>0{index + 1} · {item.meta}</span>
               <ArrowUpRight size={16} />
             </header>
             <div className="fuma-performance-entity-card__identity">
-              <div aria-hidden="true">{item.label.slice(0, 1)}</div>
+              <div aria-hidden="true">
+                {item.tone === "creator" ? <UsersRound size={18} /> : item.tone === "content" ? <PlaySquare size={18} /> : <Package size={18} />}
+              </div>
               <div><h3>{item.label}</h3><p>{item.detail}</p></div>
             </div>
             <dl>
               <div><dt>{item.primaryLabel}</dt><dd>{item.primaryValue}</dd></div>
               <div><dt>{item.secondaryLabel}</dt><dd>{item.secondaryValue}</dd></div>
             </dl>
+            <div aria-hidden="true" className="fuma-performance-entity-card__meter"><span style={{ width: `${Math.max(42, 92 - index * 12)}%` }} /></div>
           </article>
         ))}
       </div>
@@ -259,6 +262,10 @@ function PerformanceAnalysisHero({
       />
       <section className="fuma-performance-analysis-focus">
         <span>TOP PERFORMANCE</span>
+        <div aria-hidden="true" className="fuma-performance-analysis-focus__ring"><b>1</b></div>
+        <div aria-hidden="true" className="fuma-performance-analysis-focus__bars">
+          {[38, 52, 46, 72, 61, 86, 68, 92].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}
+        </div>
         <strong>{focusValue}</strong>
         <p>{focusLabel}</p>
         <small>{focusDetail}</small>
@@ -667,6 +674,7 @@ export function PerformanceDashboardPage() {
     <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF101" title="관리자 성과 대시보드" />
       <div className="fuma-page__body">
+        <PerformanceWorkspaceIntro active="overview" caption="캠페인 성과와 전환 흐름을 한눈에 확인하세요." />
         <PerformanceFilters />
         <PerformanceKpiGrid ariaLabel="성과 요약" items={visualData.kpis} />
         <div className="fuma-performance-visuals fuma-performance-visuals--overview">

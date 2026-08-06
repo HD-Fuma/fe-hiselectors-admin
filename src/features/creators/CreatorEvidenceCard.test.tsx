@@ -59,7 +59,7 @@ describe("CreatorEvidenceCard", () => {
 
     expect(within(card).getByRole("link", { name: "이지아 프로필 보기" })).toHaveAttribute(
       "href",
-      "/creators/cr-003",
+      "/creators?detail=cr-003",
     );
     expect(within(card).getByRole("link", { name: "이지아 제안 작성" })).toHaveAttribute(
       "href",

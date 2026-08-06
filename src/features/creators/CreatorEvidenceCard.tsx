@@ -84,7 +84,7 @@ export function CreatorEvidenceCard({ creator }: { creator: CreatorFixture }) {
           <Link
             aria-label={`${creator.name} 프로필 보기`}
             className="fuma-creator-card__action"
-            to={`/creators/${creator.id}`}
+            to={`/creators?detail=${creator.id}`}
           >
             프로필
             <ArrowUpRight aria-hidden="true" />

@@ -8,6 +8,7 @@ import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SectionTabs } from "../../components/ui/SectionTabs";
+import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { CreatorCardGrid } from "./CreatorCardGrid";
 import { CreatorContentPhoto, CreatorProfilePhoto } from "./CreatorArtwork";
@@ -44,6 +45,20 @@ const PROPOSAL_STATUS_OPTIONS = [
   "발송 실패",
   "셀렉터스 전환",
 ].map((label) => ({ label, value: label === "전체" ? "" : label }));
+const CREATOR_REJECTION_REASON_OPTIONS = [
+  { label: "선택", value: "" },
+  { label: "채널 적합도 낮음", value: "채널 적합도 낮음" },
+  { label: "콘텐츠 품질 미충족", value: "콘텐츠 품질 미충족" },
+  { label: "운영 정책 미충족", value: "운영 정책 미충족" },
+  { label: "기타", value: "기타" },
+];
+
+interface CreatorReviewDecision {
+  creatorId: string;
+  note: string;
+  reason: string;
+  status: "승인" | "반려";
+}
 
 function formatNumber(value: number) {
   return value.toLocaleString("ko-KR");
@@ -167,6 +182,7 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
 export function CreatorListPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const detailCreatorId = searchParams.get("detail");
   const creators = [...(searchParams.get("fixture") === "empty" ? [] : CREATORS)].sort(
     (left, right) => {
       const leftRate = engagementResultForCreator(left).value;
@@ -177,6 +193,7 @@ export function CreatorListPage() {
   const [view, setView] = useState<CreatorPoolView>("cards");
 
   return (
+    <>
     <section className="fuma-page">
       <PageHeader screenCode="CR101" title="크리에이터 풀" />
       <div className="fuma-page__body">
@@ -216,7 +233,7 @@ export function CreatorListPage() {
             <DenseTable
               columns={CREATOR_COLUMNS}
               emptyMessage="검색 결과가 없습니다."
-              onRowClick={(creator) => navigate(`/creators/${creator.id}`)}
+              onRowClick={(creator) => navigate(`/creators?detail=${creator.id}`)}
               rowKey={(creator) => creator.id}
               rows={creators}
             />
@@ -225,6 +242,14 @@ export function CreatorListPage() {
         <Pagination page={1} pageSize={20} totalPages={1} />
       </div>
     </section>
+    {detailCreatorId ? (
+      <CreatorDetailPage
+        embedded
+        creatorIdOverride={detailCreatorId}
+        onClose={() => navigate("/creators")}
+      />
+    ) : null}
+    </>
   );
 }
 
@@ -285,7 +310,13 @@ function BasicInformation({ creator }: { creator: CreatorFixture }) {
   );
 }
 
-function CreatorProfileHero({ creator }: { creator: CreatorFixture }) {
+function CreatorProfileHero({
+  creator,
+  decision,
+}: {
+  creator: CreatorFixture;
+  decision: CreatorReviewDecision | null;
+}) {
   const engagement = engagementResultForCreator(creator);
   const audienceLabel = creator.profile.platform === "Instagram" ? "팔로워" : "구독자";
   const engagementValue =
@@ -334,10 +365,63 @@ function CreatorProfileHero({ creator }: { creator: CreatorFixture }) {
           <div><dt>최근 활동</dt><dd>{creator.recentActivity}</dd></div>
         </dl>
       </div>
-      <div className="fuma-creator-detail-hero__actions">
-        <span>이메일 자동 발송</span>
-        <Link className="hsas-button hsas-button--primary fuma-creator-detail-hero__proposal" to={proposalHref}>이메일 제안 작성</Link>
-        <a href="#proposal">발송 방식 확인</a>
+      <aside
+        aria-label="크리에이터 승인 결과"
+        className={`fuma-creator-detail-hero__actions fuma-review-summary${decision?.status === "반려" ? " fuma-review-summary--rejected" : ""}`}
+      >
+        <span>승인 상태</span>
+        <StatusPill tone={decision?.status === "승인" ? "approved" : decision?.status === "반려" ? "rejected" : "pending"}>
+          {decision?.status ?? "검토 대기"}
+        </StatusPill>
+        <p>{decision?.note || "검토 의견을 입력하고 승인 또는 반려해 주세요."}</p>
+        {decision?.status === "반려" && decision.reason ? <small>{decision.reason}</small> : null}
+        <a href="#creator-review">승인 처리로 이동 <span aria-hidden="true">↓</span></a>
+        <Link className="fuma-review-summary__proposal" to={proposalHref}>이메일 제안 작성</Link>
+      </aside>
+    </section>
+  );
+}
+
+function CreatorReviewSection({
+  creator,
+  onDecision,
+}: {
+  creator: CreatorFixture;
+  onDecision: (decision: CreatorReviewDecision) => void;
+}) {
+  const [note, setNote] = useState("");
+  const [reason, setReason] = useState("");
+
+  const decide = (status: CreatorReviewDecision["status"]) => {
+    onDecision({ creatorId: creator.id, note, reason: status === "반려" ? reason : "", status });
+  };
+
+  return (
+    <section aria-labelledby="creator-review-title" className="fuma-content-section fuma-applicant-review" id="creator-review">
+      <header className="fuma-content-section__header">
+        <h2 id="creator-review-title">크리에이터 승인 처리</h2>
+      </header>
+      <div className="fuma-applicant-review__form">
+        <FormRow label="내부 검토 의견">
+          <textarea
+            aria-label="내부 검토 의견"
+            className="hsas-control fuma-applicant-review__textarea"
+            onChange={(event) => setNote(event.target.value)}
+            value={note}
+          />
+        </FormRow>
+        <FormRow label="반려 사유(내부)">
+          <Select
+            aria-label="반려 사유(내부)"
+            onChange={(event) => setReason(event.target.value)}
+            options={CREATOR_REJECTION_REASON_OPTIONS}
+            value={reason}
+          />
+        </FormRow>
+      </div>
+      <div className="fuma-applicant-section__actions">
+        <Button onClick={() => decide("승인")} variant="primary">승인</Button>
+        <Button onClick={() => decide("반려")} variant="danger">반려</Button>
       </div>
     </section>
   );
@@ -426,32 +510,45 @@ function ProposalMethods({ creator }: { creator: CreatorFixture }) {
   );
 }
 
-export function CreatorDetailPage() {
-  const { creatorId } = useParams();
+interface CreatorDetailPageProps {
+  creatorIdOverride?: string;
+  embedded?: boolean;
+  onClose?: () => void;
+}
+
+export function CreatorDetailPage({
+  creatorIdOverride,
+  embedded = false,
+  onClose,
+}: CreatorDetailPageProps = {}) {
+  const { creatorId: routeCreatorId } = useParams();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const creatorId = creatorIdOverride ?? routeCreatorId;
   const fixture = CREATORS.find((creator) => creator.id === creatorId);
   const creator =
     fixture && searchParams.get("fixture") === "ai-pending"
       ? { ...fixture, aiReport: PENDING_AI_REPORT }
       : fixture;
   const [activeSection, setActiveSection] = useState("featured");
+  const [reviewDecision, setReviewDecision] = useState<CreatorReviewDecision | null>(null);
+  const currentDecision = reviewDecision?.creatorId === creator?.id ? reviewDecision : null;
 
   return (
-    <section className="fuma-page fuma-creator-detail-page">
-      <PageHeader screenCode="CR102" title="크리에이터 상세" />
-      <div className="fuma-page__body">
-        {creator ? (
-          <>
-            <div className="fuma-detail-toolbar">
-              <Link className="hsas-button fuma-detail-toolbar__link" to="/creators">목록</Link>
-            </div>
-            <CreatorProfileHero creator={creator} />
+    <>
+      {embedded ? null : <CreatorListPage />}
+      <SidePanel onClose={onClose ?? (() => navigate("/creators"))} screenCode="CR102" title="크리에이터 상세">
+        <div className="fuma-detail-panel__content fuma-creator-detail-page">
+          {creator ? (
+            <>
+            <CreatorProfileHero creator={creator} decision={currentDecision} />
             <SectionTabs
               activeId={activeSection}
               items={[
                 { id: "featured", label: "대표 콘텐츠" },
                 { id: "basic", label: "기본 정보" },
                 { id: "analysis", label: "크리에이터 분석" },
+                { id: "creator-review", label: "승인 처리" },
                 { id: "proposal", label: "영입 제안" },
               ]}
               onChange={setActiveSection}
@@ -469,16 +566,22 @@ export function CreatorDetailPage() {
               />
             </section>
             <CreatorAnalysisReport creator={creator} />
+            <CreatorReviewSection
+              creator={creator}
+              key={creator.id}
+              onDecision={setReviewDecision}
+            />
             <ProposalMethods creator={creator} />
-          </>
-        ) : (
-          <EmptyState
-            description="요청한 크리에이터 정보를 확인할 수 없습니다."
-            title="대상을 찾을 수 없습니다"
-          />
-        )}
-      </div>
-    </section>
+            </>
+          ) : (
+            <EmptyState
+              description="요청한 크리에이터 정보를 확인할 수 없습니다."
+              title="대상을 찾을 수 없습니다"
+            />
+          )}
+        </div>
+      </SidePanel>
+    </>
   );
 }
 
