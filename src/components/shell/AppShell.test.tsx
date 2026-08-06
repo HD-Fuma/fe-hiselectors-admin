@@ -64,6 +64,18 @@ test("renders the complete administrator navigation in one sidebar", () => {
   );
 });
 
+test("prefixes the sidebar logo with the configured Vite base URL", () => {
+  vi.stubEnv("BASE_URL", "/fe-selectors-admin/");
+
+  renderRoute("/creators");
+
+  expect(screen.getByRole("img", { name: "더현대Hi" })).toHaveAttribute(
+    "src",
+    "/fe-selectors-admin/brand/thehyundai-hi.svg",
+  );
+  vi.unstubAllEnvs();
+});
+
 test("treats a trailing-slash direct route as the current exact page", () => {
   renderRoute("/creators/");
 
