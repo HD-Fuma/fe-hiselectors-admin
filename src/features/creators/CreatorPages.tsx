@@ -21,14 +21,11 @@ import {
 import { PlatformIcon } from "./PlatformIcon";
 import {
   CREATORS,
-  META_MANUAL_SEND_NOTE,
   PENDING_AI_REPORT,
   PROPOSALS,
   type CreatorFixture,
   type CreatorProfileFixture,
-  type EmailCreatorFixture,
   type ProposalFixture,
-  type ProposalChannel,
   type ProposalStatus,
 } from "./fixtures";
 
@@ -293,9 +290,7 @@ function CreatorProfileHero({ creator }: { creator: CreatorFixture }) {
   const audienceLabel = creator.profile.platform === "Instagram" ? "팔로워" : "구독자";
   const engagementValue =
     engagement.value === null ? "집계 불가" : `${engagement.value.toFixed(1)}%`;
-  const primaryChannel = creator.availableProposalChannels[0];
-  const proposalLabel = primaryChannel === "Instagram DM" ? "DM 제안 작성" : "이메일 제안 작성";
-  const proposalHref = `/proposals/new?creator=${creator.id}&channel=${encodeURIComponent(primaryChannel)}`;
+  const proposalHref = `/proposals/new?creator=${creator.id}&channel=${encodeURIComponent("이메일")}`;
 
   return (
     <section aria-label={`${creator.name} 프로필 요약`} className="fuma-creator-detail-hero fuma-unified-detail-hero">
@@ -340,8 +335,8 @@ function CreatorProfileHero({ creator }: { creator: CreatorFixture }) {
         </dl>
       </div>
       <div className="fuma-creator-detail-hero__actions">
-        <span>{primaryChannel === "Instagram DM" ? "Instagram 수동 발송" : "이메일 자동 발송"}</span>
-        <Link className="hsas-button hsas-button--primary fuma-creator-detail-hero__proposal" to={proposalHref}>{proposalLabel}</Link>
+        <span>이메일 자동 발송</span>
+        <Link className="hsas-button hsas-button--primary fuma-creator-detail-hero__proposal" to={proposalHref}>이메일 제안 작성</Link>
         <a href="#proposal">발송 방식 확인</a>
       </div>
     </section>
@@ -397,15 +392,7 @@ function ProposalMethod({
   );
 }
 
-function hasEmailProposalChannel(creator: CreatorFixture): creator is EmailCreatorFixture {
-  return creator.availableProposalChannels.at(-1) === "이메일";
-}
-
 function ProposalMethods({ creator }: { creator: CreatorFixture }) {
-  const hasInstagramProposalChannel =
-    creator.availableProposalChannels[0] === "Instagram DM";
-  const hasEmailProposal = hasEmailProposalChannel(creator);
-
   return (
     <section
       aria-labelledby="creator-proposal-title"
@@ -416,43 +403,24 @@ function ProposalMethods({ creator }: { creator: CreatorFixture }) {
         <h2 id="creator-proposal-title">영입 제안</h2>
       </header>
       <div className="fuma-proposal-methods">
-        {hasInstagramProposalChannel ? (
-          <ProposalMethod buttonLabel="Instagram DM 제안 작성" href={`/proposals/new?creator=${creator.id}&channel=Instagram%20DM`} title="Instagram DM">
-            <dl>
-              <div>
-                <dt>발송 방식</dt>
-                <dd>수동</dd>
-              </div>
-              <div>
-                <dt>발송 상태</dt>
-                <dd>
-                  <StatusPill tone="approved">발송 가능</StatusPill>
-                </dd>
-              </div>
-            </dl>
-            <p className="fuma-proposal-method__note">{META_MANUAL_SEND_NOTE}</p>
-          </ProposalMethod>
-        ) : null}
-        {hasEmailProposal ? (
-          <ProposalMethod buttonLabel="이메일 제안 작성" href={`/proposals/new?creator=${creator.id}&channel=${encodeURIComponent("이메일")}`} title="이메일">
-            <dl>
-              <div>
-                <dt>이메일</dt>
-                <dd>{creator.email}</dd>
-              </div>
-              <div>
-                <dt>발송 방식</dt>
-                <dd>자동</dd>
-              </div>
-              <div>
-                <dt>자동 발송 상태</dt>
-                <dd>
-                  <StatusPill tone="approved">발송 가능</StatusPill>
-                </dd>
-              </div>
-            </dl>
-          </ProposalMethod>
-        ) : null}
+        <ProposalMethod buttonLabel="이메일 제안 작성" href={`/proposals/new?creator=${creator.id}&channel=${encodeURIComponent("이메일")}`} title="이메일">
+          <dl>
+            <div>
+              <dt>이메일</dt>
+              <dd>{creator.email}</dd>
+            </div>
+            <div>
+              <dt>발송 방식</dt>
+              <dd>자동</dd>
+            </div>
+            <div>
+              <dt>자동 발송 상태</dt>
+              <dd>
+                <StatusPill tone="approved">발송 가능</StatusPill>
+              </dd>
+            </div>
+          </dl>
+        </ProposalMethod>
       </div>
     </section>
   );
@@ -569,15 +537,7 @@ export function ProposalComposePage() {
     );
   }
 
-  const channelOptions = creator.availableProposalChannels.map((channel) => ({
-    label: channel,
-    value: channel,
-  }));
-  const requestedChannel = searchParams.get("channel") as ProposalChannel | null;
-  const initialChannel = requestedChannel && creator.availableProposalChannels.some((channel) => channel === requestedChannel)
-    ? requestedChannel
-    : channelOptions[0].value;
-  const isInstagram = initialChannel === "Instagram DM";
+  const channelOptions = [{ label: "이메일", value: "이메일" }];
 
   return (
     <section className="fuma-page fuma-proposal-compose">
@@ -598,12 +558,12 @@ export function ProposalComposePage() {
               <span>필수 항목을 입력해 주세요.</span>
             </div>
             <FormRow label="제안 채널" required>
-              <Select aria-label="제안 채널" defaultValue={initialChannel} options={channelOptions} />
+              <Select aria-label="제안 채널" defaultValue="이메일" disabled options={channelOptions} />
             </FormRow>
             <FormRow label="발송 방식">
               <div className="fuma-proposal-compose__delivery">
-                <strong>{isInstagram ? "관리자 수동 발송" : "이메일 자동 발송"}</strong>
-                <span>{isInstagram ? META_MANUAL_SEND_NOTE : creator.email}</span>
+                <strong>이메일 자동 발송</strong>
+                <span>{creator.email}</span>
               </div>
             </FormRow>
             <FormRow label="제목" required>

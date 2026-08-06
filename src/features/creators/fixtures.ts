@@ -54,27 +54,12 @@ interface CreatorBaseFixture {
   proposalStatus: ProposalStatus | "미제안";
 }
 
-export type CreatorProposalContact =
-  | {
-      availableProposalChannels: readonly ["Instagram DM"];
-      email?: never;
-    }
-  | {
-      availableProposalChannels: readonly ["이메일"];
-      email: string;
-    }
-  | {
-      availableProposalChannels: readonly ["Instagram DM", "이메일"];
-      email: string;
-    };
+export type CreatorProposalContact = {
+  availableProposalChannels: readonly ["이메일"];
+  email: string;
+};
 
-export type InstagramOnlyCreatorFixture = CreatorBaseFixture &
-  Extract<CreatorProposalContact, { availableProposalChannels: readonly ["Instagram DM"] }>;
-
-export type EmailCreatorFixture = CreatorBaseFixture &
-  Exclude<CreatorProposalContact, { availableProposalChannels: readonly ["Instagram DM"] }>;
-
-export type CreatorFixture = InstagramOnlyCreatorFixture | EmailCreatorFixture;
+export type CreatorFixture = CreatorBaseFixture & CreatorProposalContact;
 
 export interface ProposalFixture {
   id: string;
@@ -156,7 +141,7 @@ export const CREATORS: CreatorFixture[] = [
     ],
     aiReport: SEOYEON_AI_REPORT,
     proposalStatus: "발송 완료",
-    availableProposalChannels: ["Instagram DM", "이메일"],
+    availableProposalChannels: ["이메일"],
     email: "seoyeon@example.com",
   },
   {
@@ -259,7 +244,7 @@ export const CREATORS: CreatorFixture[] = [
     ],
     aiReport: PENDING_AI_REPORT,
     proposalStatus: "발송 실패",
-    availableProposalChannels: ["Instagram DM", "이메일"],
+    availableProposalChannels: ["이메일"],
     email: "zia@example.com",
   },
   {
@@ -313,7 +298,8 @@ export const CREATORS: CreatorFixture[] = [
       evidence: ["최근 30일 평균 조회 수 154,200회"],
     },
     proposalStatus: "미제안",
-    availableProposalChannels: ["Instagram DM"],
+    availableProposalChannels: ["이메일"],
+    email: "haneul@example.com",
   },
 ];
 

@@ -139,7 +139,7 @@ describe("creator pool", () => {
 });
 
 describe("creator detail", () => {
-  test("renders the creator analysis report, channel metrics, and both proposal methods", () => {
+  test("renders the creator analysis report, channel metrics, and fixed email proposal", () => {
     renderRoute("/creators/cr-001");
 
     expect(screen.getByRole("heading", { name: "크리에이터 상세" })).toBeInTheDocument();
@@ -180,19 +180,11 @@ describe("creator detail", () => {
     expect(screen.getByText("1차 2N 선정")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "AI 분석 근거 게시글" })).toHaveLength(8);
 
-    expect(screen.getByText("Instagram DM", { selector: "h3" })).toBeInTheDocument();
-    expect(screen.getByText("Meta 정책상 자동 선접촉이 불가합니다. 관리자 확인 후 수동 발송이 필요합니다.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "DM 제안 작성" })).toHaveAttribute(
-      "href",
-      "/proposals/new?creator=cr-001&channel=Instagram%20DM",
-    );
-    expect(screen.getByRole("link", { name: "Instagram DM 제안 작성" })).toHaveAttribute(
-      "href",
-      "/proposals/new?creator=cr-001&channel=Instagram%20DM",
-    );
+    expect(screen.queryByText("Instagram DM", { selector: "h3" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Instagram DM 제안 작성" })).not.toBeInTheDocument();
     expect(screen.getByText("seoyeon@example.com")).toBeInTheDocument();
     expect(screen.getByText("자동 발송 상태")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "이메일 제안 작성" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "이메일 제안 작성" })).toHaveLength(2);
   });
 
   test("renders the analysis report for a pending legacy fixture", () => {
@@ -218,18 +210,14 @@ describe("creator detail", () => {
     );
   });
 
-  test("renders only declared proposal channels for an Instagram-only creator", () => {
+  test("renders the fixed email proposal for every creator", () => {
     renderRoute("/creators/cr-004");
 
     const proposals = screen.getByRole("region", { name: "영입 제안" });
-    expect(
-      within(proposals).getByRole("link", { name: "Instagram DM 제안 작성" }),
-    ).toBeInTheDocument();
-    expect(within(proposals).getByRole("heading", { name: "Instagram DM" })).toBeInTheDocument();
-    expect(
-      within(proposals).queryByRole("link", { name: "이메일 제안 작성" }),
-    ).not.toBeInTheDocument();
-    expect(within(proposals).queryByRole("heading", { name: "이메일" })).not.toBeInTheDocument();
+    expect(within(proposals).queryByRole("link", { name: "Instagram DM 제안 작성" })).not.toBeInTheDocument();
+    expect(within(proposals).queryByRole("heading", { name: "Instagram DM" })).not.toBeInTheDocument();
+    expect(within(proposals).getByRole("link", { name: "이메일 제안 작성" })).toBeInTheDocument();
+    expect(within(proposals).getByRole("heading", { name: "이메일" })).toBeInTheDocument();
     expect(proposals).not.toHaveTextContent("undefined");
   });
 
@@ -259,6 +247,16 @@ describe("creator detail", () => {
 });
 
 describe("proposal history", () => {
+  test("fixes the selectors proposal channel to email", () => {
+    renderRoute("/proposals/new?creator=cr-001&channel=Instagram%20DM");
+
+    const channel = screen.getByRole("combobox", { name: "제안 채널" });
+    expect(channel).toHaveValue("이메일");
+    expect(channel).toBeDisabled();
+    expect(within(channel).getAllByRole("option")).toHaveLength(1);
+    expect(screen.getByText("이메일 자동 발송")).toBeInTheDocument();
+  });
+
   test("opens a creator-specific proposal compose workspace", () => {
     vi.stubEnv("BASE_URL", "/fe-selectors-admin/");
     renderRoute("/proposals/new?creator=cr-001");
@@ -274,7 +272,7 @@ describe("proposal history", () => {
     expect(within(target).getByText("Instagram")).toBeInTheDocument();
     expect(within(target).getByText("@seo.yeon")).toBeInTheDocument();
     const form = screen.getByRole("form", { name: "제안 작성" });
-    expect(within(form).getByRole("combobox", { name: "제안 채널" })).toHaveValue("Instagram DM");
+    expect(within(form).getByRole("combobox", { name: "제안 채널" })).toHaveValue("이메일");
     expect(within(form).getByRole("textbox", { name: "제목" })).toHaveValue(
       "더현대Hi 셀렉터스 활동 제안드립니다, 김서연님",
     );
