@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import "../../styles/content-review.css";
 import { EditorFrame } from "../../components/content/EditorFrame";
 import { MediaTiles } from "../../components/content/MediaTiles";
 import { PageHeader } from "../../components/shell/PageHeader";
@@ -295,7 +296,11 @@ function SnapshotPanel({ ariaLabel, snapshot }: SnapshotPanelProps) {
             <strong>URL</strong>
             <ul>
               {snapshot.urls.map((url) => (
-                <li key={url}>{url}</li>
+                <li key={url}>
+                  <a href={url} rel="noreferrer" target="_blank">
+                    {url}
+                  </a>
+                </li>
               ))}
             </ul>
           </div>
