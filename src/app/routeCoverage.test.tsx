@@ -315,7 +315,10 @@ describe("admin requirement route coverage", () => {
       for (const action of expectedActions) {
         expect(
           hasAccessibleVisibleCandidate(
-            screen.queryAllByRole("button", { name: action }),
+            [
+              ...screen.queryAllByRole("button", { name: action }),
+              ...screen.queryAllByRole("link", { name: action }),
+            ],
           ),
           `Missing visible action: ${action}`,
         ).toBe(true);

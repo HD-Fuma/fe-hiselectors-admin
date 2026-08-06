@@ -303,6 +303,7 @@ test.each(routeCases)(
     const sidebar = shell.querySelector('[data-shell-part="sidebar"]');
     expect(sidebar).toBeInTheDocument();
     const navigation = within(sidebar as HTMLElement).getByRole("navigation", {
+      hidden: true,
       name: "관리자 메뉴",
     });
     expect(navigation).toHaveAttribute("data-selected-group", group);
@@ -316,7 +317,7 @@ test.each(routeCases)(
       routeIsExact ? 1 : 0,
     );
 
-    const menuLink = within(navigation).getByRole("link", { name: menuLabel });
+    const menuLink = within(navigation).getByRole("link", { hidden: true, name: menuLabel });
     expect(menuLink).toHaveClass("hsas-admin-sidebar__link--active");
     expect(menuLink).toHaveAttribute("data-section-selected", "true");
     if (routeIsExact) {

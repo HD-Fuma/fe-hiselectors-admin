@@ -240,6 +240,7 @@ function PerformanceAnalysisHero({
   points,
   primaryLabel,
   secondaryLabel,
+  summaryLabel,
   title,
 }: {
   focusDetail: string;
@@ -249,6 +250,7 @@ function PerformanceAnalysisHero({
   points: Parameters<typeof PerformanceAreaChart>[0]["points"];
   primaryLabel: string;
   secondaryLabel: string;
+  summaryLabel: string;
   title: string;
 }) {
   return (
@@ -271,7 +273,7 @@ function PerformanceAnalysisHero({
         <small>{focusDetail}</small>
       </section>
       <PerformanceKpiGrid
-        ariaLabel={`${title} 보조 지표`}
+        ariaLabel={summaryLabel}
         className="fuma-performance-kpi-grid--analysis"
         items={kpis}
       />
@@ -322,6 +324,35 @@ function selectorStatusTone(
   }
   return "neutral";
 }
+
+function campaignStatusTone(
+  status: CampaignPerformance["status"],
+): NonNullable<StatusPillProps["tone"]> {
+  if (status === "진행 중") {
+    return "approved";
+  }
+  if (status === "시작 전") {
+    return "pending";
+  }
+  return "neutral";
+}
+
+const CAMPAIGN_COLUMNS: DenseTableColumn<CampaignPerformance>[] = [
+  { key: "id", header: "캠페인 ID", width: 96 },
+  { key: "name", header: "캠페인명", width: 260 },
+  {
+    key: "status",
+    header: "상태",
+    width: 92,
+    align: "center",
+    render: (campaign) => (
+      <StatusPill tone={campaignStatusTone(campaign.status)}>{campaign.status}</StatusPill>
+    ),
+  },
+  { key: "clicks", header: "클릭 수", width: 110, align: "right", render: (campaign) => formatCount(campaign.clicks) },
+  { key: "conversions", header: "구매 전환 수", width: 120, align: "right", render: (campaign) => formatCount(campaign.conversions) },
+  { id: "conversionRate", header: "전환율", width: 90, align: "right", render: (campaign) => formatRate(campaign.conversions, campaign.clicks) },
+];
 
 const SELECTOR_COLUMNS: DenseTableColumn<SelectorPerformance>[] = [
   { key: "id", header: "셀렉터스 ID", width: 96 },
@@ -696,6 +727,13 @@ export function PerformanceDashboardPage() {
           />
         </div>
         <PerformanceResultTable
+          className="fuma-performance-campaign-table"
+          columns={CAMPAIGN_COLUMNS}
+          rowKey={(campaign) => campaign.id}
+          rows={[...CAMPAIGN_PERFORMANCE]}
+          title="캠페인별 성과"
+        />
+        <PerformanceResultTable
           className="fuma-performance-selector-table"
           columns={SELECTOR_COLUMNS}
           rowKey={(selector) => selector.id}
@@ -730,6 +768,7 @@ export function CreatorPerformancePage() {
           points={visualData.areaPoints}
           primaryLabel="조회 수"
           secondaryLabel="구매 전환"
+          summaryLabel="크리에이터 성과 요약"
           title="크리에이터 성과 추이"
         />
         <PerformanceEntityCardGrid
@@ -781,6 +820,7 @@ export function ContentPerformancePage() {
           points={visualData.areaPoints}
           primaryLabel="조회 수"
           secondaryLabel="구매 전환"
+          summaryLabel="콘텐츠 성과 요약"
           title="콘텐츠 반응 추이"
         />
         <PerformanceEntityCardGrid
@@ -832,6 +872,7 @@ export function ProductPerformancePage() {
           points={visualData.areaPoints}
           primaryLabel="클릭 수"
           secondaryLabel="구매 전환"
+          summaryLabel="상품 성과 요약"
           title="상품 전환 추이"
         />
         <PerformanceEntityCardGrid
