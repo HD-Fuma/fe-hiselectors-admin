@@ -8,6 +8,7 @@ import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SectionTabs } from "../../components/ui/SectionTabs";
+import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import {
   ApplicantAnalysisReport,
@@ -48,6 +49,13 @@ const INTERNAL_REASON_OPTIONS = [
   { label: "운영 정책 미충족", value: "운영 정책 미충족" },
   { label: "기타", value: "기타" },
 ];
+
+interface ApplicantReviewDecision {
+  applicantId: string;
+  note: string;
+  reason: string;
+  status: "승인" | "반려";
+}
 
 interface FilterFieldProps {
   children: ReactNode;
@@ -189,7 +197,7 @@ const APPLICANT_COLUMNS: DenseTableColumn<ApplicantFixture>[] = [
       <Link
         aria-label={`${applicant.name} 상세 보기`}
         className="fuma-table-action fuma-table-link"
-        to={`/applicants/${applicant.id}`}
+        to={`/applicants?detail=${applicant.id}`}
       >
         보기
       </Link>
@@ -198,9 +206,12 @@ const APPLICANT_COLUMNS: DenseTableColumn<ApplicantFixture>[] = [
 ];
 
 export function ApplicantListPage() {
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const detailApplicantId = searchParams.get("detail");
 
   return (
+    <>
     <section className="fuma-page">
       <PageHeader screenCode="AP101" title="지원자 심사" />
       <div className="fuma-page__body">
@@ -252,7 +263,7 @@ export function ApplicantListPage() {
         >
           <DenseTable
             columns={APPLICANT_COLUMNS}
-            onRowClick={(applicant) => navigate(`/applicants/${applicant.id}`)}
+            onRowClick={(applicant) => navigate(`/applicants?detail=${applicant.id}`)}
             rowKey={(applicant) => applicant.id}
             rows={[...APPLICANTS]}
           />
@@ -260,6 +271,14 @@ export function ApplicantListPage() {
         <Pagination page={1} pageSize={20} totalPages={1} />
       </div>
     </section>
+    {detailApplicantId ? (
+      <ApplicantDetailPage
+        applicantIdOverride={detailApplicantId}
+        embedded
+        onClose={() => navigate("/applicants")}
+      />
+    ) : null}
+    </>
   );
 }
 
@@ -311,7 +330,13 @@ function BasicInformation({ applicant }: { applicant: ApplicantFixture }) {
   );
 }
 
-function ApplicantReviewHero({ applicant }: { applicant: ApplicantFixture }) {
+function ApplicantReviewHero({
+  applicant,
+  decision,
+}: {
+  applicant: ApplicantFixture;
+  decision: ApplicantReviewDecision | null;
+}) {
   const analysis = applicantAnalysisFor(applicant);
   const audienceLabel = applicant.platform === "Instagram" ? "팔로워" : "구독자";
   const passes = applicant.followerCount >= 500 && analysis.recent90ContentCount >= 3;
@@ -347,10 +372,18 @@ function ApplicantReviewHero({ applicant }: { applicant: ApplicantFixture }) {
           <div><dt>ER</dt><dd>{analysis.engagementRate.toFixed(1)}%</dd></div>
         </dl>
       </div>
-      <aside className={`fuma-creator-detail-hero__actions fuma-applicant-unified-decision fuma-applicant-unified-decision--${passes ? "pass" : "fail"}`}>
-        <span>자동 심사</span>
-        <strong>{passes ? "통과" : "반려 대상"}</strong>
-        <p>{passes ? "최소 요건을 모두 충족했습니다." : "최소 요건 미충족 항목이 있습니다."}</p>
+      <aside
+        aria-label={decision ? "지원자 심사 결과" : "지원자 자동 심사 결과"}
+        className={`fuma-creator-detail-hero__actions fuma-applicant-unified-decision fuma-applicant-unified-decision--${decision?.status === "반려" || (!decision && !passes) ? "fail" : "pass"} fuma-review-summary`}
+      >
+        <span>{decision ? "심사 결과" : "자동 심사"}</span>
+        {decision ? (
+          <StatusPill tone={decision.status === "승인" ? "approved" : "rejected"}>{decision.status}</StatusPill>
+        ) : (
+          <strong>{passes ? "통과" : "반려 대상"}</strong>
+        )}
+        <p>{decision?.note || (passes ? "최소 요건을 모두 충족했습니다." : "최소 요건 미충족 항목이 있습니다.")}</p>
+        {decision?.status === "반려" && decision.reason ? <small>{decision.reason}</small> : null}
         <a href="#review">심사 처리로 이동 <span aria-hidden="true">↓</span></a>
       </aside>
     </section>
@@ -407,11 +440,20 @@ function AutoRejectionDetails({
 
 function ReviewSection({
   applicant,
+  onDecision,
   showAutoRejectionDetails,
 }: {
   applicant: ApplicantFixture;
+  onDecision: (decision: ApplicantReviewDecision) => void;
   showAutoRejectionDetails: boolean;
 }) {
+  const [note, setNote] = useState(applicant.reviewNote);
+  const [reason, setReason] = useState(applicant.autoRejected ? "정량 기준 미충족" : "");
+
+  const decide = (status: ApplicantReviewDecision["status"]) => {
+    onDecision({ applicantId: applicant.id, note, reason: status === "반려" ? reason : "", status });
+  };
+
   return (
     <section
       aria-labelledby="applicant-review-title"
@@ -432,20 +474,22 @@ function ReviewSection({
           <textarea
             aria-label="내부 검토 의견"
             className="hsas-control fuma-applicant-review__textarea"
-            defaultValue={applicant.reviewNote}
+            onChange={(event) => setNote(event.target.value)}
+            value={note}
           />
         </FormRow>
         <FormRow label="반려 사유(내부)">
           <Select
             aria-label="반려 사유(내부)"
-            defaultValue={applicant.autoRejected ? "정량 기준 미충족" : ""}
+            onChange={(event) => setReason(event.target.value)}
             options={INTERNAL_REASON_OPTIONS}
+            value={reason}
           />
         </FormRow>
       </div>
       <div className="fuma-applicant-section__actions">
-        <Button variant="primary">승인</Button>
-        <Button variant="danger">반려</Button>
+        <Button onClick={() => decide("승인")} variant="primary">승인</Button>
+        <Button onClick={() => decide("반려")} variant="danger">반려</Button>
       </div>
     </section>
   );
@@ -501,26 +545,36 @@ const DETAIL_TABS = [
   { id: "delivery", label: "결과 전송" },
 ];
 
-export function ApplicantDetailPage() {
-  const { applicantId } = useParams();
+interface ApplicantDetailPageProps {
+  applicantIdOverride?: string;
+  embedded?: boolean;
+  onClose?: () => void;
+}
+
+export function ApplicantDetailPage({
+  applicantIdOverride,
+  embedded = false,
+  onClose,
+}: ApplicantDetailPageProps = {}) {
+  const { applicantId: routeApplicantId } = useParams();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const applicantId = applicantIdOverride ?? routeApplicantId;
   const applicant = findApplicantFixture(applicantId);
   const showAutoRejectionDetails =
     applicant?.id === "ap-003" && searchParams.get("fixture") === "auto-rejected";
   const [activeSection, setActiveSection] = useState("featured");
+  const [reviewDecision, setReviewDecision] = useState<ApplicantReviewDecision | null>(null);
+  const currentDecision = reviewDecision?.applicantId === applicant?.id ? reviewDecision : null;
 
   return (
-    <section className="fuma-page fuma-applicant-detail-page">
-      <PageHeader screenCode="AP102" title="지원자 상세 심사" />
-      <div className="fuma-page__body">
-        {applicant ? (
-          <>
-            <div className="fuma-detail-toolbar">
-              <Link className="hsas-button fuma-detail-toolbar__link" to="/applicants">
-                목록
-              </Link>
-            </div>
-            <ApplicantReviewHero applicant={applicant} />
+    <>
+      {embedded ? null : <ApplicantListPage />}
+      <SidePanel onClose={onClose ?? (() => navigate("/applicants"))} screenCode="AP102" title="지원자 상세 심사">
+        <div className="fuma-detail-panel__content fuma-applicant-detail-page">
+          {applicant ? (
+            <>
+            <ApplicantReviewHero applicant={applicant} decision={currentDecision} />
             <SectionTabs activeId={activeSection} items={DETAIL_TABS} onChange={setActiveSection} />
             <ApplicantFeaturedContents applicant={applicant} />
             <BasicInformation applicant={applicant} />
@@ -530,17 +584,19 @@ export function ApplicantDetailPage() {
             <ReviewSection
               applicant={applicant}
               key={`${applicant.id}-${showAutoRejectionDetails}`}
+              onDecision={setReviewDecision}
               showAutoRejectionDetails={showAutoRejectionDetails}
             />
             <DeliverySection applicant={applicant} />
-          </>
-        ) : (
-          <EmptyState
-            description="요청한 지원자 정보를 확인할 수 없습니다."
-            title="대상을 찾을 수 없습니다"
-          />
-        )}
-      </div>
-    </section>
+            </>
+          ) : (
+            <EmptyState
+              description="요청한 지원자 정보를 확인할 수 없습니다."
+              title="대상을 찾을 수 없습니다"
+            />
+          )}
+        </div>
+      </SidePanel>
+    </>
   );
 }

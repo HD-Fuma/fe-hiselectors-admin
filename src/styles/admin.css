@@ -4534,6 +4534,7 @@
 #basic,
 #featured,
 #analysis,
+#creator-review,
 #proposal {
   scroll-margin-top: 48px;
 }
@@ -4635,6 +4636,172 @@
 
 .fuma-applicant-unified-decision--fail {
   background: #fff8f7;
+}
+
+.fuma-review-summary {
+  gap: 7px;
+  justify-content: center;
+  min-width: 0;
+}
+
+.fuma-review-summary .hsas-status-pill {
+  width: fit-content;
+  margin-top: 2px;
+}
+
+.fuma-review-summary > p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: #5f6e66;
+  font-size: 10px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.fuma-review-summary > small {
+  width: fit-content;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: #f6eaea;
+  color: #9a3f3f;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.fuma-review-summary--rejected {
+  background: #fff8f7;
+}
+
+.fuma-review-summary__proposal {
+  color: #52675c;
+  font-size: 9px;
+  text-align: center;
+}
+
+/* Creator and applicant detail drawer */
+.fuma-detail-panel-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  background: rgb(24 34 29 / 36%);
+  backdrop-filter: blur(1.5px);
+}
+
+.fuma-detail-panel {
+  display: grid;
+  width: min(760px, calc(100vw - 340px));
+  height: 100dvh;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border-left: 1px solid #cfdad4;
+  border-radius: 18px 0 0 18px;
+  background: #f4f6f5;
+  box-shadow: -18px 0 44px rgb(19 39 30 / 20%);
+  animation: fuma-detail-panel-enter 180ms ease-out;
+}
+
+.fuma-detail-panel__header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px 12px 22px;
+  border-bottom: 1px solid #d8e1dc;
+  background: #fff;
+  box-shadow: 0 4px 14px rgb(31 57 45 / 5%);
+}
+
+.fuma-detail-panel__header > div {
+  display: flex;
+  align-items: baseline;
+  gap: 11px;
+}
+
+.fuma-detail-panel__header span {
+  color: #718078;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.fuma-detail-panel__header h2 {
+  margin: 0;
+  color: #263e33;
+  font-size: 18px;
+  letter-spacing: -0.035em;
+}
+
+.fuma-detail-panel__close {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #d8e1dc;
+  border-radius: 50%;
+  background: #fff;
+  color: #40564b;
+  cursor: pointer;
+}
+
+.fuma-detail-panel__close > span {
+  color: inherit;
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.fuma-detail-panel__close:hover {
+  border-color: #aabbb2;
+  background: #f2f6f4;
+}
+
+.fuma-detail-panel__close:focus-visible {
+  outline: 2px solid #287657;
+  outline-offset: 2px;
+}
+
+.fuma-detail-panel__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.fuma-detail-panel__content {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px 28px;
+}
+
+@keyframes fuma-detail-panel-enter {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@media (max-width: 980px) {
+  .fuma-detail-panel {
+    width: min(720px, calc(100vw - 48px));
+  }
+}
+
+@media (max-width: 720px) {
+  .fuma-detail-panel {
+    width: 100vw;
+  }
+
+  .fuma-detail-panel__content {
+    padding: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fuma-detail-panel {
+    animation: none;
+  }
 }
 
 .fuma-detail-featured .fuma-content-section__header {

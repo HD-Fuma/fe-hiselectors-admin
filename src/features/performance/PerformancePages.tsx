@@ -1,5 +1,14 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import {
+  ArrowUpRight,
+  ChartNoAxesCombined,
+  MousePointer2,
+  Package,
+  PlaySquare,
+  ShoppingBag,
+  UsersRound,
+} from "lucide-react";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
@@ -8,6 +17,7 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import "../../styles/performance-dashboard.css";
 import {
+  PerformanceAreaChart,
   PerformanceBarChart,
   PerformanceKpiGrid,
   PerformanceRanking,
@@ -26,7 +36,6 @@ import {
   formatRate,
   selectorCohortById,
   type CampaignPerformance,
-  type CampaignPerformanceStatus,
   type ContentInfluence,
   type CreatorInfluence,
   type PerformanceTrendPoint,
@@ -152,6 +161,126 @@ function PerformanceScopeNav({ active }: { active: PerformanceScope }) {
   );
 }
 
+function PerformanceWorkspaceIntro({
+  active,
+  caption,
+}: {
+  active: PerformanceScope;
+  caption: string;
+}) {
+  return (
+    <div className="fuma-performance-workspace-intro">
+      <div>
+        <p>PERFORMANCE WORKSPACE</p>
+        <strong>{caption}</strong>
+      </div>
+      <PerformanceScopeNav active={active} />
+    </div>
+  );
+}
+
+interface PerformanceEntityCard {
+  detail: string;
+  id: string;
+  label: string;
+  meta: string;
+  primaryLabel: string;
+  primaryValue: string;
+  secondaryLabel: string;
+  secondaryValue: string;
+  tone: "creator" | "content" | "product";
+}
+
+function PerformanceEntityCardGrid({
+  items,
+  title,
+}: {
+  items: readonly PerformanceEntityCard[];
+  title: string;
+}) {
+  return (
+    <section aria-label={title} className="fuma-performance-entity-section">
+      <div className="fuma-performance-section-heading">
+        <div>
+          <p>PERFORMANCE LIST</p>
+          <h2>{title}</h2>
+        </div>
+        <span>총 {items.length}건</span>
+      </div>
+      <div className="fuma-performance-entity-grid">
+        {items.map((item, index) => (
+          <article className={`fuma-performance-entity-card is-${item.tone}`} key={item.id}>
+            <header>
+              <span>0{index + 1} · {item.meta}</span>
+              <ArrowUpRight size={16} />
+            </header>
+            <div className="fuma-performance-entity-card__identity">
+              <div aria-hidden="true">
+                {item.tone === "creator" ? <UsersRound size={18} /> : item.tone === "content" ? <PlaySquare size={18} /> : <Package size={18} />}
+              </div>
+              <div><h3>{item.label}</h3><p>{item.detail}</p></div>
+            </div>
+            <dl>
+              <div><dt>{item.primaryLabel}</dt><dd>{item.primaryValue}</dd></div>
+              <div><dt>{item.secondaryLabel}</dt><dd>{item.secondaryValue}</dd></div>
+            </dl>
+            <div aria-hidden="true" className="fuma-performance-entity-card__meter"><span style={{ width: `${Math.max(42, 92 - index * 12)}%` }} /></div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PerformanceAnalysisHero({
+  focusDetail,
+  focusLabel,
+  focusValue,
+  kpis,
+  points,
+  primaryLabel,
+  secondaryLabel,
+  summaryLabel,
+  title,
+}: {
+  focusDetail: string;
+  focusLabel: string;
+  focusValue: string;
+  kpis: Parameters<typeof PerformanceKpiGrid>[0]["items"];
+  points: Parameters<typeof PerformanceAreaChart>[0]["points"];
+  primaryLabel: string;
+  secondaryLabel: string;
+  summaryLabel: string;
+  title: string;
+}) {
+  return (
+    <div className="fuma-performance-analysis-hero">
+      <PerformanceAreaChart
+        description="상위 성과 항목 기준 비교"
+        points={points}
+        primaryLabel={primaryLabel}
+        secondaryLabel={secondaryLabel}
+        title={title}
+      />
+      <section className="fuma-performance-analysis-focus">
+        <span>TOP PERFORMANCE</span>
+        <div aria-hidden="true" className="fuma-performance-analysis-focus__ring"><b>1</b></div>
+        <div aria-hidden="true" className="fuma-performance-analysis-focus__bars">
+          {[38, 52, 46, 72, 61, 86, 68, 92].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}
+        </div>
+        <strong>{focusValue}</strong>
+        <p>{focusLabel}</p>
+        <small>{focusDetail}</small>
+      </section>
+      <PerformanceKpiGrid
+        ariaLabel={summaryLabel}
+        className="fuma-performance-kpi-grid--analysis"
+        items={kpis}
+      />
+    </div>
+  );
+}
+
 interface PerformanceResultTableProps<T extends object> {
   className: string;
   columns: DenseTableColumn<T>[];
@@ -181,18 +310,6 @@ function PerformanceResultTable<T extends object>({
   );
 }
 
-function campaignStatusTone(
-  status: CampaignPerformanceStatus,
-): NonNullable<StatusPillProps["tone"]> {
-  if (status === "시작 전") {
-    return "pending";
-  }
-  if (status === "진행 중") {
-    return "approved";
-  }
-  return "neutral";
-}
-
 function selectorStatusTone(
   status: SelectorActivityStatus,
 ): NonNullable<StatusPillProps["tone"]> {
@@ -208,41 +325,33 @@ function selectorStatusTone(
   return "neutral";
 }
 
+function campaignStatusTone(
+  status: CampaignPerformance["status"],
+): NonNullable<StatusPillProps["tone"]> {
+  if (status === "진행 중") {
+    return "approved";
+  }
+  if (status === "시작 전") {
+    return "pending";
+  }
+  return "neutral";
+}
+
 const CAMPAIGN_COLUMNS: DenseTableColumn<CampaignPerformance>[] = [
-  { key: "id", header: "캠페인 ID", width: 92 },
-  { key: "name", header: "캠페인명", width: 250 },
+  { key: "id", header: "캠페인 ID", width: 96 },
+  { key: "name", header: "캠페인명", width: 260 },
   {
     key: "status",
     header: "상태",
-    width: 88,
+    width: 92,
     align: "center",
     render: (campaign) => (
-      <StatusPill tone={campaignStatusTone(campaign.status)}>
-        {campaign.status}
-      </StatusPill>
+      <StatusPill tone={campaignStatusTone(campaign.status)}>{campaign.status}</StatusPill>
     ),
   },
-  {
-    key: "clicks",
-    header: "클릭 수",
-    width: 110,
-    align: "right",
-    render: (campaign) => formatCount(campaign.clicks),
-  },
-  {
-    key: "conversions",
-    header: "구매 전환 수",
-    width: 120,
-    align: "right",
-    render: (campaign) => formatCount(campaign.conversions),
-  },
-  {
-    id: "conversionRate",
-    header: "전환율",
-    width: 90,
-    align: "right",
-    render: (campaign) => formatRate(campaign.conversions, campaign.clicks),
-  },
+  { key: "clicks", header: "클릭 수", width: 110, align: "right", render: (campaign) => formatCount(campaign.clicks) },
+  { key: "conversions", header: "구매 전환 수", width: 120, align: "right", render: (campaign) => formatCount(campaign.conversions) },
+  { id: "conversionRate", header: "전환율", width: 90, align: "right", render: (campaign) => formatRate(campaign.conversions, campaign.clicks) },
 ];
 
 const SELECTOR_COLUMNS: DenseTableColumn<SelectorPerformance>[] = [
@@ -428,17 +537,17 @@ export function buildDashboardVisualData(
           : campaign.conversions / campaign.clicks,
     })),
     kpis: [
-      { label: "총 클릭 수", value: formattedTotal(campaigns.length, totalClicks), icon: "↗", featured: true },
+      { label: "총 클릭 수", value: formattedTotal(campaigns.length, totalClicks), icon: <MousePointer2 size={19} />, featured: true },
       {
         label: "구매 전환 수",
         value: formattedTotal(campaigns.length, totalConversions),
-        icon: "✓",
+        icon: <ShoppingBag size={19} />,
       },
-      { label: "전환율", value: conversionRate, icon: "%" },
+      { label: "전환율", value: conversionRate, icon: <ChartNoAxesCombined size={19} /> },
       {
         label: "집계 셀렉터스",
         value: selectors.length === 0 ? "-" : `${selectors.length}명`,
-        icon: "◎",
+        icon: <UsersRound size={19} />,
       },
     ],
     selectorItems: selectors.map((selector) => ({
@@ -474,6 +583,12 @@ export function buildCreatorVisualData(
   );
 
   return {
+    areaPoints: creators.map((creator) => ({
+      id: creator.id,
+      label: creator.name,
+      primary: creator.views,
+      secondary: creator.conversions,
+    })),
     chartItems: creators.map((creator) => ({
       id: creator.id,
       label: creator.name,
@@ -484,13 +599,13 @@ export function buildCreatorVisualData(
       sortValue: creator.conversions,
     })),
     kpis: [
-      { label: "총 조회 수", value: formattedTotal(creators.length, totalViews), icon: "◉" },
-      { label: "총 좋아요", value: formattedTotal(creators.length, totalLikes), icon: "♡" },
-      { label: "총 댓글", value: formattedTotal(creators.length, totalComments), icon: "◌" },
+      { label: "총 조회 수", value: formattedTotal(creators.length, totalViews), icon: <PlaySquare size={19} /> },
+      { label: "총 좋아요", value: formattedTotal(creators.length, totalLikes), icon: <ChartNoAxesCombined size={19} /> },
+      { label: "총 댓글", value: formattedTotal(creators.length, totalComments), icon: <UsersRound size={19} /> },
       {
         label: "구매 전환 수",
         value: formattedTotal(creators.length, totalConversions),
-        icon: "✓",
+        icon: <ShoppingBag size={19} />,
       },
     ],
   };
@@ -514,6 +629,12 @@ export function buildContentVisualData(
   );
 
   return {
+    areaPoints: contents.map((content) => ({
+      id: content.id,
+      label: content.title.slice(0, 5),
+      primary: content.views,
+      secondary: content.conversions,
+    })),
     chartItems: contents.map((content) => ({
       id: content.id,
       label: content.title,
@@ -525,18 +646,18 @@ export function buildContentVisualData(
       {
         label: "콘텐츠 수",
         value: contents.length === 0 ? "-" : `${contents.length}개`,
-        icon: "▣",
+        icon: <PlaySquare size={19} />,
       },
-      { label: "총 조회 수", value: formattedTotal(contents.length, totalViews), icon: "◉" },
+      { label: "총 조회 수", value: formattedTotal(contents.length, totalViews), icon: <MousePointer2 size={19} /> },
       {
         label: "총 반응",
         value: formattedTotal(contents.length, totalReactions),
-        icon: "♡",
+        icon: <ChartNoAxesCombined size={19} />,
       },
       {
         label: "구매 전환 수",
         value: formattedTotal(contents.length, totalConversions),
-        icon: "✓",
+        icon: <ShoppingBag size={19} />,
       },
     ],
   };
@@ -549,6 +670,12 @@ export function buildProductVisualData(products: readonly ProductInfluence[]) {
   const totalContents = products.reduce((total, product) => total + product.contentCount, 0);
 
   return {
+    areaPoints: products.map((product) => ({
+      id: product.id,
+      label: product.name.slice(0, 5),
+      primary: product.clicks,
+      secondary: product.conversions,
+    })),
     chartItems: products.map((product) => ({
       id: product.id,
       label: product.name,
@@ -559,10 +686,10 @@ export function buildProductVisualData(products: readonly ProductInfluence[]) {
       sortValue: product.conversions,
     })),
     kpis: [
-      { label: "분석 상품", value: products.length === 0 ? "-" : `${products.length}개`, icon: "▣" },
-      { label: "연결 콘텐츠", value: products.length === 0 ? "-" : `${totalContents}개`, icon: "◫" },
-      { label: "구매 전환 수", value: formattedTotal(products.length, totalConversions), icon: "✓" },
-      { label: "평균 전환율", value: products.length === 0 ? "-" : formatRate(totalConversions, totalClicks), icon: "%" },
+      { label: "분석 상품", value: products.length === 0 ? "-" : `${products.length}개`, icon: <Package size={19} /> },
+      { label: "연결 콘텐츠", value: products.length === 0 ? "-" : `${totalContents}개`, icon: <PlaySquare size={19} /> },
+      { label: "구매 전환 수", value: formattedTotal(products.length, totalConversions), icon: <ShoppingBag size={19} /> },
+      { label: "평균 전환율", value: products.length === 0 ? "-" : formatRate(totalConversions, totalClicks), icon: <ChartNoAxesCombined size={19} /> },
     ],
   };
 }
@@ -578,12 +705,9 @@ export function PerformanceDashboardPage() {
     <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF101" title="관리자 성과 대시보드" />
       <div className="fuma-page__body">
-        <PerformanceScopeNav active="overview" />
+        <PerformanceWorkspaceIntro active="overview" caption="캠페인 성과와 전환 흐름을 한눈에 확인하세요." />
         <PerformanceFilters />
-        <PerformanceKpiGrid
-          ariaLabel="성과 요약"
-          items={visualData.kpis}
-        />
+        <PerformanceKpiGrid ariaLabel="성과 요약" items={visualData.kpis} />
         <div className="fuma-performance-visuals fuma-performance-visuals--overview">
           <div className="fuma-performance-visuals__wide">
             <PerformanceTrendChart
@@ -628,7 +752,7 @@ export function CreatorPerformancePage() {
     <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF201" title="크리에이터 영향력 분석" />
       <div className="fuma-page__body">
-        <PerformanceScopeNav active="creators" />
+        <PerformanceWorkspaceIntro active="creators" caption="전환을 만든 크리에이터를 확인하세요." />
         <PerformanceFilters
           keyword={{
             id: "performance-creator-name",
@@ -636,19 +760,31 @@ export function CreatorPerformancePage() {
             placeholder: "이름 검색",
           }}
         />
-        <PerformanceKpiGrid
-          ariaLabel="크리에이터 성과 요약"
-          items={visualData.kpis}
+        <PerformanceAnalysisHero
+          focusDetail="구매 전환 기준 1위"
+          focusLabel="오하늘 · Instagram"
+          focusValue="711"
+          kpis={visualData.kpis}
+          points={visualData.areaPoints}
+          primaryLabel="조회 수"
+          secondaryLabel="구매 전환"
+          summaryLabel="크리에이터 성과 요약"
+          title="크리에이터 성과 추이"
         />
-        <div className="fuma-performance-visuals fuma-performance-visuals--single">
-          <PerformanceBarChart
-            items={visualData.chartItems}
-            mode="bar-dot"
-            primaryLabel="조회 수"
-            secondaryLabel="구매 전환"
-            title="크리에이터 영향력 비교"
-          />
-        </div>
+        <PerformanceEntityCardGrid
+          title="크리에이터별 성과"
+          items={CREATOR_INFLUENCE.map((creator) => ({
+            id: creator.id,
+            label: creator.name,
+            detail: creator.campaign,
+            meta: creator.platform,
+            primaryLabel: "구매 전환",
+            primaryValue: formatCount(creator.conversions),
+            secondaryLabel: "조회 수",
+            secondaryValue: formatCount(creator.views),
+            tone: "creator" as const,
+          }))}
+        />
         <PerformanceResultTable
           className="fuma-performance-creator-table"
           columns={CREATOR_COLUMNS}
@@ -668,7 +804,7 @@ export function ContentPerformancePage() {
     <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF202" title="콘텐츠 영향력 분석" />
       <div className="fuma-page__body">
-        <PerformanceScopeNav active="contents" />
+        <PerformanceWorkspaceIntro active="contents" caption="콘텐츠별 반응과 전환을 비교하세요." />
         <PerformanceFilters
           keyword={{
             id: "performance-content-keyword",
@@ -676,18 +812,31 @@ export function ContentPerformancePage() {
             placeholder: "콘텐츠 ID 또는 작성자",
           }}
         />
-        <PerformanceKpiGrid
-          ariaLabel="콘텐츠 성과 요약"
-          items={visualData.kpis}
+        <PerformanceAnalysisHero
+          focusDetail="구매 전환 기준 1위"
+          focusLabel="바캉스 푸드 스타일링"
+          focusValue="711"
+          kpis={visualData.kpis}
+          points={visualData.areaPoints}
+          primaryLabel="조회 수"
+          secondaryLabel="구매 전환"
+          summaryLabel="콘텐츠 성과 요약"
+          title="콘텐츠 반응 추이"
         />
-        <div className="fuma-performance-visuals fuma-performance-visuals--single">
-          <PerformanceBarChart
-            items={visualData.chartItems}
-            mode="single"
-            primaryLabel="조회 수"
-            title="콘텐츠 성과 순위"
-          />
-        </div>
+        <PerformanceEntityCardGrid
+          title="콘텐츠별 성과"
+          items={CONTENT_INFLUENCE.map((content) => ({
+            id: content.id,
+            label: content.title,
+            detail: `${creatorNameById(content.creatorId)} · ${campaignNameById(content.campaignId)}`,
+            meta: content.platform,
+            primaryLabel: "구매 전환",
+            primaryValue: formatCount(content.conversions),
+            secondaryLabel: "조회 수",
+            secondaryValue: formatCount(content.views),
+            tone: "content" as const,
+          }))}
+        />
         <PerformanceResultTable
           className="fuma-performance-content-table"
           columns={CONTENT_COLUMNS}
@@ -707,7 +856,7 @@ export function ProductPerformancePage() {
     <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF203" title="상품 성과 분석" />
       <div className="fuma-page__body">
-        <PerformanceScopeNav active="products" />
+        <PerformanceWorkspaceIntro active="products" caption="상품별 콘텐츠 기여도를 확인하세요." />
         <PerformanceFilters
           keyword={{
             id: "performance-product-keyword",
@@ -715,16 +864,31 @@ export function ProductPerformancePage() {
             placeholder: "상품명 또는 상품 ID 검색",
           }}
         />
-        <PerformanceKpiGrid ariaLabel="상품 성과 요약" items={visualData.kpis} />
-        <div className="fuma-performance-visuals fuma-performance-visuals--single">
-          <PerformanceBarChart
-            items={visualData.chartItems}
-            mode="bar-dot"
-            primaryLabel="구매 전환"
-            secondaryLabel="전환율"
-            title="상품별 전환 성과"
-          />
-        </div>
+        <PerformanceAnalysisHero
+          focusDetail="구매 전환 기준 1위"
+          focusLabel="리조트 린넨 셋업"
+          focusValue="975"
+          kpis={visualData.kpis}
+          points={visualData.areaPoints}
+          primaryLabel="클릭 수"
+          secondaryLabel="구매 전환"
+          summaryLabel="상품 성과 요약"
+          title="상품 전환 추이"
+        />
+        <PerformanceEntityCardGrid
+          title="상품별 성과"
+          items={PRODUCT_INFLUENCE.map((product) => ({
+            id: product.id,
+            label: product.name,
+            detail: campaignNameById(product.campaignId),
+            meta: product.category,
+            primaryLabel: "구매 전환",
+            primaryValue: formatCount(product.conversions),
+            secondaryLabel: "전환율",
+            secondaryValue: formatRate(product.conversions, product.clicks),
+            tone: "product" as const,
+          }))}
+        />
         <PerformanceResultTable
           className="fuma-performance-product-table"
           columns={PRODUCT_COLUMNS}

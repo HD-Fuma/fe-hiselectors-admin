@@ -2,22 +2,24 @@ body:has(.fuma-performance-page) .hsas-admin-shell,
 body:has(.fuma-performance-page) .hsas-admin-shell__workspace,
 body:has(.fuma-performance-page) .hsas-admin-shell__content {
   min-width: 0;
+  background: #f3f6f4;
 }
 
 .fuma-performance-page {
-  --fuma-performance-ink: #263438;
-  --fuma-performance-muted: #66767a;
-  --fuma-performance-line: #dce5e4;
-  --fuma-performance-teal: #147a69;
-  --fuma-performance-teal-soft: #dcefeb;
-  --fuma-performance-orange: #c45724;
-  --fuma-performance-orange-text: #a54218;
+  --fuma-performance-ink: #172b27;
+  --fuma-performance-muted: #72817d;
+  --fuma-performance-line: #dce7e3;
+  --fuma-performance-teal: #237763;
+  --fuma-performance-teal-soft: #e8f4ee;
+  --fuma-performance-orange: #5c9c8c;
+  --fuma-performance-orange-text: #356d60;
   --fuma-performance-panel: #fff;
 }
 
 .fuma-performance-page .fuma-page__body {
-  gap: 16px;
+  gap: 18px;
   margin-top: 18px;
+  padding-bottom: 32px;
 }
 
 .fuma-performance-scope-nav {
@@ -27,8 +29,35 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   width: fit-content;
   padding: 3px;
   border: 1px solid #dce5e3;
-  border-radius: 8px;
-  background: #f6f8f7;
+  border-radius: 7px;
+  background: #f5f8f6;
+}
+
+.fuma-performance-workspace-intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 20px;
+  border: 1px solid var(--fuma-performance-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgb(29 70 57 / 5%);
+}
+
+.fuma-performance-workspace-intro p,
+.fuma-performance-section-heading p {
+  margin: 0 0 4px;
+  color: #5e9084;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+}
+
+.fuma-performance-workspace-intro strong {
+  color: var(--fuma-performance-ink);
+  font-size: 15px;
+  letter-spacing: -0.025em;
 }
 
 .fuma-performance-scope-nav a {
@@ -53,9 +82,10 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 
 .fuma-performance-page .fuma-performance-search .hsas-search-panel {
   padding: 14px 16px;
-  border-color: #d5dfde;
-  border-radius: 8px;
-  background: #f4f8f7;
+  border-color: var(--fuma-performance-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgb(29 70 57 / 4%);
 }
 
 .fuma-performance-kpi-grid {
@@ -72,13 +102,13 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   align-items: center;
   gap: 14px;
   min-width: 0;
-  min-height: 104px;
-  padding: 18px;
+  min-height: 98px;
+  padding: 16px;
   overflow: hidden;
   border: 1px solid #d9e3e1;
-  border-radius: 8px;
+  border-radius: 14px;
   background: var(--fuma-performance-panel);
-  box-shadow: none;
+  box-shadow: 0 5px 16px rgb(29 70 57 / 5%);
 }
 
 .fuma-performance-kpi-grid__item::before {
@@ -89,7 +119,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   border-color: #237763;
   color: #fff;
   background: #237763;
-  box-shadow: 0 8px 18px rgb(20 84 69 / 16%);
+  box-shadow: 0 6px 14px rgb(20 84 69 / 12%);
 }
 
 .fuma-performance-kpi-grid dt,
@@ -136,6 +166,11 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   background: #fff;
 }
 
+.fuma-performance-kpi-grid__item:not(.is-featured):hover {
+  border-color: #b6d7cd;
+  background: #fbfdfc;
+}
+
 .fuma-performance-kpi-grid__item.is-featured .fuma-performance-kpi-grid__chevron,
 .fuma-performance-kpi-grid__item.is-featured dt,
 .fuma-performance-kpi-grid__item.is-featured dd,
@@ -168,11 +203,11 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 .fuma-performance-visuals {
   display: grid;
   min-width: 0;
-  gap: 16px;
+  gap: 12px;
 }
 
 .fuma-performance-visuals--overview {
-  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.8fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(230px, 0.75fr);
 }
 
 .fuma-performance-visuals--single {
@@ -187,11 +222,11 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 .fuma-performance-chart {
   min-width: 0;
   margin: 0;
-  padding: 19px 20px 20px;
+  padding: 18px 20px 20px;
   border: 1px solid #d9e3e1;
-  border-radius: 8px;
+  border-radius: 16px;
   background: var(--fuma-performance-panel);
-  box-shadow: none;
+  box-shadow: 0 6px 22px rgb(29 70 57 / 6%);
 }
 
 .fuma-performance-chart figcaption {
@@ -257,6 +292,80 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   background: #f7faf9;
   color: var(--fuma-performance-muted);
 }
+
+.fuma-performance-analysis-hero {
+  display: grid;
+  grid-template-columns: minmax(480px, 1fr) 176px minmax(300px, .5fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.fuma-performance-analysis-hero .fuma-performance-area-chart { min-height: 326px; }
+.fuma-performance-area-chart svg { display: block; width: 100%; min-height: 232px; margin-top: 6px; overflow: visible; }
+.fuma-performance-area-chart svg text { fill: #72827d; font-family: var(--hsas-font-family); font-size: 10px; }
+.fuma-performance-area-chart__grid { stroke: #edf2f0; stroke-width: 1; }
+.fuma-performance-area-chart__primary { fill: none; stroke: #2b806a; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3.5; }
+.fuma-performance-area-chart__secondary { fill: none; stroke: #91b8ab; stroke-dasharray: 4 5; stroke-linecap: round; stroke-width: 2; }
+.fuma-performance-area-chart__point { fill: #fff; stroke: #2b806a; stroke-width: 3; }
+.fuma-performance-area-chart__legend-primary::before { background: #2b806a !important; }
+.fuma-performance-area-chart__legend-secondary::before { height: 0 !important; border-top: 2px dashed #91b8ab; background: transparent !important; }
+
+.fuma-performance-analysis-focus {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 326px;
+  padding: 19px;
+  overflow: hidden;
+  border-radius: 16px;
+  color: #f5fffa;
+  background: #1f735e;
+  box-shadow: 0 12px 28px rgb(21 88 71 / 18%);
+}
+
+.fuma-performance-analysis-focus > span { color: #a4d5c4; font-size: 9px; font-weight: 800; letter-spacing: .09em; }
+.fuma-performance-analysis-focus > strong { margin-top: auto; font-size: 29px; letter-spacing: -.06em; line-height: 1; }
+.fuma-performance-analysis-focus p { margin: 5px 0 0; font-size: 13px; font-weight: 800; letter-spacing: -.03em; }
+.fuma-performance-analysis-focus small { margin-top: 4px; color: #b7ded0; font-size: 10px; }
+
+.fuma-performance-analysis-focus__ring {
+  display: grid;
+  width: 78px;
+  height: 78px;
+  place-items: center;
+  margin: 18px auto 12px;
+  border: 1px solid rgb(255 255 255 / 42%);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 8px rgb(255 255 255 / 6%);
+}
+
+.fuma-performance-analysis-focus__ring b {
+  color: #fff;
+  font-size: 27px;
+  font-weight: 650;
+}
+
+.fuma-performance-analysis-focus__bars {
+  display: flex;
+  height: 36px;
+  align-items: end;
+  gap: 4px;
+  margin: 0 6px 16px;
+}
+
+.fuma-performance-analysis-focus__bars i {
+  width: 100%;
+  min-height: 5px;
+  border-radius: 2px 2px 0 0;
+  background: rgb(255 255 255 / 66%);
+}
+
+.fuma-performance-kpi-grid--analysis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.fuma-performance-kpi-grid--analysis .fuma-performance-kpi-grid__item { min-height: 157px; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 17px; }
+.fuma-performance-kpi-grid--analysis .fuma-performance-kpi-grid__copy { flex: 0; }
+.fuma-performance-kpi-grid--analysis .fuma-performance-kpi-grid__icon { order: 2; width: 34px; height: 34px; flex-basis: 34px; }
+.fuma-performance-kpi-grid--analysis .fuma-performance-kpi-grid__chevron { position: absolute; top: 13px; right: 14px; }
+.fuma-performance-kpi-grid--analysis dd { font-size: 22px; }
 
 .fuma-performance-trend-chart svg {
   display: block;
@@ -396,8 +505,8 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   min-height: 44px;
   padding: 0 13px;
   border: 1px solid #e1e8e7;
-  border-radius: 8px;
-  background: #f8faf9;
+  border-radius: 6px;
+  background: #fbfcfb;
 }
 
 .fuma-performance-ranking__rank {
@@ -431,8 +540,499 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 }
 
 .fuma-performance-page .fuma-performance-results {
-  padding: 4px 0 0;
+  padding: 14px 18px 18px;
+  overflow: hidden;
+  border: 1px solid var(--fuma-performance-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgb(29 70 57 / 4%);
 }
+
+.fuma-performance-dashboard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 248px;
+  align-items: start;
+  gap: 14px;
+}
+
+.fuma-performance-dashboard-main {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+}
+
+.fuma-performance-dashboard-hero {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) 156px 182px;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.fuma-performance-dashboard-hero__trend {
+  min-width: 0;
+}
+
+.fuma-performance-dashboard-hero__trend .fuma-performance-chart {
+  height: 100%;
+  min-height: 310px;
+}
+
+.fuma-performance-dashboard-hero__trend .fuma-performance-chart svg {
+  max-height: 255px;
+}
+
+.fuma-performance-goal-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 310px;
+  padding: 17px;
+  border-radius: 9px;
+  color: #f7fffb;
+  background: linear-gradient(160deg, #1d705e, #115041);
+  box-shadow: 0 10px 22px rgb(19 89 71 / 17%);
+}
+
+.fuma-performance-goal-card__ring {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-content: center;
+  border: 2px solid rgb(237 255 247 / 72%);
+  border-radius: 50%;
+  text-align: center;
+}
+
+.fuma-performance-goal-card__ring strong { display: block; font-size: 27px; letter-spacing: -0.06em; }
+.fuma-performance-goal-card__ring span { margin-top: -2px; color: #c8e7da; font-size: 9px; font-weight: 700; }
+.fuma-performance-goal-card p { margin: 0 0 6px; color: #9ed0bf; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+.fuma-performance-goal-card > div:last-child > strong { display: block; font-size: 13px; letter-spacing: -0.025em; }
+.fuma-performance-goal-card > div:last-child > span { display: block; margin-top: 5px; color: #b8ded0; font-size: 10px; line-height: 1.45; }
+
+.fuma-performance-kpi-grid--dashboard {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__item {
+  min-height: 150px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 15px;
+}
+
+.fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__copy { flex: 0; }
+.fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__icon { order: 2; width: 34px; height: 34px; flex-basis: 34px; font-size: 15px; }
+.fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__chevron { position: absolute; top: 13px; right: 14px; }
+.fuma-performance-kpi-grid--dashboard dd { font-size: 23px; }
+.fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__item.is-featured { background: #247964; }
+
+.fuma-performance-operations-rail {
+  display: grid;
+  gap: 10px;
+}
+
+.fuma-performance-ai-card {
+  display: grid;
+  gap: 16px;
+  padding: 17px;
+  overflow: hidden;
+  border: 1px solid #1d4e43;
+  border-radius: 8px;
+  color: #f6fffb;
+  background:
+    radial-gradient(circle at 102% 108%, rgb(111 205 172 / 38%), transparent 38%),
+    linear-gradient(145deg, #102821, #1c5648);
+}
+
+.fuma-performance-ai-card span {
+  color: #92d5bf;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.fuma-performance-ai-card strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 15px;
+  letter-spacing: -0.035em;
+  line-height: 1.45;
+}
+
+.fuma-performance-ai-card p {
+  margin: 8px 0 0;
+  color: #b7d9cf;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.fuma-performance-ai-card .hsas-button {
+  width: 100%;
+  min-height: 32px;
+  border: 0;
+  color: #143e35;
+  background: #c3e8d9;
+  font-size: 12px;
+}
+
+.fuma-performance-rail-card,
+.fuma-performance-follower-list {
+  padding: 15px;
+  border: 1px solid var(--fuma-performance-line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.fuma-performance-rail-card__heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.fuma-performance-rail-card__heading h2 {
+  margin: 0;
+  color: var(--fuma-performance-ink);
+  font-size: 13px;
+  letter-spacing: -0.03em;
+}
+
+.fuma-performance-rail-card__heading span {
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #ef5d62;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.fuma-performance-request-list {
+  display: grid;
+  gap: 0;
+  margin: 10px 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.fuma-performance-request-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #edf2f0;
+  color: #50635e;
+  font-size: 11px;
+}
+
+.fuma-performance-request-list li span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-performance-request-list li svg { color: #6aa594; flex: 0 0 auto; }
+
+.fuma-performance-rail-card > button {
+  width: 100%;
+  padding: 3px 0 0;
+  border: 0;
+  color: #397c6b;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.fuma-performance-topic-card > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.fuma-performance-topic-card > div:last-child span {
+  color: #4a7167;
+  font-size: 11px;
+}
+
+.fuma-performance-follower-list {
+  display: grid;
+  gap: 0;
+  padding-block: 5px;
+}
+
+.fuma-performance-follower-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid #edf2f0;
+}
+
+.fuma-performance-follower-list > div:last-child { border-bottom: 0; }
+.fuma-performance-follower-list span { color: #344d46; font-size: 12px; font-weight: 700; }
+.fuma-performance-follower-list strong { color: #213b34; font-size: 13px; font-variant-numeric: tabular-nums; }
+.fuma-performance-follower-list em { color: #2d9a72; font-size: 10px; font-style: normal; }
+
+.fuma-performance-top-content {
+  padding: 20px;
+  border: 1px solid var(--fuma-performance-line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.fuma-performance-entity-section {
+  padding: 22px;
+  border: 1px solid var(--fuma-performance-line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 6px 22px rgb(29 70 57 / 5%);
+}
+
+.fuma-performance-entity-section .fuma-performance-section-heading > span {
+  color: var(--fuma-performance-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.fuma-performance-entity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.fuma-performance-entity-card {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid #e0eae6;
+  border-radius: 13px;
+  background: #fbfdfc;
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.fuma-performance-entity-card:hover {
+  border-color: #a7cfc2;
+  box-shadow: 0 8px 18px rgb(34 89 74 / 8%);
+  transform: translateY(-2px);
+}
+
+.fuma-performance-entity-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #598477;
+}
+
+.fuma-performance-entity-card header > span {
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.fuma-performance-entity-card__identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fuma-performance-entity-card__identity > div:first-child {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 12px;
+  color: #216e5b;
+  background: #e6f3ed;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.fuma-performance-entity-card.is-content .fuma-performance-entity-card__identity > div:first-child {
+  border-radius: 7px;
+  color: #347262;
+  background: #dceee7;
+}
+
+.fuma-performance-entity-card.is-product .fuma-performance-entity-card__identity > div:first-child {
+  color: #446a60;
+  background: #edf3f0;
+}
+
+.fuma-performance-entity-card h3 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--fuma-performance-ink);
+  font-size: 13px;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-performance-entity-card p {
+  overflow: hidden;
+  margin: 4px 0 0;
+  color: var(--fuma-performance-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-performance-entity-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid #edf2f0;
+}
+
+.fuma-performance-entity-card dl > div { padding-top: 11px; }
+.fuma-performance-entity-card dl > div + div { padding-left: 10px; border-left: 1px solid #edf2f0; }
+.fuma-performance-entity-card dt { color: #82928e; font-size: 10px; }
+.fuma-performance-entity-card dd { margin: 4px 0 0; color: #1d463b; font-size: 15px; font-variant-numeric: tabular-nums; font-weight: 800; letter-spacing: -0.035em; }
+
+.fuma-performance-entity-card__meter {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #e7efeb;
+}
+
+.fuma-performance-entity-card__meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2f806b;
+}
+
+.fuma-performance-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.fuma-performance-section-heading h2 {
+  margin: 0;
+  color: var(--fuma-performance-ink);
+  font-size: 17px;
+  letter-spacing: -0.035em;
+}
+
+.fuma-performance-section-heading > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #39786b;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.fuma-performance-top-content__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.fuma-performance-content-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e1eae6;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.fuma-performance-content-card__cover {
+  position: relative;
+  display: flex;
+  min-height: 112px;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 13px;
+  color: #fff;
+  overflow: hidden;
+}
+
+.fuma-performance-content-card__cover::after {
+  position: absolute;
+  inset: auto -20px -42px auto;
+  width: 130px;
+  height: 130px;
+  border: 22px solid rgb(255 255 255 / 20%);
+  border-radius: 50%;
+  content: "";
+}
+
+.fuma-performance-content-card__cover.is-cover-1 { background: linear-gradient(135deg, #174f45, #4d9a84); }
+.fuma-performance-content-card__cover.is-cover-2 { background: linear-gradient(135deg, #315e54, #83aa9c); }
+.fuma-performance-content-card__cover.is-cover-3 { background: linear-gradient(135deg, #5a786d, #b0c9bd); }
+
+.fuma-performance-content-card__cover span,
+.fuma-performance-content-card__cover em {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.fuma-performance-content-card__cover span {
+  padding: 4px 6px;
+  border: 1px solid rgb(255 255 255 / 44%);
+  border-radius: 4px;
+  background: rgb(255 255 255 / 14%);
+}
+
+.fuma-performance-content-card__body { padding: 12px 13px 13px; }
+
+.fuma-performance-content-card__body p {
+  margin: 0;
+  color: var(--fuma-performance-muted);
+  font-size: 11px;
+}
+
+.fuma-performance-content-card__body h3 {
+  display: -webkit-box;
+  min-height: 36px;
+  margin: 5px 0 10px;
+  overflow: hidden;
+  color: var(--fuma-performance-ink);
+  font-size: 13px;
+  letter-spacing: -0.025em;
+  line-height: 1.38;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.fuma-performance-content-card__body div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #6e807b;
+  font-size: 11px;
+}
+
+.fuma-performance-content-card__body strong { color: #237763; }
 
 .fuma-performance-page .fuma-result-toolbar {
   min-height: 34px;
@@ -487,9 +1087,47 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
     max-width: 100%;
     overflow: hidden;
   }
+
+  .fuma-performance-top-content__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fuma-performance-entity-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .fuma-performance-dashboard-layout { grid-template-columns: minmax(0, 1fr); }
+
+  .fuma-performance-analysis-hero { grid-template-columns: minmax(0, 1fr) 160px; }
+  .fuma-performance-kpi-grid--analysis { grid-column: 1 / -1; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .fuma-performance-kpi-grid--analysis .fuma-performance-kpi-grid__item { min-height: 100px; flex-direction: row; align-items: center; }
+  .fuma-performance-kpi-grid--analysis .fuma-performance-kpi-grid__icon { order: 0; }
+
+  .fuma-performance-dashboard-hero { grid-template-columns: minmax(0, 1fr) 160px; }
+  .fuma-performance-kpi-grid--dashboard { grid-column: 1 / -1; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__item { min-height: 100px; flex-direction: row; align-items: center; }
+  .fuma-performance-kpi-grid--dashboard .fuma-performance-kpi-grid__icon { order: 0; }
+
+  .fuma-performance-operations-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fuma-performance-ai-card { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) 150px; align-items: end; }
 }
 
 @media (max-width: 768px) {
+  .fuma-performance-workspace-intro {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .fuma-performance-scope-nav {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .fuma-performance-scope-nav a {
+    white-space: nowrap;
+  }
+
   .fuma-performance-page .fuma-page__body {
     gap: 14px;
     margin-top: 14px;
@@ -513,6 +1151,29 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   .fuma-performance-chart {
     padding: 18px 16px 20px;
     border-radius: 10px;
+  }
+
+  .fuma-performance-top-content {
+    padding: 16px;
+  }
+
+  .fuma-performance-entity-section { padding: 16px; }
+  .fuma-performance-entity-grid { grid-template-columns: minmax(0, 1fr); }
+
+  .fuma-performance-top-content__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fuma-performance-operations-rail { grid-template-columns: minmax(0, 1fr); }
+  .fuma-performance-ai-card { grid-column: auto; grid-template-columns: minmax(0, 1fr); }
+  .fuma-performance-dashboard-hero { grid-template-columns: minmax(0, 1fr); }
+  .fuma-performance-analysis-hero { grid-template-columns: minmax(0, 1fr); }
+  .fuma-performance-kpi-grid--analysis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fuma-performance-goal-card { min-height: 180px; }
+  .fuma-performance-kpi-grid--dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .fuma-performance-content-card__cover {
+    min-height: 98px;
   }
 
   .fuma-performance-bar-chart__row {

@@ -411,14 +411,7 @@ test("renders creator influence filters and exact engagement metrics", () => {
     expect(within(metrics).getByText(value)).toBeInTheDocument();
   }
 
-  const chart = screen.getByRole("figure", {
-    name: "크리에이터 영향력 비교",
-  });
-  expect(
-    [...chart.querySelectorAll(".fuma-performance-bar-chart__row")].map(
-      (row) => row.getAttribute("data-item-id"),
-    ),
-  ).toEqual(["cr-004", "cr-001", "cr-002", "cr-003"]);
+  const chart = screen.getByRole("figure", { name: /크리에이터 성과 추이/ });
   for (const creator of CREATOR_INFLUENCE) {
     expect(
       within(chart).getByText(
@@ -428,8 +421,8 @@ test("renders creator influence filters and exact engagement metrics", () => {
   }
 
   expect(screen.getByText("크리에이터 영향력", { selector: "strong" })).toBeInTheDocument();
-  expect(screen.getByText("총 4건")).toBeInTheDocument();
   const results = screen.getByRole("region", { name: "크리에이터 영향력" });
+  expect(within(results).getByText("총 4건")).toBeInTheDocument();
   expectColumnHeaders(results, [
     "크리에이터 ID",
     "크리에이터",
@@ -472,23 +465,18 @@ test("renders content influence filters and exact content engagement rows", () =
     expect(within(metrics).getByText(value)).toBeInTheDocument();
   }
 
-  const chart = screen.getByRole("figure", { name: "콘텐츠 성과 순위" });
-  expect(
-    [...chart.querySelectorAll(".fuma-performance-bar-chart__row")].map(
-      (row) => row.getAttribute("data-item-id"),
-    ),
-  ).toEqual(["ct-005", "ct-003", "ct-002", "ct-001", "ct-004"]);
+  const chart = screen.getByRole("figure", { name: /콘텐츠 반응 추이/ });
   for (const content of CONTENT_INFLUENCE) {
     expect(
       within(chart).getByText(
-        `${content.title}: 조회 수 ${formatCount(content.views)}, 전환율 ${formatRate(content.conversions, content.clicks)}`,
+        `${content.title.slice(0, 5)}: 조회 수 ${formatCount(content.views)}, 구매 전환 ${formatCount(content.conversions)}`,
       ),
     ).toBeInTheDocument();
   }
 
   expect(screen.getByText("콘텐츠 영향력", { selector: "strong" })).toBeInTheDocument();
-  expect(screen.getByText("총 5건")).toBeInTheDocument();
   const results = screen.getByRole("region", { name: "콘텐츠 영향력" });
+  expect(within(results).getByText("총 5건")).toBeInTheDocument();
   expectColumnHeaders(results, [
     "콘텐츠 ID",
     "콘텐츠 제목",

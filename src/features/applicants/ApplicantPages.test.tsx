@@ -17,7 +17,7 @@ describe("applicant review list", () => {
   test("renders all review and delivery states in their associated applicant rows", () => {
     renderRoute("/applicants");
 
-    expect(screen.getByRole("heading", { name: "지원자 심사" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { hidden: true, name: "지원자 심사" })).toBeInTheDocument();
     expect(screen.getByText("AP101")).toBeInTheDocument();
 
     const search = screen.getByRole("search", { name: "검색 조건" });
@@ -82,7 +82,7 @@ describe("applicant review list", () => {
     expect(within(minjiRow).getByRole("checkbox", { name: "김민지 선택" })).toBeInTheDocument();
     expect(within(minjiRow).getByRole("link", { name: "김민지 상세 보기" })).toHaveAttribute(
       "href",
-      "/applicants/ap-001",
+      "/applicants?detail=ap-001",
     );
     expectStatusTone(minjiRow, "검토 대기", "pending");
     expectStatusTone(minjiRow, "비해당", "neutral");
@@ -105,7 +105,7 @@ describe("applicant review list", () => {
     expect(within(soraRow).getByRole("checkbox", { name: "윤소라 선택" })).toBeInTheDocument();
     expect(within(soraRow).getByRole("link", { name: "윤소라 상세 보기" })).toHaveAttribute(
       "href",
-      "/applicants/ap-003",
+      "/applicants?detail=ap-003",
     );
     expectStatusTone(soraRow, "자동 반려", "rejected");
     expectStatusTone(soraRow, "해당", "rejected");
@@ -137,17 +137,30 @@ describe("applicant review list", () => {
 
     await user.click(row);
 
-    expect(router.state.location.pathname).toBe("/applicants/ap-001");
+    expect(router.state.location.pathname).toBe("/applicants");
+    expect(router.state.location.search).toBe("?detail=ap-001");
+    expect(screen.getByRole("dialog", { name: "지원자 상세 심사" })).toBeInTheDocument();
   });
 });
 
 describe("applicant detail review", () => {
-  test("renders the manual-review applicant, AI report, inert decision controls, and pending delivery rows", () => {
+  test("opens applicant detail as a dismissible side panel over the applicant list", async () => {
+    const user = userEvent.setup();
+    const { router } = renderRoute("/applicants/ap-001");
+
+    expect(screen.getByRole("dialog", { name: "지원자 상세 심사" })).toBeInTheDocument();
+    expect(screen.getByText("지원자 심사", { selector: "h1" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "상세 패널 닫기" }));
+    expect(router.state.location.pathname).toBe("/applicants");
+  });
+
+  test("renders the manual-review applicant, AI report, decision controls, and pending delivery rows", () => {
     renderRoute("/applicants/ap-001");
 
     expect(screen.getByRole("heading", { name: "지원자 상세 심사" })).toBeInTheDocument();
     expect(screen.getByText("AP102")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "목록" })).toHaveAttribute("href", "/applicants");
+    expect(screen.getByRole("button", { name: "상세 패널 닫기" })).toBeInTheDocument();
 
     const tabs = screen.getByRole("navigation", { name: "섹션" });
     expect(within(tabs).getByText("대표 콘텐츠")).toHaveAttribute("aria-current", "page");
@@ -244,6 +257,26 @@ describe("applicant detail review", () => {
     ).toBeInTheDocument();
   });
 
+  test("shows the applicant rejection and review content in the right summary panel", async () => {
+    const user = userEvent.setup();
+    renderRoute("/applicants/ap-001");
+
+    const review = screen.getByRole("region", { name: "심사 처리" });
+    const note = within(review).getByRole("textbox", { name: "내부 검토 의견" });
+    await user.clear(note);
+    await user.type(note, "최근 콘텐츠 방향을 다시 확인해야 합니다.");
+    await user.selectOptions(
+      within(review).getByRole("combobox", { name: "반려 사유(내부)" }),
+      "채널 적합도 낮음",
+    );
+    await user.click(within(review).getByRole("button", { name: "반려" }));
+
+    const summary = screen.getByRole("complementary", { name: "지원자 심사 결과" });
+    expect(within(summary).getByText("반려")).toBeInTheDocument();
+    expect(within(summary).getByText("최근 콘텐츠 방향을 다시 확인해야 합니다.")).toBeInTheDocument();
+    expect(within(summary).getByText("채널 적합도 낮음")).toBeInTheDocument();
+  });
+
   test("renders the automatic-rejection evidence and failed-alert email fallback without hiding static actions", () => {
     renderRoute("/applicants/ap-003?fixture=auto-rejected");
 
@@ -311,11 +344,12 @@ describe("applicant detail review", () => {
 
   test("keeps a missing applicant missing even when the automatic-rejection fixture query is present", () => {
     renderRoute("/applicants/missing?fixture=auto-rejected");
+    const detail = screen.getByRole("dialog", { name: "지원자 상세 심사" });
 
-    expect(screen.getByRole("heading", { name: "대상을 찾을 수 없습니다" })).toBeInTheDocument();
-    expect(screen.getByText("요청한 지원자 정보를 확인할 수 없습니다.")).toBeInTheDocument();
-    expect(screen.queryByText("윤소라")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
+    expect(within(detail).getByRole("heading", { name: "대상을 찾을 수 없습니다" })).toBeInTheDocument();
+    expect(within(detail).getByText("요청한 지원자 정보를 확인할 수 없습니다.")).toBeInTheDocument();
+    expect(within(detail).queryByText("윤소라")).not.toBeInTheDocument();
+    expect(within(detail).queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
   });
 
   test("resets editable-looking review fields when the same router moves to another applicant", async () => {
@@ -344,15 +378,16 @@ describe("applicant detail review", () => {
 
   test("keeps the detail frame and hides applicant actions for an unknown record", () => {
     renderRoute("/applicants/missing");
+    const detail = screen.getByRole("dialog", { name: "지원자 상세 심사" });
 
-    expect(screen.getByRole("heading", { name: "지원자 상세 심사" })).toBeInTheDocument();
-    expect(screen.getByText("AP102")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "대상을 찾을 수 없습니다" })).toBeInTheDocument();
-    expect(screen.getByText("요청한 지원자 정보를 확인할 수 없습니다.")).toBeInTheDocument();
-    expect(screen.queryByText("김민지")).not.toBeInTheDocument();
-    expect(screen.queryByText("윤소라")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "반려" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "심사 결과 전송" })).not.toBeInTheDocument();
+    expect(within(detail).getByRole("heading", { name: "지원자 상세 심사" })).toBeInTheDocument();
+    expect(within(detail).getByText("AP102")).toBeInTheDocument();
+    expect(within(detail).getByRole("heading", { name: "대상을 찾을 수 없습니다" })).toBeInTheDocument();
+    expect(within(detail).getByText("요청한 지원자 정보를 확인할 수 없습니다.")).toBeInTheDocument();
+    expect(within(detail).queryByText("김민지")).not.toBeInTheDocument();
+    expect(within(detail).queryByText("윤소라")).not.toBeInTheDocument();
+    expect(within(detail).queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
+    expect(within(detail).queryByRole("button", { name: "반려" })).not.toBeInTheDocument();
+    expect(within(detail).queryByRole("button", { name: "심사 결과 전송" })).not.toBeInTheDocument();
   });
 });

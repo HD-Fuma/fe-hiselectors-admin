@@ -7,9 +7,9 @@ import type { CreatorProposalContact } from "./fixtures";
 const invalidEmailContact: CreatorProposalContact = { availableProposalChannels: ["이메일"] };
 void invalidEmailContact;
 
-function expectColumnHeaders(names: string[]) {
+function expectColumnHeaders(names: string[], region: HTMLElement = document.body) {
   for (const name of names) {
-    expect(screen.getByRole("columnheader", { name })).toBeInTheDocument();
+    expect(within(region).getByRole("columnheader", { name })).toBeInTheDocument();
   }
 }
 
@@ -17,7 +17,7 @@ describe("creator pool", () => {
   test("renders the populated creator pool as profile-first cards", () => {
     renderRoute("/creators");
 
-    expect(screen.getByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { hidden: true, name: "크리에이터 풀" })).toBeInTheDocument();
     expect(screen.getByText("CR101")).toBeInTheDocument();
 
     const search = screen.getByRole("search", { name: "검색 조건" });
@@ -130,7 +130,9 @@ describe("creator pool", () => {
   test("renders one explicit empty state instead of a card list or table", () => {
     renderRoute("/creators?fixture=empty");
 
-    expect(screen.getByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { hidden: true, name: "크리에이터 풀" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("총 0건")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "검색 결과가 없습니다." })).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "크리에이터 목록" })).not.toBeInTheDocument();
@@ -139,52 +141,81 @@ describe("creator pool", () => {
 });
 
 describe("creator detail", () => {
+  test("opens creator detail as a dismissible side panel over the creator list", async () => {
+    const user = userEvent.setup();
+    const { router } = renderRoute("/creators/cr-001");
+
+    expect(screen.getByRole("dialog", { name: "크리에이터 상세" })).toBeInTheDocument();
+    expect(screen.getByText("크리에이터 풀", { selector: "h1" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "상세 패널 닫기" }));
+    expect(router.state.location.pathname).toBe("/creators");
+  });
+
   test("renders the creator analysis report, channel metrics, and fixed email proposal", () => {
     renderRoute("/creators/cr-001");
+    const detail = screen.getByRole("dialog", { name: "크리에이터 상세" });
+    const panel = within(detail);
 
-    expect(screen.getByRole("heading", { name: "크리에이터 상세" })).toBeInTheDocument();
-    expect(screen.getByText("CR102")).toBeInTheDocument();
-    const sections = screen.getByRole("navigation", { name: "섹션" });
+    expect(panel.getByRole("heading", { name: "크리에이터 상세" })).toBeInTheDocument();
+    expect(panel.getByText("CR102")).toBeInTheDocument();
+    const sections = panel.getByRole("navigation", { name: "섹션" });
     expect(within(sections).getByText("대표 콘텐츠")).toHaveAttribute("aria-current", "page");
     expect(within(sections).getByText("기본 정보")).toBeInTheDocument();
     expect(within(sections).getByText("크리에이터 분석")).toBeInTheDocument();
     expect(within(sections).getByText("영입 제안")).toBeInTheDocument();
 
-    expect(screen.getByText("cr-001")).toBeInTheDocument();
-    expect(screen.getByText("김서연")).toBeInTheDocument();
-    expect(screen.getByText("뷰티 / 패션")).toBeInTheDocument();
-    expect(screen.getAllByText("82,400")).toHaveLength(4);
+    expect(panel.getByText("cr-001")).toBeInTheDocument();
+    expect(panel.getByText("김서연")).toBeInTheDocument();
+    expect(panel.getByText("뷰티 / 패션")).toBeInTheDocument();
+    expect(panel.getAllByText("82,400")).toHaveLength(4);
     expectColumnHeaders([
       "플랫폼",
       "채널",
       "팔로워·구독자",
       "평균 조회 수",
       "평균 반응 수",
-    ]);
-    expect(screen.getAllByText("@seo.yeon")).toHaveLength(2);
-    expect(screen.getAllByText("48,200")).toHaveLength(2);
-    expect(screen.getAllByText("3,278")).toHaveLength(1);
-    const featured = screen.getByRole("region", { name: "대표 콘텐츠" });
+    ], detail);
+    expect(panel.getAllByText("@seo.yeon")).toHaveLength(2);
+    expect(panel.getAllByText("48,200")).toHaveLength(2);
+    expect(panel.getAllByText("3,278")).toHaveLength(1);
+    const featured = panel.getByRole("region", { name: "대표 콘텐츠" });
     expect(within(featured).getAllByRole("link", { name: /김서연 대표 게시글:/ })).toHaveLength(3);
     for (const views of ["98,600", "74,200", "63,100"]) {
       expect(within(featured).getByText(views)).toBeInTheDocument();
     }
-    const channels = screen.getByRole("region", { name: "플랫폼별 채널" });
+    const channels = panel.getByRole("region", { name: "플랫폼별 채널" });
     expect(within(channels).getAllByRole("row")).toHaveLength(2);
 
-    expect(screen.getByRole("heading", { name: "크리에이터 분석" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "정량 분석" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "AI 정성 분석" })).toBeInTheDocument();
-    expect(screen.getByText("ER (Engagement Rate)")).toBeInTheDocument();
-    expect(screen.getByText(/ER 4.0%/)).toBeInTheDocument();
-    expect(screen.getByText("1차 2N 선정")).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: "AI 분석 근거 게시글" })).toHaveLength(8);
+    expect(panel.getByRole("heading", { name: "크리에이터 분석" })).toBeInTheDocument();
+    expect(panel.getByRole("heading", { name: "정량 분석" })).toBeInTheDocument();
+    expect(panel.getByRole("heading", { name: "AI 정성 분석" })).toBeInTheDocument();
+    expect(panel.getByText("ER (Engagement Rate)")).toBeInTheDocument();
+    expect(panel.getByText(/ER 4.0%/)).toBeInTheDocument();
+    expect(panel.getByText("1차 2N 선정")).toBeInTheDocument();
+    expect(panel.getAllByRole("link", { name: "AI 분석 근거 게시글" })).toHaveLength(8);
 
-    expect(screen.queryByText("Instagram DM", { selector: "h3" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Instagram DM 제안 작성" })).not.toBeInTheDocument();
-    expect(screen.getByText("seoyeon@example.com")).toBeInTheDocument();
-    expect(screen.getByText("자동 발송 상태")).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: "이메일 제안 작성" })).toHaveLength(2);
+    expect(panel.queryByText("Instagram DM", { selector: "h3" })).not.toBeInTheDocument();
+    expect(panel.queryByRole("link", { name: "Instagram DM 제안 작성" })).not.toBeInTheDocument();
+    expect(panel.getByText("seoyeon@example.com")).toBeInTheDocument();
+    expect(panel.getByText("자동 발송 상태")).toBeInTheDocument();
+    expect(panel.getAllByRole("link", { name: "이메일 제안 작성" })).toHaveLength(2);
+  });
+
+  test("shows the creator decision and review content in the right summary panel", async () => {
+    const user = userEvent.setup();
+    renderRoute("/creators/cr-001");
+
+    const review = screen.getByRole("region", { name: "크리에이터 승인 처리" });
+    await user.type(
+      within(review).getByRole("textbox", { name: "내부 검토 의견" }),
+      "브랜드 적합도가 높습니다.",
+    );
+    await user.click(within(review).getByRole("button", { name: "승인" }));
+
+    const summary = screen.getByRole("complementary", { name: "크리에이터 승인 결과" });
+    expect(within(summary).getByText("승인")).toBeInTheDocument();
+    expect(within(summary).getByText("브랜드 적합도가 높습니다.")).toBeInTheDocument();
   });
 
   test("renders the analysis report for a pending legacy fixture", () => {
@@ -236,13 +267,14 @@ describe("creator detail", () => {
 
   test("keeps the detail frame and shows a missing-record state", () => {
     renderRoute("/creators/missing");
+    const detail = screen.getByRole("dialog", { name: "크리에이터 상세" });
 
-    expect(screen.getByRole("heading", { name: "크리에이터 상세" })).toBeInTheDocument();
-    expect(screen.getByText("CR102")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "대상을 찾을 수 없습니다" })).toBeInTheDocument();
-    expect(screen.getByText("요청한 크리에이터 정보를 확인할 수 없습니다.")).toBeInTheDocument();
-    expect(screen.queryByText("김서연")).not.toBeInTheDocument();
-    expect(screen.queryByText("@seo.yeon")).not.toBeInTheDocument();
+    expect(within(detail).getByRole("heading", { name: "크리에이터 상세" })).toBeInTheDocument();
+    expect(within(detail).getByText("CR102")).toBeInTheDocument();
+    expect(within(detail).getByRole("heading", { name: "대상을 찾을 수 없습니다" })).toBeInTheDocument();
+    expect(within(detail).getByText("요청한 크리에이터 정보를 확인할 수 없습니다.")).toBeInTheDocument();
+    expect(within(detail).queryByText("김서연")).not.toBeInTheDocument();
+    expect(within(detail).queryByText("@seo.yeon")).not.toBeInTheDocument();
   });
 });
 

@@ -50,6 +50,49 @@ test("shows resolved violations and useful YouTube speech extracts", () => {
   );
 });
 
+test("keeps annotation targets valid and active violations off resolved current content", () => {
+  const review = CONTENT_REVIEWS.find(({ id }) => id === "ct-002")!;
+  const previous = review.previousSnapshot!;
+  const activeAnnotations = previous.annotations?.filter(({ state }) => state === "active") ?? [];
+
+  expect(activeAnnotations).toHaveLength(3);
+  expect(activeAnnotations.map(({ target }) => target.kind)).toEqual(["media", "text", "url"]);
+
+  for (const annotation of activeAnnotations) {
+    const { target } = annotation;
+
+    if (target.kind === "media") {
+      expect(previous.mediaUrls[target.mediaIndex]).toBeDefined();
+      expect(target.box.x).toBeGreaterThanOrEqual(0);
+      expect(target.box.y).toBeGreaterThanOrEqual(0);
+      expect(target.box.x + target.box.width).toBeLessThanOrEqual(100);
+      expect(target.box.y + target.box.height).toBeLessThanOrEqual(100);
+    } else if (target.kind === "text") {
+      const occurrenceCount = previous.text.split(target.quote).length - 1;
+      expect(target.quote).not.toBe("");
+      expect(occurrenceCount).toBeGreaterThanOrEqual(target.occurrence);
+    } else {
+      expect(previous.urls[target.targetIndex]).toBeDefined();
+    }
+  }
+
+  const activeCurrentAnnotations =
+    review.currentSnapshot.annotations?.filter(({ state }) => state === "active") ?? [];
+  expect(activeCurrentAnnotations).toHaveLength(0);
+  expect(review.currentSnapshot.annotations).toHaveLength(1);
+  expect(review.currentSnapshot.annotations).toContainEqual(
+    expect.objectContaining({
+      title: "광고 표시 보완",
+      state: "resolved",
+      target: {
+        kind: "text",
+        quote: "유료광고를 포함한",
+        occurrence: 1,
+      },
+    }),
+  );
+});
+
 test("marks an ordinary edit as detected and policy-safe", () => {
   const review = CONTENT_REVIEWS.find(({ id }) => id === "ct-003")!;
 

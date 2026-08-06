@@ -10,7 +10,6 @@ import {
   ScanText,
 } from "lucide-react";
 import "../../styles/content-review.css";
-import { EditorFrame } from "../../components/content/EditorFrame";
 import { MediaTiles } from "../../components/content/MediaTiles";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Checkbox, Select, TextInput } from "../../components/ui/Controls";
@@ -23,6 +22,7 @@ import {
   CONTENT_REVIEWS,
   REVIEW_TYPE_LABELS,
   findContentReviewFixture,
+  type ContentAnnotation,
   type ContentReviewFixture,
   type ContentSnapshot,
   type ProcessingState,
@@ -293,7 +293,121 @@ interface SnapshotPanelProps {
   snapshot: ContentSnapshot;
 }
 
+type NumberedAnnotation = ContentAnnotation & { ordinal: number };
+
+function getActiveAnnotations(snapshot: ContentSnapshot): NumberedAnnotation[] {
+  return (snapshot.annotations ?? [])
+    .filter((annotation) => annotation.state === "active")
+    .map((annotation, index) => ({ ...annotation, ordinal: index + 1 }));
+}
+
+function findOccurrence(text: string, quote: string, occurrence: number) {
+  if (!quote) return -1;
+
+  let start = -1;
+  let cursor = 0;
+  for (let index = 0; index < Math.max(1, occurrence); index += 1) {
+    start = text.indexOf(quote, cursor);
+    if (start < 0) return -1;
+    cursor = start + quote.length;
+  }
+  return start;
+}
+
+function annotationDescriptionId(annotation: NumberedAnnotation) {
+  return `fuma-review-annotation-${annotation.id}`;
+}
+
+function renderAnnotatedText(text: string, annotations: NumberedAnnotation[]) {
+  const ranges = annotations
+    .flatMap((annotation) => {
+      if (annotation.target.kind !== "text") return [];
+      const start = findOccurrence(
+        text,
+        annotation.target.quote,
+        annotation.target.occurrence,
+      );
+      return start < 0
+        ? []
+        : [{
+            annotation,
+            end: start + annotation.target.quote.length,
+            start,
+          }];
+    })
+    .sort((left, right) => left.start - right.start);
+
+  if (ranges.length === 0) return text;
+
+  const result: ReactNode[] = [];
+  let cursor = 0;
+  for (const range of ranges) {
+    if (range.start < cursor) continue;
+    if (range.start > cursor) result.push(text.slice(cursor, range.start));
+    const descriptionId = annotationDescriptionId(range.annotation);
+    result.push(
+      <mark
+        aria-describedby={descriptionId}
+        className="fuma-review-text-violation"
+        data-ordinal={range.annotation.ordinal}
+        data-severity={range.annotation.severity}
+        key={range.annotation.id}
+      >
+        {text.slice(range.start, range.end)}
+      </mark>,
+    );
+    cursor = range.end;
+  }
+  if (cursor < text.length) result.push(text.slice(cursor));
+  return result;
+}
+
+function AnnotationNotes({ annotations }: { annotations: NumberedAnnotation[] }) {
+  if (annotations.length === 0) return null;
+
+  return (
+    <div className="fuma-review-annotation-notes">
+      {annotations.map((annotation) => (
+        <aside
+          aria-label={`위반 안내 ${annotation.ordinal}`}
+          className="fuma-review-annotation-note"
+          data-severity={annotation.severity}
+          key={annotation.id}
+          role="note"
+        >
+          <header>
+            <span aria-hidden="true" className="fuma-review-annotation-note__number">
+              {annotation.ordinal}
+            </span>
+            <div>
+              <strong>{annotation.title}</strong>
+              <span>{annotation.location}</span>
+            </div>
+          </header>
+          <p>{annotation.reason}</p>
+          <div className="fuma-review-annotation-note__guidance">
+            <strong>수정 안내</strong>
+            <p>{annotation.guidance}</p>
+          </div>
+          <span className="fuma-review-annotation-note__source">{annotation.source}</span>
+        </aside>
+      ))}
+    </div>
+  );
+}
+
 function SnapshotPanel({ ariaLabel, author, platform, snapshot }: SnapshotPanelProps) {
+  const activeAnnotations = getActiveAnnotations(snapshot);
+  const mediaAnnotations = activeAnnotations.filter(
+    (annotation) => annotation.target.kind === "media",
+  );
+  const textAnnotations = activeAnnotations.filter(
+    (annotation) => annotation.target.kind === "text",
+  );
+  const urlAnnotations = activeAnnotations.filter(
+    (annotation) => annotation.target.kind === "url",
+  );
+
   return (
     <section aria-label={ariaLabel} className="fuma-review-post">
       <header className="fuma-review-post__version">
@@ -305,7 +419,9 @@ function SnapshotPanel({ ariaLabel, author, platform, snapshot }: SnapshotPanelP
           {snapshot.capturedAt}
         </time>
       </header>
-      <article className="fuma-review-post__preview">
+      <article
+        className={`fuma-review-post__preview${activeAnnotations.length > 0 ? " fuma-review-post__preview--annotated" : ""}`}
+      >
         <header className="fuma-review-post__profile">
           <span aria-hidden="true" className="fuma-review-post__avatar">
             {author.slice(0, 1)}
@@ -316,29 +432,81 @@ function SnapshotPanel({ ariaLabel, author, platform, snapshot }: SnapshotPanelP
           </div>
           <span className="fuma-review-post__platform">{platform}</span>
         </header>
-        <MediaTiles
-          count={snapshot.mediaCount}
-          kinds={snapshot.mediaKinds}
-          label={snapshot.label}
-          urls={snapshot.mediaUrls}
-        />
-        <div className="fuma-review-post__caption">
-          <span>게시물 본문</span>
-          <EditorFrame label={snapshot.label} text={snapshot.text} />
+        <div className="fuma-review-post__content-row">
+          <MediaTiles
+            count={snapshot.mediaCount}
+            kinds={snapshot.mediaKinds}
+            label={snapshot.label}
+            markers={mediaAnnotations.flatMap((annotation) =>
+              annotation.target.kind === "media"
+                ? [{
+                    box: annotation.target.box,
+                    mediaIndex: annotation.target.mediaIndex,
+                    ordinal: annotation.ordinal,
+                    severity: annotation.severity,
+                  }]
+                : [],
+            )}
+            urls={snapshot.mediaUrls}
+          />
+          <AnnotationNotes annotations={mediaAnnotations} />
         </div>
-        <div className="fuma-review-post__links">
-          <span>연결 URL</span>
-          <ul>
-            {snapshot.urls.map((url) => (
-              <li key={url}>
-                <a href={url} rel="noreferrer" target="_blank">
-                  <span>{url}</span>
-                  <ExternalLink aria-hidden="true" size={13} strokeWidth={1.8} />
-                </a>
-              </li>
-            ))}
-          </ul>
+        <div className="fuma-review-post__content-row">
+          <div className="fuma-review-post__caption">
+            <span>게시물 본문</span>
+            <section aria-label={`${snapshot.label} 본문`} className="fuma-editor-frame">
+              <p className="fuma-editor-frame__text">
+                {renderAnnotatedText(snapshot.text, textAnnotations)}
+              </p>
+            </section>
+          </div>
+          <AnnotationNotes annotations={textAnnotations} />
         </div>
+        <div className="fuma-review-post__content-row">
+          <div className="fuma-review-post__links">
+            <span>연결 URL</span>
+            <ul>
+              {snapshot.urls.map((url, index) => {
+                const markers = urlAnnotations.filter(
+                  (annotation) =>
+                    annotation.target.kind === "url" &&
+                    annotation.target.targetIndex === index,
+                );
+                return (
+                  <li
+                    className={markers.length > 0 ? "fuma-review-post__link--violation" : undefined}
+                    key={url}
+                  >
+                    {markers.map((annotation) => (
+                      <span
+                        aria-label={`위반 위치 ${annotation.ordinal}`}
+                        className="fuma-review-annotation-pin fuma-review-post__link-pin"
+                        data-severity={annotation.severity}
+                        key={annotation.id}
+                      >
+                        {annotation.ordinal}
+                      </span>
+                    ))}
+                    <a href={url} rel="noreferrer" target="_blank">
+                      <span>{url}</span>
+                      <ExternalLink aria-hidden="true" size={13} strokeWidth={1.8} />
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+          <AnnotationNotes annotations={urlAnnotations} />
+        </div>
+        {textAnnotations.map((annotation) => (
+          <span
+            className="hsas-visually-hidden"
+            id={annotationDescriptionId(annotation)}
+            key={annotation.id}
+          >
+            위반 위치 {annotation.ordinal}
+          </span>
+        ))}
       </article>
     </section>
   );
@@ -484,6 +652,10 @@ function ReviewActions({ actions }: { actions: string[] }) {
 export function ContentReviewDetailPage() {
   const { contentId } = useParams();
   const content = findContentReviewFixture(contentId);
+  const hasActiveComparisonAnnotations = content?.previousSnapshot
+    ? getActiveAnnotations(content.previousSnapshot).length > 0 ||
+      getActiveAnnotations(content.currentSnapshot).length > 0
+    : false;
 
   return (
     <section
@@ -512,7 +684,7 @@ export function ContentReviewDetailPage() {
                 </header>
                 {content.previousSnapshot ? <ChangeSummary items={content.changeItems} /> : null}
                 <div
-                  className={`fuma-content-comparison${content.previousSnapshot ? "" : " fuma-content-comparison--single"}`}
+                  className={`fuma-content-comparison${content.previousSnapshot ? "" : " fuma-content-comparison--single"}${hasActiveComparisonAnnotations ? " fuma-content-comparison--stacked" : ""}`}
                 >
                   {content.previousSnapshot ? (
                     <SnapshotPanel
