@@ -313,6 +313,43 @@ describe("content review detail", () => {
     }
   });
 
+  test("marks image, caption, and URL violations beside the previous content only", () => {
+    renderRoute("/content/reviews/ct-002?fixture=violation-correction");
+
+    const previous = screen.getByRole("region", { name: "이전 콘텐츠" });
+    const previousMedia = within(previous).getByRole("region", {
+      name: "직전 위반 판정본 미디어",
+    });
+
+    expect(within(previousMedia).getByLabelText("위반 위치 1")).toBeInTheDocument();
+    const captionMark = within(previous).getByText("지금 가장 저렴하게", {
+      selector: "mark",
+    });
+    expect(captionMark).toHaveTextContent("지금 가장 저렴하게");
+    expect(captionMark).not.toHaveAttribute("aria-label");
+    const descriptionId = captionMark.getAttribute("aria-describedby");
+    expect(descriptionId).toBeTruthy();
+    expect(document.getElementById(descriptionId!)).toHaveTextContent("위반 위치 2");
+
+    const invalidUrlRow = within(previous)
+      .getByText("https://short.example/golf")
+      .closest("li");
+    expect(invalidUrlRow).not.toBeNull();
+    expect(within(invalidUrlRow!).getByLabelText("위반 위치 3")).toBeInTheDocument();
+
+    for (const number of [1, 2, 3]) {
+      const note = within(previous).getByRole("note", {
+        name: `위반 안내 ${number}`,
+      });
+      expect(note).toHaveTextContent(String(number));
+    }
+
+    const current = screen.getByRole("region", { name: "현재 콘텐츠" });
+    expect(current.querySelector("mark")).not.toBeInTheDocument();
+    expect(current.querySelector('[aria-label^="위반 위치 "]')).not.toBeInTheDocument();
+    expect(within(current).queryByRole("note")).not.toBeInTheDocument();
+  });
+
   test("renders the exact edited-content differences and detected additions", () => {
     renderRoute("/content/reviews/ct-003?fixture=edited");
 

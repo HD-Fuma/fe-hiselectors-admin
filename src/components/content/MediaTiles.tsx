@@ -2,7 +2,15 @@ interface MediaTilesProps {
   count: number;
   kinds: string[];
   label: string;
+  markers?: MediaViolationMarker[];
   urls?: string[];
+}
+
+export interface MediaViolationMarker {
+  box: { x: number; y: number; width: number; height: number };
+  mediaIndex: number;
+  ordinal: number;
+  severity: "warning" | "critical";
 }
 
 function MediaSilhouette({ index, kind }: { index: number; kind: string }) {
@@ -31,7 +39,7 @@ function MediaSilhouette({ index, kind }: { index: number; kind: string }) {
   );
 }
 
-export function MediaTiles({ count, kinds, label, urls = [] }: MediaTilesProps) {
+export function MediaTiles({ count, kinds, label, markers = [], urls = [] }: MediaTilesProps) {
   const tiles = Array.from({ length: count }, (_, index) => ({
     index,
     kind: kinds[index] ?? "이미지",
@@ -47,15 +55,39 @@ export function MediaTiles({ count, kinds, label, urls = [] }: MediaTilesProps) 
       <div className="fuma-media-tiles__track" role="list">
         {tiles.map(({ index, kind, url }) => (
           <figure className="fuma-media-tile" key={`${kind}-${index}`} role="listitem">
-            {url ? (
-              <img
-                alt={`${label} ${kind} ${index + 1}`}
-                className="fuma-media-tile__visual"
-                src={url}
-              />
-            ) : (
-              <MediaSilhouette index={index} kind={kind} />
-            )}
+            <div className="fuma-media-tile__stage">
+              {url ? (
+                <img
+                  alt={`${label} ${kind} ${index + 1}`}
+                  className="fuma-media-tile__visual"
+                  src={url}
+                />
+              ) : (
+                <MediaSilhouette index={index} kind={kind} />
+              )}
+              {markers
+                .filter((marker) => marker.mediaIndex === index)
+                .map((marker) => (
+                  <span
+                    className="fuma-media-tile__violation-box"
+                    data-severity={marker.severity}
+                    key={marker.ordinal}
+                    style={{
+                      height: `${marker.box.height}%`,
+                      left: `${marker.box.x}%`,
+                      top: `${marker.box.y}%`,
+                      width: `${marker.box.width}%`,
+                    }}
+                  >
+                    <span
+                      aria-label={`위반 위치 ${marker.ordinal}`}
+                      className="fuma-review-annotation-pin"
+                    >
+                      {marker.ordinal}
+                    </span>
+                  </span>
+                ))}
+            </div>
             <figcaption>
               <span>{kind}</span>
               <span>{index + 1}</span>

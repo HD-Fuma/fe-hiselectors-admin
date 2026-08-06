@@ -2,6 +2,34 @@ export type ReviewType = "NEW" | "VIOLATION_CORRECTION" | "EDITED";
 export type ReviewStatus = "검수 대기" | "수정 요청" | "승인" | "위반 확정";
 export type ProcessingState = "미처리" | "안내 대기" | "처리 완료";
 
+export type ContentAnnotationTarget =
+  | {
+      kind: "media";
+      mediaIndex: number;
+      box: { x: number; y: number; width: number; height: number };
+    }
+  | {
+      kind: "text";
+      quote: string;
+      occurrence: number;
+    }
+  | {
+      kind: "url";
+      targetIndex: number;
+    };
+
+export interface ContentAnnotation {
+  id: string;
+  target: ContentAnnotationTarget;
+  title: string;
+  reason: string;
+  location: string;
+  guidance: string;
+  source: "자동 감지" | "운영자";
+  severity: "warning" | "critical";
+  state: "active" | "resolved";
+}
+
 export interface ContentSnapshot {
   label: string;
   text: string;
@@ -10,6 +38,7 @@ export interface ContentSnapshot {
   mediaKinds: string[];
   mediaUrls: string[];
   capturedAt: string;
+  annotations?: ContentAnnotation[];
 }
 
 export type ReviewSignalTone = "pass" | "warning" | "critical";
@@ -178,6 +207,52 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
         "/creator-media/kr-cr-002-02.jpg",
         "/creator-media/kr-cr-002-03.jpg",
       ],
+      annotations: [
+        {
+          id: "ct-002-media-ocr",
+          target: {
+            kind: "media",
+            mediaIndex: 0,
+            box: { x: 38, y: 58, width: 30, height: 24 },
+          },
+          title: "캠페인 상품 불일치",
+          reason: "패딩 팬츠 콘텐츠와 관련 없는 음식 이미지가 포함되어 있습니다.",
+          location: "이미지 1 중앙 하단",
+          guidance: "캠페인 상품 착용 이미지로 교체해 주세요.",
+          source: "자동 감지",
+          severity: "critical",
+          state: "active",
+        },
+        {
+          id: "ct-002-caption-claim",
+          target: {
+            kind: "text",
+            quote: "지금 가장 저렴하게",
+            occurrence: 1,
+          },
+          title: "본문 과장 표현",
+          reason: "비교 근거 없이 최저가를 단정하는 표현이 포함되어 있습니다.",
+          location: "게시물 본문",
+          guidance: "‘혜택을 확인해 보세요’처럼 검증 가능한 표현으로 수정해 주세요.",
+          source: "자동 감지",
+          severity: "critical",
+          state: "active",
+        },
+        {
+          id: "ct-002-short-url",
+          target: {
+            kind: "url",
+            targetIndex: 0,
+          },
+          title: "비공식 단축 URL",
+          reason: "연결 목적지를 바로 확인할 수 없는 단축 URL이 포함되어 있습니다.",
+          location: "연결 URL 1",
+          guidance: "Hmall 공식 상품 URL로 교체해 주세요.",
+          source: "자동 감지",
+          severity: "warning",
+          state: "active",
+        },
+      ],
     },
     currentSnapshot: {
       label: "위반 후 수정본",
@@ -187,9 +262,26 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
       mediaCount: 4,
       mediaKinds: ["이미지", "이미지", "이미지", "이미지"],
       mediaUrls: [
-        "/creator-media/kr-cr-002-01.jpg",
-        "/creator-media/kr-cr-002-02.jpg",
-        "/creator-media/kr-cr-002-03.jpg",
+        "/creator-media/kr-cr-001-01.jpg",
+        "/creator-media/kr-cr-001-02.jpg",
+        "/creator-media/kr-cr-001-03.jpg",
+      ],
+      annotations: [
+        {
+          id: "ct-002-ad-disclosure-resolved",
+          target: {
+            kind: "text",
+            quote: "유료광고를 포함한",
+            occurrence: 1,
+          },
+          title: "광고 표시 보완",
+          reason: "직전 판정본에서 누락되었던 광고 표시가 현재 본문에 추가되었습니다.",
+          location: "게시물 본문 첫 문장",
+          guidance: "현재 광고 표시 문구를 유지해 주세요.",
+          source: "자동 감지",
+          severity: "warning",
+          state: "resolved",
+        },
       ],
     },
     aiStatus: "ready",
