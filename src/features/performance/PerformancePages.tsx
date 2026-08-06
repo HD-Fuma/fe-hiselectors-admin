@@ -35,7 +35,6 @@ import {
   formatRate,
   selectorCohortById,
   type CampaignPerformance,
-  type CampaignPerformanceStatus,
   type ContentInfluence,
   type CreatorInfluence,
   type PerformanceTrendPoint,
@@ -268,6 +267,56 @@ function PerformanceOperationsRail() {
   );
 }
 
+interface PerformanceEntityCard {
+  detail: string;
+  id: string;
+  label: string;
+  meta: string;
+  primaryLabel: string;
+  primaryValue: string;
+  secondaryLabel: string;
+  secondaryValue: string;
+  tone: "creator" | "content" | "product";
+}
+
+function PerformanceEntityCardGrid({
+  items,
+  title,
+}: {
+  items: readonly PerformanceEntityCard[];
+  title: string;
+}) {
+  return (
+    <section aria-label={title} className="fuma-performance-entity-section">
+      <div className="fuma-performance-section-heading">
+        <div>
+          <p>PERFORMANCE LIST</p>
+          <h2>{title}</h2>
+        </div>
+        <span>총 {items.length}건</span>
+      </div>
+      <div className="fuma-performance-entity-grid">
+        {items.map((item) => (
+          <article className={`fuma-performance-entity-card is-${item.tone}`} key={item.id}>
+            <header>
+              <span>{item.meta}</span>
+              <ArrowUpRight size={16} />
+            </header>
+            <div className="fuma-performance-entity-card__identity">
+              <div aria-hidden="true">{item.label.slice(0, 1)}</div>
+              <div><h3>{item.label}</h3><p>{item.detail}</p></div>
+            </div>
+            <dl>
+              <div><dt>{item.primaryLabel}</dt><dd>{item.primaryValue}</dd></div>
+              <div><dt>{item.secondaryLabel}</dt><dd>{item.secondaryValue}</dd></div>
+            </dl>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 interface PerformanceResultTableProps<T extends object> {
   className: string;
   columns: DenseTableColumn<T>[];
@@ -297,18 +346,6 @@ function PerformanceResultTable<T extends object>({
   );
 }
 
-function campaignStatusTone(
-  status: CampaignPerformanceStatus,
-): NonNullable<StatusPillProps["tone"]> {
-  if (status === "시작 전") {
-    return "pending";
-  }
-  if (status === "진행 중") {
-    return "approved";
-  }
-  return "neutral";
-}
-
 function selectorStatusTone(
   status: SelectorActivityStatus,
 ): NonNullable<StatusPillProps["tone"]> {
@@ -323,43 +360,6 @@ function selectorStatusTone(
   }
   return "neutral";
 }
-
-const CAMPAIGN_COLUMNS: DenseTableColumn<CampaignPerformance>[] = [
-  { key: "id", header: "캠페인 ID", width: 92 },
-  { key: "name", header: "캠페인명", width: 250 },
-  {
-    key: "status",
-    header: "상태",
-    width: 88,
-    align: "center",
-    render: (campaign) => (
-      <StatusPill tone={campaignStatusTone(campaign.status)}>
-        {campaign.status}
-      </StatusPill>
-    ),
-  },
-  {
-    key: "clicks",
-    header: "클릭 수",
-    width: 110,
-    align: "right",
-    render: (campaign) => formatCount(campaign.clicks),
-  },
-  {
-    key: "conversions",
-    header: "구매 전환 수",
-    width: 120,
-    align: "right",
-    render: (campaign) => formatCount(campaign.conversions),
-  },
-  {
-    id: "conversionRate",
-    header: "전환율",
-    width: 90,
-    align: "right",
-    render: (campaign) => formatRate(campaign.conversions, campaign.clicks),
-  },
-];
 
 const SELECTOR_COLUMNS: DenseTableColumn<SelectorPerformance>[] = [
   { key: "id", header: "셀렉터스 ID", width: 96 },
@@ -722,16 +722,23 @@ export function PerformanceDashboardPage() {
               />
             </div>
             <TopContentCards />
+            <PerformanceEntityCardGrid
+              title="캠페인별 성과"
+              items={CAMPAIGN_PERFORMANCE.map((campaign) => ({
+                id: campaign.id,
+                label: campaign.name,
+                detail: campaign.status,
+                meta: "CAMPAIGN",
+                primaryLabel: "구매 전환",
+                primaryValue: formatCount(campaign.conversions),
+                secondaryLabel: "전환율",
+                secondaryValue: formatRate(campaign.conversions, campaign.clicks),
+                tone: "product" as const,
+              }))}
+            />
           </div>
           <PerformanceOperationsRail />
         </div>
-        <PerformanceResultTable
-          className="fuma-performance-campaign-table"
-          columns={CAMPAIGN_COLUMNS}
-          rowKey={(campaign) => campaign.id}
-          rows={[...CAMPAIGN_PERFORMANCE]}
-          title="캠페인별 성과"
-        />
         <PerformanceResultTable
           className="fuma-performance-selector-table"
           columns={SELECTOR_COLUMNS}
@@ -772,6 +779,20 @@ export function CreatorPerformancePage() {
             title="크리에이터 영향력 비교"
           />
         </div>
+        <PerformanceEntityCardGrid
+          title="크리에이터별 성과"
+          items={CREATOR_INFLUENCE.map((creator) => ({
+            id: creator.id,
+            label: creator.name,
+            detail: creator.campaign,
+            meta: creator.platform,
+            primaryLabel: "구매 전환",
+            primaryValue: formatCount(creator.conversions),
+            secondaryLabel: "조회 수",
+            secondaryValue: formatCount(creator.views),
+            tone: "creator" as const,
+          }))}
+        />
         <PerformanceResultTable
           className="fuma-performance-creator-table"
           columns={CREATOR_COLUMNS}
@@ -811,6 +832,20 @@ export function ContentPerformancePage() {
             title="콘텐츠 성과 순위"
           />
         </div>
+        <PerformanceEntityCardGrid
+          title="콘텐츠별 성과"
+          items={CONTENT_INFLUENCE.map((content) => ({
+            id: content.id,
+            label: content.title,
+            detail: `${creatorNameById(content.creatorId)} · ${campaignNameById(content.campaignId)}`,
+            meta: content.platform,
+            primaryLabel: "구매 전환",
+            primaryValue: formatCount(content.conversions),
+            secondaryLabel: "조회 수",
+            secondaryValue: formatCount(content.views),
+            tone: "content" as const,
+          }))}
+        />
         <PerformanceResultTable
           className="fuma-performance-content-table"
           columns={CONTENT_COLUMNS}
@@ -848,6 +883,20 @@ export function ProductPerformancePage() {
             title="상품별 전환 성과"
           />
         </div>
+        <PerformanceEntityCardGrid
+          title="상품별 성과"
+          items={PRODUCT_INFLUENCE.map((product) => ({
+            id: product.id,
+            label: product.name,
+            detail: campaignNameById(product.campaignId),
+            meta: product.category,
+            primaryLabel: "구매 전환",
+            primaryValue: formatCount(product.conversions),
+            secondaryLabel: "전환율",
+            secondaryValue: formatRate(product.conversions, product.clicks),
+            tone: "product" as const,
+          }))}
+        />
         <PerformanceResultTable
           className="fuma-performance-product-table"
           columns={PRODUCT_COLUMNS}
