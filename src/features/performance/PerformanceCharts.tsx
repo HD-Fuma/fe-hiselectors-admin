@@ -518,3 +518,91 @@ export function PerformanceRanking({
     </figure>
   );
 }
+
+export interface PerformanceAreaPoint {
+  id: string;
+  label: string;
+  primary: number;
+  secondary: number;
+}
+
+interface PerformanceAreaChartProps extends FigureTitleProps {
+  primaryLabel: string;
+  secondaryLabel: string;
+  points: readonly PerformanceAreaPoint[];
+}
+
+export function PerformanceAreaChart({
+  description,
+  points,
+  primaryLabel,
+  secondaryLabel,
+  title,
+}: PerformanceAreaChartProps) {
+  const captionId = useId();
+  const safePoints = points.map((point) => ({
+    ...point,
+    primary: finiteNumber(point.primary),
+    secondary: finiteNumber(point.secondary),
+  }));
+  const width = 720;
+  const height = 300;
+  const left = 50;
+  const right = 676;
+  const top = 42;
+  const bottom = 234;
+  const maxPrimary = Math.max(0, ...safePoints.map((point) => plottedNumber(point.primary)));
+  const maxSecondary = Math.max(0, ...safePoints.map((point) => plottedNumber(point.secondary)));
+  const hasData = maxPrimary > 0 || maxSecondary > 0;
+  const pointsFor = (metric: "primary" | "secondary", maximum: number) => safePoints
+    .map((point, index) => `${xPosition(index, safePoints.length, left, right)},${scalePoint(point[metric], maximum, top, bottom)}`)
+    .join(" ");
+  const primaryPolyline = pointsFor("primary", maxPrimary);
+  const secondaryPolyline = pointsFor("secondary", maxSecondary);
+  const firstPoint = safePoints[0];
+  const lastPoint = safePoints[safePoints.length - 1];
+  const primaryArea = hasData && firstPoint && lastPoint
+    ? `${left},${bottom} ${primaryPolyline} ${right},${bottom}`
+    : "";
+
+  return (
+    <figure aria-labelledby={captionId} className="fuma-performance-chart fuma-performance-area-chart">
+      <figcaption id={captionId}>
+        {title}
+        {description ? <span>{description}</span> : null}
+      </figcaption>
+      {hasData ? (
+        <>
+          <div aria-label="범례" className="fuma-performance-chart__legend">
+            <span className="fuma-performance-area-chart__legend-primary">{primaryLabel}</span>
+            <span className="fuma-performance-area-chart__legend-secondary">{secondaryLabel}</span>
+          </div>
+          <svg aria-hidden="true" viewBox={`0 0 ${width} ${height}`}>
+            <defs>
+              <linearGradient id={`${captionId}-fill`} x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="#5caa93" stopOpacity="0.34" />
+                <stop offset="100%" stopColor="#5caa93" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {[0, 1, 2, 3].map((index) => {
+              const y = top + ((bottom - top) / 3) * index;
+              return <line className="fuma-performance-area-chart__grid" key={index} x1={left} x2={right} y1={y} y2={y} />;
+            })}
+            <polygon fill={`url(#${captionId}-fill)`} points={primaryArea} />
+            <polyline className="fuma-performance-area-chart__secondary" points={secondaryPolyline} />
+            <polyline className="fuma-performance-area-chart__primary" points={primaryPolyline} />
+            {safePoints.map((point, index) => (
+              <g key={point.id}>
+                <circle className="fuma-performance-area-chart__point" cx={xPosition(index, safePoints.length, left, right)} cy={scalePoint(point.primary, maxPrimary, top, bottom)} r="4" />
+                <text x={xPosition(index, safePoints.length, left, right)} y={270} textAnchor="middle">{point.label}</text>
+              </g>
+            ))}
+          </svg>
+          <ul className="hsas-visually-hidden">
+            {safePoints.map((point) => <li key={point.id}>{point.label}: {primaryLabel} {formatCount(point.primary)}, {secondaryLabel} {formatCount(point.secondary)}</li>)}
+          </ul>
+        </>
+      ) : <p className="fuma-performance-chart__empty">{EMPTY_STATE}</p>}
+    </figure>
+  );
+}

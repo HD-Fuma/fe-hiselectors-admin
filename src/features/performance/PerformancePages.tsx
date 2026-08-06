@@ -17,6 +17,7 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import "../../styles/performance-dashboard.css";
 import {
+  PerformanceAreaChart,
   PerformanceBarChart,
   PerformanceKpiGrid,
   PerformanceRanking,
@@ -225,6 +226,49 @@ function PerformanceEntityCardGrid({
         ))}
       </div>
     </section>
+  );
+}
+
+function PerformanceAnalysisHero({
+  focusDetail,
+  focusLabel,
+  focusValue,
+  kpis,
+  points,
+  primaryLabel,
+  secondaryLabel,
+  title,
+}: {
+  focusDetail: string;
+  focusLabel: string;
+  focusValue: string;
+  kpis: Parameters<typeof PerformanceKpiGrid>[0]["items"];
+  points: Parameters<typeof PerformanceAreaChart>[0]["points"];
+  primaryLabel: string;
+  secondaryLabel: string;
+  title: string;
+}) {
+  return (
+    <div className="fuma-performance-analysis-hero">
+      <PerformanceAreaChart
+        description="상위 성과 항목 기준 비교"
+        points={points}
+        primaryLabel={primaryLabel}
+        secondaryLabel={secondaryLabel}
+        title={title}
+      />
+      <section className="fuma-performance-analysis-focus">
+        <span>TOP PERFORMANCE</span>
+        <strong>{focusValue}</strong>
+        <p>{focusLabel}</p>
+        <small>{focusDetail}</small>
+      </section>
+      <PerformanceKpiGrid
+        ariaLabel={`${title} 보조 지표`}
+        className="fuma-performance-kpi-grid--analysis"
+        items={kpis}
+      />
+    </div>
   );
 }
 
@@ -441,6 +485,12 @@ export function buildDashboardVisualData(
         : formatRate(totalConversions, totalClicks);
 
   return {
+    areaPoints: creators.map((creator) => ({
+      id: creator.id,
+      label: creator.name,
+      primary: creator.views,
+      secondary: creator.conversions,
+    })),
     campaignItems: campaigns.map((campaign) => ({
       id: campaign.id,
       label: campaign.name,
@@ -501,6 +551,12 @@ export function buildCreatorVisualData(
   );
 
   return {
+    areaPoints: contents.map((content) => ({
+      id: content.id,
+      label: content.title.slice(0, 5),
+      primary: content.views,
+      secondary: content.conversions,
+    })),
     chartItems: creators.map((creator) => ({
       id: creator.id,
       label: creator.name,
@@ -541,6 +597,12 @@ export function buildContentVisualData(
   );
 
   return {
+    areaPoints: products.map((product) => ({
+      id: product.id,
+      label: product.name.slice(0, 5),
+      primary: product.clicks,
+      secondary: product.conversions,
+    })),
     chartItems: contents.map((content) => ({
       id: content.id,
       label: content.title,
@@ -652,19 +714,16 @@ export function CreatorPerformancePage() {
             placeholder: "이름 검색",
           }}
         />
-        <PerformanceKpiGrid
-          ariaLabel="크리에이터 성과 요약"
-          items={visualData.kpis}
+        <PerformanceAnalysisHero
+          focusDetail="구매 전환 기준 1위"
+          focusLabel="오하늘 · Instagram"
+          focusValue="711"
+          kpis={visualData.kpis}
+          points={visualData.areaPoints}
+          primaryLabel="조회 수"
+          secondaryLabel="구매 전환"
+          title="크리에이터 성과 추이"
         />
-        <div className="fuma-performance-visuals fuma-performance-visuals--single">
-          <PerformanceBarChart
-            items={visualData.chartItems}
-            mode="bar-dot"
-            primaryLabel="조회 수"
-            secondaryLabel="구매 전환"
-            title="크리에이터 영향력 비교"
-          />
-        </div>
         <PerformanceEntityCardGrid
           title="크리에이터별 성과"
           items={CREATOR_INFLUENCE.map((creator) => ({
@@ -706,18 +765,16 @@ export function ContentPerformancePage() {
             placeholder: "콘텐츠 ID 또는 작성자",
           }}
         />
-        <PerformanceKpiGrid
-          ariaLabel="콘텐츠 성과 요약"
-          items={visualData.kpis}
+        <PerformanceAnalysisHero
+          focusDetail="구매 전환 기준 1위"
+          focusLabel="바캉스 푸드 스타일링"
+          focusValue="711"
+          kpis={visualData.kpis}
+          points={visualData.areaPoints}
+          primaryLabel="조회 수"
+          secondaryLabel="구매 전환"
+          title="콘텐츠 반응 추이"
         />
-        <div className="fuma-performance-visuals fuma-performance-visuals--single">
-          <PerformanceBarChart
-            items={visualData.chartItems}
-            mode="single"
-            primaryLabel="조회 수"
-            title="콘텐츠 성과 순위"
-          />
-        </div>
         <PerformanceEntityCardGrid
           title="콘텐츠별 성과"
           items={CONTENT_INFLUENCE.map((content) => ({
@@ -759,16 +816,16 @@ export function ProductPerformancePage() {
             placeholder: "상품명 또는 상품 ID 검색",
           }}
         />
-        <PerformanceKpiGrid ariaLabel="상품 성과 요약" items={visualData.kpis} />
-        <div className="fuma-performance-visuals fuma-performance-visuals--single">
-          <PerformanceBarChart
-            items={visualData.chartItems}
-            mode="bar-dot"
-            primaryLabel="구매 전환"
-            secondaryLabel="전환율"
-            title="상품별 전환 성과"
-          />
-        </div>
+        <PerformanceAnalysisHero
+          focusDetail="구매 전환 기준 1위"
+          focusLabel="리조트 린넨 셋업"
+          focusValue="975"
+          kpis={visualData.kpis}
+          points={visualData.areaPoints}
+          primaryLabel="클릭 수"
+          secondaryLabel="구매 전환"
+          title="상품 전환 추이"
+        />
         <PerformanceEntityCardGrid
           title="상품별 성과"
           items={PRODUCT_INFLUENCE.map((product) => ({
