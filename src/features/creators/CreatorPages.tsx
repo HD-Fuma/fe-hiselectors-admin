@@ -43,23 +43,7 @@ const PROPOSAL_STATUS_OPTIONS = [
   "발송 대기",
   "발송 완료",
   "발송 실패",
-  "셀렉터스 전환",
 ].map((label) => ({ label, value: label === "전체" ? "" : label }));
-const CREATOR_REJECTION_REASON_OPTIONS = [
-  { label: "선택", value: "" },
-  { label: "채널 적합도 낮음", value: "채널 적합도 낮음" },
-  { label: "콘텐츠 품질 미충족", value: "콘텐츠 품질 미충족" },
-  { label: "운영 정책 미충족", value: "운영 정책 미충족" },
-  { label: "기타", value: "기타" },
-];
-
-interface CreatorReviewDecision {
-  creatorId: string;
-  note: string;
-  reason: string;
-  status: "승인" | "반려";
-}
-
 function formatNumber(value: number) {
   return value.toLocaleString("ko-KR");
 }
@@ -76,7 +60,7 @@ function PlatformLabel({ platform }: { platform: CreatorProfileFixture["platform
 function proposalTone(
   status: ProposalStatus | "미제안",
 ): NonNullable<StatusPillProps["tone"]> {
-  if (status === "발송 완료" || status === "셀렉터스 전환") {
+  if (status === "발송 완료") {
     return "approved";
   }
   if (status === "발송 대기") {
@@ -140,7 +124,7 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
     id: "categories",
     header: "카테고리",
     width: 110,
-    render: (creator) => creator.categories.join(" / "),
+    render: (creator) => creator.category,
   },
   {
     id: "keywords",
@@ -191,6 +175,29 @@ export function CreatorListPage() {
     },
   );
   const [view, setView] = useState<CreatorPoolView>("cards");
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const toggleSelected = (creatorId: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      next.has(creatorId) ? next.delete(creatorId) : next.add(creatorId);
+      return next;
+    });
+  };
+  const toggleAll = () => setSelectedIds((current) => current.size === creators.length ? new Set() : new Set(creators.map((creator) => creator.id)));
+  const sendBatchProposal = () => navigate(`/proposals/new?creators=${[...selectedIds].join(",")}`);
+  const creatorColumns: DenseTableColumn<CreatorFixture>[] = selectionMode
+    ? [
+      {
+        id: "select",
+        header: <input aria-label="전체 선택" checked={creators.length > 0 && selectedIds.size === creators.length} onChange={toggleAll} type="checkbox" />,
+        width: 40,
+        align: "center" as const,
+        render: (creator: CreatorFixture) => <input aria-label={`${creator.name} 선택`} checked={selectedIds.has(creator.id)} onChange={() => toggleSelected(creator.id)} type="checkbox" />,
+      },
+      ...CREATOR_COLUMNS.filter((column) => column.id !== "detail"),
+    ]
+    : CREATOR_COLUMNS;
 
   return (
     <>
@@ -205,37 +212,39 @@ export function CreatorListPage() {
               placeholder="이름 또는 채널명 검색"
             />
           </FilterField>
-          <FilterField htmlFor="creator-followers-min" label="최소 팔로워·구독자">
-            <TextInput
-              id="creator-followers-min"
-              name="followersMin"
-              placeholder="예: 10,000"
-            />
-          </FilterField>
-          <FilterField htmlFor="creator-followers-max" label="최대 팔로워·구독자">
-            <TextInput
-              id="creator-followers-max"
-              name="followersMax"
-              placeholder="예: 100,000"
-            />
-          </FilterField>
+          <div className="fuma-follower-range">
+            <span>팔로워·구독자</span>
+            <div className="fuma-follower-range__inputs">
+              <TextInput id="creator-followers-min" name="followersMin" placeholder="최소" />
+              <i aria-hidden="true" />
+              <TextInput id="creator-followers-max" name="followersMax" placeholder="최대" />
+              <em>명</em>
+            </div>
+          </div>
           <FilterField htmlFor="creator-platform" label="플랫폼">
             <Select id="creator-platform" name="platform" options={PLATFORM_OPTIONS} />
           </FilterField>
         </SearchPanel>
-        <CreatorResultToolbar count={creators.length} onViewChange={setView} view={view} />
+        <CreatorResultToolbar count={creators.length} onBatchProposal={sendBatchProposal} onSelectionModeChange={() => setSelectionMode((current) => !current)} onViewChange={setView} selectedCount={selectedIds.size} selectionMode={selectionMode} view={view} />
         {creators.length === 0 ? (
           <EmptyState title="검색 결과가 없습니다." />
         ) : view === "cards" ? (
-          <CreatorCardGrid creators={creators} />
+          <CreatorCardGrid
+            creators={creators}
+            onOpen={(creator) => navigate(`/creators?detail=${creator.id}`)}
+            onSelect={toggleSelected}
+            selectedIds={selectedIds}
+            selectionMode={selectionMode}
+          />
         ) : (
           <div aria-label="크리에이터 목록" className="fuma-wide-table" role="region">
             <DenseTable
-              columns={CREATOR_COLUMNS}
+              columns={creatorColumns}
               emptyMessage="검색 결과가 없습니다."
-              onRowClick={(creator) => navigate(`/creators?detail=${creator.id}`)}
+              onRowClick={(creator) => selectionMode ? toggleSelected(creator.id) : navigate(`/creators?detail=${creator.id}`)}
               rowKey={(creator) => creator.id}
               rows={creators}
+              selectedRowKeys={[...selectedIds]}
             />
           </div>
         )}
@@ -287,7 +296,7 @@ const CHANNEL_COLUMNS: DenseTableColumn<CreatorProfileFixture>[] = [
 function BasicInformation({ creator }: { creator: CreatorFixture }) {
   const fields = [
     ["ID", creator.id],
-    ["카테고리", creator.categories.join(" / ")],
+    ["카테고리", creator.category],
     ["팔로워·구독자", formatNumber(creator.profile.followers)],
     ["콘텐츠 수", formatNumber(creator.contentCount)],
     ["최근 활동일", creator.recentActivity],
@@ -312,10 +321,8 @@ function BasicInformation({ creator }: { creator: CreatorFixture }) {
 
 function CreatorProfileHero({
   creator,
-  decision,
 }: {
   creator: CreatorFixture;
-  decision: CreatorReviewDecision | null;
 }) {
   const engagement = engagementResultForCreator(creator);
   const audienceLabel = creator.profile.platform === "Instagram" ? "팔로워" : "구독자";
@@ -343,7 +350,7 @@ function CreatorProfileHero({
             <span aria-hidden="true">↗</span>
           </a>
           <div aria-label="카테고리" className="fuma-creator-detail-hero__categories">
-            <strong>{creator.categories.join(" · ")}</strong>
+            <strong>{creator.category}</strong>
             <span aria-hidden="true">/</span>
             <span>{creator.keywords.join("  ")}</span>
           </div>
@@ -365,64 +372,12 @@ function CreatorProfileHero({
           <div><dt>최근 활동</dt><dd>{creator.recentActivity}</dd></div>
         </dl>
       </div>
-      <aside
-        aria-label="크리에이터 승인 결과"
-        className={`fuma-creator-detail-hero__actions fuma-review-summary${decision?.status === "반려" ? " fuma-review-summary--rejected" : ""}`}
-      >
-        <span>승인 상태</span>
-        <StatusPill tone={decision?.status === "승인" ? "approved" : decision?.status === "반려" ? "rejected" : "pending"}>
-          {decision?.status ?? "검토 대기"}
-        </StatusPill>
-        <p>{decision?.note || "검토 의견을 입력하고 승인 또는 반려해 주세요."}</p>
-        {decision?.status === "반려" && decision.reason ? <small>{decision.reason}</small> : null}
-        <a href="#creator-review">승인 처리로 이동 <span aria-hidden="true">↓</span></a>
-        <Link className="fuma-review-summary__proposal" to={proposalHref}>이메일 제안 작성</Link>
+      <aside aria-label="영입 제안" className="fuma-creator-detail-hero__actions fuma-review-summary">
+        <span>영입 제안</span>
+        <StatusPill tone={proposalTone(creator.proposalStatus)}>{creator.proposalStatus}</StatusPill>
+        <p>대표 콘텐츠와 분석 결과를 확인한 뒤 영입 제안을 보낼 수 있습니다.</p>
+        <Link className="fuma-review-summary__proposal" to={proposalHref}>제안 보내기</Link>
       </aside>
-    </section>
-  );
-}
-
-function CreatorReviewSection({
-  creator,
-  onDecision,
-}: {
-  creator: CreatorFixture;
-  onDecision: (decision: CreatorReviewDecision) => void;
-}) {
-  const [note, setNote] = useState("");
-  const [reason, setReason] = useState("");
-
-  const decide = (status: CreatorReviewDecision["status"]) => {
-    onDecision({ creatorId: creator.id, note, reason: status === "반려" ? reason : "", status });
-  };
-
-  return (
-    <section aria-labelledby="creator-review-title" className="fuma-content-section fuma-applicant-review" id="creator-review">
-      <header className="fuma-content-section__header">
-        <h2 id="creator-review-title">크리에이터 승인 처리</h2>
-      </header>
-      <div className="fuma-applicant-review__form">
-        <FormRow label="내부 검토 의견">
-          <textarea
-            aria-label="내부 검토 의견"
-            className="hsas-control fuma-applicant-review__textarea"
-            onChange={(event) => setNote(event.target.value)}
-            value={note}
-          />
-        </FormRow>
-        <FormRow label="반려 사유(내부)">
-          <Select
-            aria-label="반려 사유(내부)"
-            onChange={(event) => setReason(event.target.value)}
-            options={CREATOR_REJECTION_REASON_OPTIONS}
-            value={reason}
-          />
-        </FormRow>
-      </div>
-      <div className="fuma-applicant-section__actions">
-        <Button onClick={() => decide("승인")} variant="primary">승인</Button>
-        <Button onClick={() => decide("반려")} variant="danger">반려</Button>
-      </div>
     </section>
   );
 }
@@ -447,7 +402,11 @@ function CreatorFeaturedPosts({ creator }: { creator: CreatorFixture }) {
             </div>
             <div className="fuma-detail-featured__copy">
               <div><strong>{content.title}</strong><span>{content.mediaType}</span></div>
-              <dl className="fuma-detail-featured__metrics"><div><dt>조회</dt><dd>{formatNumber(content.views)}</dd></div></dl>
+              <dl className="fuma-detail-featured__metrics">
+                <div><dt>조회</dt><dd>{formatNumber(content.views)}</dd></div>
+                <div><dt>평균 반응</dt><dd>{formatNumber(creator.profile.averageReactions)}</dd></div>
+                <div><dt>도달률</dt><dd>{((content.views / creator.profile.followers) * 100).toFixed(1)}%</dd></div>
+              </dl>
             </div>
           </a>
         ))}
@@ -493,16 +452,6 @@ function ProposalMethods({ creator }: { creator: CreatorFixture }) {
               <dt>이메일</dt>
               <dd>{creator.email}</dd>
             </div>
-            <div>
-              <dt>발송 방식</dt>
-              <dd>자동</dd>
-            </div>
-            <div>
-              <dt>자동 발송 상태</dt>
-              <dd>
-                <StatusPill tone="approved">발송 가능</StatusPill>
-              </dd>
-            </div>
           </dl>
         </ProposalMethod>
       </div>
@@ -531,46 +480,26 @@ export function CreatorDetailPage({
       ? { ...fixture, aiReport: PENDING_AI_REPORT }
       : fixture;
   const [activeSection, setActiveSection] = useState("featured");
-  const [reviewDecision, setReviewDecision] = useState<CreatorReviewDecision | null>(null);
-  const currentDecision = reviewDecision?.creatorId === creator?.id ? reviewDecision : null;
 
   return (
     <>
       {embedded ? null : <CreatorListPage />}
-      <SidePanel onClose={onClose ?? (() => navigate("/creators"))} screenCode="CR102" title="크리에이터 상세">
+      <SidePanel onClose={onClose ?? (() => navigate("/creators"))} title="크리에이터 상세">
         <div className="fuma-detail-panel__content fuma-creator-detail-page">
           {creator ? (
             <>
-            <CreatorProfileHero creator={creator} decision={currentDecision} />
+            <CreatorProfileHero creator={creator} />
             <SectionTabs
               activeId={activeSection}
               items={[
                 { id: "featured", label: "대표 콘텐츠" },
-                { id: "basic", label: "기본 정보" },
                 { id: "analysis", label: "크리에이터 분석" },
-                { id: "creator-review", label: "승인 처리" },
                 { id: "proposal", label: "영입 제안" },
               ]}
               onChange={setActiveSection}
             />
             <CreatorFeaturedPosts creator={creator} />
-            <BasicInformation creator={creator} />
-            <section aria-labelledby="creator-channel-title" className="fuma-content-section">
-              <header className="fuma-content-section__header">
-                <h2 id="creator-channel-title">플랫폼별 채널</h2>
-              </header>
-              <DenseTable
-                columns={CHANNEL_COLUMNS}
-                rowKey={(profile) => `${profile.platform}-${profile.handle}`}
-                rows={[creator.profile]}
-              />
-            </section>
             <CreatorAnalysisReport creator={creator} />
-            <CreatorReviewSection
-              creator={creator}
-              key={creator.id}
-              onDecision={setReviewDecision}
-            />
             <ProposalMethods creator={creator} />
             </>
           ) : (
@@ -612,7 +541,7 @@ function ProposalCreatorSummary({ creator }: { creator: CreatorFixture }) {
         </div>
         <div>
           <dt>카테고리</dt>
-          <dd>{creator.categories.join(" · ")}</dd>
+          <dd>{creator.category}</dd>
         </div>
       </dl>
       <p className="fuma-proposal-compose__creator-note">
@@ -624,7 +553,10 @@ function ProposalCreatorSummary({ creator }: { creator: CreatorFixture }) {
 
 export function ProposalComposePage() {
   const [searchParams] = useSearchParams();
-  const creator = CREATORS.find((item) => item.id === searchParams.get("creator"));
+  const creatorIds = searchParams.get("creators")?.split(",") ?? [searchParams.get("creator")];
+  const selectedCreators = CREATORS.filter((item) => creatorIds.includes(item.id));
+  const creator = selectedCreators[0];
+  const isBatchProposal = selectedCreators.length > 1;
 
   if (!creator) {
     return (
@@ -646,15 +578,14 @@ export function ProposalComposePage() {
     <section className="fuma-page fuma-proposal-compose">
       <PageHeader screenCode="CR202" title="크리에이터 제안 작성" />
       <div className="fuma-page__body">
-        <div className="fuma-proposal-compose__intro">
-          <div>
-            <p>CREATOR OUTREACH</p>
-            <h2>{creator.name}님에게 보낼 제안을 작성합니다.</h2>
-          </div>
-          <span>발송 전 내용을 다시 확인해 주세요.</span>
-        </div>
         <div className="fuma-proposal-compose__layout">
-          <ProposalCreatorSummary creator={creator} />
+          {isBatchProposal ? (
+            <aside aria-label="제안 대상" className="fuma-proposal-compose__creator fuma-proposal-compose__creator--batch">
+              <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
+              <strong>{selectedCreators.length}명 선택됨</strong>
+              <ul>{selectedCreators.map((item) => <li key={item.id}>{item.name}<span>{item.profile.handle}</span></li>)}</ul>
+            </aside>
+          ) : <ProposalCreatorSummary creator={creator} />}
           <form aria-label="제안 작성" className="fuma-proposal-compose__form">
             <div className="fuma-proposal-compose__form-heading">
               <h2>제안 내용</h2>
@@ -663,23 +594,17 @@ export function ProposalComposePage() {
             <FormRow label="제안 채널" required>
               <Select aria-label="제안 채널" defaultValue="이메일" disabled options={channelOptions} />
             </FormRow>
-            <FormRow label="발송 방식">
-              <div className="fuma-proposal-compose__delivery">
-                <strong>이메일 자동 발송</strong>
-                <span>{creator.email}</span>
-              </div>
-            </FormRow>
             <FormRow label="제목" required>
               <TextInput
                 aria-label="제목"
-                defaultValue={`더현대Hi 셀렉터스 활동 제안드립니다, ${creator.name}님`}
+                defaultValue={isBatchProposal ? "더현대Hi 셀렉터스 활동 제안드립니다" : `더현대Hi 셀렉터스 활동 제안드립니다, ${creator.name}님`}
               />
             </FormRow>
             <FormRow label="제안 메시지" required>
               <textarea
                 aria-label="제안 메시지"
                 className="hsas-control fuma-proposal-compose__textarea"
-                defaultValue={`${creator.name}님의 콘텐츠를 인상 깊게 보았습니다. 더현대Hi 셀렉터스와 함께할 기회를 제안드립니다.`}
+                defaultValue={isBatchProposal ? "크리에이터님의 콘텐츠를 인상 깊게 보았습니다. 더현대Hi 셀렉터스와 함께할 기회를 제안드립니다." : `${creator.name}님의 콘텐츠를 인상 깊게 보았습니다. 더현대Hi 셀렉터스와 함께할 기회를 제안드립니다.`}
               />
             </FormRow>
             <footer className="fuma-proposal-compose__footer">

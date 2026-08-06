@@ -42,7 +42,7 @@ function SearchActions() {
 
 function paymentTone(status: PaymentStatus): NonNullable<StatusPillProps["tone"]> {
   if (status === "지급 완료") return "approved";
-  if (status === "지급 대기") return "pending";
+  if (status === "확정") return "pending";
   return "neutral";
 }
 
@@ -50,19 +50,19 @@ function SettlementFilters() {
   return (
     <div className="fuma-operations-search fuma-settlement-search">
       <SearchPanel actions={<SearchActions />}>
-        <FilterField htmlFor="settlement-month" label="귀속월">
+        <FilterField htmlFor="settlement-month" label="정산월">
           <TextInput
-            aria-label="귀속월"
+            aria-label="정산월"
             defaultValue="2026-08"
             id="settlement-month"
             type="month"
           />
         </FilterField>
-        <FilterField htmlFor="settlement-selector" label="셀렉터스">
+        <FilterField htmlFor="settlement-selector" label="ID 또는 이름">
           <TextInput
-            aria-label="셀렉터스"
+            aria-label="ID 또는 이름"
             id="settlement-selector"
-            placeholder="셀렉터스 ID 또는 이름 검색"
+            placeholder="ID 또는 이름 검색"
           />
         </FilterField>
         <FilterField htmlFor="settlement-confirmed" label="확정 상태">
@@ -76,7 +76,7 @@ function SettlementFilters() {
           <Select
             aria-label="지급 상태"
             id="settlement-payment"
-            options={options(["전체", "지급 전", "지급 대기", "지급 완료"])}
+            options={options(["전체", "대기", "확정", "지급 완료"])}
           />
         </FilterField>
       </SearchPanel>
@@ -85,16 +85,16 @@ function SettlementFilters() {
 }
 
 const SETTLEMENT_COLUMNS: DenseTableColumn<SettlementFixture>[] = [
-  { key: "attributionMonth", header: "귀속월", width: 92, align: "center" },
+  { key: "attributionMonth", header: "정산월", width: 92, align: "center" },
+  { key: "selectorId", header: "셀렉터스 ID", width: 104, align: "center" },
   {
     id: "selector",
     header: "셀렉터스",
-    width: 150,
+    width: 118,
     render: (settlement) => (
       <div className="fuma-operation-person">
         <span className="hsas-visually-hidden">{settlement.id}</span>
         <strong>{settlement.selectorName}</strong>
-        <span>{settlement.selectorId}</span>
       </div>
     ),
   },
@@ -142,7 +142,6 @@ export function SettlementManagementPage() {
       <PageHeader screenCode="ST101" title="정산 지급 관리" />
       <div className="fuma-page__body">
         <SettlementFilters />
-        <p className="fuma-operations-guide">토스 페이먼츠 연동 후순위</p>
         <div className="fuma-result-toolbar">
           <strong>정산 지급 목록</strong>
           <span>총 {SETTLEMENTS.length}건</span>

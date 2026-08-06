@@ -1,4 +1,3 @@
-import { RotateCw } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { findRequirementCoverage } from "../../app/requirementRows";
 
@@ -19,12 +18,6 @@ export function PageHeader({ title, screenCode }: PageHeaderProps) {
       <div className="hsas-page-header__identity">
         <h1 className="hsas-page-header__title">{title}</h1>
         <span className="hsas-page-header__code">{screenCode}</span>
-      </div>
-      <div className="hsas-page-header__actions">
-        <button type="button" className="hsas-page-header__refresh">
-          <RotateCw aria-hidden="true" />
-          새로고침
-        </button>
       </div>
     </header>
   );

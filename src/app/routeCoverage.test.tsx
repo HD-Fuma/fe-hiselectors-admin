@@ -186,15 +186,15 @@ const SEMANTIC_ROUTE_CONTRACTS = [
   {
     route: "/settlements",
     expectedControls: [
-      { name: "귀속월" },
-      { role: "textbox", name: "셀렉터스" },
+      { name: "정산월" },
+      { role: "textbox", name: "ID 또는 이름" },
       { role: "combobox", name: "확정 상태" },
       { role: "combobox", name: "지급 상태" },
     ],
     expectedTables: [
       {
         region: "정산 지급 목록",
-        columns: ["귀속월", "셀렉터스", "예상액", "확정액", "확정 상태", "지급 상태"],
+        columns: ["정산월", "셀렉터스 ID", "셀렉터스", "예상액", "확정액", "확정 상태", "지급 상태"],
       },
     ],
   },

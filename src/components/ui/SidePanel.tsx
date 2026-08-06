@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 export interface SidePanelProps {
   children: ReactNode;
   onClose: () => void;
-  screenCode: string;
+  screenCode?: string;
   title: string;
 }
 
@@ -85,7 +85,7 @@ export function SidePanel({ children, onClose, screenCode, title }: SidePanelPro
       >
         <header className="fuma-detail-panel__header">
           <div>
-            <span>{screenCode}</span>
+            {screenCode ? <span>{screenCode}</span> : null}
             <h2 id={titleId}>{title}</h2>
           </div>
           <button aria-label="상세 패널 닫기" className="fuma-detail-panel__close" type="button" onClick={onClose}>

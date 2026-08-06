@@ -359,7 +359,7 @@ function ApplicantReviewHero({
             <span aria-hidden="true">↗</span>
           </a>
           <div aria-label="카테고리와 키워드" className="fuma-creator-detail-hero__categories">
-            <strong>{analysis.categories.join(" · ")}</strong>
+            <strong>{analysis.category}</strong>
             <span aria-hidden="true">/</span>
             <span>{analysis.keywords.slice(0, 3).map((keyword) => `#${keyword.label}`).join("  ")}</span>
           </div>
@@ -577,7 +577,6 @@ export function ApplicantDetailPage({
             <ApplicantReviewHero applicant={applicant} decision={currentDecision} />
             <SectionTabs activeId={activeSection} items={DETAIL_TABS} onChange={setActiveSection} />
             <ApplicantFeaturedContents applicant={applicant} />
-            <BasicInformation applicant={applicant} />
             <SnsMetrics applicant={applicant} />
             <ApplicantAutomaticReview applicant={applicant} />
             <ApplicantAnalysisReport applicant={applicant} />

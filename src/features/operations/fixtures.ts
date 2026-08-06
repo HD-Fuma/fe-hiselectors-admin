@@ -1,5 +1,5 @@
 export type ConfirmationStatus = "미확정" | "확정";
-export type PaymentStatus = "지급 전" | "지급 대기" | "지급 완료";
+export type PaymentStatus = "대기" | "확정" | "지급 완료";
 
 export interface SettlementFixture {
   id: string;
@@ -21,7 +21,7 @@ export const SETTLEMENTS: readonly SettlementFixture[] = [
     expectedAmount: 486000,
     confirmedAmount: 486000,
     confirmationStatus: "미확정",
-    paymentStatus: "지급 전",
+    paymentStatus: "대기",
   },
   {
     id: "st-002",
@@ -31,7 +31,7 @@ export const SETTLEMENTS: readonly SettlementFixture[] = [
     expectedAmount: 352000,
     confirmedAmount: 340000,
     confirmationStatus: "미확정",
-    paymentStatus: "지급 전",
+    paymentStatus: "확정",
   },
   {
     id: "st-003",
@@ -41,7 +41,7 @@ export const SETTLEMENTS: readonly SettlementFixture[] = [
     expectedAmount: 275000,
     confirmedAmount: 275000,
     confirmationStatus: "확정",
-    paymentStatus: "지급 대기",
+    paymentStatus: "대기",
   },
   {
     id: "st-004",

@@ -52,8 +52,13 @@ export interface ApplicantFeaturedContent {
   views: number;
 }
 
+export const APPLICANT_CATEGORIES = [
+  "뷰티", "패션", "푸드", "리빙/라이프", "유아동/패밀리", "컬처/서비스", "스포츠/레저", "여행", "반려생활", "아울렛",
+] as const;
+export type ApplicantCategory = (typeof APPLICANT_CATEGORIES)[number];
+
 export interface ApplicantAnalysisReport {
-  categories: string[];
+  category: ApplicantCategory;
   collaborationBrands: string[];
   contentFormats: Array<{ label: string; count: number }>;
   contentStyle: string;
@@ -265,7 +270,7 @@ const APPLICANT_ANALYSIS: Record<string, ApplicantAnalysisReport> = {
     engagementRate: 2.5,
     contentFormats: [{ label: "릴스", count: 15 }, { label: "이미지 포함 피드", count: 10 }, { label: "동영상 포함 피드", count: 4 }],
     summary: "실사용 뷰티와 데일리 패션을 균형 있게 소개하는 정보 전달형 지원자",
-    categories: ["뷰티", "패션"],
+    category: "뷰티",
     keywords: [{ label: "톤메이크업", percentage: 38 }, { label: "데일리룩", percentage: 34 }, { label: "뷰티리뷰", percentage: 28 }],
     collaborationBrands: ["올리브영", "무신사", "A브랜드"],
     contentStyle: "리뷰 · 하울 · 튜토리얼",
@@ -284,7 +289,7 @@ const APPLICANT_ANALYSIS: Record<string, ApplicantAnalysisReport> = {
     engagementRate: 2.6,
     contentFormats: [{ label: "숏폼", count: 17 }, { label: "롱폼", count: 6 }],
     summary: "생활 실험과 홈케어 정보를 꾸준히 전달하는 실용형 리빙 지원자",
-    categories: ["리빙/라이프", "푸드"],
+    category: "리빙/라이프",
     keywords: [{ label: "홈케어", percentage: 42 }, { label: "살림팁", percentage: 31 }, { label: "집밥", percentage: 27 }],
     collaborationBrands: ["오늘의집", "락앤락"],
     contentStyle: "브이로그 · 사용법 · 비교 리뷰",
@@ -303,7 +308,7 @@ const APPLICANT_ANALYSIS: Record<string, ApplicantAnalysisReport> = {
     engagementRate: 2.1,
     contentFormats: [{ label: "이미지 포함 피드", count: 2 }],
     summary: "최근 활동과 공개 콘텐츠 수가 최소 심사 기준에 미치지 못한 지원자",
-    categories: ["패션"],
+    category: "패션",
     keywords: [{ label: "데일리", percentage: 60 }, { label: "카페", percentage: 40 }],
     collaborationBrands: [],
     contentStyle: "일상 기록",
@@ -322,7 +327,7 @@ const APPLICANT_ANALYSIS: Record<string, ApplicantAnalysisReport> = {
     engagementRate: 3.3,
     contentFormats: [{ label: "릴스", count: 9 }, { label: "이미지 포함 피드", count: 8 }],
     summary: "패션 착장 중심의 콘텐츠를 운영하나 현 기수 방향과의 적합도는 낮은 지원자",
-    categories: ["패션"],
+    category: "패션",
     keywords: [{ label: "출근룩", percentage: 45 }, { label: "스타일링", percentage: 35 }, { label: "하울", percentage: 20 }],
     collaborationBrands: ["W컨셉"],
     contentStyle: "룩북 · 하울",

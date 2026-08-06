@@ -54,7 +54,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     rows: [5, 6, 7],
     expectedTexts: [
       "기본 정보",
-      "크리에이터 분석",
+      "크리에이터 분석 리포트",
       "정량 분석",
       "ER (Engagement Rate)",
       "크리에이터 풀 TopN 선정",
@@ -83,7 +83,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
   {
     route: "/cohorts",
     rows: [14],
-    expectedTexts: ["기수명", "모집 기간", "활동 기간", "모집 상태", "참여자 수"],
+    expectedTexts: ["기수명", "활동 기간", "모집 상태", "참여자 수"],
     expectedActions: ["기수 생성"],
     primaryRole: { role: "heading", name: "셀렉터스 기수 관리" },
   },
@@ -131,7 +131,6 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     route: "/selectors/sl-001",
     rows: [16],
     expectedTexts: ["셀렉터스 정보", "SNS 채널", "콘텐츠 수", "최근 활동일", "구매 전환 수"],
-    expectedActions: ["새로고침"],
     primaryRole: { role: "heading", name: "셀렉터스 상세" },
   },
   {
@@ -339,7 +338,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
         columns: ["구매 전환 수", "조회 수", "좋아요", "댓글"],
       },
     ],
-    primaryRole: { role: "heading", name: "크리에이터 영향력 분석" },
+    primaryRole: { role: "heading", name: "크리에이터 분석 리포트" },
   },
   {
     route: "/performance/contents",
@@ -363,7 +362,8 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     route: "/settlements",
     rows: [28],
     expectedTexts: [
-      "귀속월",
+      "정산월",
+      "셀렉터스 ID",
       "셀렉터스",
       "예상액",
       "확정액",
@@ -372,8 +372,8 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     ],
     expectedActions: ["조회", "초기화"],
     expectedControls: [
-      { name: "귀속월" },
-      { role: "textbox", name: "셀렉터스" },
+      { name: "정산월" },
+      { role: "textbox", name: "ID 또는 이름" },
       { role: "combobox", name: "확정 상태" },
       { role: "combobox", name: "지급 상태" },
     ],
@@ -381,7 +381,8 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
       {
         region: "정산 지급 목록",
         columns: [
-          "귀속월",
+          "정산월",
+          "셀렉터스 ID",
           "셀렉터스",
           "예상액",
           "확정액",
