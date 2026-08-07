@@ -131,6 +131,7 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     route: "/selectors/sl-001",
     rows: [16],
     expectedTexts: ["셀렉터스 정보", "SNS 채널", "콘텐츠 수", "최근 활동일", "구매 전환 수"],
+    expectedActions: ["상세 패널 닫기"],
     primaryRole: { role: "heading", name: "셀렉터스 상세" },
   },
   {

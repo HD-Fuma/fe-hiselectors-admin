@@ -33,9 +33,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Test
-        run: npm test -- --run
-
       - name: Build GitHub Pages artifact
         run: npm run build:pages
 

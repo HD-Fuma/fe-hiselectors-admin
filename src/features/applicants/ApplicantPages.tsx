@@ -307,7 +307,7 @@ function KeyValueSection({ fields, id, sectionId, title }: KeyValueSectionProps)
   );
 }
 
-function BasicInformation({ applicant }: { applicant: ApplicantFixture }) {
+export function BasicInformation({ applicant }: { applicant: ApplicantFixture }) {
   return (
     <KeyValueSection
       fields={[

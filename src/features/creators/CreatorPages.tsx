@@ -262,38 +262,7 @@ export function CreatorListPage() {
   );
 }
 
-const CHANNEL_COLUMNS: DenseTableColumn<CreatorProfileFixture>[] = [
-  {
-    id: "platform",
-    header: "플랫폼",
-    width: 120,
-    render: (channel) => <PlatformLabel platform={channel.platform} />,
-  },
-  { key: "handle", header: "채널" },
-  {
-    key: "followers",
-    header: "팔로워·구독자",
-    width: 140,
-    align: "right",
-    render: (profile) => formatNumber(profile.followers),
-  },
-  {
-    key: "averageViews",
-    header: "평균 조회 수",
-    width: 140,
-    align: "right",
-    render: (profile) => formatNumber(profile.averageViews),
-  },
-  {
-    key: "averageReactions",
-    header: "평균 반응 수",
-    width: 140,
-    align: "right",
-    render: (profile) => formatNumber(profile.averageReactions),
-  },
-];
-
-function BasicInformation({ creator }: { creator: CreatorFixture }) {
+export function BasicInformation({ creator }: { creator: CreatorFixture }) {
   const fields = [
     ["ID", creator.id],
     ["카테고리", creator.category],
