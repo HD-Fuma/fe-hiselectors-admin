@@ -52,7 +52,7 @@
 }
 
 .partners-login__brand-partners {
-  color: #179d89;
+  color: #1e9d8b;
   font-weight: 600;
   letter-spacing: -0.3px;
 }
@@ -107,7 +107,7 @@
 }
 
 .partners-login__field:focus-within {
-  border-bottom-color: #179d89;
+  border-bottom-color: #1e9d8b;
 }
 
 .partners-login__remember {
@@ -126,7 +126,7 @@
   width: 14px;
   height: 14px;
   margin: 0;
-  accent-color: #1a9b87;
+  accent-color: #1e9d8b;
 }
 
 .partners-login__submit {
@@ -135,7 +135,7 @@
   margin-top: 31px;
   border: 0;
   border-radius: 8px;
-  background: #209e8e;
+  background: #1e9d8b;
   color: #ffffff;
   cursor: pointer;
   font-size: 18px;
@@ -144,7 +144,7 @@
 }
 
 .partners-login__submit:hover {
-  background: #168f7e;
+  background: #1e9d8b;
 }
 
 .partners-login__account-links {

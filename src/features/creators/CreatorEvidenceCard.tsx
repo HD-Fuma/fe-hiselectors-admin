@@ -21,19 +21,21 @@ export function proposalAction(creator: CreatorFixture) {
 }
 
 export function CreatorEvidenceCard({
+  actionFor = proposalAction,
   creator,
   onOpen = () => undefined,
   onSelect = () => undefined,
   selected = false,
   selectionMode = false,
 }: {
+  actionFor?: (creator: CreatorFixture) => { label: string; to: string };
   creator: CreatorFixture;
   onOpen?: (creator: CreatorFixture) => void;
   onSelect?: (creatorId: string) => void;
   selected?: boolean;
   selectionMode?: boolean;
 }) {
-  const action = proposalAction(creator);
+  const action = actionFor(creator);
   const isInstagram = creator.profile.platform === "Instagram";
   const engagement = engagementResultForCreator(creator);
   const audienceLabel = isInstagram ? "팔로워" : "구독자";

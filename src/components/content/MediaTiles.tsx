@@ -32,7 +32,7 @@ function MediaSilhouette({ index, kind }: { index: number; kind: string }) {
       {isVideo ? (
         <g>
           <circle cx="65" cy="52" fill="rgba(255,255,255,.9)" r="15" />
-          <path d="m61 44 11 8-11 8V44Z" fill="#168f78" />
+          <path d="m61 44 11 8-11 8V44Z" fill="#1e9d8b" />
         </g>
       ) : null}
     </svg>

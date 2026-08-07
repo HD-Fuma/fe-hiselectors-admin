@@ -1,38 +1,38 @@
-import type { ReactNode } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useState, type ReactNode } from "react";
+import { Link, useParams } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowLeft,
-  AudioLines,
   CheckCircle2,
   Clock3,
   ExternalLink,
-  ScanText,
+  FileText,
+  Heart,
+  Images,
+  MessageCircle,
+  Play,
+  Send,
+  ShieldCheck,
 } from "lucide-react";
 import "../../styles/content-review.css";
-import { MediaTiles } from "../../components/content/MediaTiles";
 import { PageHeader } from "../../components/shell/PageHeader";
-import { Button, Checkbox, Select, TextInput } from "../../components/ui/Controls";
+import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Pagination } from "../../components/ui/Pagination";
 import { SearchPanel } from "../../components/ui/SearchPanel";
+import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import {
   CONTENT_REVIEWS,
   REVIEW_TYPE_LABELS,
   findContentReviewFixture,
-  type ContentAnnotation,
   type ContentReviewFixture,
+  type ContentReviewSignal,
   type ContentSnapshot,
-  type ProcessingState,
   type ReviewStatus,
 } from "./fixtures";
 
-const COHORT_OPTIONS = ["전체", "3기", "2기"].map((label) => ({
-  label,
-  value: label === "전체" ? "" : label,
-}));
 const REVIEW_TYPE_OPTIONS = ["전체", "신규 콘텐츠", "위반 수정본", "일반 수정본"].map(
   (label) => ({ label, value: label === "전체" ? "" : label }),
 );
@@ -43,14 +43,6 @@ const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube"].map((label) => ({
 const REVIEW_STATUS_OPTIONS = ["전체", "검수 대기", "수정 요청", "승인", "위반 확정"].map(
   (label) => ({ label, value: label === "전체" ? "" : label }),
 );
-const PROCESSING_OPTIONS = ["전체", "미처리", "안내 대기", "처리 완료"].map((label) => ({
-  label,
-  value: label === "전체" ? "" : label,
-}));
-const VIOLATION_FILTER_OPTIONS = ["전체", "위반 콘텐츠", "일반 콘텐츠"].map((label) => ({
-  label,
-  value: label === "전체" ? "" : label,
-}));
 
 interface FilterFieldProps {
   children: ReactNode;
@@ -82,12 +74,6 @@ function reviewStatusTone(status: ReviewStatus): NonNullable<StatusPillProps["to
   return "rejected";
 }
 
-function processingTone(status: ProcessingState): NonNullable<StatusPillProps["tone"]> {
-  if (status === "처리 완료") return "approved";
-  if (status === "안내 대기") return "pending";
-  return "neutral";
-}
-
 function QueueFilters() {
   return (
     <SearchPanel actions={<SearchActions />}>
@@ -98,9 +84,6 @@ function QueueFilters() {
           placeholder="콘텐츠 ID 또는 작성자"
         />
       </FilterField>
-      <FilterField htmlFor="content-review-cohort" label="기수">
-        <Select id="content-review-cohort" options={COHORT_OPTIONS} />
-      </FilterField>
       <FilterField htmlFor="content-review-type" label="검수 유형">
         <Select id="content-review-type" options={REVIEW_TYPE_OPTIONS} />
       </FilterField>
@@ -110,62 +93,37 @@ function QueueFilters() {
       <FilterField htmlFor="content-review-status" label="검수 상태">
         <Select id="content-review-status" options={REVIEW_STATUS_OPTIONS} />
       </FilterField>
-      <FilterField htmlFor="content-review-violation" label="위반 필터">
-        <Select id="content-review-violation" options={VIOLATION_FILTER_OPTIONS} />
-      </FilterField>
-      <FilterField htmlFor="content-review-processing" label="처리 상태">
-        <Select id="content-review-processing" options={PROCESSING_OPTIONS} />
-      </FilterField>
     </SearchPanel>
   );
 }
 
-function queueColumns(noSelection: boolean): DenseTableColumn<ContentReviewFixture>[] {
+function queueColumns(): DenseTableColumn<ContentReviewFixture>[] {
   return [
-    {
-      id: "selection",
-      header: "선택",
-      width: 46,
-      align: "center",
-      render: (content) => (
-        <Checkbox
-          defaultChecked={!noSelection && content.id === "ct-001"}
-          label={<span className="hsas-visually-hidden">{content.id} 선택</span>}
-        />
-      ),
-    },
-    { key: "id", header: "콘텐츠 ID", width: 76 },
+    { key: "id", header: "콘텐츠 ID", width: 96 },
     {
       key: "reviewType",
       header: "검수 유형",
-      width: 92,
+      width: 120,
       render: (content) => REVIEW_TYPE_LABELS[content.reviewType],
     },
-    { key: "author", header: "작성자", width: 72 },
-    { key: "cohort", header: "기수", width: 50, align: "center" },
-    { key: "sourcePlatform", header: "플랫폼", width: 82, align: "center" },
-    { key: "submittedAt", header: "제출 시각", width: 126, align: "center" },
+    { key: "author", header: "작성자", width: 100 },
+    { key: "sourcePlatform", header: "플랫폼", width: 100, align: "center" },
+    { key: "submittedAt", header: "수집 시각", width: 160, align: "center" },
     {
       key: "aiStatus",
-      header: "AI 상태",
-      width: 72,
+      header: "리포트 상태",
+      width: 120,
       align: "center",
       render: (content) => (
         <StatusPill tone={content.aiStatus === "ready" ? "approved" : "pending"}>
-          {content.aiStatus === "ready" ? "생성완료" : "생성 대기"}
+          {content.aiStatus === "ready" ? "생성 완료" : "생성 대기"}
         </StatusPill>
       ),
     },
     {
-      key: "violationType",
-      header: "위반 유형",
-      width: 132,
-      render: (content) => content.violationType ?? "-",
-    },
-    {
       key: "reviewStatus",
       header: "검수 상태",
-      width: 78,
+      width: 110,
       align: "center",
       render: (content) => (
         <StatusPill tone={reviewStatusTone(content.reviewStatus)}>
@@ -173,39 +131,11 @@ function queueColumns(noSelection: boolean): DenseTableColumn<ContentReviewFixtu
         </StatusPill>
       ),
     },
-    {
-      key: "processingState",
-      header: "처리 상태",
-      width: 78,
-      align: "center",
-      render: (content) => (
-        <StatusPill tone={processingTone(content.processingState)}>
-          {content.processingState}
-        </StatusPill>
-      ),
-    },
-    {
-      id: "detail",
-      header: "상세",
-      width: 58,
-      align: "center",
-      render: (content) => (
-        <Link
-          aria-label={`${content.id} 상세 보기`}
-          className="fuma-table-action fuma-table-link"
-          to={`/content/reviews/${content.id}`}
-        >
-          보기
-        </Link>
-      ),
-    },
   ];
 }
 
 export function ContentReviewListPage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const noSelection = searchParams.get("fixture") === "no-selection";
+  const [selectedContent, setSelectedContent] = useState<ContentReviewFixture | null>(null);
 
   return (
     <section className="fuma-page" data-visual-contract="content-review">
@@ -215,66 +145,51 @@ export function ContentReviewListPage() {
         <div className="fuma-result-toolbar">
           <strong>콘텐츠 검수 대기열</strong>
           <span>총 {CONTENT_REVIEWS.length}건</span>
-          <div className="fuma-result-toolbar__actions">
-            <span>{noSelection ? "선택된 콘텐츠가 없습니다." : "선택 1건"}</span>
-            <Button disabled={noSelection} variant="primary">
-              선택 콘텐츠 검수
-            </Button>
-          </div>
         </div>
-        {noSelection ? (
-          <p className="fuma-content-selection-guide">검수할 콘텐츠를 선택해 주세요.</p>
-        ) : null}
         <div
           aria-label="콘텐츠 검수 대기열"
           className="fuma-wide-table fuma-content-review-table"
-          key={noSelection ? "no-selection" : "default-selection"}
           role="region"
         >
           <DenseTable
-            columns={queueColumns(noSelection)}
-            onRowClick={(content) => navigate(`/content/reviews/${content.id}`)}
+            columns={queueColumns()}
+            onRowClick={setSelectedContent}
             rowKey={(content) => content.id}
             rows={[...CONTENT_REVIEWS]}
           />
         </div>
         <Pagination page={1} pageSize={20} totalPages={1} />
       </div>
+      {selectedContent ? (
+        <SidePanel onClose={() => setSelectedContent(null)} title="콘텐츠 검수 상세">
+          <ContentReviewDetailContent content={selectedContent} />
+        </SidePanel>
+      ) : null}
     </section>
   );
 }
 
 function ReviewCaseHeader({ content }: { content: ContentReviewFixture }) {
-  const facts: Array<[string, ReactNode]> = [
+  const facts = [
     ["콘텐츠 ID", content.id],
     ["작성자", content.author],
-    ["기수", content.cohort],
     ["플랫폼", content.sourcePlatform],
-    ["제출 시각", content.submittedAt],
-    ["AI 상태", content.aiStatus === "ready" ? "생성완료" : "생성 대기"],
-    ["위반 유형", content.violationType ?? "-"],
+    ["수집 시각", content.submittedAt],
+    ["콘텐츠 버전", content.currentSnapshot.label],
+    ["리포트", content.aiStatus === "ready" ? "생성 완료" : "생성 대기"],
   ];
 
   return (
-    <section aria-label="기본 정보" className="fuma-review-case">
-      <div className="fuma-review-case__identity">
-        <span>{content.sourcePlatform} · {content.id}</span>
-        <h2>{content.author} · 콘텐츠 검수</h2>
-        <p>{content.cohort} 셀렉터스가 제출한 SNS 원문과 자동 추출 근거를 확인합니다.</p>
+    <section aria-label="기본 정보" className="fuma-text-review-summary">
+      <div className="fuma-text-review-summary__title">
+        <span>{REVIEW_TYPE_LABELS[content.reviewType]}</span>
+        <h3>{content.author}의 콘텐츠</h3>
+        <p>{content.currentSnapshot.capturedAt} 기준 수집본</p>
       </div>
-      <div aria-label="검수 상태 요약" className="fuma-review-case__status" role="group">
-        <span>검수 유형</span>
-        <StatusPill tone="neutral">{REVIEW_TYPE_LABELS[content.reviewType]}</StatusPill>
-        <span>검수 상태</span>
-        <StatusPill tone={reviewStatusTone(content.reviewStatus)}>
-          {content.reviewStatus}
-        </StatusPill>
-        <span>처리 상태</span>
-        <StatusPill tone={processingTone(content.processingState)}>
-          {content.processingState}
-        </StatusPill>
+      <div className="fuma-text-review-summary__status">
+        <StatusPill tone={reviewStatusTone(content.reviewStatus)}>{content.reviewStatus}</StatusPill>
       </div>
-      <dl className="fuma-review-case__facts">
+      <dl className="fuma-text-review-summary__facts">
         {facts.map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>
@@ -286,316 +201,279 @@ function ReviewCaseHeader({ content }: { content: ContentReviewFixture }) {
   );
 }
 
-interface SnapshotPanelProps {
-  ariaLabel: string;
+function renderHighlightedText(text: string, quotes: string[]) {
+  const matches = [...new Set(quotes)]
+    .filter((quote) => quote.length > 0 && text.includes(quote))
+    .sort((left, right) => right.length - left.length);
+  if (matches.length === 0) return text;
+
+  const escaped = matches.map((quote) => quote.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const matcher = new RegExp(`(${escaped.join("|")})`, "g");
+  return text.split(matcher).map((part, index) =>
+    matches.includes(part) ? <mark key={`${part}-${index}`}>{part}</mark> : part,
+  );
+}
+
+interface SocialSnapshotProps {
   author: string;
+  highlightQuotes: string[];
   platform: string;
   snapshot: ContentSnapshot;
+  version: "before" | "after";
 }
 
-type NumberedAnnotation = ContentAnnotation & { ordinal: number };
-
-function getActiveAnnotations(snapshot: ContentSnapshot): NumberedAnnotation[] {
-  return (snapshot.annotations ?? [])
-    .filter((annotation) => annotation.state === "active")
-    .map((annotation, index) => ({ ...annotation, ordinal: index + 1 }));
-}
-
-function findOccurrence(text: string, quote: string, occurrence: number) {
-  if (!quote) return -1;
-
-  let start = -1;
-  let cursor = 0;
-  for (let index = 0; index < Math.max(1, occurrence); index += 1) {
-    start = text.indexOf(quote, cursor);
-    if (start < 0) return -1;
-    cursor = start + quote.length;
-  }
-  return start;
-}
-
-function annotationDescriptionId(annotation: NumberedAnnotation) {
-  return `fuma-review-annotation-${annotation.id}`;
-}
-
-function renderAnnotatedText(text: string, annotations: NumberedAnnotation[]) {
-  const ranges = annotations
-    .flatMap((annotation) => {
-      if (annotation.target.kind !== "text") return [];
-      const start = findOccurrence(
-        text,
-        annotation.target.quote,
-        annotation.target.occurrence,
-      );
-      return start < 0
-        ? []
-        : [{
-            annotation,
-            end: start + annotation.target.quote.length,
-            start,
-          }];
-    })
-    .sort((left, right) => left.start - right.start);
-
-  if (ranges.length === 0) return text;
-
-  const result: ReactNode[] = [];
-  let cursor = 0;
-  for (const range of ranges) {
-    if (range.start < cursor) continue;
-    if (range.start > cursor) result.push(text.slice(cursor, range.start));
-    const descriptionId = annotationDescriptionId(range.annotation);
-    result.push(
-      <mark
-        aria-describedby={descriptionId}
-        className="fuma-review-text-violation"
-        data-ordinal={range.annotation.ordinal}
-        data-severity={range.annotation.severity}
-        key={range.annotation.id}
-      >
-        {text.slice(range.start, range.end)}
-      </mark>,
-    );
-    cursor = range.end;
-  }
-  if (cursor < text.length) result.push(text.slice(cursor));
-  return result;
-}
-
-function AnnotationNotes({ annotations }: { annotations: NumberedAnnotation[] }) {
-  if (annotations.length === 0) return null;
+function SocialSnapshot({ author, highlightQuotes, platform, snapshot, version }: SocialSnapshotProps) {
+  const mainMedia = snapshot.mediaUrls[0];
+  const hasVideo = snapshot.mediaKinds.some((kind) => kind === "동영상");
 
   return (
-    <div className="fuma-review-annotation-notes">
-      {annotations.map((annotation) => (
-        <aside
-          aria-label={`위반 안내 ${annotation.ordinal}`}
-          className="fuma-review-annotation-note"
-          data-severity={annotation.severity}
-          key={annotation.id}
-          role="note"
-        >
-          <header>
-            <span aria-hidden="true" className="fuma-review-annotation-note__number">
-              {annotation.ordinal}
-            </span>
-            <div>
-              <strong>{annotation.title}</strong>
-              <span>{annotation.location}</span>
-            </div>
-          </header>
-          <p>{annotation.reason}</p>
-          <div className="fuma-review-annotation-note__guidance">
-            <strong>수정 안내</strong>
-            <p>{annotation.guidance}</p>
-          </div>
-          <span className="fuma-review-annotation-note__source">{annotation.source}</span>
-        </aside>
-      ))}
-    </div>
-  );
-}
-
-function SnapshotPanel({ ariaLabel, author, platform, snapshot }: SnapshotPanelProps) {
-  const activeAnnotations = getActiveAnnotations(snapshot);
-  const mediaAnnotations = activeAnnotations.filter(
-    (annotation) => annotation.target.kind === "media",
-  );
-  const textAnnotations = activeAnnotations.filter(
-    (annotation) => annotation.target.kind === "text",
-  );
-  const urlAnnotations = activeAnnotations.filter(
-    (annotation) => annotation.target.kind === "url",
-  );
-
-  return (
-    <section aria-label={ariaLabel} className="fuma-review-post">
-      <header className="fuma-review-post__version">
+    <article
+      aria-label={version === "before" ? "이전 콘텐츠" : "현재 콘텐츠"}
+      className="fuma-social-snapshot"
+      data-version={version}
+    >
+      <div className="fuma-social-snapshot__version">
         <div>
-          <span>{ariaLabel}</span>
+          <span>{version === "before" ? "BEFORE" : "AFTER"}</span>
           <strong>{snapshot.label}</strong>
         </div>
-        <time dateTime={snapshot.capturedAt.replace(" ", "T")}>
-          {snapshot.capturedAt}
-        </time>
-      </header>
-      <article
-        className={`fuma-review-post__preview${activeAnnotations.length > 0 ? " fuma-review-post__preview--annotated" : ""}`}
-      >
-        <header className="fuma-review-post__profile">
-          <span aria-hidden="true" className="fuma-review-post__avatar">
-            {author.slice(0, 1)}
-          </span>
-          <div>
-            <strong>{author}</strong>
-            <span>{platform} · 수집 원문</span>
-          </div>
-          <span className="fuma-review-post__platform">{platform}</span>
+        <time>{snapshot.capturedAt}</time>
+      </div>
+      <div className="fuma-social-snapshot__post">
+        <header className="fuma-social-snapshot__profile">
+          <span aria-hidden="true" className="fuma-social-snapshot__avatar">{author.slice(0, 1)}</span>
+          <div><strong>{author}</strong><span>{platform}</span></div>
+          <span>•••</span>
         </header>
-        <div className="fuma-review-post__content-row">
-          <MediaTiles
-            count={snapshot.mediaCount}
-            kinds={snapshot.mediaKinds}
-            label={snapshot.label}
-            markers={mediaAnnotations.flatMap((annotation) =>
-              annotation.target.kind === "media"
-                ? [{
-                    box: annotation.target.box,
-                    mediaIndex: annotation.target.mediaIndex,
-                    ordinal: annotation.ordinal,
-                    severity: annotation.severity,
-                  }]
-                : [],
-            )}
-            urls={snapshot.mediaUrls}
-          />
-          <AnnotationNotes annotations={mediaAnnotations} />
+        <div className="fuma-social-snapshot__media">
+          {mainMedia ? (
+            <img alt={`${author} ${snapshot.label} 원본 미디어`} src={mainMedia} />
+          ) : (
+            <div className="fuma-social-snapshot__placeholder"><Images aria-hidden="true" size={28} /></div>
+          )}
+          {hasVideo ? <span aria-label="동영상" className="fuma-social-snapshot__play"><Play aria-hidden="true" size={18} /></span> : null}
+          {snapshot.mediaCount > 1 ? <span className="fuma-social-snapshot__count">1 / {snapshot.mediaCount}</span> : null}
         </div>
-        <div className="fuma-review-post__content-row">
-          <div className="fuma-review-post__caption">
-            <span>게시물 본문</span>
-            <section aria-label={`${snapshot.label} 본문`} className="fuma-editor-frame">
-              <p className="fuma-editor-frame__text">
-                {renderAnnotatedText(snapshot.text, textAnnotations)}
-              </p>
-            </section>
+        {snapshot.mediaUrls.length > 1 ? (
+          <div className="fuma-social-snapshot__thumbs">
+            {snapshot.mediaUrls.slice(1).map((url, index) => (
+              <img alt={`${snapshot.label} 추가 미디어 ${index + 2}`} key={url} src={url} />
+            ))}
+            {snapshot.mediaCount > snapshot.mediaUrls.length ? (
+              <span>+{snapshot.mediaCount - snapshot.mediaUrls.length}</span>
+            ) : null}
           </div>
-          <AnnotationNotes annotations={textAnnotations} />
+        ) : null}
+        <div aria-hidden="true" className="fuma-social-snapshot__engagement">
+          <Heart size={18} /><MessageCircle size={18} /><Send size={18} />
         </div>
-        <div className="fuma-review-post__content-row">
-          <div className="fuma-review-post__links">
-            <span>연결 URL</span>
-            <ul>
-              {snapshot.urls.map((url, index) => {
-                const markers = urlAnnotations.filter(
-                  (annotation) =>
-                    annotation.target.kind === "url" &&
-                    annotation.target.targetIndex === index,
-                );
-                return (
-                  <li
-                    className={markers.length > 0 ? "fuma-review-post__link--violation" : undefined}
-                    key={url}
-                  >
-                    {markers.map((annotation) => (
-                      <span
-                        aria-label={`위반 위치 ${annotation.ordinal}`}
-                        className="fuma-review-annotation-pin fuma-review-post__link-pin"
-                        data-severity={annotation.severity}
-                        key={annotation.id}
-                      >
-                        {annotation.ordinal}
-                      </span>
-                    ))}
-                    <a href={url} rel="noreferrer" target="_blank">
-                      <span>{url}</span>
-                      <ExternalLink aria-hidden="true" size={13} strokeWidth={1.8} />
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-          <AnnotationNotes annotations={urlAnnotations} />
+        <div className="fuma-social-snapshot__caption">
+          <span>원문 전체</span>
+          <p><strong>{author}</strong> {renderHighlightedText(snapshot.text, highlightQuotes)}</p>
         </div>
-        {textAnnotations.map((annotation) => (
-          <span
-            className="hsas-visually-hidden"
-            id={annotationDescriptionId(annotation)}
-            key={annotation.id}
-          >
-            위반 위치 {annotation.ordinal}
-          </span>
-        ))}
-      </article>
-    </section>
-  );
-}
-
-function ChangeSummary({ items }: { items: string[] }) {
-  return (
-    <section aria-label="변경 요약" className="fuma-review-changes">
-      <strong>변경 감지</strong>
-      <ul>
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function ContentAiSummary({ content }: { content: ContentReviewFixture }) {
-  const ready = content.aiStatus === "ready";
-
-  return (
-    <section aria-label="AI 검수 요약" className="fuma-review-inspector__section">
-      <header className="fuma-review-inspector__heading">
-        <div>
-          <span>자동 분석</span>
-          <h2>점검 결과</h2>
-        </div>
-        <span className="fuma-review-inspector__generated">
-          {ready ? "생성완료" : "생성 대기"}
-        </span>
-      </header>
-      <p className="fuma-review-inspector__note">{content.aiSummary}</p>
-      <ul className="fuma-review-signals">
-        {content.report.signals.map((signal) => (
-          <li data-tone={signal.tone} key={`${signal.title}-${signal.evidence}`}>
-            <span aria-hidden="true" className="fuma-review-signals__icon">
-              {signal.tone === "pass" ? (
-                <CheckCircle2 size={16} strokeWidth={1.8} />
-              ) : (
-                <AlertTriangle size={16} strokeWidth={1.8} />
-              )}
-            </span>
-            <div>
-              <strong>{signal.title}</strong>
-              <p>{signal.detail}</p>
-              <span>{signal.source} · {signal.evidence}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <div className="fuma-review-findings">
-        <strong>{content.reviewType === "VIOLATION_CORRECTION" ? "이전 판정 근거" : "판정 근거"}</strong>
-        <ul>
-          {content.detectedIssues.map((issue) => (
-            <li key={issue}>{issue}</li>
+        <div className="fuma-social-snapshot__links">
+          {snapshot.urls.map((url) => (
+            <a href={url} key={url} rel="noreferrer" target="_blank">
+              {url}<ExternalLink aria-hidden="true" size={12} />
+            </a>
           ))}
-        </ul>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function OriginalContent({ content }: { content: ContentReviewFixture }) {
+  const candidateQuotes = content.report.signals
+    .filter((signal) => signal.tone !== "pass")
+    .map((signal) => signal.evidence);
+  const previousQuotes = content.previousSnapshot?.annotations
+    ?.filter((annotation) => annotation.target.kind === "text")
+    .map((annotation) => annotation.target.kind === "text" ? annotation.target.quote : "") ?? [];
+
+  return (
+    <section aria-label="원본 콘텐츠" className="fuma-text-review-section fuma-text-review-original">
+      <header className="fuma-text-review-section__header">
+        <div>
+          <span>CONTENT VERSION</span>
+          <h3>{content.previousSnapshot ? "수정 전·후 비교" : "SNS 원본 콘텐츠"}</h3>
+        </div>
+        <div className="fuma-text-review-media-note">
+          <Images aria-hidden="true" size={15} />
+          <span>미디어는 원본 확인용</span>
+        </div>
+      </header>
+      {content.previousSnapshot ? (
+        <div aria-label="변경 요약" className="fuma-text-review-changes">
+          <strong>변경 요약</strong>
+          <ul>{content.changeItems.map((item) => <li key={item}>{item}</li>)}</ul>
+        </div>
+      ) : null}
+      <div className={`fuma-social-compare${content.previousSnapshot ? "" : " fuma-social-compare--single"}`}>
+        {content.previousSnapshot ? (
+          <SocialSnapshot
+            author={content.author}
+            highlightQuotes={previousQuotes}
+            platform={content.sourcePlatform}
+            snapshot={content.previousSnapshot}
+            version="before"
+          />
+        ) : null}
+        <SocialSnapshot
+          author={content.author}
+          highlightQuotes={candidateQuotes}
+          platform={content.sourcePlatform}
+          snapshot={content.currentSnapshot}
+          version="after"
+        />
       </div>
     </section>
   );
 }
 
-function ExtractionEvidence({ content }: { content: ContentReviewFixture }) {
+function signalTone(signal: ContentReviewSignal): NonNullable<StatusPillProps["tone"]> {
+  if (signal.tone === "pass") return "approved";
+  if (signal.tone === "warning") return "pending";
+  return "rejected";
+}
+
+type NumberedCandidate = ContentReviewSignal & { ordinal: number };
+
+function renderMarkedEvidence(text: string, candidates: NumberedCandidate[]) {
+  const matched = candidates.filter((candidate) => text.includes(candidate.evidence));
+  if (matched.length === 0) return text;
+
+  const escaped = matched.map((candidate) => candidate.evidence.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const matcher = new RegExp(`(${escaped.join("|")})`, "g");
+  return text.split(matcher).map((part, index) => {
+    const candidate = matched.find((item) => item.evidence === part);
+    return candidate ? (
+      <mark key={`${part}-${index}`}>
+        <sup>{candidate.ordinal}</sup>{part}
+      </mark>
+    ) : part;
+  });
+}
+
+interface EvidenceTextProps {
+  candidates: NumberedCandidate[];
+  label: string;
+  location: string;
+  text: string;
+  tone: "original" | "ocr" | "stt";
+}
+
+function EvidenceText({ candidates, label, location, text, tone }: EvidenceTextProps) {
   return (
-    <section aria-label="추출 근거" className="fuma-review-inspector__section">
-      <header className="fuma-review-inspector__heading">
-        <div>
-          <span>수집 근거</span>
-          <h2>OCR · 음성 추출</h2>
-        </div>
-        <time dateTime={content.report.generatedAt.replace(" ", "T")}>
-          {content.report.generatedAt}
-        </time>
+    <article className="fuma-text-evidence" data-source={tone}>
+      <header>
+        <span>{label}</span>
+        <small>{location}</small>
       </header>
-      <ul className="fuma-review-extracts">
-        {content.report.extracts.map((extract) => (
-          <li key={`${extract.type}-${extract.location}-${extract.text}`}>
-            <span aria-hidden="true">
-              {extract.type === "OCR" ? (
-                <ScanText size={15} strokeWidth={1.8} />
+      <p>{renderMarkedEvidence(text, candidates)}</p>
+      {candidates.length > 0 ? (
+        <div className="fuma-text-evidence__issues">
+          {candidates.map((candidate) => (
+            <div key={`${label}-${candidate.title}`}>
+              <span>{candidate.ordinal}</span>
+              <div>
+                <strong>{candidate.title}</strong>
+                <p>{candidate.detail}</p>
+                <small>{candidate.guidance ?? "해당 표현을 확인하고 최종 위반 여부를 판정해 주세요."}</small>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="fuma-text-evidence__clear"><CheckCircle2 aria-hidden="true" size={14} />감지된 위반 후보 없음</div>
+      )}
+    </article>
+  );
+}
+
+function TextEvidenceReview({ content }: { content: ContentReviewFixture }) {
+  const candidates: NumberedCandidate[] = content.report.signals
+    .filter((signal) => signal.tone !== "pass")
+    .map((signal, index) => ({ ...signal, ordinal: index + 1 }));
+  const originalCandidates = candidates.filter((candidate) => candidate.source.includes("본문"));
+  const ocrCandidates = candidates.filter((candidate) => candidate.source.startsWith("OCR"));
+  const sttCandidates = candidates.filter((candidate) => candidate.source.startsWith("STT"));
+  const ocrExtract = content.report.extracts.find((extract) => extract.type === "OCR");
+  const sttExtract = content.report.extracts.find((extract) => extract.type === "STT");
+
+  return (
+    <section aria-label="위반 근거 텍스트" className="fuma-text-review-section">
+      <header className="fuma-text-review-section__header">
+        <div><span>TEXT EVIDENCE</span><h3>위반 근거 텍스트</h3></div>
+        <StatusPill tone={candidates.length > 0 ? "rejected" : "approved"}>{candidates.length}건</StatusPill>
+      </header>
+      <div className="fuma-text-evidence-grid">
+        <EvidenceText
+          candidates={originalCandidates}
+          label="원문"
+          location="현재 버전 게시물 본문"
+          text={content.currentSnapshot.text}
+          tone="original"
+        />
+        <EvidenceText
+          candidates={ocrCandidates}
+          label="OCR"
+          location={ocrExtract?.location ?? "추출 결과 없음"}
+          text={ocrExtract?.text ?? "OCR로 추출된 텍스트가 없습니다."}
+          tone="ocr"
+        />
+        <EvidenceText
+          candidates={sttCandidates}
+          label="STT"
+          location={sttExtract?.location ?? "추출 결과 없음"}
+          text={sttExtract?.text ?? "STT로 추출된 텍스트가 없습니다."}
+          tone="stt"
+        />
+      </div>
+    </section>
+  );
+}
+
+function TextAnalysisReport({ content }: { content: ContentReviewFixture }) {
+  return (
+    <section aria-label="AI 텍스트 분석 리포트" className="fuma-text-review-section">
+      <header className="fuma-text-review-section__header">
+        <div>
+          <span>CONTENT REPORT</span>
+          <h3>AI 텍스트 분석 리포트</h3>
+        </div>
+        <time>{content.report.generatedAt}</time>
+      </header>
+      <div className="fuma-text-review-scope">
+        <FileText aria-hidden="true" size={18} />
+        <div>
+          <strong>분석 범위: 원문 · OCR · STT · URL</strong>
+          <span>이미지·영상은 직접 판정하지 않고 OCR·STT로 변환된 텍스트만 근거로 사용합니다.</span>
+        </div>
+      </div>
+      <p className="fuma-text-review-ai-summary">{content.aiSummary}</p>
+      <ul className="fuma-text-review-signals">
+        {content.report.signals.map((signal) => (
+          <li data-tone={signal.tone} key={signal.title}>
+            <div className="fuma-text-review-signals__icon">
+              {signal.tone === "pass" ? (
+                <CheckCircle2 aria-hidden="true" size={17} />
               ) : (
-                <AudioLines size={15} strokeWidth={1.8} />
+                <AlertTriangle aria-hidden="true" size={17} />
               )}
-            </span>
+            </div>
             <div>
-              <strong>{extract.type}</strong>
-              <p>{extract.text}</p>
-              <span>{extract.location}</span>
+              <div className="fuma-text-review-signals__title">
+                <strong>{signal.title}</strong>
+                <StatusPill tone={signalTone(signal)}>
+                  {signal.tone === "pass" ? "이상 없음" : "위반 후보"}
+                </StatusPill>
+              </div>
+              <p>{signal.detail}</p>
+              <dl>
+                <div><dt>텍스트 근거</dt><dd>{signal.evidence}</dd></div>
+                <div><dt>출처</dt><dd>{signal.source}</dd></div>
+              </dl>
             </div>
           </li>
         ))}
@@ -606,21 +484,16 @@ function ExtractionEvidence({ content }: { content: ContentReviewFixture }) {
 
 function ReviewHistory({ content }: { content: ContentReviewFixture }) {
   return (
-    <section aria-label="검수 이력" className="fuma-review-inspector__section">
-      <header className="fuma-review-inspector__heading">
-        <div>
-          <span>활동</span>
-          <h2>검수 이력</h2>
-        </div>
+    <section aria-label="검수 이력" className="fuma-text-review-section">
+      <header className="fuma-text-review-section__header">
+        <div><span>HISTORY</span><h3>검수 이력</h3></div>
       </header>
-      <ol className="fuma-review-history">
-        {content.report.history.map((event) => (
-          <li key={`${event.at}-${event.label}`}>
-            <Clock3 aria-hidden="true" size={14} strokeWidth={1.8} />
-            <div>
-              <strong>{event.label}</strong>
-              <span>{event.actor} · {event.at}</span>
-            </div>
+      <ol className="fuma-text-review-history">
+        {content.report.history.map((item) => (
+          <li key={`${item.at}-${item.label}`}>
+            <Clock3 aria-hidden="true" size={15} />
+            <div><strong>{item.label}</strong><span>{item.actor}</span></div>
+            <time>{item.at}</time>
           </li>
         ))}
       </ol>
@@ -628,40 +501,134 @@ function ReviewHistory({ content }: { content: ContentReviewFixture }) {
   );
 }
 
-function ReviewActions({ actions }: { actions: string[] }) {
+function FinalReviewPanel({ content }: { content: ContentReviewFixture }) {
+  const candidates = content.report.signals
+    .filter((signal) => signal.tone !== "pass")
+    .map((signal, index) => ({ ...signal, ordinal: index + 1 }));
+  const [violationDecisions, setViolationDecisions] = useState<Record<string, "승인" | "반려">>({});
+  const [contentDecision, setContentDecision] = useState<"승인" | "수정 요청" | null>(null);
+  const [penaltyDecision, setPenaltyDecision] = useState<"적용" | "미적용" | null>(null);
+  const decidedCount = candidates.filter((candidate) => violationDecisions[candidate.title]).length;
+  const canSave = decidedCount === candidates.length && contentDecision !== null && penaltyDecision !== null;
+
+  function decideViolation(title: string, decision: "승인" | "반려") {
+    setViolationDecisions((current) => ({ ...current, [title]: decision }));
+    setContentDecision(null);
+    setPenaltyDecision(null);
+  }
+
   return (
-    <section aria-label="검수 처리" className="fuma-review-decision">
-      <div>
-        <span>최종 판단</span>
-        <strong>검수 결정</strong>
+    <section aria-label="검수 처리" className="fuma-text-review-final">
+      <header>
+        <div><span>FINAL REVIEW</span><h3>최종 검수</h3></div>
+        <ShieldCheck aria-hidden="true" size={20} />
+      </header>
+      <div className="fuma-text-review-final__progress">
+        <span>위반 후보 판정</span>
+        <strong>{decidedCount} / {candidates.length}</strong>
       </div>
-      <div>
-        {actions.map((action, index) => (
+      <div className="fuma-text-review-final__candidates">
+        {candidates.length > 0 ? candidates.map((candidate) => (
+          <article key={candidate.title}>
+            <div><span>{candidate.ordinal}</span><strong>{candidate.title}</strong></div>
+            <blockquote>“{candidate.evidence}”</blockquote>
+            <p>{candidate.detail}</p>
+            <div>
+              <Button
+                aria-pressed={violationDecisions[candidate.title] === "승인"}
+                className={violationDecisions[candidate.title] === "승인" ? "is-selected" : undefined}
+                onClick={() => decideViolation(candidate.title, "승인")}
+              >
+                승인
+              </Button>
+              <Button
+                aria-pressed={violationDecisions[candidate.title] === "반려"}
+                className={violationDecisions[candidate.title] === "반려" ? "is-selected" : undefined}
+                onClick={() => decideViolation(candidate.title, "반려")}
+              >
+                반려
+              </Button>
+            </div>
+          </article>
+        )) : (
+          <div className="fuma-text-review-final__clear">
+            <CheckCircle2 aria-hidden="true" size={18} />
+            <span>판정할 텍스트 위반 후보가 없습니다.</span>
+          </div>
+        )}
+      </div>
+      <fieldset className="fuma-text-review-final__required" disabled={decidedCount !== candidates.length}>
+        <legend>콘텐츠 검수 결과 <span>필수</span></legend>
+        <div>
           <Button
-            key={action}
-            variant={index === 0 ? "primary" : index === actions.length - 1 ? "danger" : "secondary"}
+            aria-pressed={contentDecision === "승인"}
+            className={contentDecision === "승인" ? "is-selected is-approved" : undefined}
+            onClick={() => { setContentDecision("승인"); setPenaltyDecision(null); }}
           >
-            {action}
+            승인
           </Button>
-        ))}
+          <Button
+            aria-pressed={contentDecision === "수정 요청"}
+            className={contentDecision === "수정 요청" ? "is-selected is-revision" : undefined}
+            onClick={() => { setContentDecision("수정 요청"); setPenaltyDecision(null); }}
+          >
+            수정 요청
+          </Button>
+        </div>
+      </fieldset>
+      <fieldset className="fuma-text-review-final__required" disabled={!contentDecision}>
+        <legend>페널티 여부 <span>필수</span></legend>
+        <div>
+          <Button
+            aria-pressed={penaltyDecision === "미적용"}
+            className={penaltyDecision === "미적용" ? "is-selected" : undefined}
+            onClick={() => setPenaltyDecision("미적용")}
+          >
+            미적용
+          </Button>
+          <Button
+            aria-pressed={penaltyDecision === "적용"}
+            className={penaltyDecision === "적용" ? "is-selected is-penalty" : undefined}
+            onClick={() => setPenaltyDecision("적용")}
+          >
+            적용
+          </Button>
+        </div>
+      </fieldset>
+      <label className="fuma-text-review-final__note">
+        <span>검수 의견</span>
+        <textarea placeholder="수정 요청 또는 판정 근거를 입력하세요." rows={4} />
+      </label>
+      <div className="fuma-text-review-final__actions">
+        <Button disabled={!canSave} variant="primary">검수 결과 저장</Button>
       </div>
     </section>
+  );
+}
+
+function ContentReviewDetailContent({ content }: { content: ContentReviewFixture }) {
+  return (
+    <div className="fuma-detail-panel__content fuma-text-review-detail">
+      <aside className="fuma-text-review-rail">
+        <ReviewCaseHeader content={content} />
+        <FinalReviewPanel content={content} key={content.id} />
+      </aside>
+      <main className="fuma-text-review-workspace">
+        <OriginalContent content={content} />
+        <TextEvidenceReview content={content} />
+        <TextAnalysisReport content={content} />
+        <ReviewHistory content={content} />
+      </main>
+    </div>
   );
 }
 
 export function ContentReviewDetailPage() {
   const { contentId } = useParams();
   const content = findContentReviewFixture(contentId);
-  const hasActiveComparisonAnnotations = content?.previousSnapshot
-    ? getActiveAnnotations(content.previousSnapshot).length > 0 ||
-      getActiveAnnotations(content.currentSnapshot).length > 0
-    : false;
 
   return (
-    <section
-      className="fuma-page fuma-content-review-detail"
-      data-visual-contract="content-review"
-    >
+    <section className="fuma-page fuma-content-review-detail" data-visual-contract="content-review">
       <PageHeader screenCode="CT102" title="콘텐츠 검수 상세" />
       <div className="fuma-page__body">
         {content ? (
@@ -672,43 +639,7 @@ export function ContentReviewDetailPage() {
                 대기열
               </Link>
             </div>
-            <ReviewCaseHeader content={content} />
-            <div className="fuma-review-workbench">
-              <section aria-label="수집된 SNS 콘텐츠" className="fuma-review-source">
-                <header className="fuma-review-source__header">
-                  <div>
-                    <span>검수 대상</span>
-                    <h2>수집된 SNS 콘텐츠</h2>
-                  </div>
-                  <span>{content.previousSnapshot ? "이전·현재 버전 비교" : "최초 수집 원본"}</span>
-                </header>
-                {content.previousSnapshot ? <ChangeSummary items={content.changeItems} /> : null}
-                <div
-                  className={`fuma-content-comparison${content.previousSnapshot ? "" : " fuma-content-comparison--single"}${hasActiveComparisonAnnotations ? " fuma-content-comparison--stacked" : ""}`}
-                >
-                  {content.previousSnapshot ? (
-                    <SnapshotPanel
-                      ariaLabel="이전 콘텐츠"
-                      author={content.author}
-                      platform={content.sourcePlatform}
-                      snapshot={content.previousSnapshot}
-                    />
-                  ) : null}
-                  <SnapshotPanel
-                    ariaLabel="현재 콘텐츠"
-                    author={content.author}
-                    platform={content.sourcePlatform}
-                    snapshot={content.currentSnapshot}
-                  />
-                </div>
-              </section>
-              <aside aria-label="검수 패널" className="fuma-review-inspector">
-                <ContentAiSummary content={content} />
-                <ExtractionEvidence content={content} />
-                <ReviewHistory content={content} />
-                <ReviewActions actions={content.availableActions} />
-              </aside>
-            </div>
+            <ContentReviewDetailContent content={content} />
           </>
         ) : (
           <EmptyState

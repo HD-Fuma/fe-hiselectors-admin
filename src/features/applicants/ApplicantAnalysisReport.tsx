@@ -127,15 +127,16 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: ApplicantFix
           </div>
           <dl className="fuma-applicant-analysis__metric-grid">
             <Metric label="팔로워·구독자 수" value={formatNumber(applicant.followerCount)} meta={`${applicant.platform} 공개 계정`} />
-            <Metric label="콘텐츠 수" value={`${formatNumber(applicant.contentCount)}건`} meta={`최근 90일 ${analysis.recent90ContentCount}건`} />
-            <Metric label="업로드 주기" value={`주 ${analysis.uploadFrequency.toFixed(1)}회`} meta={`최대 공백 ${analysis.maxGapDays}일`} />
+            <Metric label="전체 콘텐츠 수" value={`${formatNumber(applicant.contentCount)}건`} meta="API 수집 기준" />
+            <Metric label="최근 90일 게시물" value={`${analysis.recent90ContentCount}건`} meta={`마지막 게시 ${analysis.lastPostDate}`} />
+            <Metric label="업로드 주기" value={`주 ${analysis.uploadFrequency.toFixed(1)}회`} meta={`90일 ${analysis.recent90ContentCount}건 · 최대 공백 ${analysis.maxGapDays}일`} />
+            <Metric label="평균 반응" value={formatNumber(applicant.averageViews)} meta={`조회 · 좋아요 ${formatNumber(analysis.averageLikes)} · 댓글 ${formatNumber(analysis.averageComments)}`} />
             <Metric label="ER (Engagement Rate)" value={`${analysis.engagementRate.toFixed(1)}%`} meta={`반응 ÷ ${audienceLabel}`} />
           </dl>
           <dl className="fuma-applicant-analysis__detail-grid">
-            <div><dt>SNS 계정</dt><dd><a href={applicantProfileUrl(applicant)} rel="noreferrer" target="_blank"><PlatformIcon decorative platform={applicant.platform} /> {applicant.channelName} <span aria-hidden="true">↗</span></a></dd></div>
-            <div><dt>최종 업데이트 일자</dt><dd>{analysis.updatedAt} · 최근 90일 수집</dd></div>
+            <div><dt>SNS 계정 기본정보</dt><dd><a href={applicantProfileUrl(applicant)} rel="noreferrer" target="_blank"><PlatformIcon decorative platform={applicant.platform} /> {applicant.platform} · {applicant.channelName} <span aria-hidden="true">↗</span></a></dd></div>
+            <div><dt>최종 업데이트 일자</dt><dd>{analysis.updatedAt} 기준 최근 90일간 수집한 데이터</dd></div>
             <div><dt>마지막 게시일</dt><dd>{analysis.lastPostDate}</dd></div>
-            <div><dt>평균 조회·좋아요·댓글</dt><dd>조회 {formatNumber(applicant.averageViews)} · 좋아요 {formatNumber(analysis.averageLikes)} · 댓글 {formatNumber(analysis.averageComments)}</dd></div>
             <div><dt>콘텐츠 형식 통계</dt><dd>{analysis.contentFormats.map((item) => `${item.label} ${item.count}건`).join(" · ")}</dd></div>
           </dl>
           <p className="fuma-applicant-analysis__formula">ER = (좋아요 + 댓글 + 공유) ÷ {audienceLabel} × 100</p>

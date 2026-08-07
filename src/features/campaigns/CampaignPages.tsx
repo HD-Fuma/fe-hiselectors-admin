@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import {
@@ -25,10 +25,6 @@ import {
 } from "./fixtures";
 
 const STATUS_OPTIONS = ["전체", "시작 전", "진행 중", "종료"].map((label) => ({
-  label,
-  value: label === "전체" ? "" : label,
-}));
-const DELETE_OPTIONS = ["전체", "가능", "불가"].map((label) => ({
   label,
   value: label === "전체" ? "" : label,
 }));
@@ -64,57 +60,32 @@ function statusTone(status: CampaignStatus): NonNullable<StatusPillProps["tone"]
 }
 
 const CAMPAIGN_COLUMNS: DenseTableColumn<CampaignFixture>[] = [
-  { key: "id", header: "캠페인 ID", width: 78 },
-  { key: "name", header: "캠페인명", width: 190 },
-  { key: "startDate", header: "시작일", width: 92, align: "center" },
-  { key: "endDate", header: "종료일", width: 92, align: "center" },
+  { key: "name", header: "캠페인명", width: 260 },
+  { key: "startDate", header: "시작일", width: 112, align: "center" },
+  { key: "endDate", header: "종료일", width: 112, align: "center" },
   {
     id: "productCount",
     header: "상품 수",
-    width: 62,
+    width: 76,
     align: "right",
-    render: (campaign) => campaign.products.length,
+    render: (campaign) => `${campaign.products.length}개`,
   },
   {
     key: "status",
     header: "상태",
-    width: 76,
+    width: 88,
     align: "center",
     render: (campaign) => (
       <StatusPill tone={statusTone(campaign.status)}>{campaign.status}</StatusPill>
     ),
   },
   {
-    key: "deleteEligible",
-    header: "삭제 가능 여부",
-    width: 98,
-    align: "center",
-    render: (campaign) => (
-      <StatusPill tone={campaign.deleteEligible ? "approved" : "rejected"}>
-        {campaign.deleteEligible ? "가능" : "불가"}
-      </StatusPill>
-    ),
-  },
-  {
-    key: "deleteBlockedReason",
-    header: "삭제 불가 사유",
-    width: 310,
-    render: (campaign) => campaign.deleteBlockedReason ?? "-",
-  },
-  {
     id: "management",
     header: "관리",
-    width: 116,
+    width: 120,
     align: "center",
     render: (campaign) => (
       <div className="fuma-table-actions">
-        <Link
-          aria-label={`${campaign.name} 상세 보기`}
-          className="fuma-table-action fuma-table-link"
-          to={`/campaigns/${campaign.id}`}
-        >
-          상세
-        </Link>
         <Link
           aria-label={`${campaign.name} 수정`}
           className="fuma-table-action fuma-table-link"
@@ -122,11 +93,7 @@ const CAMPAIGN_COLUMNS: DenseTableColumn<CampaignFixture>[] = [
         >
           수정
         </Link>
-        <Button
-          aria-label={`${campaign.name} 삭제`}
-          className="fuma-table-action"
-          disabled={!campaign.deleteEligible}
-        >
+        <Button aria-label={`${campaign.name} 삭제`} className="fuma-table-action" variant="danger">
           삭제
         </Button>
       </div>
@@ -153,7 +120,7 @@ export function CampaignListPage() {
             <TextInput
               aria-label="검색어"
               id="campaign-keyword"
-              placeholder="캠페인 ID 또는 캠페인명 검색"
+              placeholder="캠페인명 검색"
             />
           </FilterField>
           <div className="fuma-campaign-period-filter">
@@ -168,19 +135,8 @@ export function CampaignListPage() {
             <span>상태</span>
             <SegmentedControl ariaLabel="상태" options={STATUS_OPTIONS} value="" />
           </div>
-          <FilterField htmlFor="campaign-delete-eligible" label="삭제 가능 여부">
-            <Select
-              aria-label="삭제 가능 여부"
-              defaultValue=""
-              id="campaign-delete-eligible"
-              options={DELETE_OPTIONS}
-            />
-          </FilterField>
         </SearchPanel>
-        <p className="fuma-campaign-rule-guide">
-          종료 일시가 오늘 이후인 캠페인만 삭제할 수 있습니다.
-        </p>
-        <div className="fuma-result-toolbar">
+        <div className="fuma-result-toolbar fuma-campaign-result-toolbar">
           <strong>캠페인 목록</strong>
           <span>총 {CAMPAIGNS.length}건</span>
           <Link className="hsas-button hsas-button--primary fuma-result-toolbar__link" to="/campaigns/new">
@@ -214,7 +170,7 @@ const SELECTED_PRODUCT_COLUMNS: DenseTableColumn<CampaignProduct>[] = [
     width: 66,
     align: "center",
     render: (product) => (
-      <Button aria-label={`${product.name} 삭제`} className="fuma-table-action">
+      <Button aria-label={`${product.name} 삭제`} className="fuma-table-action" variant="danger">
         삭제
       </Button>
     ),
@@ -228,9 +184,10 @@ interface CampaignFormProps {
 
 function CampaignForm({ campaign, mode }: CampaignFormProps) {
   const [searchParams] = useSearchParams();
+  const [isProductModalOpen, setProductModalOpen] = useState(
+    mode === "create" && searchParams.get("fixture") === "product-modal",
+  );
   const products = campaign?.products ?? [];
-  const showProductModal =
-    mode === "create" && searchParams.get("fixture") === "product-modal";
 
   return (
     <>
@@ -240,29 +197,20 @@ function CampaignForm({ campaign, mode }: CampaignFormProps) {
         </header>
         <div className="fuma-campaign-form">
           {campaign ? (
-            <>
-              <FormRow label="캠페인 ID">
-                <span className="fuma-readonly-field">{campaign.id}</span>
-              </FormRow>
-              <FormRow label="상태">
-                <StatusPill tone={statusTone(campaign.status)}>{campaign.status}</StatusPill>
-              </FormRow>
-            </>
+            <FormRow label="상태">
+              <StatusPill tone={statusTone(campaign.status)}>{campaign.status}</StatusPill>
+            </FormRow>
           ) : null}
           <FormRow label="캠페인명" required>
             <TextInput
               aria-label="캠페인명"
               className="fuma-campaign-name-input"
               defaultValue={campaign?.name ?? ""}
-              placeholder="캠페인명을 입력하세요."
+              placeholder="캠페인명을 입력하세요"
               required
             />
           </FormRow>
-          <FormRow
-            help="캠페인 종료 시 셀렉터스 공유 링크 수정이 필요합니다."
-            label="기간"
-            required
-          >
+          <FormRow label="기간" required>
             <div className="fuma-campaign-date-range">
               <TextInput
                 aria-label="시작일"
@@ -285,7 +233,11 @@ function CampaignForm({ campaign, mode }: CampaignFormProps) {
               <span className="hsas-visually-hidden" id="campaign-product-required">
                 필수 항목
               </span>
-              <Button aria-describedby="campaign-product-required" variant="primary">
+              <Button
+                aria-describedby="campaign-product-required"
+                onClick={() => setProductModalOpen(true)}
+                variant="primary"
+              >
                 상품 선택
               </Button>
             </div>
@@ -310,11 +262,12 @@ function CampaignForm({ campaign, mode }: CampaignFormProps) {
       </section>
 
       <div className="fuma-campaign-form__actions">
+        {mode === "edit" ? <Button variant="danger">삭제</Button> : null}
         <Button variant="primary">{mode === "create" ? "등록" : "저장"}</Button>
         <Button>취소</Button>
       </div>
 
-      <ProductSearchModal open={showProductModal} />
+      <ProductSearchModal open={isProductModalOpen} onClose={() => setProductModalOpen(false)} />
     </>
   );
 }
@@ -351,13 +304,6 @@ export function CampaignEditPage() {
   );
 }
 
-const CAMPAIGN_DETAIL_PRODUCT_COLUMNS: DenseTableColumn<CampaignProduct>[] = [
-  { key: "id", header: "상품코드", width: 118 },
-  { key: "name", header: "상품명" },
-  { key: "saleStatus", header: "판매 상태", width: 86, align: "center" },
-  { key: "vendor", header: "협력사", width: 150 },
-];
-
 export function CampaignDetailPage() {
   const { campaignId } = useParams();
   const campaign = findCampaignFixture(campaignId);
@@ -372,42 +318,8 @@ export function CampaignDetailPage() {
               <Link className="hsas-button fuma-detail-toolbar__link" to="/campaigns">
                 목록
               </Link>
-              <Link
-                className="hsas-button hsas-button--primary fuma-detail-toolbar__link"
-                to={`/campaigns/${campaign.id}/edit`}
-              >
-                캠페인 수정
-              </Link>
             </div>
-            <section aria-labelledby="campaign-detail-basic-title" className="fuma-content-section">
-              <header className="fuma-content-section__header">
-                <h2 id="campaign-detail-basic-title">기본 정보</h2>
-                <StatusPill tone={statusTone(campaign.status)}>{campaign.status}</StatusPill>
-              </header>
-              <dl className="fuma-key-value-grid">
-                <div className="fuma-key-value-grid__item"><dt>캠페인 ID</dt><dd>{campaign.id}</dd></div>
-                <div className="fuma-key-value-grid__item"><dt>캠페인명</dt><dd>{campaign.name}</dd></div>
-                <div className="fuma-key-value-grid__item"><dt>시작일</dt><dd>{campaign.startDate}</dd></div>
-                <div className="fuma-key-value-grid__item"><dt>종료일</dt><dd>{campaign.endDate}</dd></div>
-                <div className="fuma-key-value-grid__item"><dt>상품 수</dt><dd>{campaign.products.length}개</dd></div>
-                <div className="fuma-key-value-grid__item"><dt>삭제 가능 여부</dt><dd><StatusPill tone={campaign.deleteEligible ? "approved" : "rejected"}>{campaign.deleteEligible ? "가능" : "불가"}</StatusPill></dd></div>
-              </dl>
-            </section>
-            <section aria-labelledby="campaign-detail-products-title" className="fuma-content-section">
-              <header className="fuma-content-section__header">
-                <h2 id="campaign-detail-products-title">포함 상품</h2>
-                <span>총 {campaign.products.length}건</span>
-              </header>
-              <DenseTable
-                columns={CAMPAIGN_DETAIL_PRODUCT_COLUMNS}
-                rowKey={(product) => product.id}
-                rows={campaign.products}
-              />
-            </section>
-            <section aria-labelledby="campaign-detail-delete-title" className="fuma-campaign-detail-note">
-              <h2 id="campaign-detail-delete-title">삭제 안내</h2>
-              <p>{campaign.deleteBlockedReason ?? "현재 캠페인은 삭제할 수 있습니다."}</p>
-            </section>
+            <CampaignForm campaign={campaign} key={campaign.id} mode="edit" />
           </>
         ) : (
           <EmptyState
@@ -440,15 +352,21 @@ const PRODUCT_SEARCH_COLUMNS: DenseTableColumn<CampaignProduct>[] = [
   { key: "mdName", header: "MD명", width: 135 },
 ];
 
-function ProductSearchModal({ open }: { open: boolean }) {
+function ProductSearchModal({
+  onClose,
+  open,
+}: {
+  onClose: () => void;
+  open: boolean;
+}) {
   const product = CAMPAIGN_PRODUCTS[0];
 
   return (
     <Modal
       actions={
         <>
-          <Button variant="primary">선택</Button>
-          <Button>취소</Button>
+          <Button onClick={onClose} variant="primary">선택</Button>
+          <Button onClick={onClose}>취소</Button>
         </>
       }
       open={open}
@@ -481,7 +399,7 @@ function ProductSearchModal({ open }: { open: boolean }) {
             <FilterField htmlFor="product-secondary-vendor-name" label="2차 협력사명">
               <TextInput
                 aria-label="2차 협력사명"
-                defaultValue="(2)경 세인트앤드류스"
+                defaultValue="(2)골프인터내셔날"
                 id="product-secondary-vendor-name"
               />
             </FilterField>
@@ -523,9 +441,9 @@ function ProductSearchModal({ open }: { open: boolean }) {
                 options={ALL_OPTION}
               />
             </FilterField>
-            <FilterField htmlFor="product-live-status" label="생방송상품여부">
+            <FilterField htmlFor="product-live-status" label="생방송상태여부">
               <Select
-                aria-label="생방송상품여부"
+                aria-label="생방송상태여부"
                 defaultValue=""
                 id="product-live-status"
                 options={ALL_OPTION}
@@ -533,7 +451,7 @@ function ProductSearchModal({ open }: { open: boolean }) {
             </FilterField>
             <div className="fuma-campaign-modal-checks">
               <Checkbox label="기간(최근일주일)" />
-              <Checkbox label="솔루션 검색" />
+              <Checkbox label="브랜드 검색" />
             </div>
           </SearchPanel>
         </div>

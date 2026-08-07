@@ -4,11 +4,6 @@ export type ProcessingState = "미처리" | "안내 대기" | "처리 완료";
 
 export type ContentAnnotationTarget =
   | {
-      kind: "media";
-      mediaIndex: number;
-      box: { x: number; y: number; width: number; height: number };
-    }
-  | {
       kind: "text";
       quote: string;
       occurrence: number;
@@ -48,6 +43,7 @@ export interface ContentReviewSignal {
   detail: string;
   source: string;
   evidence: string;
+  guidance?: string;
   tone: ReviewSignalTone;
 }
 
@@ -120,10 +116,10 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
     currentSnapshot: {
       label: "최초 수집 원본",
       capturedAt: "2026-08-03 10:40",
-      text: "가을 라운딩을 위한 세인트앤드류스 패딩 팬츠를 소개합니다. 가볍고 편안한 스트레치 소재를 확인해 보세요. #현대홈쇼핑 #셀렉터스 #광고",
+      text: "가을 라운딩을 위한 세인트앤드류스 패딩 팬츠를 지금 가장 저렴한 가격에 만나보세요. #현대홈쇼핑 #셀렉터스 #광고",
       urls: ["https://www.hmall.com/p/2200098405"],
       mediaCount: 4,
-      mediaKinds: ["이미지", "이미지", "이미지", "이미지"],
+      mediaKinds: ["이미지", "이미지", "이미지", "동영상"],
       mediaUrls: [
         "/creator-media/kr-cr-001-01.jpg",
         "/creator-media/kr-cr-001-02.jpg",
@@ -132,9 +128,9 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
     },
     aiStatus: "ready",
     aiSummary:
-      "상품명과 공식 링크, 광고 표기가 포함되어 있으며 현재 감지된 위반 항목은 없습니다.",
-    detectedIssues: ["감지된 위반 없음"],
-    violationType: null,
+      "광고 표기와 공식 상품 링크는 확인되었습니다. 원문, OCR, STT 텍스트에서 가격·효과를 단정한 표현 3건을 위반 후보로 분류했습니다.",
+    detectedIssues: ["원문 위반 후보 1건", "OCR 위반 후보 1건", "STT 위반 후보 1건"],
+    violationType: "허위·과장 표현",
     reviewStatus: "검수 대기",
     processingState: "미처리",
     availableActions: ["검수 완료", "수정 요청", "위반 판정"],
@@ -157,25 +153,40 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
           tone: "pass",
         },
         {
-          title: "안전성",
-          detail: "욕설, 폭력성, 음란 표현이 감지되지 않았습니다.",
-          source: "본문 · 이미지 분석",
-          evidence: "감지 항목 없음",
-          tone: "pass",
+          title: "허위·과장 표현",
+          detail: "가격 비교 근거 없이 최저가를 단정하는 표현이 포함되어 있습니다.",
+          source: "게시물 본문(TEXT)",
+          evidence: "지금 가장 저렴한 가격",
+          guidance: "가격 비교 근거를 제시하거나 단정 표현을 삭제해 주세요.",
+          tone: "critical",
         },
         {
-          title: "음성 검사",
-          detail: "이미지 게시물로 음성 트랙이 없어 STT 검사 대상이 아닙니다.",
-          source: "미디어 메타데이터",
-          evidence: "이미지 4개 · 음성 트랙 없음",
-          tone: "pass",
+          title: "효과 보장 표현",
+          detail: "이미지에서 추출한 문구에 검증할 수 없는 효과 보장 표현이 포함되어 있습니다.",
+          source: "OCR · 이미지 2",
+          evidence: "착용감 100% 개선 보장",
+          guidance: "효과를 보장하는 표현을 실제 사용 후기 수준으로 수정해 주세요.",
+          tone: "warning",
+        },
+        {
+          title: "최저가 단정 표현",
+          detail: "영상 음성에서 가격을 단정하는 표현이 확인되었습니다.",
+          source: "STT · 00:08–00:13",
+          evidence: "지금 구매하면 무조건 가장 저렴합니다",
+          guidance: "확인 가능한 혜택 정보만 안내하도록 음성 문구를 수정해 주세요.",
+          tone: "critical",
         },
       ],
       extracts: [
         {
           type: "OCR",
-          text: "이미지에서 추출된 문구 없음",
-          location: "이미지 1~4 · 전체",
+          text: "세인트앤드류스 스트레치 패딩 팬츠 · 착용감 100% 개선 보장",
+          location: "이미지 2 · 중앙 문구",
+        },
+        {
+          type: "STT",
+          text: "가을 라운딩 패딩 팬츠를 소개합니다. 지금 구매하면 무조건 가장 저렴합니다. 자세한 상품 정보는 링크를 확인해 주세요.",
+          location: "동영상 4 · 00:00–00:18",
         },
       ],
       history: [
@@ -208,21 +219,6 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
         "/creator-media/kr-cr-002-03.jpg",
       ],
       annotations: [
-        {
-          id: "ct-002-media-ocr",
-          target: {
-            kind: "media",
-            mediaIndex: 0,
-            box: { x: 38, y: 58, width: 30, height: 24 },
-          },
-          title: "캠페인 상품 불일치",
-          reason: "패딩 팬츠 콘텐츠와 관련 없는 음식 이미지가 포함되어 있습니다.",
-          location: "이미지 1 중앙 하단",
-          guidance: "캠페인 상품 착용 이미지로 교체해 주세요.",
-          source: "자동 감지",
-          severity: "critical",
-          state: "active",
-        },
         {
           id: "ct-002-caption-claim",
           target: {
@@ -313,14 +309,14 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
         {
           title: "과장 표현 삭제",
           detail: "최저가를 단정한 문구가 수정본에서 삭제되었습니다.",
-          source: "본문 · STT 비교",
+          source: "게시물 본문(TEXT) 비교",
           evidence: "‘지금 가장 저렴하게’ 삭제",
           tone: "pass",
         },
         {
           title: "수정본 안전성",
           detail: "수정본에서 욕설, 폭력성, 음란 표현이 감지되지 않았습니다.",
-          source: "본문 · 이미지 분석",
+          source: "게시물 본문(TEXT)",
           evidence: "감지 항목 없음",
           tone: "pass",
         },
@@ -328,23 +324,13 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
       extracts: [
         {
           type: "OCR",
-          text: "지금 가장 저렴하게",
-          location: "직전 판정본 · 이미지 1 중앙",
-        },
-        {
-          type: "OCR",
-          text: "유료광고 포함",
-          location: "수정본 · 이미지 1 좌측 상단",
-        },
-        {
-          type: "STT",
-          text: "오늘 소개할 패딩 팬츠는 세인트앤드류스 신상입니다. 착용감과 사이즈를 차례로 보여드릴게요.",
-          location: "직전 판정본 · 00:08–00:17",
+          text: "유료광고 포함 · 세인트앤드류스 패딩 팬츠",
+          location: "수정본 이미지 1 · 좌측 상단",
         },
         {
           type: "STT",
           text: "상품 정보와 구매 링크는 영상 설명란에서 확인해 주세요.",
-          location: "직전 판정본 · 00:42–00:50",
+          location: "직전 판정본 동영상 · 00:42–00:50",
         },
       ],
       history: [
@@ -427,7 +413,7 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
         {
           title: "안전성",
           detail: "욕설, 폭력성, 음란 표현이 감지되지 않았습니다.",
-          source: "본문 · 이미지 분석",
+          source: "게시물 본문(TEXT)",
           evidence: "감지 항목 없음",
           tone: "pass",
         },
@@ -435,13 +421,8 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
       extracts: [
         {
           type: "OCR",
-          text: "ST.ANDREWS · Stretch padded pants",
-          location: "이미지 1 · 하단",
-        },
-        {
-          type: "OCR",
-          text: "사이즈 팁은 본문에서 확인",
-          location: "이미지 4 · 우측 하단",
+          text: "ST.ANDREWS · Stretch padded pants · 사이즈 팁은 본문에서 확인",
+          location: "현재 버전 이미지 1·4",
         },
       ],
       history: [

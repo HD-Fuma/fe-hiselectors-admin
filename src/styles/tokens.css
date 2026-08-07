@@ -1,15 +1,15 @@
 :root {
-  --hsas-teal: #168f78;
-  --hsas-teal-accent: #249f8e;
-  --hsas-teal-dark: #0f7562;
-  --hsas-teal-soft: #e8f4f1;
+  --hsas-teal: #1e9d8b;
+  --hsas-teal-accent: #1e9d8b;
+  --hsas-teal-dark: #1e9d8b;
+  --hsas-teal-soft: #f2f4f1;
 
   --hsas-sidebar-width: 248px;
   --hsas-sidebar-background: #2f2f2f;
   --hsas-sidebar-surface: #333333;
   --hsas-sidebar-text: #d5d5d5;
   --hsas-sidebar-heading: #b8b8b8;
-  --hsas-sidebar-active: #168f78;
+  --hsas-sidebar-active: #1e9d8b;
   --hsas-sidebar-hover: #3a3a3a;
   --hsas-sidebar-border: rgb(255 255 255 / 10%);
   --hsas-sidebar-row-height: 32px;
@@ -26,9 +26,9 @@
   --hsas-text-muted: #8a8f91;
   --hsas-text-inverse: #ffffff;
 
-  --hsas-status-approved: #137763;
-  --hsas-status-approved-bg: #e5f3ef;
-  --hsas-status-approved-border: #8cc7ba;
+  --hsas-status-approved: #1e9d8b;
+  --hsas-status-approved-bg: #f5f6f4;
+  --hsas-status-approved-border: #c7cec4;
   --hsas-status-pending: #8a6507;
   --hsas-status-pending-bg: #fff6d8;
   --hsas-status-pending-border: #ddc777;
@@ -39,7 +39,7 @@
   --hsas-status-neutral-bg: #eef0f1;
   --hsas-status-neutral-border: #bdc3c6;
 
-  --hsas-font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", Arial, sans-serif;
+  --hsas-font-family: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Arial, sans-serif;
   --hsas-font-size-body: 12px;
   --hsas-line-height-body: 1.45;
 

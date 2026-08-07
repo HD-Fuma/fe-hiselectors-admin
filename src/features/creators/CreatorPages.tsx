@@ -7,7 +7,6 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
 import { SearchPanel } from "../../components/ui/SearchPanel";
-import { SectionTabs } from "../../components/ui/SectionTabs";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { CreatorCardGrid } from "./CreatorCardGrid";
@@ -34,7 +33,7 @@ const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube"].map((label) => ({
   label,
   value: label === "전체" ? "" : label,
 }));
-const PROPOSAL_CHANNEL_OPTIONS = ["전체", "Instagram DM", "이메일"].map((label) => ({
+const PROPOSAL_CHANNEL_OPTIONS = ["전체", "이메일"].map((label) => ({
   label,
   value: label === "전체" ? "" : label,
 }));
@@ -58,7 +57,7 @@ function PlatformLabel({ platform }: { platform: CreatorProfileFixture["platform
 }
 
 function proposalTone(
-  status: ProposalStatus | "미제안",
+  status: ProposalStatus | "미제안" | "발송 전",
 ): NonNullable<StatusPillProps["tone"]> {
   if (status === "발송 완료") {
     return "approved";
@@ -68,6 +67,9 @@ function proposalTone(
   }
   if (status === "발송 실패") {
     return "rejected";
+  }
+  if (status === "발송 전") {
+    return "pending";
   }
   return "neutral";
 }
@@ -351,6 +353,60 @@ function CreatorProfileHero({
   );
 }
 
+function CreatorDetailSidebar({
+  actionSection,
+  creator,
+  statusPill,
+}: {
+  actionSection?: ReactNode;
+  creator: CreatorFixture;
+  statusPill?: ReactNode;
+}) {
+  const engagement = engagementResultForCreator(creator);
+  const audienceLabel = creator.profile.platform === "Instagram" ? "팔로워" : "구독자";
+  const proposalHref = `/proposals/new?creator=${creator.id}&channel=${encodeURIComponent("이메일")}`;
+  const isPreSend = creator.proposalStatus === "발송 전" || creator.proposalStatus === "미제안";
+
+  return (
+    <aside className="fuma-creator-detail-sidebar">
+      <section className="fuma-creator-detail-sidebar__profile">
+        <div className="fuma-creator-detail-sidebar__portrait">
+          <CreatorProfilePhoto creatorName={creator.name} src={creator.profile.profileImageUrl} />
+          <PlatformIcon platform={creator.profile.platform} />
+        </div>
+        <div>
+          {statusPill ?? <StatusPill tone={proposalTone(creator.proposalStatus)}>{creator.proposalStatus}</StatusPill>}
+          <h2>{creator.name}</h2>
+          <a href={creator.profile.profileUrl} rel="noreferrer" target="_blank">{creator.profile.handle} ↗</a>
+        </div>
+      </section>
+
+      <section className="fuma-creator-detail-sidebar__info">
+        <h3>기본 정보</h3>
+        <dl>
+          <div><dt>크리에이터 ID</dt><dd>{creator.id}</dd></div>
+          <div><dt>계정 ID</dt><dd>{creator.profile.handle}</dd></div>
+          <div><dt>이메일</dt><dd>{creator.email}</dd></div>
+          <div><dt>카테고리</dt><dd>{creator.category}</dd></div>
+          <div><dt>{audienceLabel}</dt><dd>{formatNumber(creator.profile.followers)}</dd></div>
+          <div><dt>콘텐츠 수</dt><dd>{formatNumber(creator.contentCount)}건</dd></div>
+          <div><dt>최근 활동</dt><dd>{creator.recentActivity}</dd></div>
+          <div><dt>ER</dt><dd>{engagement.value === null ? "집계 불가" : `${engagement.value.toFixed(1)}%`}</dd></div>
+        </dl>
+      </section>
+
+      {actionSection ?? (
+        <section className={`fuma-creator-detail-sidebar__proposal${isPreSend ? " fuma-creator-detail-sidebar__proposal--pre-send" : ""}`}>
+          <span>영입 제안</span>
+          <strong><i aria-hidden="true" />{creator.proposalStatus}</strong>
+          <p>{isPreSend ? "분석 결과를 확인하고 제안 내용을 준비해 주세요." : "발송한 제안의 진행 상태를 확인할 수 있습니다."}</p>
+          <Link to={proposalHref}>제안 작성</Link>
+        </section>
+      )}
+    </aside>
+  );
+}
+
 function CreatorFeaturedPosts({ creator }: { creator: CreatorFixture }) {
   return (
     <section aria-labelledby="creator-featured-title" className="fuma-content-section fuma-detail-featured" id="featured">
@@ -429,48 +485,49 @@ function ProposalMethods({ creator }: { creator: CreatorFixture }) {
 }
 
 interface CreatorDetailPageProps {
+  actionSection?: ReactNode;
   creatorIdOverride?: string;
+  creatorOverride?: CreatorFixture;
   embedded?: boolean;
   onClose?: () => void;
+  statusPill?: ReactNode;
+  title?: string;
 }
 
 export function CreatorDetailPage({
+  actionSection,
   creatorIdOverride,
+  creatorOverride,
   embedded = false,
   onClose,
+  statusPill,
+  title = "크리에이터 상세",
 }: CreatorDetailPageProps = {}) {
   const { creatorId: routeCreatorId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const creatorId = creatorIdOverride ?? routeCreatorId;
-  const fixture = CREATORS.find((creator) => creator.id === creatorId);
+  const fixture = creatorOverride ?? CREATORS.find((creator) => creator.id === creatorId);
   const creator =
     fixture && searchParams.get("fixture") === "ai-pending"
       ? { ...fixture, aiReport: PENDING_AI_REPORT }
       : fixture;
-  const [activeSection, setActiveSection] = useState("featured");
-
   return (
     <>
       {embedded ? null : <CreatorListPage />}
-      <SidePanel onClose={onClose ?? (() => navigate("/creators"))} title="크리에이터 상세">
+      <SidePanel onClose={onClose ?? (() => navigate("/creators"))} title={title}>
         <div className="fuma-detail-panel__content fuma-creator-detail-page">
           {creator ? (
-            <>
-            <CreatorProfileHero creator={creator} />
-            <SectionTabs
-              activeId={activeSection}
-              items={[
-                { id: "featured", label: "대표 콘텐츠" },
-                { id: "analysis", label: "크리에이터 분석" },
-                { id: "proposal", label: "영입 제안" },
-              ]}
-              onChange={setActiveSection}
-            />
-            <CreatorFeaturedPosts creator={creator} />
-            <CreatorAnalysisReport creator={creator} />
-            <ProposalMethods creator={creator} />
-            </>
+            <div className="fuma-creator-detail-workspace">
+              <CreatorDetailSidebar
+                actionSection={actionSection}
+                creator={creator}
+                statusPill={statusPill}
+              />
+              <main className="fuma-creator-detail-main">
+                <CreatorAnalysisReport creator={creator} />
+              </main>
+            </div>
           ) : (
             <EmptyState
               description="요청한 크리에이터 정보를 확인할 수 없습니다."
@@ -590,35 +647,71 @@ export function ProposalComposePage() {
   );
 }
 
-const PROPOSAL_COLUMNS: DenseTableColumn<ProposalFixture>[] = [
+function createProposalColumns(): DenseTableColumn<ProposalFixture>[] {
+  return [
   {
     id: "target",
-    header: "대상",
-    width: 145,
-    render: (proposal) => `${proposal.targetName} (${proposal.targetId})`,
+    header: "크리에이터",
+    width: 120,
+    render: (proposal) => proposal.receiver,
   },
-  { key: "channel", header: "채널", width: 110 },
-  { key: "sendMethod", header: "발송 방식", width: 82, align: "center" },
-  { key: "sentAt", header: "발송 시각", width: 130, align: "center" },
+  { key: "recipientEmail", header: "이메일 주소", width: 210 },
+  { key: "sentAt", header: "발송 시각", width: 150, align: "center" },
+  { key: "administratorName", header: "발송자", width: 130 },
   {
     key: "status",
     header: "상태",
-    width: 104,
+    width: 110,
     align: "center",
     render: (proposal) => (
       <StatusPill tone={proposalTone(proposal.status)}>{proposal.status}</StatusPill>
     ),
   },
-  {
-    key: "constraintNote",
-    header: "발송 안내",
-    width: 400,
-    render: (proposal) => proposal.constraintNote ?? "-",
-  },
-];
+  ];
+}
+
+function ProposalDeliveryDetail({ proposal }: { proposal: ProposalFixture }) {
+  return (
+    <div className="fuma-detail-panel__content fuma-proposal-delivery-detail">
+      <section aria-label="발송 내역" className="fuma-proposal-delivery-detail__section">
+        <header>
+          <span>발송 내역</span>
+          <h3>{proposal.receiver}</h3>
+        </header>
+        <dl className="fuma-proposal-delivery-detail__list">
+          <div>
+            <dt>크리에이터 SNS ID</dt>
+            <dd>{proposal.receiver}</dd>
+          </div>
+          <div>
+            <dt>발송 관리자 ID</dt>
+            <dd>{proposal.administratorId}</dd>
+          </div>
+          <div>
+            <dt>발송 방법</dt>
+            <dd>{proposal.channel}</dd>
+          </div>
+          <div>
+            <dt>발송 시각</dt>
+            <dd>{proposal.sentAt}</dd>
+          </div>
+          <div>
+            <dt>상태</dt>
+            <dd><StatusPill tone={proposalTone(proposal.status)}>{proposal.status}</StatusPill></dd>
+          </div>
+          <div>
+            <dt>발송 안내</dt>
+            <dd>{proposal.message}</dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+  );
+}
 
 export function ProposalHistoryPage() {
   const [searchParams] = useSearchParams();
+  const [selectedProposal, setSelectedProposal] = useState<ProposalFixture | null>(null);
   const creatorId = searchParams.get("creator");
   const proposals =
     searchParams.get("fixture") === "empty"
@@ -646,14 +739,20 @@ export function ProposalHistoryPage() {
         <ResultToolbar count={proposals.length} title="제안 이력 목록" />
         <div aria-label="제안 이력 목록" className="fuma-wide-table" role="region">
           <DenseTable
-            columns={PROPOSAL_COLUMNS}
+            columns={createProposalColumns()}
             emptyMessage="등록된 제안 이력이 없습니다."
+            onRowClick={setSelectedProposal}
             rowKey={(proposal) => proposal.id}
             rows={proposals}
           />
         </div>
         <Pagination page={1} pageSize={20} totalPages={1} />
       </div>
+      {selectedProposal ? (
+        <SidePanel onClose={() => setSelectedProposal(null)} title="발송 내역">
+          <ProposalDeliveryDetail proposal={selectedProposal} />
+        </SidePanel>
+      ) : null}
     </section>
   );
 }

@@ -1,8 +1,10 @@
 export interface CohortFixture {
   id: string;
+  generationId: number;
   name: string;
-  activityPeriod: string;
-  status: "모집 예정" | "모집 중" | "마감";
+  startDate: string;
+  endDate: string;
+  status: "활성" | "비활성";
   participantCount: number;
 }
 
@@ -35,23 +37,29 @@ export interface QualificationFixture {
 export const COHORTS: CohortFixture[] = [
   {
     id: "cohort-04",
+    generationId: 4,
     name: "4기",
-    activityPeriod: "2026-09-01 ~ 2026-11-30",
-    status: "모집 예정",
+    startDate: "2026-09-01",
+    endDate: "2026-11-30",
+    status: "비활성",
     participantCount: 0,
   },
   {
     id: "cohort-03",
+    generationId: 3,
     name: "3기",
-    activityPeriod: "2026-08-17 ~ 2026-11-16",
-    status: "모집 중",
+    startDate: "2026-08-17",
+    endDate: "2026-11-16",
+    status: "활성",
     participantCount: 38,
   },
   {
     id: "cohort-02",
+    generationId: 2,
     name: "2기",
-    activityPeriod: "2026-04-01 ~ 2026-06-30",
-    status: "마감",
+    startDate: "2026-04-01",
+    endDate: "2026-06-30",
+    status: "비활성",
     participantCount: 54,
   },
 ];

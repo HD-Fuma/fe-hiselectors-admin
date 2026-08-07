@@ -55,7 +55,7 @@ interface CreatorBaseFixture {
   recentActivity: string;
   featuredContents: CreatorFeaturedContentFixture[];
   aiReport: AiReportFixture;
-  proposalStatus: ProposalStatus | "미제안";
+  proposalStatus: ProposalStatus | "미제안" | "발송 전";
 }
 
 export type CreatorProposalContact = {
@@ -69,15 +69,15 @@ export interface ProposalFixture {
   id: string;
   targetId: string;
   targetName: string;
+  receiver: string;
+  recipientEmail: string;
+  administratorId: string;
+  administratorName: string;
   channel: ProposalChannel;
-  sendMethod: "수동" | "자동";
   sentAt: string;
   status: ProposalStatus;
-  constraintNote?: string;
+  message: string;
 }
-
-export const META_MANUAL_SEND_NOTE =
-  "Meta 정책상 자동 선접촉이 불가합니다. 관리자 확인 후 수동 발송이 필요합니다.";
 
 const SEOYEON_AI_REPORT: AiReportFixture = {
   status: "ready",
@@ -247,7 +247,7 @@ export const CREATORS: CreatorFixture[] = [
       },
     ],
     aiReport: PENDING_AI_REPORT,
-    proposalStatus: "발송 실패",
+    proposalStatus: "발송 전",
     availableProposalChannels: ["이메일"],
     email: "zia@example.com",
   },
@@ -312,38 +312,52 @@ export const PROPOSALS: ProposalFixture[] = [
     id: "pr-001",
     targetId: "cr-001",
     targetName: "김서연",
-    channel: "Instagram DM",
-    sendMethod: "수동",
+    receiver: "@seo.yeon",
+    recipientEmail: "seoyeon@example.com",
+    administratorId: "admin-001",
+    administratorName: "김민지",
+    channel: "이메일",
     sentAt: "2026-08-03 10:24",
     status: "발송 완료",
-    constraintNote: META_MANUAL_SEND_NOTE,
+    message: "안녕하세요, 김서연 님. 셀렉토리스와 함께할 크리에이터 파트너를 찾고 있습니다. 뷰티 콘텐츠와 브랜드의 방향성이 잘 맞아 협업을 제안드립니다.",
   },
   {
     id: "pr-002",
     targetId: "cr-002",
     targetName: "박도윤",
+    receiver: "도윤의 집밥",
+    recipientEmail: "doyoon@example.com",
+    administratorId: "admin-001",
+    administratorName: "김민지",
     channel: "이메일",
-    sendMethod: "자동",
     sentAt: "2026-08-02 14:10",
     status: "발송 완료",
+    message: "안녕하세요, 도윤의 집밥 님. 따뜻하고 실용적인 콘텐츠를 인상 깊게 보고 연락드립니다. 셀렉토리스 크리에이터 파트너십 참여를 제안드리고 싶습니다.",
   },
   {
     id: "pr-003",
     targetId: "cr-003",
     targetName: "이지아",
+    receiver: "@zia.trip",
+    recipientEmail: "zia@example.com",
+    administratorId: "admin-002",
+    administratorName: "이현우",
     channel: "이메일",
-    sendMethod: "자동",
     sentAt: "2026-08-01 09:05",
     status: "발송 실패",
+    message: "안녕하세요, 이지아 님. 여행 콘텐츠의 감각적인 시선이 셀렉토리스 브랜드와 잘 어울린다고 생각했습니다. 크리에이터 파트너십을 제안드립니다.",
   },
   {
     id: "pr-004",
     targetId: "cr-004",
     targetName: "오하늘",
-    channel: "Instagram DM",
-    sendMethod: "수동",
+    receiver: "@today_haneul",
+    recipientEmail: "haneul@example.com",
+    administratorId: "admin-002",
+    administratorName: "이현우",
+    channel: "이메일",
     sentAt: "2026-08-03 16:00",
     status: "발송 대기",
-    constraintNote: META_MANUAL_SEND_NOTE,
+    message: "안녕하세요, 오하늘 님. 일상에 자연스럽게 녹아드는 콘텐츠를 보고 셀렉토리스와의 협업 가능성을 이야기 나누고 싶어 연락드립니다.",
   },
 ];

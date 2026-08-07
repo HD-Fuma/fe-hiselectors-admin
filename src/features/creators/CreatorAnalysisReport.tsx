@@ -174,10 +174,6 @@ function metricValue(value: AverageMetric) {
   return value === null ? "집계 불가" : formatNumber(value);
 }
 
-function audienceLabel(creator: CreatorFixture) {
-  return creator.profile.platform === "Instagram" ? "팔로워" : "구독자";
-}
-
 export function topNScore(creator: CreatorFixture) {
   const engagement = engagementResultForCreator(creator);
   return engagement.value === null ? null : engagement.value * Math.log(1 + creator.profile.followers);
@@ -262,13 +258,17 @@ function AnalysisFields({ children, label }: { children: React.ReactNode; label:
 
 export function CreatorAnalysisReport({ creator }: { creator: CreatorFixture }) {
   const analysis = CREATOR_ANALYSES[creator.id] ?? fallbackAnalysis(creator);
-  const audience = audienceLabel(creator);
   const cadence = deriveCadence(analysis.postDates, analysis.updatedAt.replaceAll(".", "-"), analysis.collectionDays);
   const collectedContentCount = Math.round(cadence.dailyAverage * analysis.collectionDays);
   const engagement = engagementResultForCreator(creator);
+  const formatTotal = analysis.formatMix.reduce((sum, format) => sum + format.count, 0);
+  const supplementalInteractions = analysis.supplementalInteractions.length > 0
+    ? analysis.supplementalInteractions.map((item) => `${item.label} ${formatNumber(item.value)}`).join(" · ")
+    : "집계 불가";
   const requiredClaims: Array<[string, string]> = [
     ["카테고리", creator.category],
     ["키워드", creator.keywords.join(" · ")],
+    ["타깃", "AI 분석 결과 생성 중"],
     ["협업 이력", "최근 90일 수집 데이터에서 분석 중"],
     ["콘텐츠 유형", analysis.formatMix.map((format) => `${format.label} ${format.count}건`).join(" · ")],
     ["톤앤매너", "AI 이미지·텍스트 분석 중"],
@@ -283,50 +283,95 @@ export function CreatorAnalysisReport({ creator }: { creator: CreatorFixture }) 
   }
 
   return (
-    <section aria-labelledby="creator-analysis-title" className="fuma-content-section" id="analysis">
+    <section aria-labelledby="creator-analysis-title" className="fuma-creator-analysis-report" id="analysis">
       <header className="fuma-content-section__header">
-        <h2 id="creator-analysis-title">크리에이터 분석</h2>
-        <span>최종 업데이트 {analysis.updatedAt} · 최근 {analysis.collectionDays}일 수집 데이터</span>
+        <div>
+          <p>CREATOR REPORT</p>
+          <h2 id="creator-analysis-title">크리에이터 분석</h2>
+        </div>
+        <span>
+          {creator.aiReport.status === "ready" ? "생성 완료" : "생성 대기"} · 최종 업데이트 {analysis.updatedAt} · 최근 {analysis.collectionDays}일 수집 데이터
+        </span>
       </header>
 
-      <section aria-label="정량 분석" className="fuma-content-section">
-        <header className="fuma-content-section__header"><h2>정량 분석</h2></header>
-        <dl className="fuma-key-value-grid">
-          <AnalysisFields label="SNS 계정 기본정보">
-            <a
-              aria-label={`${creator.profile.platform} 프로필 열기`}
-              href={creator.profile.profileUrl}
-              rel="noreferrer"
-              target="_blank"
-            >
-              {creator.profile.platform} · {creator.profile.handle}
-            </a>
-          </AnalysisFields>
-          <AnalysisFields label="최종 업데이트 일자">{analysis.updatedAt} 기준 최근 {analysis.collectionDays}일 수집 데이터</AnalysisFields>
-          <AnalysisFields label="팔로워·구독자 수">{formatNumber(creator.profile.followers)}</AnalysisFields>
-          <AnalysisFields label="업로드 주기">주 {cadence.weeklyAverage.toFixed(1)}회 · 최근 {analysis.collectionDays}일 {collectedContentCount}건 · 공백 최대 {cadence.longestGapDays}일</AnalysisFields>
-          <AnalysisFields label="콘텐츠 수">{formatNumber(creator.contentCount)}건</AnalysisFields>
-          <AnalysisFields label="최근 90일 게시물 수">{collectedContentCount}건</AnalysisFields>
-          <AnalysisFields label="마지막 게시일">{analysis.lastPostDate}</AnalysisFields>
-          <AnalysisFields label="평균 조회·좋아요·댓글">조회 {metricValue(analysis.averages.views)} · 좋아요 {metricValue(analysis.averages.likes)} · 댓글 {metricValue(analysis.averages.comments)}</AnalysisFields>
-          <AnalysisFields label="콘텐츠 형식 통계">{analysis.formatMix.map((format) => `${format.label} ${format.count}건`).join(" · ")}</AnalysisFields>
-          <AnalysisFields label="ER (Engagement Rate)">{engagement.value === null ? "ER 집계 불가 · 댓글 수가 있는 유효 표본 없음" : `ER ${engagement.value.toFixed(1)}%`} · (좋아요 + 댓글 + 공유) ÷ {audience} × 100 · 표본 {engagement.sampleSize}건</AnalysisFields>
-          <AnalysisFields label="플랫폼 보조 상호작용">{analysis.supplementalInteractions.length > 0 ? analysis.supplementalInteractions.map((item) => `${item.label} ${formatNumber(item.value)}`).join(" · ") : "집계 불가"}</AnalysisFields>
-        </dl>
-      </section>
+      <div className="fuma-creator-analysis-report__content">
+          <section aria-label="리포트 요약" className="fuma-creator-analysis-overview">
+            <div>
+              <span>분석 요약</span>
+              <p>{creator.aiReport.status === "ready" ? creator.aiReport.summary : "AI 리포트를 생성하고 있습니다."}</p>
+            </div>
+            <dl>
+              <div><dt>적합도 평가</dt><dd>{creator.aiReport.fitnessScore ?? "-"}<small>점</small></dd></div>
+              <div><dt>수집 콘텐츠</dt><dd>{collectedContentCount}<small>건</small></dd></div>
+              <div><dt>주간 업로드</dt><dd>{cadence.weeklyAverage.toFixed(1)}<small>회</small></dd></div>
+            </dl>
+          </section>
 
-      <section aria-label="AI 정성 분석" className="fuma-content-section">
-        <header className="fuma-content-section__header"><h2>정성적 지표 (AI)</h2><span>이미지 분석을 포함하며, AI 판단에는 콘텐츠 URL 근거를 남깁니다.</span></header>
-        <dl className="fuma-key-value-grid">
-          {qualitativeClaims.map((claim) => (
-            <AnalysisFields key={claim.label} label={claim.label}>
-              <span>{claim.value}</span>{" "}
-              <a href={claim.evidence.url} rel="noreferrer" target="_blank">{claim.evidence.label}</a>
-            </AnalysisFields>
-          ))}
-        </dl>
-      </section>
+          <section aria-label="정량 분석" className="fuma-creator-analysis-block">
+            <div className="fuma-creator-analysis-block__heading">
+              <h3>정량 분석</h3>
+              <span>수집 데이터 기준</span>
+            </div>
+            <div className="fuma-creator-analysis-metrics">
+              <section className="fuma-creator-metric-group fuma-creator-metric-group--performance">
+                <header>
+                  <div><strong>반응 성과</strong><span>콘텐츠 1건당 평균 반응</span></div>
+                  <b>{engagement.value === null ? "ER 집계 불가" : `ER ${engagement.value.toFixed(1)}%`}</b>
+                </header>
+                <dl className="fuma-creator-metric-hero-list">
+                  <div><dt>평균 조회</dt><dd>{metricValue(analysis.averages.views)}</dd></div>
+                  <div><dt>평균 좋아요</dt><dd>{metricValue(analysis.averages.likes)}</dd></div>
+                  <div><dt>평균 댓글</dt><dd>{metricValue(analysis.averages.comments)}</dd></div>
+                </dl>
+              </section>
 
+              <section className="fuma-creator-metric-group fuma-creator-metric-group--activity">
+                <header>
+                  <div><strong>활동 리듬</strong><span>최근 {analysis.collectionDays}일 업로드 흐름</span></div>
+                  <b>주 {cadence.weeklyAverage.toFixed(1)}회</b>
+                </header>
+                <dl className="fuma-creator-metric-data-list">
+                  <div><dt>수집 게시물</dt><dd>{collectedContentCount}<small>건</small></dd></div>
+                  <div><dt>마지막 게시</dt><dd>{analysis.lastPostDate}</dd></div>
+                  <div><dt>최대 공백</dt><dd>{cadence.longestGapDays}<small>일</small></dd></div>
+                  <div><dt>전체 콘텐츠</dt><dd>{formatNumber(creator.contentCount)}<small>건</small></dd></div>
+                </dl>
+              </section>
+
+              <section className="fuma-creator-metric-group fuma-creator-metric-group--format">
+                <header>
+                  <div><strong>콘텐츠 구성</strong><span>수집된 콘텐츠 형식 비중</span></div>
+                  <b>{formatTotal}<small>건</small></b>
+                </header>
+                <ul className="fuma-creator-metric-format-list">
+                  {analysis.formatMix.map((format) => (
+                    <li key={format.label}>
+                      <span>{format.label}</span>
+                      <i><b style={{ width: `${formatTotal > 0 ? (format.count / formatTotal) * 100 : 0}%` }} /></i>
+                      <strong>{format.count}<small>건</small></strong>
+                    </li>
+                  ))}
+                </ul>
+                <div className="fuma-creator-metric-footnotes">
+                  <span>보조 상호작용 <b>{supplementalInteractions}</b></span>
+                  <span>분석 기준 <b>{analysis.updatedAt} · 최근 {analysis.collectionDays}일</b></span>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section aria-label="AI 정성 분석" className="fuma-creator-analysis-block">
+            <h3>AI 정성 분석</h3>
+            <dl className="fuma-creator-analysis-claims">
+              {qualitativeClaims.map((claim) => (
+                <div key={claim.label}>
+                  <dt>{claim.label}</dt>
+                  <dd><span>{claim.value}</span><a href={claim.evidence.url} rel="noreferrer" target="_blank">근거 보기 ↗</a></dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        </div>
     </section>
   );
 }

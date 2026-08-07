@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
-import { Button, Checkbox, Select, TextInput } from "../../components/ui/Controls";
+import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FormRow } from "../../components/ui/FormRow";
@@ -15,10 +15,13 @@ import {
   ApplicantAutomaticReview,
   ApplicantFeaturedContents,
 } from "./ApplicantAnalysisReport";
+import { CreatorDetailPage } from "../creators/CreatorPages";
 import { PlatformIcon } from "../creators/PlatformIcon";
+import type { CreatorFixture, CreatorMediaVisual } from "../creators/fixtures";
 import {
   APPLICANTS,
   applicantAnalysisFor,
+  applicantFeaturedContentFor,
   applicantProfileImageUrl,
   applicantProfileUrl,
   findApplicantFixture,
@@ -107,49 +110,182 @@ function deliveryStatusTone(
   return "rejected";
 }
 
-const APPLICANT_COLUMNS: DenseTableColumn<ApplicantFixture>[] = [
-  {
-    id: "selection",
-    header: "선택",
-    width: 48,
-    align: "center",
-    render: (applicant) => (
-      <Checkbox
-        label={<span className="hsas-visually-hidden">{applicant.name} 선택</span>}
-      />
-    ),
-  },
-  { key: "id", header: "지원자 ID", width: 78 },
+function PlatformLabel({ platform }: { platform: CreatorFixture["profile"]["platform"] }) {
+  return (
+    <span className="fuma-platform-label">
+      <PlatformIcon platform={platform} />
+      <span aria-hidden="true">{platform}</span>
+    </span>
+  );
+}
+
+const APPLICANT_VISUALS: CreatorMediaVisual[] = [
+  "beauty",
+  "fashion",
+  "cooking",
+  "table",
+  "city",
+  "coffee",
+];
+
+type ApplicantListRow = CreatorFixture & {
+  autoRejected: boolean;
+  reviewStatus: ReviewStatus;
+};
+
+function applicantToCreatorCard(applicant: ApplicantFixture): ApplicantListRow {
+  const analysis = applicantAnalysisFor(applicant);
+  const [primaryDelivery] = applicant.deliveries;
+
+  return {
+    id: applicant.id,
+    name: applicant.name,
+    profile: {
+      platform: applicant.platform,
+      handle: applicant.channelName,
+      profileUrl: applicantProfileUrl(applicant),
+      followers: applicant.followerCount,
+      averageViews: applicant.averageViews,
+      averageReactions: applicant.averageReactions,
+      engagementRate: analysis.engagementRate,
+      profileImageUrl: applicantProfileImageUrl(applicant),
+    },
+    category: analysis.category,
+    keywords: analysis.keywords.slice(0, 3).map((keyword) => `#${keyword.label}`),
+    tier: "T3",
+    contentCount: applicant.contentCount,
+    recentActivity: applicant.recentActivity,
+    featuredContents: applicantFeaturedContentFor(applicant).map((content, index) => ({
+      id: content.id,
+      title: content.title,
+      mediaType: content.mediaType,
+      views: content.views,
+      visual: APPLICANT_VISUALS[index % APPLICANT_VISUALS.length],
+      thumbnailUrl: content.thumbnailUrl,
+    })),
+    aiReport: applicant.aiReport,
+    proposalStatus: primaryDelivery.status === "전송 완료" ? "발송 완료" : "발송 전",
+    availableProposalChannels: ["이메일"],
+    autoRejected: applicant.autoRejected,
+    email: applicant.email,
+    reviewStatus: applicant.reviewStatus,
+  };
+}
+
+function ApplicantApprovalToolbar({
+  count,
+  onApprove,
+  onReject,
+  onSelectionModeChange,
+  selectedCount,
+  selectionMode,
+}: {
+  count: number;
+  onApprove: () => void;
+  onReject: () => void;
+  onSelectionModeChange: () => void;
+  selectedCount: number;
+  selectionMode: boolean;
+}) {
+  return (
+    <div className="fuma-creator-toolbar">
+      <strong className="fuma-creator-toolbar__summary">지원자 승인</strong>
+      <span>총 {count}건</span>
+      <div className="fuma-creator-toolbar__controls">
+        <button
+          aria-pressed={selectionMode}
+          className="fuma-creator-toolbar__select-mode"
+          onClick={onSelectionModeChange}
+          type="button"
+        >
+          {selectionMode ? "선택 완료" : "선택"}
+        </button>
+        {selectionMode ? (
+          <>
+            <span className="fuma-creator-toolbar__selected">{selectedCount}명 선택</span>
+            <button
+              className="fuma-creator-toolbar__proposal"
+              disabled={selectedCount === 0}
+              onClick={onApprove}
+              type="button"
+            >
+              일괄 승인
+            </button>
+            <button
+              className="fuma-creator-toolbar__proposal"
+              disabled={selectedCount === 0}
+              onClick={onReject}
+              type="button"
+            >
+              일괄 반려
+            </button>
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function applicantListColumns({
+  allSelected,
+  onOpen,
+  onToggleAll,
+  onToggleSelected,
+  selectedIds,
+  selectionMode,
+}: {
+  allSelected: boolean;
+  onOpen: (applicant: ApplicantListRow) => void;
+  onToggleAll: () => void;
+  onToggleSelected: (applicantId: string) => void;
+  selectedIds: ReadonlySet<string>;
+  selectionMode: boolean;
+}): DenseTableColumn<ApplicantListRow>[] {
+  const columns: DenseTableColumn<ApplicantListRow>[] = [
   { key: "name", header: "이름", width: 70 },
-  { key: "platform", header: "SNS 채널", width: 88 },
   {
-    key: "followerCount",
+    id: "platform",
+    header: "플랫폼",
+    width: 115,
+    render: (applicant) => <PlatformLabel platform={applicant.profile.platform} />,
+  },
+  {
+    id: "account",
+    header: "계정",
+    width: 130,
+    render: (applicant) => applicant.profile.handle,
+  },
+  {
+    id: "categories",
+    header: "카테고리",
+    width: 110,
+    render: (applicant) => applicant.category,
+  },
+  {
+    id: "keywords",
+    header: "키워드",
+    width: 165,
+    render: (applicant) => applicant.keywords.join(" "),
+  },
+  {
+    id: "followers",
     header: "팔로워·구독자",
     width: 105,
     align: "right",
-    render: (applicant) => formatNumber(applicant.followerCount),
+    render: (applicant) => formatNumber(applicant.profile.followers),
   },
   {
-    key: "contentCount",
-    header: "콘텐츠 수",
-    width: 76,
+    id: "engagementRate",
+    header: "ER",
+    width: 72,
     align: "right",
-    render: (applicant) => formatNumber(applicant.contentCount),
-  },
-  { key: "recentActivity", header: "최근 활동일", width: 92, align: "center" },
-  {
-    key: "averageViews",
-    header: "평균 조회 수",
-    width: 92,
-    align: "right",
-    render: (applicant) => formatNumber(applicant.averageViews),
+    render: (applicant) => `${applicant.profile.engagementRate.toFixed(1)}%`,
   },
   {
-    key: "averageReactions",
-    header: "평균 반응 수",
-    width: 92,
-    align: "right",
-    render: (applicant) => formatNumber(applicant.averageReactions),
+    key: "recentActivity",
+    header: "최근 활동일",
+    width: 96,
+    align: "center",
   },
   {
     key: "reviewStatus",
@@ -163,52 +299,106 @@ const APPLICANT_COLUMNS: DenseTableColumn<ApplicantFixture>[] = [
     ),
   },
   {
-    key: "autoRejected",
-    header: "자동 반려",
-    width: 76,
-    align: "center",
-    render: (applicant) => (
-      <StatusPill tone={applicant.autoRejected ? "rejected" : "neutral"}>
-        {applicant.autoRejected ? "해당" : "비해당"}
-      </StatusPill>
-    ),
-  },
-  {
-    id: "deliveryStatus",
-    header: "결과 전송",
-    width: 84,
-    align: "center",
-    render: (applicant) => {
-      const [primaryDelivery] = applicant.deliveries;
-
-      return (
-        <StatusPill tone={deliveryStatusTone(primaryDelivery.status)}>
-          {primaryDelivery.status}
-        </StatusPill>
-      );
-    },
-  },
-  {
     id: "detail",
     header: "상세",
-    width: 58,
+    width: 60,
     align: "center",
     render: (applicant) => (
-      <Link
-        aria-label={`${applicant.name} 상세 보기`}
-        className="fuma-table-action fuma-table-link"
-        to={`/applicants?detail=${applicant.id}`}
+      <Button
+        aria-label={`${applicant.name} 심사하기`}
+        className="fuma-table-action"
+        onClick={() => onOpen(applicant)}
       >
-        보기
-      </Link>
+        심사
+      </Button>
     ),
   },
-];
+  ];
+
+  if (!selectionMode) {
+    return columns;
+  }
+
+  return [
+    {
+      id: "select",
+      header: (
+        <input
+          aria-label="전체 선택"
+          checked={allSelected}
+          onChange={onToggleAll}
+          type="checkbox"
+        />
+      ),
+      width: 40,
+      align: "center",
+      render: (applicant) => (
+        <input
+          aria-label={`${applicant.name} 선택`}
+          checked={selectedIds.has(applicant.id)}
+          onChange={() => onToggleSelected(applicant.id)}
+          type="checkbox"
+        />
+      ),
+    },
+    ...columns.filter((column) => column.id !== "detail"),
+  ];
+}
 
 export function ApplicantListPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const detailApplicantId = searchParams.get("detail");
+  const [reviewOverrides, setReviewOverrides] = useState<Partial<Record<string, ReviewStatus>>>({});
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const applicants = APPLICANTS.map((applicant) => (
+    applicantToCreatorCard({
+      ...applicant,
+      reviewStatus: reviewOverrides[applicant.id] ?? applicant.reviewStatus,
+    })
+  ));
+  const detailApplicant = applicants.find((applicant) => applicant.id === detailApplicantId);
+  const openApplicant = (applicant: ApplicantListRow) => navigate(`/applicants?detail=${applicant.id}`);
+  const toggleSelected = (applicantId: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      next.has(applicantId) ? next.delete(applicantId) : next.add(applicantId);
+      return next;
+    });
+  };
+  const toggleSelectionMode = () => {
+    if (selectionMode) {
+      setSelectedIds(new Set());
+    }
+    setSelectionMode((current) => !current);
+  };
+  const toggleAll = () => {
+    setSelectedIds((current) => (
+      current.size === applicants.length ? new Set() : new Set(applicants.map((applicant) => applicant.id))
+    ));
+  };
+  const applyBatchStatus = (status: ReviewStatus) => {
+    setReviewOverrides((current) => {
+      const next = { ...current };
+      selectedIds.forEach((applicantId) => {
+        next[applicantId] = status;
+      });
+      return next;
+    });
+    setSelectedIds(new Set());
+  };
+  const applySingleStatus = (applicantId: string, status: ReviewStatus) => {
+    setReviewOverrides((current) => ({ ...current, [applicantId]: status }));
+  };
+  const columns = applicantListColumns({
+    allSelected: applicants.length > 0 && selectedIds.size === applicants.length,
+    onOpen: openApplicant,
+    onToggleAll: toggleAll,
+    onToggleSelected: toggleSelected,
+    selectedIds,
+    selectionMode,
+  });
 
   return (
     <>
@@ -220,7 +410,7 @@ export function ApplicantListPage() {
             <TextInput
               id="applicant-keyword"
               name="keyword"
-              placeholder="지원자 ID 또는 이름 검색"
+              placeholder="이름 또는 계정 검색"
             />
           </FilterField>
           <FilterField htmlFor="applicant-platform" label="SNS 채널">
@@ -252,30 +442,60 @@ export function ApplicantListPage() {
             />
           </FilterField>
         </SearchPanel>
-        <div className="fuma-result-toolbar">
-          <strong>지원자 승인</strong>
-          <span>총 {APPLICANTS.length}건</span>
-        </div>
-        <div
-          aria-label="지원자 승인"
-          className="fuma-wide-table fuma-applicant-list-table"
-          role="region"
-        >
+        <ApplicantApprovalToolbar
+          count={applicants.length}
+          onApprove={() => applyBatchStatus("승인")}
+          onReject={() => applyBatchStatus("반려")}
+          onSelectionModeChange={toggleSelectionMode}
+          selectedCount={selectedIds.size}
+          selectionMode={selectionMode}
+        />
+        <div aria-label="지원자 승인" className="fuma-wide-table" role="region">
           <DenseTable
-            columns={APPLICANT_COLUMNS}
-            onRowClick={(applicant) => navigate(`/applicants?detail=${applicant.id}`)}
+            columns={columns}
+            onRowClick={(applicant) => (
+              selectionMode ? toggleSelected(applicant.id) : openApplicant(applicant)
+            )}
             rowKey={(applicant) => applicant.id}
-            rows={[...APPLICANTS]}
+            rows={applicants}
+            selectedRowKeys={selectionMode ? [...selectedIds] : undefined}
           />
         </div>
         <Pagination page={1} pageSize={20} totalPages={1} />
       </div>
     </section>
     {detailApplicantId ? (
-      <ApplicantDetailPage
-        applicantIdOverride={detailApplicantId}
+      <CreatorDetailPage
+        actionSection={detailApplicant ? (
+          <section className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions">
+            <span>심사 처리</span>
+            <strong><i aria-hidden="true" />{detailApplicant.reviewStatus}</strong>
+            <p>분석 리포트를 확인한 뒤 지원자를 승인하거나 반려할 수 있습니다.</p>
+            <div className="fuma-applicant-detail-actions__buttons">
+              <Button
+                onClick={() => applySingleStatus(detailApplicant.id, "승인")}
+                variant="primary"
+              >
+                승인
+              </Button>
+              <Button
+                onClick={() => applySingleStatus(detailApplicant.id, "반려")}
+                variant="danger"
+              >
+                반려
+              </Button>
+            </div>
+          </section>
+        ) : undefined}
+        creatorOverride={detailApplicant}
         embedded
         onClose={() => navigate("/applicants")}
+        statusPill={detailApplicant ? (
+          <StatusPill tone={reviewStatusTone(detailApplicant.reviewStatus)}>
+            {detailApplicant.reviewStatus}
+          </StatusPill>
+        ) : undefined}
+        title="지원자 상세"
       />
     ) : null}
     </>
@@ -570,7 +790,7 @@ export function ApplicantDetailPage({
   return (
     <>
       {embedded ? null : <ApplicantListPage />}
-      <SidePanel onClose={onClose ?? (() => navigate("/applicants"))} screenCode="AP102" title="지원자 상세 심사">
+      <SidePanel onClose={onClose ?? (() => navigate("/applicants"))} title="지원자 상세 심사">
         <div className="fuma-detail-panel__content fuma-applicant-detail-page">
           {applicant ? (
             <>

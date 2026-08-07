@@ -580,8 +580,8 @@ export function PerformanceAreaChart({
           <svg aria-hidden="true" viewBox={`0 0 ${width} ${height}`}>
             <defs>
               <linearGradient id={`${captionId}-fill`} x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#5caa93" stopOpacity="0.34" />
-                <stop offset="100%" stopColor="#5caa93" stopOpacity="0" />
+                <stop offset="0%" stopColor="#1e9d8b" stopOpacity="0.34" />
+                <stop offset="100%" stopColor="#1e9d8b" stopOpacity="0" />
               </linearGradient>
             </defs>
             {[0, 1, 2, 3].map((index) => {

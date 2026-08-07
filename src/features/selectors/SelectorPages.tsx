@@ -18,7 +18,7 @@ import {
   type SelectorFixture,
 } from "./fixtures";
 
-const COHORT_STATUS_OPTIONS = ["전체", "모집 예정", "모집 중", "마감"].map(
+const COHORT_STATUS_OPTIONS = ["전체", "활성", "비활성"].map(
   (label) => ({ label, value: label === "전체" ? "" : label }),
 );
 const SELECTOR_COHORT_OPTIONS = ["전체", "4기", "3기", "2기"].map((label) => ({
@@ -66,15 +66,17 @@ function SearchActions() {
 
 function ResultToolbar({
   action,
+  className,
   count,
   title,
 }: {
   action?: ReactNode;
+  className?: string;
   count: number;
   title: string;
 }) {
   return (
-    <div className="fuma-result-toolbar">
+    <div className={["fuma-result-toolbar", className].filter(Boolean).join(" ")}>
       <strong>{title}</strong>
       <span>총 {count}건</span>
       {action ? <div className="fuma-result-toolbar__actions">{action}</div> : null}
@@ -104,45 +106,71 @@ function selectorStatusTone(
 function cohortStatusTone(
   status: CohortFixture["status"],
 ): NonNullable<StatusPillProps["tone"]> {
-  if (status === "모집 중") {
+  if (status === "활성") {
     return "approved";
-  }
-  if (status === "모집 예정") {
-    return "pending";
   }
   return "neutral";
 }
 
-const COHORT_COLUMNS: DenseTableColumn<CohortFixture>[] = [
-  { key: "name", header: "기수명", width: 84 },
-  { key: "activityPeriod", header: "활동 기간", width: 210, align: "center" },
+function cohortColumns({
+  onDetail,
+  onEdit,
+}: {
+  onDetail: (cohort: CohortFixture) => void;
+  onEdit: (cohort: CohortFixture) => void;
+}): DenseTableColumn<CohortFixture>[] {
+  return [
+    { key: "generationId", header: "기수 ID", width: 86, align: "center" },
+    { key: "name", header: "기수명", width: 110 },
+    { key: "startDate", header: "기수 시작일", width: 130, align: "center" },
+    { key: "endDate", header: "기수 종료일", width: 130, align: "center" },
+    {
+      key: "status",
+      header: "기수 상태",
+      width: 100,
+      align: "center",
+      render: (cohort) => (
+        <StatusPill tone={cohortStatusTone(cohort.status)}>{cohort.status}</StatusPill>
+      ),
+    },
+    {
+      key: "participantCount",
+      header: "참여자 수",
+      width: 90,
+      align: "right",
+      render: (cohort) => formatNumber(cohort.participantCount),
+    },
+    {
+      id: "manage",
+      header: "관리",
+      width: 118,
+      align: "center",
+      render: (cohort) => (
+        <div className="fuma-cohort-table-actions">
+          <Button aria-label={`${cohort.name} 상세`} className="fuma-table-action" onClick={() => onDetail(cohort)}>
+            상세
+          </Button>
+          <Button aria-label={`${cohort.name} 수정`} className="fuma-table-action" onClick={() => onEdit(cohort)}>
+            수정
+          </Button>
+        </div>
+      ),
+    },
+  ];
+}
+
+const ACTIVE_SELECTOR_COLUMNS: DenseTableColumn<SelectorFixture>[] = [
+  { key: "name", header: "이름", width: 110 },
+  { key: "sns", header: "SNS 채널", width: 220 },
   {
     key: "status",
-    header: "모집 상태",
+    header: "활동 상태",
     width: 100,
     align: "center",
-    render: (cohort) => (
-      <StatusPill tone={cohortStatusTone(cohort.status)}>{cohort.status}</StatusPill>
-    ),
+    render: (selector) => <StatusPill tone={selectorStatusTone(selector.status)}>{selector.status}</StatusPill>,
   },
-  {
-    key: "participantCount",
-    header: "참여자 수",
-    width: 90,
-    align: "right",
-    render: (cohort) => formatNumber(cohort.participantCount),
-  },
-  {
-    id: "manage",
-    header: "관리",
-    width: 68,
-    align: "center",
-    render: (cohort) => (
-      <Button aria-label={`${cohort.name} 수정`} className="fuma-table-action">
-        수정
-      </Button>
-    ),
-  },
+  { key: "contentCount", header: "콘텐츠 수", width: 94, align: "right" },
+  { key: "recentActivity", header: "최근 활동일", width: 120, align: "center" },
 ];
 
 export function CohortManagementPage() {
@@ -152,16 +180,22 @@ export function CohortManagementPage() {
   const [appliedKeyword, setAppliedKeyword] = useState("");
   const [appliedStatus, setAppliedStatus] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [detailCohort, setDetailCohort] = useState<CohortFixture | null>(null);
+  const [editingCohort, setEditingCohort] = useState<CohortFixture | null>(null);
   const [newCohort, setNewCohort] = useState({
+    generationId: 5,
     activityEnd: "2027-03-31",
     activityStart: "2027-01-01",
     name: "5기",
-    status: "모집 예정" as CohortFixture["status"],
+    status: "활성" as CohortFixture["status"],
   });
   const filteredCohorts = cohorts.filter((cohort) => (
     (!appliedKeyword || cohort.name.toLowerCase().includes(appliedKeyword.toLowerCase()))
     && (!appliedStatus || cohort.status === appliedStatus)
   ));
+  const activeSelectors = detailCohort
+    ? SELECTORS.filter((selector) => selector.cohort === detailCohort.name && selector.status === "활동 중")
+    : [];
 
   const resetFilters = () => {
     setKeyword("");
@@ -170,22 +204,43 @@ export function CohortManagementPage() {
     setAppliedStatus("");
   };
 
+  const openCreateModal = () => {
+    const nextGenerationId = Math.max(...cohorts.map((cohort) => cohort.generationId)) + 1;
+    setNewCohort((current) => ({
+      ...current,
+      generationId: nextGenerationId,
+      name: `${nextGenerationId}기`,
+    }));
+    setIsCreateOpen(true);
+  };
+
   const createCohort = () => {
     const name = newCohort.name.trim();
     if (!name) return;
 
     setCohorts((current) => [
       {
-        activityPeriod: `${newCohort.activityStart} ~ ${newCohort.activityEnd}`,
-        id: `cohort-${String(current.length + 1).padStart(2, "0")}`,
+        endDate: newCohort.activityEnd,
+        generationId: newCohort.generationId,
+        id: `cohort-${String(newCohort.generationId).padStart(2, "0")}`,
         name,
         participantCount: 0,
+        startDate: newCohort.activityStart,
         status: newCohort.status,
       },
       ...current,
     ]);
     resetFilters();
     setIsCreateOpen(false);
+  };
+
+  const saveCohort = () => {
+    if (!editingCohort || !editingCohort.name.trim()) return;
+
+    setCohorts((current) => current.map((cohort) => (
+      cohort.id === editingCohort.id ? { ...editingCohort, name: editingCohort.name.trim() } : cohort
+    )));
+    setEditingCohort(null);
   };
 
   return (
@@ -196,7 +251,7 @@ export function CohortManagementPage() {
           <FilterField htmlFor="cohort-name" label="기수명">
             <TextInput id="cohort-name" name="cohortName" onChange={(event) => setKeyword(event.target.value)} placeholder="기수명 검색" value={keyword} />
           </FilterField>
-          <FilterField htmlFor="cohort-status" label="모집 상태">
+          <FilterField htmlFor="cohort-status" label="기수 상태">
             <Select
               id="cohort-status"
               name="cohortStatus"
@@ -207,12 +262,17 @@ export function CohortManagementPage() {
           </FilterField>
         </SearchPanel>
         <ResultToolbar
-          action={<Button onClick={() => setIsCreateOpen(true)} variant="primary">기수 생성</Button>}
+          className="fuma-cohort-result-toolbar"
+          action={<Button onClick={openCreateModal} variant="primary">기수 생성</Button>}
           count={filteredCohorts.length}
           title="기수 목록"
         />
         <div aria-label="기수 목록" className="fuma-wide-table" role="region">
-          <DenseTable columns={COHORT_COLUMNS} rowKey={(cohort) => cohort.id} rows={filteredCohorts} />
+          <DenseTable
+            columns={cohortColumns({ onDetail: setDetailCohort, onEdit: setEditingCohort })}
+            rowKey={(cohort) => cohort.id}
+            rows={filteredCohorts}
+          />
         </div>
         <Pagination page={1} pageSize={20} totalPages={1} />
       </div>
@@ -222,11 +282,52 @@ export function CohortManagementPage() {
         title="새 기수 생성"
       >
         <div className="fuma-cohort-create-form">
+          <FormRow label="기수 ID"><TextInput aria-label="기수 ID" readOnly value={newCohort.generationId} /></FormRow>
           <FormRow label="기수명" required><TextInput aria-label="기수명" onChange={(event) => setNewCohort((current) => ({ ...current, name: event.target.value }))} value={newCohort.name} /></FormRow>
-          <FormRow label="모집 상태" required><Select aria-label="모집 상태" onChange={(event) => setNewCohort((current) => ({ ...current, status: event.target.value as CohortFixture["status"] }))} options={COHORT_STATUS_OPTIONS.slice(1)} value={newCohort.status} /></FormRow>
-          <FormRow label="활동 시작일" required><TextInput aria-label="활동 시작일" onChange={(event) => setNewCohort((current) => ({ ...current, activityStart: event.target.value }))} type="date" value={newCohort.activityStart} /></FormRow>
-          <FormRow label="활동 종료일" required><TextInput aria-label="활동 종료일" onChange={(event) => setNewCohort((current) => ({ ...current, activityEnd: event.target.value }))} type="date" value={newCohort.activityEnd} /></FormRow>
+          <FormRow label="기수 시작일" required><TextInput aria-label="기수 시작일" onChange={(event) => setNewCohort((current) => ({ ...current, activityStart: event.target.value }))} type="date" value={newCohort.activityStart} /></FormRow>
+          <FormRow label="기수 종료일" required><TextInput aria-label="기수 종료일" onChange={(event) => setNewCohort((current) => ({ ...current, activityEnd: event.target.value }))} type="date" value={newCohort.activityEnd} /></FormRow>
+          <FormRow label="기수 상태" required><Select aria-label="기수 상태" onChange={(event) => setNewCohort((current) => ({ ...current, status: event.target.value as CohortFixture["status"] }))} options={COHORT_STATUS_OPTIONS.slice(1)} value={newCohort.status} /></FormRow>
         </div>
+      </Modal>
+      <Modal
+        actions={<><Button onClick={() => setEditingCohort(null)}>취소</Button><Button onClick={saveCohort} variant="primary">저장</Button></>}
+        open={Boolean(editingCohort)}
+        title={editingCohort ? `${editingCohort.name} 수정` : "기수 수정"}
+      >
+        {editingCohort ? (
+          <div className="fuma-cohort-create-form">
+            <FormRow label="기수 ID"><TextInput aria-label="기수 ID" readOnly value={editingCohort.generationId} /></FormRow>
+            <FormRow label="기수명" required><TextInput aria-label="기수명" onChange={(event) => setEditingCohort((current) => current ? { ...current, name: event.target.value } : current)} value={editingCohort.name} /></FormRow>
+            <FormRow label="기수 시작일" required><TextInput aria-label="기수 시작일" onChange={(event) => setEditingCohort((current) => current ? { ...current, startDate: event.target.value } : current)} type="date" value={editingCohort.startDate} /></FormRow>
+            <FormRow label="기수 종료일" required><TextInput aria-label="기수 종료일" onChange={(event) => setEditingCohort((current) => current ? { ...current, endDate: event.target.value } : current)} type="date" value={editingCohort.endDate} /></FormRow>
+            <FormRow label="기수 상태" required><Select aria-label="기수 상태" onChange={(event) => setEditingCohort((current) => current ? { ...current, status: event.target.value as CohortFixture["status"] } : current)} options={COHORT_STATUS_OPTIONS.slice(1)} value={editingCohort.status} /></FormRow>
+          </div>
+        ) : null}
+      </Modal>
+      <Modal
+        actions={<Button onClick={() => setDetailCohort(null)}>닫기</Button>}
+        open={Boolean(detailCohort)}
+        title={detailCohort ? `${detailCohort.name} 상세` : "기수 상세"}
+      >
+        {detailCohort ? (
+          <div className="fuma-cohort-detail">
+            <dl className="fuma-cohort-detail__summary">
+              <div><dt>기수 ID</dt><dd>{detailCohort.generationId}</dd></div>
+              <div><dt>기수 기간</dt><dd>{detailCohort.startDate} ~ {detailCohort.endDate}</dd></div>
+              <div><dt>기수 상태</dt><dd><StatusPill tone={cohortStatusTone(detailCohort.status)}>{detailCohort.status}</StatusPill></dd></div>
+              <div><dt>참여자 수</dt><dd>{formatNumber(detailCohort.participantCount)}명</dd></div>
+            </dl>
+            <section className="fuma-cohort-detail__selectors" aria-labelledby="active-selectors-title">
+              <header>
+                <div>
+                  <h3 id="active-selectors-title">활동 셀렉터스 목록</h3>
+                  <span>현재 활동 중인 셀렉터스 {activeSelectors.length}명</span>
+                </div>
+              </header>
+              <DenseTable columns={ACTIVE_SELECTOR_COLUMNS} rowKey={(selector) => selector.id} rows={activeSelectors} />
+            </section>
+          </div>
+        ) : null}
       </Modal>
     </section>
   );
