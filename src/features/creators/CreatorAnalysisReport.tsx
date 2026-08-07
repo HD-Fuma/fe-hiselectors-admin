@@ -1,4 +1,4 @@
-import { CREATORS, type CreatorFixture } from "./fixtures";
+import type { CreatorFixture } from "./fixtures";
 
 type AverageMetric = number | null;
 

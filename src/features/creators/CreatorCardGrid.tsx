@@ -3,16 +3,16 @@ import type { CreatorFixture } from "./fixtures";
 
 export function CreatorCardGrid({
   creators,
-  onOpen,
-  onSelect,
-  selectionMode,
-  selectedIds,
+  onOpen = () => undefined,
+  onSelect = () => undefined,
+  selectionMode = false,
+  selectedIds = new Set<string>(),
 }: {
   creators: readonly CreatorFixture[];
-  onOpen: (creator: CreatorFixture) => void;
-  onSelect: (creatorId: string) => void;
-  selectionMode: boolean;
-  selectedIds: ReadonlySet<string>;
+  onOpen?: (creator: CreatorFixture) => void;
+  onSelect?: (creatorId: string) => void;
+  selectionMode?: boolean;
+  selectedIds?: ReadonlySet<string>;
 }) {
   return (
     <ul

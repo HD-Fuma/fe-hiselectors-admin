@@ -2,18 +2,18 @@ export type CreatorPoolView = "cards" | "list";
 
 export function CreatorResultToolbar({
   count,
-  selectedCount,
-  selectionMode,
-  onBatchProposal,
-  onSelectionModeChange,
+  selectedCount = 0,
+  selectionMode = false,
+  onBatchProposal = () => undefined,
+  onSelectionModeChange = () => undefined,
   onViewChange,
   view,
 }: {
   count: number;
-  selectedCount: number;
-  selectionMode: boolean;
-  onBatchProposal: () => void;
-  onSelectionModeChange: () => void;
+  selectedCount?: number;
+  selectionMode?: boolean;
+  onBatchProposal?: () => void;
+  onSelectionModeChange?: () => void;
   onViewChange: (view: CreatorPoolView) => void;
   view: CreatorPoolView;
 }) {

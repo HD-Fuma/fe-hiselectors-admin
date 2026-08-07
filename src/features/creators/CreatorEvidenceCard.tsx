@@ -22,16 +22,16 @@ export function proposalAction(creator: CreatorFixture) {
 
 export function CreatorEvidenceCard({
   creator,
-  onOpen,
-  onSelect,
-  selected,
-  selectionMode,
+  onOpen = () => undefined,
+  onSelect = () => undefined,
+  selected = false,
+  selectionMode = false,
 }: {
   creator: CreatorFixture;
-  onOpen: (creator: CreatorFixture) => void;
-  onSelect: (creatorId: string) => void;
-  selected: boolean;
-  selectionMode: boolean;
+  onOpen?: (creator: CreatorFixture) => void;
+  onSelect?: (creatorId: string) => void;
+  selected?: boolean;
+  selectionMode?: boolean;
 }) {
   const action = proposalAction(creator);
   const isInstagram = creator.profile.platform === "Instagram";
