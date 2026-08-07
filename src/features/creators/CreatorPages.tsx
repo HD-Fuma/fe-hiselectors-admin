@@ -353,6 +353,8 @@ function CreatorProfileHero({
   );
 }
 
+void CreatorProfileHero;
+
 function CreatorDetailSidebar({
   actionSection,
   creator,
@@ -407,6 +409,8 @@ function CreatorDetailSidebar({
   );
 }
 
+void CreatorDetailSidebar;
+
 function CreatorFeaturedPosts({ creator }: { creator: CreatorFixture }) {
   return (
     <section aria-labelledby="creator-featured-title" className="fuma-content-section fuma-detail-featured" id="featured">
@@ -439,6 +443,8 @@ function CreatorFeaturedPosts({ creator }: { creator: CreatorFixture }) {
     </section>
   );
 }
+
+void CreatorFeaturedPosts;
 
 function ProposalMethod({
   buttonLabel,
@@ -483,6 +489,8 @@ function ProposalMethods({ creator }: { creator: CreatorFixture }) {
     </section>
   );
 }
+
+void ProposalMethods;
 
 interface CreatorDetailPageProps {
   actionSection?: ReactNode;

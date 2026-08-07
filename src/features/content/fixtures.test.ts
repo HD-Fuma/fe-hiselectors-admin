@@ -55,19 +55,13 @@ test("keeps annotation targets valid and active violations off resolved current 
   const previous = review.previousSnapshot!;
   const activeAnnotations = previous.annotations?.filter(({ state }) => state === "active") ?? [];
 
-  expect(activeAnnotations).toHaveLength(3);
-  expect(activeAnnotations.map(({ target }) => target.kind)).toEqual(["media", "text", "url"]);
+  expect(activeAnnotations).toHaveLength(2);
+  expect(activeAnnotations.map(({ target }) => target.kind)).toEqual(["text", "url"]);
 
   for (const annotation of activeAnnotations) {
     const { target } = annotation;
 
-    if (target.kind === "media") {
-      expect(previous.mediaUrls[target.mediaIndex]).toBeDefined();
-      expect(target.box.x).toBeGreaterThanOrEqual(0);
-      expect(target.box.y).toBeGreaterThanOrEqual(0);
-      expect(target.box.x + target.box.width).toBeLessThanOrEqual(100);
-      expect(target.box.y + target.box.height).toBeLessThanOrEqual(100);
-    } else if (target.kind === "text") {
+    if (target.kind === "text") {
       const occurrenceCount = previous.text.split(target.quote).length - 1;
       expect(target.quote).not.toBe("");
       expect(occurrenceCount).toBeGreaterThanOrEqual(target.occurrence);

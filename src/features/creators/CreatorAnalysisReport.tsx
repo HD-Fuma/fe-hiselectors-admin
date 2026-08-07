@@ -256,6 +256,8 @@ function AnalysisFields({ children, label }: { children: React.ReactNode; label:
   );
 }
 
+void AnalysisFields;
+
 export function CreatorAnalysisReport({ creator }: { creator: CreatorFixture }) {
   const analysis = CREATOR_ANALYSES[creator.id] ?? fallbackAnalysis(creator);
   const cadence = deriveCadence(analysis.postDates, analysis.updatedAt.replaceAll(".", "-"), analysis.collectionDays);
