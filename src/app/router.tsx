@@ -1,4 +1,4 @@
-import { createBrowserRouter, createMemoryRouter, type RouteObject } from "react-router-dom";
+import { Navigate, createBrowserRouter, createMemoryRouter, type RouteObject } from "react-router-dom";
 import { AppShell } from "../components/shell/AppShell";
 import { PlaceholderPage } from "../components/shell/PlaceholderPage";
 import { LoginPage } from "../features/auth/LoginPage";
@@ -30,9 +30,8 @@ import {
 } from "../features/content/ContentPages";
 import {
   ContentPerformancePage,
-  CreatorPerformancePage,
-  PerformanceDashboardPage,
   ProductPerformancePage,
+  SelectorPerformancePage,
 } from "../features/performance/PerformancePages";
 import {
   SettlementManagementPage,
@@ -73,10 +72,8 @@ function adminRouteElement(path: string, title: string, screenCode: string) {
       return <ContentReviewListPage />;
     case "/content/reviews/:contentId":
       return <ContentReviewDetailPage />;
-    case "/performance":
-      return <PerformanceDashboardPage />;
-    case "/performance/creators":
-      return <CreatorPerformancePage />;
+    case "/performance/selectors":
+      return <SelectorPerformancePage />;
     case "/performance/contents":
       return <ContentPerformancePage />;
     case "/performance/products":
@@ -109,6 +106,18 @@ const routes: RouteObject[] = [
           DEFAULT_ADMIN_ROUTE.title,
           DEFAULT_ADMIN_ROUTE.screenCode,
         ),
+      },
+      {
+        path: "home",
+        element: <Navigate replace to="/creators" />,
+      },
+      {
+        path: "performance",
+        element: <Navigate replace to="/performance/selectors" />,
+      },
+      {
+        path: "performance/creators",
+        element: <Navigate replace to="/performance/selectors" />,
       },
       ...adminRouteObjects,
     ],

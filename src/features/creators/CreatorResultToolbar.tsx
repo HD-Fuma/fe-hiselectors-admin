@@ -1,7 +1,9 @@
+import { SegmentedControl } from "../../components/ui/Controls";
+
 export type CreatorPoolView = "cards" | "list";
 
 export function CreatorResultToolbar({
-  count,
+  count = 0,
   selectedCount = 0,
   selectionMode = false,
   onBatchProposal = () => undefined,
@@ -9,7 +11,7 @@ export function CreatorResultToolbar({
   onViewChange,
   view,
 }: {
-  count: number;
+  count?: number;
   selectedCount?: number;
   selectionMode?: boolean;
   onBatchProposal?: () => void;
@@ -18,41 +20,31 @@ export function CreatorResultToolbar({
   view: CreatorPoolView;
 }) {
   return (
-    <div className="fuma-creator-toolbar">
-      <strong className="fuma-creator-toolbar__summary">크리에이터 풀</strong>
-      <span>총 {count}건</span>
+    <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-creator-toolbar">
+      <strong>크리에이터 풀</strong>
+      <div className="fuma-settlement-result-meta">
+        <span>총 {count}건</span>
+      </div>
       <div className="fuma-creator-toolbar__controls">
         <button aria-pressed={selectionMode} className="fuma-creator-toolbar__select-mode" onClick={onSelectionModeChange} type="button">
-          {selectionMode ? "선택 완료" : "선택"}
+          {selectionMode ? "선택 종료" : "선택"}
         </button>
         {selectionMode ? <>
           <span className="fuma-creator-toolbar__selected">{selectedCount}명 선택</span>
           <button className="fuma-creator-toolbar__proposal" disabled={selectedCount === 0} onClick={onBatchProposal} type="button">
-            선택한 크리에이터에게 제안 보내기
+            제안 발송
           </button>
         </> : null}
-        <div
-          aria-label="보기 방식"
-          className="fuma-creator-toolbar__views"
-          role="group"
-        >
-          <button
-            aria-pressed={view === "cards"}
-            className="fuma-creator-toolbar__view"
-            onClick={() => onViewChange("cards")}
-            type="button"
-          >
-            카드 보기
-          </button>
-          <button
-            aria-pressed={view === "list"}
-            className="fuma-creator-toolbar__view"
-            onClick={() => onViewChange("list")}
-            type="button"
-          >
-            목록 보기
-          </button>
-        </div>
+        <span aria-hidden="true" className="fuma-creator-toolbar__divider" />
+        <SegmentedControl
+          ariaLabel="보기 방식"
+          onChange={(nextView) => onViewChange(nextView as CreatorPoolView)}
+          options={[
+            { label: "카드", value: "cards" },
+            { label: "목록", value: "list" },
+          ]}
+          value={view}
+        />
       </div>
     </div>
   );

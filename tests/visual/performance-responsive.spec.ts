@@ -21,10 +21,9 @@ const PERFORMANCE_ROUTES = [
     title: "크리에이터 영향력 분석",
   },
   {
-    charts: ["콘텐츠 성과 순위"],
-    metricGroup: "콘텐츠 성과 요약",
     path: "/performance/contents",
-    title: "콘텐츠 영향력 분석",
+    statusMonitor: "콘텐츠 상태 추적",
+    title: "콘텐츠 성과",
   },
 ] as const;
 
@@ -94,11 +93,28 @@ for (const route of PERFORMANCE_ROUTES) {
       await openPerformancePage(page, route.path, testInfo);
 
       await expect(page.getByRole("heading", { name: route.title })).toBeVisible();
-      await expect(
-        page.getByRole("group", { name: route.metricGroup }),
-      ).toBeVisible();
-      for (const chartName of route.charts) {
-        await expect(page.getByRole("figure", { name: chartName })).toBeVisible();
+      if ("statusMonitor" in route) {
+        const statusMonitor = page.getByRole("region", {
+          name: route.statusMonitor,
+        });
+        await expect(statusMonitor).toBeVisible();
+        await expect(
+          statusMonitor.getByRole("heading", { name: route.statusMonitor }),
+        ).toBeVisible();
+        await expect(
+          statusMonitor.getByRole("button", { name: "이상 감지" }),
+        ).toBeVisible();
+        await expect(statusMonitor.getByRole("table")).toBeVisible();
+        await expect(
+          statusMonitor.getByRole("columnheader", { name: "Σ 총합" }),
+        ).toBeVisible();
+      } else {
+        await expect(
+          page.getByRole("group", { name: route.metricGroup }),
+        ).toBeVisible();
+        for (const chartName of route.charts) {
+          await expect(page.getByRole("figure", { name: chartName })).toBeVisible();
+        }
       }
 
       const documentGeometry = await page.evaluate(() => ({
@@ -108,10 +124,14 @@ for (const route of PERFORMANCE_ROUTES) {
       expect(documentGeometry.scrollWidth).toBeLessThanOrEqual(
         documentGeometry.viewportWidth + 1,
       );
-      await expectChartsNotClipped(page);
+      if (!("statusMonitor" in route)) {
+        await expectChartsNotClipped(page);
+      }
 
       const tableWraps = page.locator(
-        ".fuma-performance-results .hsas-dense-table-wrap",
+        "statusMonitor" in route
+          ? ".fuma-content-status-monitor__table-wrap"
+          : ".fuma-performance-results .hsas-dense-table-wrap",
       );
       expect(await tableWraps.count()).toBeGreaterThan(0);
       if (

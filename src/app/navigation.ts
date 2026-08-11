@@ -16,6 +16,13 @@ export interface AdminRouteMeta {
   title: string;
   screenCode: string;
   workTabLabel: string;
+  workTabSingletonId?: string;
+  workTabParentPath?: string;
+  workTabParentQuery?: {
+    parameter: string;
+    value: string;
+    path: string;
+  };
 }
 
 export interface NavGroupMeta {
@@ -46,15 +53,16 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     path: "/creators/:creatorId",
     group: "creators",
     menuLabel: "크리에이터 풀",
-    title: "크리에이터 상세",
+    title: "크리에이터 풀",
     screenCode: "CR102",
     workTabLabel: "크리에이터 상세",
+    workTabParentPath: "/creators",
   },
   {
     path: "/proposals",
     group: "creators",
     menuLabel: "제안 이력",
-    title: "제안 이력 관리",
+    title: "제안 이력",
     screenCode: "CR201",
     workTabLabel: "제안 이력",
   },
@@ -62,7 +70,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     path: "/proposals/new",
     group: "creators",
     menuLabel: "크리에이터 풀",
-    title: "크리에이터 제안 작성",
+    title: "크리에이터 풀",
     screenCode: "CR202",
     workTabLabel: "제안 작성",
   },
@@ -70,17 +78,17 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     path: "/cohorts",
     group: "selectors",
     menuLabel: "기수 관리",
-    title: "셀렉터스 기수 관리",
+    title: "기수 관리",
     screenCode: "SL101",
     workTabLabel: "기수 관리",
   },
   {
     path: "/selectors",
     group: "selectors",
-    menuLabel: "셀렉터스 현황",
-    title: "기수별 셀렉터스 현황",
+    menuLabel: "셀렉터스 목록",
+    title: "셀렉터스 목록",
     screenCode: "SL201",
-    workTabLabel: "셀렉터스 현황",
+    workTabLabel: "셀렉터스 목록",
   },
   {
     path: "/selectors/qualifications",
@@ -93,16 +101,22 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   {
     path: "/selectors/:selectorId",
     group: "selectors",
-    menuLabel: "셀렉터스 현황",
-    title: "셀렉터스 상세",
+    menuLabel: "셀렉터스 목록",
+    title: "셀렉터스 목록",
     screenCode: "SL202",
     workTabLabel: "셀렉터스 상세",
+    workTabParentPath: "/selectors",
+    workTabParentQuery: {
+      parameter: "from",
+      value: "qualifications",
+      path: "/selectors/qualifications",
+    },
   },
   {
     path: "/applicants",
     group: "applicants",
     menuLabel: "지원자 승인",
-    title: "지원자 심사",
+    title: "지원자 승인",
     screenCode: "AP101",
     workTabLabel: "지원자 심사",
   },
@@ -110,9 +124,10 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     path: "/applicants/:applicantId",
     group: "applicants",
     menuLabel: "지원자 승인",
-    title: "지원자 상세 심사",
+    title: "지원자 승인",
     screenCode: "AP102",
     workTabLabel: "지원자 상세",
+    workTabParentPath: "/applicants",
   },
   {
     path: "/campaigns",
@@ -126,25 +141,28 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     path: "/campaigns/new",
     group: "campaigns",
     menuLabel: "캠페인 관리",
-    title: "캠페인 등록",
+    title: "캠페인 관리",
     screenCode: "CP102",
-    workTabLabel: "캠페인 등록",
+    workTabLabel: "캠페인 생성",
+    workTabParentPath: "/campaigns",
   },
   {
     path: "/campaigns/:campaignId",
     group: "campaigns",
     menuLabel: "캠페인 관리",
-    title: "캠페인 상세",
+    title: "캠페인 관리",
     screenCode: "CP104",
     workTabLabel: "캠페인 상세",
+    workTabParentPath: "/campaigns",
   },
   {
     path: "/campaigns/:campaignId/edit",
     group: "campaigns",
     menuLabel: "캠페인 관리",
-    title: "캠페인 수정",
+    title: "캠페인 관리",
     screenCode: "CP103",
     workTabLabel: "캠페인 수정",
+    workTabParentPath: "/campaigns",
   },
   {
     path: "/content/reviews",
@@ -158,54 +176,47 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     path: "/content/reviews/:contentId",
     group: "content",
     menuLabel: "콘텐츠 검수",
-    title: "콘텐츠 검수 상세",
+    title: "콘텐츠 검수",
     screenCode: "CT102",
     workTabLabel: "검수 상세",
+    workTabSingletonId: "content-review-detail",
   },
   {
-    path: "/performance",
+    path: "/performance/selectors",
     group: "performance",
-    menuLabel: "성과 대시보드",
-    title: "관리자 성과 대시보드",
-    screenCode: "PF101",
-    workTabLabel: "성과 대시보드",
-  },
-  {
-    path: "/performance/creators",
-    group: "performance",
-    menuLabel: "크리에이터 분석 리포트",
-    title: "크리에이터 분석 리포트",
+    menuLabel: "셀렉터스 성과",
+    title: "셀렉터스 성과",
     screenCode: "PF201",
-    workTabLabel: "크리에이터 분석 리포트",
+    workTabLabel: "셀렉터스 성과",
   },
   {
     path: "/performance/contents",
     group: "performance",
-    menuLabel: "콘텐츠 분석",
-    title: "콘텐츠 영향력 분석",
+    menuLabel: "콘텐츠 성과",
+    title: "콘텐츠 성과",
     screenCode: "PF202",
-    workTabLabel: "콘텐츠 분석",
+    workTabLabel: "콘텐츠 성과",
   },
   {
     path: "/performance/products",
     group: "performance",
-    menuLabel: "캠페인 분석",
-    title: "캠페인 단위 성과 분석",
+    menuLabel: "캠페인 성과",
+    title: "캠페인 성과",
     screenCode: "PF203",
-    workTabLabel: "캠페인 분석",
+    workTabLabel: "캠페인 성과",
   },
   {
     path: "/settlements",
     group: "settlements",
     menuLabel: "정산 관리",
-    title: "정산 지급 관리",
+    title: "정산 관리",
     screenCode: "ST101",
     workTabLabel: "정산 관리",
   },
 ];
 
 export const DEFAULT_ADMIN_ROUTE = ADMIN_ROUTES.find(
-  (route) => route.path === "/performance",
+  (route) => route.path === "/creators",
 ) ?? ADMIN_ROUTES[0];
 
 export function findAdminRoute(pathname: string) {

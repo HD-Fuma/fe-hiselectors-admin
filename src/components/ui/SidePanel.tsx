@@ -10,12 +10,13 @@ import {
 import { createPortal } from "react-dom";
 
 export interface SidePanelProps {
+  actions?: ReactNode;
   children: ReactNode;
   onClose: () => void;
   title: string;
 }
 
-export function SidePanel({ children, onClose, title }: SidePanelProps) {
+export function SidePanel({ actions, children, onClose, title }: SidePanelProps) {
   const titleId = useId();
   const backdropRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
@@ -144,9 +145,12 @@ export function SidePanel({ children, onClose, title }: SidePanelProps) {
           <div>
             <h2 id={titleId}>{title}</h2>
           </div>
-          <button aria-label="상세 패널 닫기" className="fuma-detail-panel__close" type="button" onClick={onClose}>
-            <span aria-hidden="true">×</span>
-          </button>
+          <div className="fuma-detail-panel__controls">
+            {actions}
+            <button aria-label="상세 패널 닫기" className="fuma-detail-panel__close" type="button" onClick={onClose}>
+              <span aria-hidden="true" />
+            </button>
+          </div>
         </header>
         <div className="fuma-detail-panel__body">{children}</div>
       </section>

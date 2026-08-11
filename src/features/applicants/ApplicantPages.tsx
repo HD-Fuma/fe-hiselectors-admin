@@ -20,12 +20,14 @@ import { PlatformIcon } from "../creators/PlatformIcon";
 import type { CreatorFixture, CreatorMediaVisual } from "../creators/fixtures";
 import {
   APPLICANTS,
+  APPLICANT_CATEGORIES,
   applicantAnalysisFor,
   applicantFeaturedContentFor,
   applicantProfileImageUrl,
   applicantProfileUrl,
   findApplicantFixture,
   type ApplicantDeliveryRecord,
+  type ApplicantCategory,
   type ApplicantFixture,
   type DeliveryStatus,
   type ReviewStatus,
@@ -36,13 +38,6 @@ const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube"].map((label) => ({
   value: label === "전체" ? "" : label,
 }));
 const REVIEW_STATUS_OPTIONS = ["전체", "검토 대기", "승인", "반려", "자동 반려"].map(
-  (label) => ({ label, value: label === "전체" ? "" : label }),
-);
-const AUTO_REJECTION_OPTIONS = ["전체", "해당", "비해당"].map((label) => ({
-  label,
-  value: label === "전체" ? "" : label,
-}));
-const DELIVERY_STATUS_OPTIONS = ["전체", "전송 대기", "전송 완료", "전송 실패"].map(
   (label) => ({ label, value: label === "전체" ? "" : label }),
 );
 const INTERNAL_REASON_OPTIONS = [
@@ -72,15 +67,6 @@ function FilterField({ children, htmlFor, label }: FilterFieldProps) {
       <span>{label}</span>
       {children}
     </label>
-  );
-}
-
-function SearchActions() {
-  return (
-    <>
-      <Button variant="primary">조회</Button>
-      <Button>초기화</Button>
-    </>
   );
 }
 
@@ -129,8 +115,10 @@ const APPLICANT_VISUALS: CreatorMediaVisual[] = [
 ];
 
 type ApplicantListRow = CreatorFixture & {
+  appliedAt: string;
   autoRejected: boolean;
   reviewStatus: ReviewStatus;
+  theHyundaiHiMemberNumber: string;
 };
 
 function applicantToCreatorCard(applicant: ApplicantFixture): ApplicantListRow {
@@ -164,34 +152,50 @@ function applicantToCreatorCard(applicant: ApplicantFixture): ApplicantListRow {
       thumbnailUrl: content.thumbnailUrl,
     })),
     aiReport: applicant.aiReport,
+    appliedAt: applicant.appliedAt,
     proposalStatus: primaryDelivery.status === "전송 완료" ? "발송 완료" : "발송 전",
     availableProposalChannels: ["이메일"],
     autoRejected: applicant.autoRejected,
     email: applicant.email,
     reviewStatus: applicant.reviewStatus,
+    theHyundaiHiMemberNumber: applicant.theHyundaiHiMemberNumber,
   };
 }
 
 function ApplicantApprovalToolbar({
   count,
+  minimumCriteriaOnly,
   onApprove,
+  onMinimumCriteriaOnlyChange,
   onReject,
   onSelectionModeChange,
   selectedCount,
   selectionMode,
 }: {
   count: number;
+  minimumCriteriaOnly: boolean;
   onApprove: () => void;
+  onMinimumCriteriaOnlyChange: (checked: boolean) => void;
   onReject: () => void;
   onSelectionModeChange: () => void;
   selectedCount: number;
   selectionMode: boolean;
 }) {
   return (
-    <div className="fuma-creator-toolbar">
-      <strong className="fuma-creator-toolbar__summary">지원자 승인</strong>
-      <span>총 {count}건</span>
+    <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-applicant-result-toolbar">
+      <div className="fuma-settlement-result-meta">
+        <span>총 {count}건</span>
+      </div>
       <div className="fuma-creator-toolbar__controls">
+        <label className="fuma-applicant-minimum-toggle">
+          <input
+            checked={minimumCriteriaOnly}
+            onChange={(event) => onMinimumCriteriaOnlyChange(event.target.checked)}
+            type="checkbox"
+          />
+          <span aria-hidden="true" />
+          <b>최저 기준 필터링</b>
+        </label>
         <button
           aria-pressed={selectionMode}
           className="fuma-creator-toolbar__select-mode"
@@ -228,38 +232,47 @@ function ApplicantApprovalToolbar({
 
 function applicantListColumns({
   allSelected,
-  onOpen,
   onToggleAll,
   onToggleSelected,
   selectedIds,
   selectionMode,
 }: {
   allSelected: boolean;
-  onOpen: (applicant: ApplicantListRow) => void;
   onToggleAll: () => void;
   onToggleSelected: (applicantId: string) => void;
   selectedIds: ReadonlySet<string>;
   selectionMode: boolean;
 }): DenseTableColumn<ApplicantListRow>[] {
   const columns: DenseTableColumn<ApplicantListRow>[] = [
-  { key: "name", header: "이름", width: 70 },
+  {
+    key: "theHyundaiHiMemberNumber",
+    header: "회원번호",
+    width: 126,
+    align: "center",
+  },
+  { key: "name", header: "이름", width: 70, align: "center" },
   {
     id: "platform",
     header: "플랫폼",
     width: 115,
+    align: "center",
     render: (applicant) => <PlatformLabel platform={applicant.profile.platform} />,
   },
   {
     id: "account",
     header: "계정",
     width: 130,
+    align: "center",
     render: (applicant) => applicant.profile.handle,
   },
   {
     id: "categories",
     header: "카테고리",
     width: 110,
-    render: (applicant) => applicant.category,
+    align: "center",
+    render: (applicant) => (
+      <span className="fuma-applicant-category-chip">{applicant.category}</span>
+    ),
   },
   {
     id: "keywords",
@@ -269,7 +282,7 @@ function applicantListColumns({
   },
   {
     id: "followers",
-    header: "팔로워·구독자",
+    header: "팔로워/구독자",
     width: 105,
     align: "right",
     render: (applicant) => formatNumber(applicant.profile.followers),
@@ -282,8 +295,8 @@ function applicantListColumns({
     render: (applicant) => `${applicant.profile.engagementRate.toFixed(1)}%`,
   },
   {
-    key: "recentActivity",
-    header: "최근 활동일",
+    key: "appliedAt",
+    header: "신청일",
     width: 96,
     align: "center",
   },
@@ -296,21 +309,6 @@ function applicantListColumns({
       <StatusPill tone={reviewStatusTone(applicant.reviewStatus)}>
         {applicant.reviewStatus}
       </StatusPill>
-    ),
-  },
-  {
-    id: "detail",
-    header: "상세",
-    width: 60,
-    align: "center",
-    render: (applicant) => (
-      <Button
-        aria-label={`${applicant.name} 심사하기`}
-        className="fuma-table-action"
-        onClick={() => onOpen(applicant)}
-      >
-        심사
-      </Button>
     ),
   },
   ];
@@ -341,29 +339,78 @@ function applicantListColumns({
         />
       ),
     },
-    ...columns.filter((column) => column.id !== "detail"),
+    ...columns,
   ];
 }
 
 export function ApplicantListPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const selectedCategory = APPLICANT_CATEGORIES.find((category) => category === searchParams.get("category")) ?? "";
+  const applicantPoolPath = selectedCategory ? `/applicants?category=${encodeURIComponent(selectedCategory)}` : "/applicants";
   const detailApplicantId = searchParams.get("detail");
+  const [keyword, setKeyword] = useState("");
+  const [platform, setPlatform] = useState("");
+  const [reviewStatus, setReviewStatus] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
+  const [appliedPlatform, setAppliedPlatform] = useState("");
+  const [appliedReviewStatus, setAppliedReviewStatus] = useState("");
+  const [minimumCriteriaOnly, setMinimumCriteriaOnly] = useState(false);
   const [reviewOverrides, setReviewOverrides] = useState<Partial<Record<string, ReviewStatus>>>({});
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const applicants = APPLICANTS.map((applicant) => (
-    applicantToCreatorCard({
-      ...applicant,
-      reviewStatus: reviewOverrides[applicant.id] ?? applicant.reviewStatus,
+  const applicants = APPLICANTS
+    .filter((applicant) => !selectedCategory || applicantAnalysisFor(applicant).category === selectedCategory)
+    .filter((applicant) => !minimumCriteriaOnly || applicant.autoRejected)
+    .filter((applicant) => {
+      const normalizedKeyword = appliedKeyword.trim().toLowerCase();
+      const effectiveReviewStatus = reviewOverrides[applicant.id] ?? applicant.reviewStatus;
+      const matchesKeyword = !normalizedKeyword || [
+        applicant.name,
+        applicant.theHyundaiHiMemberNumber,
+        applicant.channelName,
+      ].some((value) => value.toLowerCase().includes(normalizedKeyword));
+
+      return matchesKeyword
+        && (!appliedPlatform || applicant.platform === appliedPlatform)
+        && (!appliedReviewStatus || effectiveReviewStatus === appliedReviewStatus);
     })
-  ));
+    .map((applicant) => (
+      applicantToCreatorCard({
+        ...applicant,
+        reviewStatus: reviewOverrides[applicant.id] ?? applicant.reviewStatus,
+      })
+    ));
   const detailApplicant = applicants.find((applicant) => applicant.id === detailApplicantId);
-  const openApplicant = (applicant: ApplicantListRow) => navigate(`/applicants?detail=${applicant.id}`);
+  const openApplicant = (applicant: ApplicantListRow) => navigate(
+    `${applicantPoolPath}${selectedCategory ? "&" : "?"}detail=${applicant.id}`,
+  );
+  const openCategory = (category?: ApplicantCategory) => navigate(
+    category ? `/applicants?category=${encodeURIComponent(category)}` : "/applicants",
+  );
+  const applySearch = () => {
+    setAppliedKeyword(keyword);
+    setAppliedPlatform(platform);
+    setAppliedReviewStatus(reviewStatus);
+    setSelectedIds(new Set());
+  };
+  const resetSearch = () => {
+    setKeyword("");
+    setPlatform("");
+    setReviewStatus("");
+    setAppliedKeyword("");
+    setAppliedPlatform("");
+    setAppliedReviewStatus("");
+    setSelectedIds(new Set());
+  };
   const toggleSelected = (applicantId: string) => {
     setSelectedIds((current) => {
       const next = new Set(current);
-      next.has(applicantId) ? next.delete(applicantId) : next.add(applicantId);
+      if (next.has(applicantId)) {
+        next.delete(applicantId);
+      } else {
+        next.add(applicantId);
+      }
       return next;
     });
   };
@@ -393,7 +440,6 @@ export function ApplicantListPage() {
   };
   const columns = applicantListColumns({
     allSelected: applicants.length > 0 && selectedIds.size === applicants.length,
-    onOpen: openApplicant,
     onToggleAll: toggleAll,
     onToggleSelected: toggleSelected,
     selectedIds,
@@ -405,52 +451,74 @@ export function ApplicantListPage() {
     <section className="fuma-page">
       <PageHeader screenCode="AP101" title="지원자 심사" />
       <div className="fuma-page__body">
-        <SearchPanel actions={<SearchActions />}>
-          <FilterField htmlFor="applicant-keyword" label="검색어">
-            <TextInput
-              id="applicant-keyword"
-              name="keyword"
-              placeholder="이름 또는 계정 검색"
-            />
-          </FilterField>
-          <FilterField htmlFor="applicant-platform" label="SNS 채널">
-            <Select
-              id="applicant-platform"
-              name="platform"
-              options={PLATFORM_OPTIONS}
-            />
-          </FilterField>
-          <FilterField htmlFor="applicant-review-status" label="심사 상태">
-            <Select
-              id="applicant-review-status"
-              name="reviewStatus"
-              options={REVIEW_STATUS_OPTIONS}
-            />
-          </FilterField>
-          <FilterField htmlFor="applicant-auto-rejected" label="자동 반려">
-            <Select
-              id="applicant-auto-rejected"
-              name="autoRejected"
-              options={AUTO_REJECTION_OPTIONS}
-            />
-          </FilterField>
-          <FilterField htmlFor="applicant-delivery-status" label="결과 전송">
-            <Select
-              id="applicant-delivery-status"
-              name="deliveryStatus"
-              options={DELIVERY_STATUS_OPTIONS}
-            />
-          </FilterField>
-        </SearchPanel>
+        <div className="fuma-operations-search fuma-settlement-search fuma-applicant-search">
+          <SearchPanel actions={<><Button onClick={applySearch} variant="primary">조회</Button><Button onClick={resetSearch}>초기화</Button></>}>
+            <FilterField htmlFor="applicant-keyword" label="검색어">
+              <TextInput
+                id="applicant-keyword"
+                name="keyword"
+                onChange={(event) => setKeyword(event.target.value)}
+                placeholder="이름, 회원번호 또는 계정 검색"
+                value={keyword}
+              />
+            </FilterField>
+            <FilterField htmlFor="applicant-platform" label="SNS 채널">
+              <Select
+                id="applicant-platform"
+                name="platform"
+                onChange={(event) => setPlatform(event.target.value)}
+                options={PLATFORM_OPTIONS}
+                value={platform}
+              />
+            </FilterField>
+            <FilterField htmlFor="applicant-review-status" label="심사 상태">
+              <Select
+                id="applicant-review-status"
+                name="reviewStatus"
+                onChange={(event) => setReviewStatus(event.target.value)}
+                options={REVIEW_STATUS_OPTIONS}
+                value={reviewStatus}
+              />
+            </FilterField>
+          </SearchPanel>
+        </div>
+        <nav aria-label="지원자 카테고리" className="fuma-creator-category-filter">
+          <div>
+            <button
+              aria-pressed={!selectedCategory}
+              className="fuma-creator-category-filter__option"
+              onClick={() => openCategory()}
+              type="button"
+            >
+              전체
+            </button>
+            {APPLICANT_CATEGORIES.map((category) => (
+              <button
+                aria-pressed={selectedCategory === category}
+                className="fuma-creator-category-filter__option"
+                key={category}
+                onClick={() => openCategory(category)}
+                type="button"
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        </nav>
         <ApplicantApprovalToolbar
           count={applicants.length}
+          minimumCriteriaOnly={minimumCriteriaOnly}
           onApprove={() => applyBatchStatus("승인")}
+          onMinimumCriteriaOnlyChange={(checked) => {
+            setMinimumCriteriaOnly(checked);
+            setSelectedIds(new Set());
+          }}
           onReject={() => applyBatchStatus("반려")}
           onSelectionModeChange={toggleSelectionMode}
           selectedCount={selectedIds.size}
           selectionMode={selectionMode}
         />
-        <div aria-label="지원자 승인" className="fuma-wide-table" role="region">
+        <div aria-label="지원자 승인" className="fuma-wide-table fuma-settlement-table fuma-applicant-list-table" role="region">
           <DenseTable
             columns={columns}
             onRowClick={(applicant) => (
@@ -468,9 +536,12 @@ export function ApplicantListPage() {
       <CreatorDetailPage
         actionSection={detailApplicant ? (
           <section className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions">
-            <span>심사 처리</span>
-            <strong><i aria-hidden="true" />{detailApplicant.reviewStatus}</strong>
-            <p>분석 리포트를 확인한 뒤 지원자를 승인하거나 반려할 수 있습니다.</p>
+            <div className="fuma-applicant-detail-actions__heading">
+              <span>심사 처리</span>
+              <StatusPill tone={reviewStatusTone(detailApplicant.reviewStatus)}>
+                {detailApplicant.reviewStatus}
+              </StatusPill>
+            </div>
             <div className="fuma-applicant-detail-actions__buttons">
               <Button
                 onClick={() => applySingleStatus(detailApplicant.id, "승인")}
@@ -489,7 +560,8 @@ export function ApplicantListPage() {
         ) : undefined}
         creatorOverride={detailApplicant}
         embedded
-        onClose={() => navigate("/applicants")}
+        onClose={() => navigate(applicantPoolPath)}
+        reportTitle="지원자 분석 리포트"
         statusPill={detailApplicant ? (
           <StatusPill tone={reviewStatusTone(detailApplicant.reviewStatus)}>
             {detailApplicant.reviewStatus}
@@ -587,7 +659,7 @@ function ApplicantReviewHero({
         <p className="fuma-unified-detail-hero__summary">{analysis.summary}</p>
         <dl className="fuma-creator-detail-hero__metrics">
           <div><dt>{audienceLabel}</dt><dd>{formatNumber(applicant.followerCount)}</dd></div>
-          <div><dt>최근 90일 콘텐츠</dt><dd>{analysis.recent90ContentCount}건</dd></div>
+          <div><dt>{applicant.platform === "YouTube" ? "최근 90일 동영상" : "최근 90일 콘텐츠"}</dt><dd>{analysis.recent90ContentCount}건</dd></div>
           <div><dt>평균 조회</dt><dd>{formatNumber(applicant.averageViews)}</dd></div>
           <div><dt>ER</dt><dd>{analysis.engagementRate.toFixed(1)}%</dd></div>
         </dl>
@@ -611,13 +683,15 @@ function ApplicantReviewHero({
 }
 
 function SnsMetrics({ applicant }: { applicant: ApplicantFixture }) {
+  const contentCountLabel = applicant.platform === "YouTube" ? "동영상 수" : "콘텐츠 수";
+
   return (
     <KeyValueSection
       fields={[
         ["SNS 채널", applicant.platform],
         ["계정명", applicant.channelName],
         ["팔로워·구독자", formatNumber(applicant.followerCount)],
-        ["콘텐츠 수", formatNumber(applicant.contentCount)],
+        [contentCountLabel, formatNumber(applicant.contentCount)],
         ["최근 활동일", applicant.recentActivity],
         ["평균 조회 수", formatNumber(applicant.averageViews)],
         ["평균 반응 수", formatNumber(applicant.averageReactions)],

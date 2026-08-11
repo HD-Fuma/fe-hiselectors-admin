@@ -1,10 +1,12 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { PageHeader } from "../../components/shell/PageHeader";
-import { Button, Select, TextInput } from "../../components/ui/Controls";
+import { Button, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { Pagination } from "../../components/ui/Pagination";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { SelectorDetailPanel } from "../selectors/SelectorPages";
+import { SELECTORS, type SelectorFixture } from "../selectors/fixtures";
 import {
   SETTLEMENTS,
   formatWon,
@@ -12,8 +14,33 @@ import {
   type SettlementFixture,
 } from "./fixtures";
 
-function options(labels: string[]) {
-  return labels.map((label) => ({ label, value: label === "전체" ? "" : label }));
+const PAYMENT_STATUS_CATEGORIES: PaymentStatus[] = ["대기", "확정", "지급 완료"];
+const SETTLEMENT_PAGE_SIZE = 20;
+
+function selectorDetailForSettlement(settlement: SettlementFixture): SelectorFixture {
+  const selector = SELECTORS.find((item) => item.id === settlement.selectorId);
+
+  if (selector) {
+    return selector;
+  }
+
+  const sequence = Number.parseInt(settlement.selectorId.replace(/\D/g, ""), 10) || 1;
+  const channels = ["Instagram", "YouTube"] as const;
+
+  return {
+    id: settlement.selectorId,
+    selectorCode: `SEL-${String(sequence).padStart(4, "0")}`,
+    name: settlement.selectorName,
+    shopNickname: `${settlement.selectorName}샵`,
+    cohort: sequence % 5 === 0 ? "테스트기수53" : "테스트기수56",
+    sns: channels[sequence % channels.length],
+    status: sequence % 11 === 0 ? "경고" : "활동 중",
+    contentCount: 8 + (sequence % 19),
+    violationCount: sequence % 11 === 0 ? 1 : 0,
+    clicks: 4200 + sequence * 317,
+    conversions: 86 + sequence * 9,
+    recentActivity: `2026-08-${String((sequence % 10) + 1).padStart(2, "0")}`,
+  };
 }
 
 interface FilterFieldProps {
@@ -46,16 +73,23 @@ function paymentTone(status: PaymentStatus): NonNullable<StatusPillProps["tone"]
   return "neutral";
 }
 
-function SettlementFilters() {
+function SettlementFilters({
+  onMonthChange,
+  selectedMonth,
+}: {
+  onMonthChange: (month: string) => void;
+  selectedMonth: string;
+}) {
   return (
     <div className="fuma-operations-search fuma-settlement-search">
       <SearchPanel actions={<SearchActions />}>
         <FilterField htmlFor="settlement-month" label="정산월">
           <TextInput
             aria-label="정산월"
-            defaultValue="2026-08"
             id="settlement-month"
+            onChange={(event) => onMonthChange(event.target.value)}
             type="month"
+            value={selectedMonth}
           />
         </FilterField>
         <FilterField htmlFor="settlement-selector" label="ID 또는 이름">
@@ -63,20 +97,6 @@ function SettlementFilters() {
             aria-label="ID 또는 이름"
             id="settlement-selector"
             placeholder="ID 또는 이름 검색"
-          />
-        </FilterField>
-        <FilterField htmlFor="settlement-confirmed" label="확정 상태">
-          <Select
-            aria-label="확정 상태"
-            id="settlement-confirmed"
-            options={options(["전체", "미확정", "확정"])}
-          />
-        </FilterField>
-        <FilterField htmlFor="settlement-payment" label="지급 상태">
-          <Select
-            aria-label="지급 상태"
-            id="settlement-payment"
-            options={options(["전체", "대기", "확정", "지급 완료"])}
           />
         </FilterField>
       </SearchPanel>
@@ -91,6 +111,7 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SettlementFixture>[] = [
     id: "selector",
     header: "셀렉터스",
     width: 118,
+    align: "center",
     render: (settlement) => (
       <div className="fuma-operation-person">
         <span className="hsas-visually-hidden">{settlement.id}</span>
@@ -100,28 +121,10 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SettlementFixture>[] = [
   },
   {
     key: "expectedAmount",
-    header: "예상액",
+    header: "정산 금액",
     width: 122,
-    align: "right",
-    render: (settlement) => formatWon(settlement.expectedAmount),
-  },
-  {
-    key: "confirmedAmount",
-    header: "확정액",
-    width: 142,
-    align: "right",
-    render: (settlement) => formatWon(settlement.confirmedAmount),
-  },
-  {
-    key: "confirmationStatus",
-    header: "확정 상태",
-    width: 86,
     align: "center",
-    render: (settlement) => (
-      <StatusPill tone={settlement.confirmationStatus === "확정" ? "approved" : "pending"}>
-        {settlement.confirmationStatus}
-      </StatusPill>
-    ),
+    render: (settlement) => formatWon(settlement.expectedAmount),
   },
   {
     key: "paymentStatus",
@@ -137,14 +140,76 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SettlementFixture>[] = [
 ];
 
 export function SettlementManagementPage() {
+  const [page, setPage] = useState(1);
+  const [selectedSettlement, setSelectedSettlement] = useState<SettlementFixture | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState("2026-08");
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<PaymentStatus | null>(null);
+  const monthlySettlements = SETTLEMENTS.filter(
+    (settlement) => settlement.attributionMonth === selectedMonth,
+  );
+  const settlements = selectedPaymentStatus
+    ? monthlySettlements.filter((settlement) => settlement.paymentStatus === selectedPaymentStatus)
+    : monthlySettlements;
+  const totalPages = Math.max(1, Math.ceil(settlements.length / SETTLEMENT_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedSettlements = settlements.slice(
+    (currentPage - 1) * SETTLEMENT_PAGE_SIZE,
+    currentPage * SETTLEMENT_PAGE_SIZE,
+  );
+  const monthlyTotal = monthlySettlements.reduce(
+    (total, settlement) => total + settlement.expectedAmount,
+    0,
+  );
+  const [year, month] = selectedMonth.split("-");
+  const monthLabel = selectedMonth ? `${year}년 ${Number(month)}월` : "정산월 미선택";
+
   return (
     <section className="fuma-page">
       <PageHeader screenCode="ST101" title="정산 지급 관리" />
       <div className="fuma-page__body">
-        <SettlementFilters />
-        <div className="fuma-result-toolbar">
+        <SettlementFilters
+          onMonthChange={(month) => {
+            setSelectedMonth(month);
+            setPage(1);
+          }}
+          selectedMonth={selectedMonth}
+        />
+        <nav aria-label="지급 상태" className="fuma-creator-category-filter fuma-settlement-status-filter">
+          <div>
+            <button
+              aria-pressed={selectedPaymentStatus === null}
+              className="fuma-creator-category-filter__option"
+              onClick={() => {
+                setSelectedPaymentStatus(null);
+                setPage(1);
+              }}
+              type="button"
+            >
+              전체
+            </button>
+            {PAYMENT_STATUS_CATEGORIES.map((status) => (
+              <button
+                aria-pressed={selectedPaymentStatus === status}
+                className="fuma-creator-category-filter__option"
+                key={status}
+                onClick={() => {
+                  setSelectedPaymentStatus(status);
+                  setPage(1);
+                }}
+                type="button"
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+        </nav>
+        <div className="fuma-result-toolbar fuma-simple-result-toolbar">
           <strong>정산 지급 목록</strong>
-          <span>총 {SETTLEMENTS.length}건</span>
+          <div className="fuma-settlement-result-meta">
+            <span>{monthLabel}</span>
+            <span>정산 총합 {formatWon(monthlyTotal)}</span>
+            <span>총 {settlements.length}건</span>
+          </div>
         </div>
         <div
           aria-label="정산 지급 목록"
@@ -153,12 +218,25 @@ export function SettlementManagementPage() {
         >
           <DenseTable
             columns={SETTLEMENT_COLUMNS}
+            onRowClick={setSelectedSettlement}
             rowKey={(settlement) => settlement.id}
-            rows={[...SETTLEMENTS]}
+            rows={pagedSettlements}
+            selectedRowKeys={selectedSettlement ? [selectedSettlement.id] : []}
           />
         </div>
-        <Pagination page={1} pageSize={20} totalPages={1} />
+        <Pagination
+          onPageChange={setPage}
+          page={currentPage}
+          pageSize={SETTLEMENT_PAGE_SIZE}
+          totalPages={totalPages}
+        />
       </div>
+      {selectedSettlement ? (
+        <SelectorDetailPanel
+          onClose={() => setSelectedSettlement(null)}
+          selector={selectorDetailForSettlement(selectedSettlement)}
+        />
+      ) : null}
     </section>
   );
 }

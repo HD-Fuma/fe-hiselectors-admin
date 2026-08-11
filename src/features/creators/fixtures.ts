@@ -98,7 +98,7 @@ export const PENDING_AI_REPORT: AiReportFixture = {
   evidence: [],
 };
 
-export const CREATORS: CreatorFixture[] = [
+const BASE_CREATORS: CreatorFixture[] = [
   {
     id: "cr-001",
     name: "김서연",
@@ -307,6 +307,85 @@ export const CREATORS: CreatorFixture[] = [
   },
 ];
 
+const DEMO_CREATOR_NAMES = [
+  "김하린", "윤서준", "박다은", "최민호", "이수아", "정현우", "한유진", "오지민",
+  "서도현", "문채원", "류시온", "장예린", "신태윤", "권나연", "배준호", "임소율",
+];
+const DEMO_CREATOR_CATEGORIES: CreatorCategory[] = [
+  "패션", "유아동/패밀리", "컬처/서비스", "스포츠/레저", "반려생활", "아울렛", "뷰티", "리빙/라이프",
+  "여행", "푸드", "패션", "유아동/패밀리", "컬처/서비스", "스포츠/레저", "반려생활", "아울렛",
+];
+
+export const CREATORS: CreatorFixture[] = [
+  ...BASE_CREATORS,
+  ...DEMO_CREATOR_NAMES.map((name, index) => {
+    const source = BASE_CREATORS[index % BASE_CREATORS.length];
+    const sequence = index + 5;
+    const handle = `@creator_${String(sequence).padStart(3, "0")}`;
+
+    return {
+      ...source,
+      id: `cr-${String(sequence).padStart(3, "0")}`,
+      name,
+      profile: {
+        ...source.profile,
+        handle,
+        profileUrl: source.profile.platform === "Instagram"
+          ? `https://www.instagram.com/${handle.slice(1)}`
+          : `https://www.youtube.com/${handle.slice(1)}`,
+        followers: source.profile.followers + sequence * 1_340,
+        averageViews: source.profile.averageViews + sequence * 840,
+        averageReactions: source.profile.averageReactions + sequence * 67,
+      },
+      category: DEMO_CREATOR_CATEGORIES[index],
+      keywords: [`#${DEMO_CREATOR_CATEGORIES[index]}`, "#크리에이터", "#셀렉터스"],
+      contentCount: source.contentCount + sequence * 7,
+      recentActivity: `2026-08-${String((sequence % 9) + 1).padStart(2, "0")}`,
+      featuredContents: source.featuredContents.map((content, contentIndex) => ({
+        ...content,
+        id: `cr-${String(sequence).padStart(3, "0")}-content-${contentIndex + 1}`,
+      })),
+      email: `creator${String(sequence).padStart(3, "0")}@example.com`,
+    };
+  }),
+];
+
+const PROPOSAL_ADMINISTRATORS = [
+  ["admin-001", "김민지"],
+  ["admin-002", "이현우"],
+  ["admin-003", "박수진"],
+  ["admin-004", "최준혁"],
+] as const;
+
+const ADDITIONAL_PROPOSALS: ProposalFixture[] = Array.from({ length: 100 }, (_, index) => {
+  const sequence = index + 5;
+  const creator = CREATORS[index % CREATORS.length];
+  const [administratorId, administratorName] = PROPOSAL_ADMINISTRATORS[index % PROPOSAL_ADMINISTRATORS.length];
+  const status: ProposalStatus = index % 3 === 0
+    ? "발송 대기"
+    : index % 3 === 1
+      ? "발송 완료"
+      : "발송 실패";
+  const month = index < 72 ? "08" : index < 92 ? "07" : "06";
+  const day = String((index % 28) + 1).padStart(2, "0");
+  const hour = String(9 + (index % 9)).padStart(2, "0");
+  const minute = String((index * 7) % 60).padStart(2, "0");
+
+  return {
+    id: `pr-${String(sequence).padStart(3, "0")}`,
+    targetId: creator.id,
+    targetName: creator.name,
+    receiver: creator.profile.handle,
+    recipientEmail: creator.email,
+    administratorId,
+    administratorName,
+    channel: "이메일",
+    sentAt: `2026-${month}-${day} ${hour}:${minute}`,
+    status,
+    message: `안녕하세요, ${creator.name} 님. ${creator.category} 콘텐츠를 인상 깊게 보았습니다. 더현대Hi 셀렉터스와 함께할 활동을 제안드립니다.`,
+  };
+});
+
 export const PROPOSALS: ProposalFixture[] = [
   {
     id: "pr-001",
@@ -360,4 +439,5 @@ export const PROPOSALS: ProposalFixture[] = [
     status: "발송 대기",
     message: "안녕하세요, 오하늘 님. 일상에 자연스럽게 녹아드는 콘텐츠를 보고 셀렉토리스와의 협업 가능성을 이야기 나누고 싶어 연락드립니다.",
   },
+  ...ADDITIONAL_PROPOSALS,
 ];

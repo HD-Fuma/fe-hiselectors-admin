@@ -83,7 +83,7 @@ describe("selector overview", () => {
   test("renders each selector with its cohort, status, and formatted performance metrics", () => {
     renderRoute("/selectors");
 
-    expect(screen.getByRole("heading", { name: "기수별 셀렉터스 현황" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "셀렉터스 목록" })).toBeInTheDocument();
     expect(screen.getByText("SL201")).toBeInTheDocument();
 
     const search = screen.getByRole("search", { name: "검색 조건" });

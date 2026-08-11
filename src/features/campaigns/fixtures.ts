@@ -3,7 +3,7 @@ export type CampaignStatus = "시작 전" | "진행 중" | "종료";
 export interface CampaignProduct {
   id: string;
   name: string;
-  saleStatus: "진행" | "판매 종료";
+  saleStatus: "판매중" | "판매중지" | "품절";
   media: "Hmall";
   vendor: string;
   mdName: string;
@@ -12,6 +12,7 @@ export interface CampaignProduct {
 export interface CampaignFixture {
   id: string;
   name: string;
+  thumbnailUrl: string;
   startDate: string;
   endDate: string;
   products: CampaignProduct[];
@@ -22,7 +23,7 @@ export const CAMPAIGN_PRODUCTS: CampaignProduct[] = [
   {
     id: "2200098405",
     name: "[파인인터내셔날] 남성 사이드 로고 스트레치 패딩 자켓 811C4PF334BK",
-    saleStatus: "진행",
+    saleStatus: "판매중",
     media: "Hmall",
     vendor: "주식회사 현대백화점",
     mdName: "스포츠골프(복합몰)",
@@ -30,7 +31,7 @@ export const CAMPAIGN_PRODUCTS: CampaignProduct[] = [
   {
     id: "2200089867",
     name: "[파인인터내셔날] 여성 아트 패턴 스트레이트 플리츠 스커트 821C4PN354BK",
-    saleStatus: "진행",
+    saleStatus: "판매중지",
     media: "Hmall",
     vendor: "주식회사 현대백화점",
     mdName: "스포츠골프(복합몰)",
@@ -38,7 +39,7 @@ export const CAMPAIGN_PRODUCTS: CampaignProduct[] = [
   {
     id: "2200089740",
     name: "[파인인터셔날] 여성 컬러풀 밴드 SET 플리츠 뒤 스커트 821C4PC373BL",
-    saleStatus: "진행",
+    saleStatus: "품절",
     media: "Hmall",
     vendor: "주식회사 현대백화점",
     mdName: "스포츠골프(복합몰)",
@@ -49,6 +50,7 @@ export const CAMPAIGNS: CampaignFixture[] = [
   {
     id: "cp-001",
     name: "2026 가을 골프웨어 프로모션",
+    thumbnailUrl: "/creator-media/kr-cr-001-03.jpg",
     startDate: "2026-08-10",
     endDate: "2026-09-30",
     products: CAMPAIGN_PRODUCTS.slice(0, 2),
@@ -57,6 +59,7 @@ export const CAMPAIGNS: CampaignFixture[] = [
   {
     id: "cp-002",
     name: "여름 바캉스 스타일링",
+    thumbnailUrl: "/creator-media/kr-cr-003-01.jpg",
     startDate: "2026-07-15",
     endDate: "2026-08-31",
     products: [...CAMPAIGN_PRODUCTS],
@@ -65,6 +68,7 @@ export const CAMPAIGNS: CampaignFixture[] = [
   {
     id: "cp-003",
     name: "초여름 패션 리뷰",
+    thumbnailUrl: "/creator-media/kr-cr-001-01.jpg",
     startDate: "2026-05-01",
     endDate: "2026-06-30",
     products: [CAMPAIGN_PRODUCTS[2]],

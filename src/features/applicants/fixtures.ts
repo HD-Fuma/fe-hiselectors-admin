@@ -29,6 +29,7 @@ export type ApplicantDeliveryRecords = readonly [
 export interface ApplicantFixture extends ApplicantMetric {
   id: string;
   name: string;
+  theHyundaiHiMemberNumber: string;
   appliedAt: string;
   email: string;
   phone: string;
@@ -81,6 +82,7 @@ export const APPLICANTS: readonly ApplicantFixture[] = [
   {
     id: "ap-001",
     name: "김민지",
+    theHyundaiHiMemberNumber: "HI-2608-4821",
     appliedAt: "2026-08-03 09:12",
     email: "minji@example.com",
     phone: "010-4821-7326",
@@ -124,6 +126,7 @@ export const APPLICANTS: readonly ApplicantFixture[] = [
   {
     id: "ap-002",
     name: "정하린",
+    theHyundaiHiMemberNumber: "HI-2608-1184",
     appliedAt: "2026-08-02 16:40",
     email: "harin.lab@example.com",
     phone: "010-2396-1184",
@@ -167,6 +170,7 @@ export const APPLICANTS: readonly ApplicantFixture[] = [
   {
     id: "ap-003",
     name: "윤소라",
+    theHyundaiHiMemberNumber: "HI-2608-2461",
     appliedAt: "2026-08-03 10:46",
     email: "sora_daily@example.com",
     phone: "010-9037-2461",
@@ -212,6 +216,7 @@ export const APPLICANTS: readonly ApplicantFixture[] = [
   {
     id: "ap-004",
     name: "권예나",
+    theHyundaiHiMemberNumber: "HI-2608-3902",
     appliedAt: "2026-08-01 14:25",
     email: "yena.style@example.com",
     phone: "010-6754-3902",
@@ -268,7 +273,7 @@ const APPLICANT_ANALYSIS: Record<string, ApplicantAnalysisReport> = {
     averageLikes: 1_308,
     averageComments: 164,
     engagementRate: 2.5,
-    contentFormats: [{ label: "릴스", count: 15 }, { label: "이미지 포함 피드", count: 10 }, { label: "동영상 포함 피드", count: 4 }],
+    contentFormats: [{ label: "릴스", count: 15 }, { label: "이미지", count: 10 }, { label: "영상", count: 4 }],
     summary: "실사용 뷰티와 데일리 패션을 균형 있게 소개하는 정보 전달형 지원자",
     category: "뷰티",
     keywords: [{ label: "톤메이크업", percentage: 38 }, { label: "데일리룩", percentage: 34 }, { label: "뷰티리뷰", percentage: 28 }],
@@ -306,7 +311,7 @@ const APPLICANT_ANALYSIS: Record<string, ApplicantAnalysisReport> = {
     averageLikes: 16,
     averageComments: 2,
     engagementRate: 2.1,
-    contentFormats: [{ label: "이미지 포함 피드", count: 2 }],
+    contentFormats: [{ label: "이미지", count: 2 }],
     summary: "최근 활동과 공개 콘텐츠 수가 최소 심사 기준에 미치지 못한 지원자",
     category: "패션",
     keywords: [{ label: "데일리", percentage: 60 }, { label: "카페", percentage: 40 }],
@@ -325,7 +330,7 @@ const APPLICANT_ANALYSIS: Record<string, ApplicantAnalysisReport> = {
     averageLikes: 364,
     averageComments: 54,
     engagementRate: 3.3,
-    contentFormats: [{ label: "릴스", count: 9 }, { label: "이미지 포함 피드", count: 8 }],
+    contentFormats: [{ label: "릴스", count: 9 }, { label: "이미지", count: 8 }],
     summary: "패션 착장 중심의 콘텐츠를 운영하나 현 기수 방향과의 적합도는 낮은 지원자",
     category: "패션",
     keywords: [{ label: "출근룩", percentage: 45 }, { label: "스타일링", percentage: 35 }, { label: "하울", percentage: 20 }],

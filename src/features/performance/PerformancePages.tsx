@@ -2,6 +2,9 @@ import { useState, type ReactNode } from "react";
 import {
   ArrowUpRight,
   ChartNoAxesCombined,
+  Eye,
+  Heart,
+  MessageCircle,
   MousePointer2,
   PlaySquare,
   ShoppingBag,
@@ -15,8 +18,8 @@ import { Pagination } from "../../components/ui/Pagination";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import "../../styles/performance-dashboard.css";
+import { PlatformIcon } from "../creators/PlatformIcon";
 import {
-  PerformanceAreaChart,
   PerformanceBarChart,
   PerformanceKpiGrid,
   PerformanceRanking,
@@ -25,15 +28,12 @@ import {
 import {
   CAMPAIGN_PERFORMANCE,
   CONTENT_INFLUENCE,
-  CREATOR_INFLUENCE,
   PERFORMANCE_TREND,
   PRODUCT_INFLUENCE,
   SELECTOR_PERFORMANCE,
-  campaignNameById,
   creatorNameById,
   formatCount,
   formatRate,
-  selectorCohortById,
   type CampaignPerformance,
   type ContentInfluence,
   type CreatorInfluence,
@@ -54,6 +54,13 @@ const CAMPAIGN_OPTIONS = [
   { label: "여름 바캉스 스타일링", value: "cp-002" },
   { label: "초여름 패션 리뷰", value: "cp-003" },
 ];
+
+function selectorProfilePath(selectorId: string) {
+  const selectorNumber = Number(selectorId.replace(/\D/g, "")) || 1;
+  const mediaIndex = ((selectorNumber - 1) % 4) + 1;
+
+  return `creator-media/kr-cr-${String(mediaIndex).padStart(3, "0")}-profile.jpg`;
+}
 
 interface FilterFieldProps {
   children: ReactNode;
@@ -200,67 +207,6 @@ function PerformanceLiftCards({
   );
 }
 
-function PerformanceAnalysisHero({
-  focusDetail,
-  focusLabel,
-  focusValue,
-  kpis,
-  points,
-  primaryLabel,
-  periodSummaryLabel,
-  secondaryLabel,
-  summaryLabel,
-  title,
-}: {
-  focusDetail: string;
-  focusLabel: string;
-  focusValue: string;
-  kpis: Parameters<typeof PerformanceKpiGrid>[0]["items"];
-  points: Parameters<typeof PerformanceAreaChart>[0]["points"];
-  primaryLabel: string;
-  periodSummaryLabel: string;
-  secondaryLabel: string;
-  summaryLabel: string;
-  title: string;
-}) {
-  return (
-    <div className="fuma-performance-analysis-hero">
-      <div className="fuma-performance-analysis-hero__main">
-        <PerformanceKpiGrid
-          ariaLabel={summaryLabel}
-          className="fuma-performance-kpi-grid--analysis"
-          items={kpis}
-        />
-        <PerformanceAreaChart
-          description="상위 성과 항목 기준 비교"
-          points={points}
-          primaryLabel={primaryLabel}
-          secondaryLabel={secondaryLabel}
-          title={title}
-        />
-      </div>
-      <aside className="fuma-performance-analysis-hero__rail">
-        <section className="fuma-performance-analysis-focus">
-          <span>TOP PERFORMANCE</span>
-          <div aria-hidden="true" className="fuma-performance-analysis-focus__ring"><b>1</b></div>
-          <div aria-hidden="true" className="fuma-performance-analysis-focus__bars">
-            {[38, 52, 46, 72, 61, 86, 68, 92].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}
-          </div>
-          <strong>{focusValue}</strong>
-          <p>{focusLabel}</p>
-          <small>{focusDetail}</small>
-        </section>
-        <PerformancePeriodSummary
-          change="+12.4%"
-          label={periodSummaryLabel}
-          points={[46, 58, 51, 68, 73]}
-          value="1,399"
-        />
-      </aside>
-    </div>
-  );
-}
-
 interface PerformanceResultTableProps<T extends object> {
   className: string;
   columns: DenseTableColumn<T>[];
@@ -372,59 +318,6 @@ const SELECTOR_COLUMNS: DenseTableColumn<SelectorPerformance>[] = [
   },
 ];
 
-const CONTENT_COLUMNS: DenseTableColumn<ContentInfluence>[] = [
-  { key: "id", header: "콘텐츠 ID", width: 88 },
-  { key: "title", header: "콘텐츠 제목", width: 215 },
-  {
-    id: "author",
-    header: "작성자",
-    width: 82,
-    render: (content) => creatorNameById(content.creatorId),
-  },
-  {
-    id: "cohort",
-    header: "기수",
-    width: 58,
-    align: "center",
-    render: (content) => selectorCohortById(content.selectorId),
-  },
-  {
-    id: "campaign",
-    header: "캠페인",
-    width: 220,
-    render: (content) => campaignNameById(content.campaignId),
-  },
-  { key: "platform", header: "플랫폼", width: 88, align: "center" },
-  {
-    key: "conversions",
-    header: "구매 전환 수",
-    width: 105,
-    align: "right",
-    render: (content) => formatCount(content.conversions),
-  },
-  {
-    key: "views",
-    header: "조회 수",
-    width: 92,
-    align: "right",
-    render: (content) => formatCount(content.views),
-  },
-  {
-    key: "likes",
-    header: "좋아요",
-    width: 86,
-    align: "right",
-    render: (content) => formatCount(content.likes),
-  },
-  {
-    key: "comments",
-    header: "댓글",
-    width: 74,
-    align: "right",
-    render: (content) => formatCount(content.comments),
-  },
-];
-
 const CONTENT_MEDIA: Record<string, { creatorImage: string; thumbnail: string }> = {
   "ct-001": { thumbnail: "creator-media/kr-cr-001-01.jpg", creatorImage: "creator-media/kr-cr-001-profile.jpg" },
   "ct-002": { thumbnail: "creator-media/kr-cr-002-02.jpg", creatorImage: "creator-media/kr-cr-002-profile.jpg" },
@@ -433,132 +326,405 @@ const CONTENT_MEDIA: Record<string, { creatorImage: string; thumbnail: string }>
   "ct-005": { thumbnail: "creator-media/kr-cr-004-01.jpg", creatorImage: "creator-media/kr-cr-004-profile.jpg" },
 };
 
-const CREATOR_REPORT_MEDIA: Record<string, string> = {
-  "cr-001": "creator-media/kr-cr-001-profile.jpg",
-  "cr-002": "creator-media/kr-cr-002-profile.jpg",
-  "cr-003": "creator-media/kr-cr-003-profile.jpg",
-  "cr-004": "creator-media/kr-cr-004-profile.jpg",
-};
+function contentMediaFor(content: ContentInfluence) {
+  const savedMedia = CONTENT_MEDIA[content.id];
 
-function CreatorPerformanceReport({
-  creators,
-  points,
-}: {
-  creators: readonly CreatorInfluence[];
-  points: Parameters<typeof PerformanceAreaChart>[0]["points"];
-}) {
-  const totalConversions = creators.reduce((total, creator) => total + creator.conversions, 0);
-  const totalViews = creators.reduce((total, creator) => total + creator.views, 0);
-  const topCreator = [...creators].sort((left, right) => right.conversions - left.conversions)[0];
+  if (savedMedia) {
+    return savedMedia;
+  }
+
+  const selectorNumber = Number(content.selectorId.replace(/\D/g, "")) || 1;
+  const creatorNumber = ((selectorNumber - 1) % 4) + 1;
+  const imageNumber = ((selectorNumber - 1) % 3) + 1;
+  const creatorId = String(creatorNumber).padStart(3, "0");
+
+  return {
+    thumbnail: `creator-media/kr-cr-${creatorId}-${String(imageNumber).padStart(2, "0")}.jpg`,
+    creatorImage: `creator-media/kr-cr-${creatorId}-profile.jpg`,
+  };
+}
+
+interface CampaignContentCardData {
+  id: string;
+  campaignId: string;
+  title: string;
+  creator: string;
+  creatorImage: string;
+  thumbnail: string;
+  views: number;
+  likes: number;
+  comments: number;
+  publishedAt: string;
+}
+
+const CAMPAIGN_CONTENT_CARDS: readonly CampaignContentCardData[] = [
+  { id: "cpc-001", campaignId: "cp-001", title: "가을 라운딩을 위한 패딩 팬츠 스타일링", creator: "김서연", creatorImage: "creator-media/kr-cr-001-profile.jpg", thumbnail: "creator-media/kr-cr-001-01.jpg", views: 48_200, likes: 3_880, comments: 274, publishedAt: "2026.08.01" },
+  { id: "cpc-002", campaignId: "cp-001", title: "필드에서 직접 입어본 라이트 웨더 베스트", creator: "박도윤", creatorImage: "creator-media/kr-cr-002-profile.jpg", thumbnail: "creator-media/kr-cr-002-02.jpg", views: 41_300, likes: 2_780, comments: 188, publishedAt: "2026.08.02" },
+  { id: "cpc-003", campaignId: "cp-001", title: "초가을 골프룩에 어울리는 클래식 캡", creator: "이지아", creatorImage: "creator-media/kr-cr-003-profile.jpg", thumbnail: "creator-media/kr-cr-003-01.jpg", views: 28_600, likes: 1_220, comments: 96, publishedAt: "2026.08.02" },
+  { id: "cpc-004", campaignId: "cp-001", title: "라운딩 전 꼭 확인할 골프웨어 레이어드 팁", creator: "오하늘", creatorImage: "creator-media/kr-cr-004-profile.jpg", thumbnail: "creator-media/kr-cr-004-02.jpg", views: 36_800, likes: 2_410, comments: 142, publishedAt: "2026.08.03" },
+  { id: "cpc-005", campaignId: "cp-001", title: "움직임이 편한 에어핏 팬츠 실착 리뷰", creator: "김서연", creatorImage: "creator-media/kr-cr-001-profile.jpg", thumbnail: "creator-media/kr-cr-001-03.jpg", views: 52_700, likes: 4_120, comments: 318, publishedAt: "2026.08.03" },
+  { id: "cpc-006", campaignId: "cp-001", title: "아침 라운딩부터 클럽하우스까지 한 벌 코디", creator: "박도윤", creatorImage: "creator-media/kr-cr-002-profile.jpg", thumbnail: "creator-media/kr-cr-002-01.jpg", views: 31_900, likes: 1_940, comments: 121, publishedAt: "2026.08.04" },
+  { id: "cpc-007", campaignId: "cp-002", title: "휴양지에서 빛나는 리조트 린넨 셋업", creator: "오하늘", creatorImage: "creator-media/kr-cr-004-profile.jpg", thumbnail: "creator-media/kr-cr-004-01.jpg", views: 154_200, likes: 11_920, comments: 940, publishedAt: "2026.07.24" },
+  { id: "cpc-008", campaignId: "cp-002", title: "바캉스 컬러를 살린 데일리 스타일링", creator: "김서연", creatorImage: "creator-media/kr-cr-001-profile.jpg", thumbnail: "creator-media/kr-cr-001-02.jpg", views: 62_200, likes: 4_980, comments: 312, publishedAt: "2026.07.25" },
+  { id: "cpc-009", campaignId: "cp-002", title: "여행 가방에 꼭 챙긴 썸머 드레이프 원피스", creator: "이지아", creatorImage: "creator-media/kr-cr-003-profile.jpg", thumbnail: "creator-media/kr-cr-003-02.jpg", views: 44_100, likes: 3_120, comments: 205, publishedAt: "2026.07.26" },
+  { id: "cpc-010", campaignId: "cp-002", title: "라피아 미니 토트백으로 완성한 휴양지 룩", creator: "오하늘", creatorImage: "creator-media/kr-cr-004-profile.jpg", thumbnail: "creator-media/kr-cr-004-03.jpg", views: 34_700, likes: 2_310, comments: 166, publishedAt: "2026.07.27" },
+  { id: "cpc-011", campaignId: "cp-002", title: "낮부터 저녁까지 입는 리조트웨어 조합", creator: "박도윤", creatorImage: "creator-media/kr-cr-002-profile.jpg", thumbnail: "creator-media/kr-cr-002-03.jpg", views: 39_800, likes: 2_680, comments: 191, publishedAt: "2026.07.28" },
+  { id: "cpc-012", campaignId: "cp-003", title: "초여름 에센셜 가디건 3가지 코디", creator: "이지아", creatorImage: "creator-media/kr-cr-003-profile.jpg", thumbnail: "creator-media/kr-cr-003-01.jpg", views: 17_900, likes: 912, comments: 68, publishedAt: "2026.06.15" },
+  { id: "cpc-013", campaignId: "cp-003", title: "코튼 립 슬리브리스 출근룩 활용법", creator: "김서연", creatorImage: "creator-media/kr-cr-001-profile.jpg", thumbnail: "creator-media/kr-cr-001-02.jpg", views: 12_480, likes: 610, comments: 44, publishedAt: "2026.06.16" },
+  { id: "cpc-014", campaignId: "cp-003", title: "데일리 스트레이트 데님 핏 비교", creator: "박도윤", creatorImage: "creator-media/kr-cr-002-profile.jpg", thumbnail: "creator-media/kr-cr-002-02.jpg", views: 9_260, likes: 438, comments: 31, publishedAt: "2026.06.17" },
+  { id: "cpc-015", campaignId: "cp-003", title: "한여름 전까지 입기 좋은 가벼운 레이어드", creator: "오하늘", creatorImage: "creator-media/kr-cr-004-profile.jpg", thumbnail: "creator-media/kr-cr-004-02.jpg", views: 14_800, likes: 736, comments: 52, publishedAt: "2026.06.18" },
+];
+
+function CampaignContentGallery() {
+  const [selectedCampaignId, setSelectedCampaignId] = useState(CAMPAIGN_PERFORMANCE[0]?.id ?? "");
+  const selectedCampaign = CAMPAIGN_PERFORMANCE.find((campaign) => campaign.id === selectedCampaignId);
+  const cards = CAMPAIGN_CONTENT_CARDS.filter((card) => card.campaignId === selectedCampaignId);
 
   return (
-    <section aria-label="크리에이터 성과 리포트" className="fuma-creator-performance-report">
-      <header className="fuma-creator-performance-report__header">
+    <section aria-label="캠페인 내 콘텐츠" className="fuma-campaign-content-gallery">
+      <header className="fuma-campaign-content-gallery__heading">
         <div>
-          <p>CREATOR ANALYSIS REPORT</p>
-          <h2>크리에이터 분석 리포트</h2>
-          <span>2026.08.01 — 2026.08.03 · 콘텐츠 반응과 구매 전환을 기준으로 집계</span>
+          <span>CAMPAIGN CONTENT</span>
+          <h2>캠페인 내 콘텐츠</h2>
+        </div>
+        <p>{selectedCampaign?.name} · 콘텐츠 {cards.length}건</p>
+      </header>
+      <div aria-label="캠페인 선택" className="fuma-campaign-content-gallery__tabs" role="tablist">
+        {CAMPAIGN_PERFORMANCE.map((campaign) => (
+          <button
+            aria-selected={campaign.id === selectedCampaignId}
+            key={campaign.id}
+            onClick={() => setSelectedCampaignId(campaign.id)}
+            role="tab"
+            type="button"
+          >
+            #{campaign.name.replaceAll(" ", "")}
+          </button>
+        ))}
+      </div>
+      <div className="fuma-campaign-content-gallery__track">
+        {cards.map((card, index) => (
+          <article className="fuma-campaign-content-card" key={card.id}>
+            <div className="fuma-campaign-content-card__media">
+              <img alt="" src={`${import.meta.env.BASE_URL}${card.thumbnail}`} />
+              <span>#{index + 1}</span>
+              <em>광고</em>
+            </div>
+            <div className="fuma-campaign-content-card__body">
+              <h3>{card.title}</h3>
+              <time>{card.publishedAt}</time>
+              <div className="fuma-campaign-content-card__creator">
+                <img alt="" src={`${import.meta.env.BASE_URL}${card.creatorImage}`} />
+                <strong>@{card.creator}</strong>
+              </div>
+              <dl>
+                <div><dt><Eye aria-hidden="true" size={12} /> 조회</dt><dd>{formatCount(card.views)}</dd></div>
+                <div><dt><Heart aria-hidden="true" size={12} /> 좋아요</dt><dd>{formatCount(card.likes)}</dd></div>
+                <div><dt><MessageCircle aria-hidden="true" size={12} /> 댓글</dt><dd>{formatCount(card.comments)}</dd></div>
+              </dl>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SelectorPerformanceReport({ selectors }: { selectors: readonly SelectorPerformance[] }) {
+  const rankedSelectors = [...selectors].sort(
+    (left, right) => right.conversions - left.conversions || right.clicks - left.clicks,
+  );
+  const totalConversions = rankedSelectors.reduce(
+    (total, selector) => total + selector.conversions,
+    0,
+  );
+  const totalClicks = rankedSelectors.reduce((total, selector) => total + selector.clicks, 0);
+  const topSelectors = rankedSelectors.slice(0, 5);
+  const maxTopConversions = Math.max(1, ...topSelectors.map((selector) => selector.conversions));
+  const topSelectorConversions = topSelectors
+    .reduce((total, selector) => total + selector.conversions, 0);
+  const topTenCount = Math.max(1, Math.ceil(rankedSelectors.length * 0.1));
+  const topHalfCount = Math.max(topTenCount, Math.ceil(rankedSelectors.length * 0.5));
+  const conversionDistribution = [
+    { label: "상위 10%", conversions: rankedSelectors.slice(0, topTenCount).reduce((total, selector) => total + selector.conversions, 0) },
+    { label: "다음 40%", conversions: rankedSelectors.slice(topTenCount, topHalfCount).reduce((total, selector) => total + selector.conversions, 0) },
+    { label: "나머지", conversions: rankedSelectors.slice(topHalfCount).reduce((total, selector) => total + selector.conversions, 0) },
+  ].map((group) => ({
+    ...group,
+    share: totalConversions === 0 ? 0 : (group.conversions / totalConversions) * 100,
+  }));
+  const maxDistributionShare = Math.max(1, ...conversionDistribution.map((group) => group.share));
+
+  return (
+    <section aria-label="셀렉터스 성과" className="fuma-selector-performance-report">
+      <header className="fuma-selector-performance-report__header">
+        <div>
+          <p>TOP SELECTORS</p>
+          <h2>셀렉터스 성과</h2>
+          <span>구매 전환 기여도 기준</span>
         </div>
         <dl>
-          <div><dt>분석 크리에이터</dt><dd>{creators.length}명</dd></div>
-          <div><dt>총 조회수</dt><dd>{formatCount(totalViews)}</dd></div>
-          <div><dt>구매 전환</dt><dd>{formatCount(totalConversions)}</dd></div>
+          <div><dt>분석 셀렉터스</dt><dd>{rankedSelectors.length}명</dd></div>
+          <div><dt>총 구매 전환</dt><dd>{formatCount(totalConversions)}</dd></div>
         </dl>
       </header>
-      <section className="fuma-creator-performance-report__summary">
-        <div>
-          <p>핵심 요약</p>
-          <h3>{topCreator ? `${topCreator.name} 크리에이터가 전체 전환을 주도했습니다.` : "집계된 크리에이터 성과가 없습니다."}</h3>
-          <span>{topCreator ? `${topCreator.campaign} 캠페인에서 ${formatCount(topCreator.conversions)}건의 구매 전환을 기록했습니다.` : ""}</span>
-        </div>
-        <dl>
-          <div><dt>전환 1위</dt><dd>{topCreator?.name ?? "-"}</dd></div>
-          <div><dt>상위 2인 전환 비중</dt><dd>{totalConversions === 0 ? "-" : `${(([...creators].sort((left, right) => right.conversions - left.conversions).slice(0, 2).reduce((total, creator) => total + creator.conversions, 0) / totalConversions) * 100).toFixed(1)}%`}</dd></div>
-          <div><dt>평균 ER</dt><dd>{creators.length === 0 ? "-" : `${(creators.reduce((total, creator) => total + ((creator.likes + creator.comments) / creator.views) * 100, 0) / creators.length).toFixed(2)}%`}</dd></div>
+      <section aria-labelledby="selector-performance-comparison-title" className="fuma-selector-performance-report__insights">
+        <h3 id="selector-performance-comparison-title">셀렉터스 성과 비교</h3>
+        <dl className="fuma-selector-performance-report__kpis">
+          <div><dt>분석 셀렉터스</dt><dd>{rankedSelectors.length}<small>명</small></dd></div>
+          <div><dt>평균 전환율</dt><dd>{formatRate(totalConversions, totalClicks)}</dd></div>
+          <div><dt>TOP 5 전환 비중</dt><dd>{totalConversions === 0 ? "-" : `${((topSelectorConversions / totalConversions) * 100).toFixed(1)}%`}</dd></div>
         </dl>
-      </section>
-      <div className="fuma-creator-performance-report__list">
-        {creators.map((creator, index) => {
-          const engagementRate = formatRate(creator.likes + creator.comments, creator.views);
-          const contribution = totalConversions === 0 ? 0 : (creator.conversions / totalConversions) * 100;
-          return (
-            <article className="fuma-creator-performance-report__entry" key={creator.id}>
-              <span className="fuma-creator-performance-report__rank">{String(index + 1).padStart(2, "0")}</span>
-              <img alt="" src={`${import.meta.env.BASE_URL}${CREATOR_REPORT_MEDIA[creator.id]}`} />
-              <div className="fuma-creator-performance-report__identity">
-                <h3>{creator.name}</h3>
-                <p>{creator.platform} · {creator.cohort}</p>
-                <span>{creator.campaign}</span>
-              </div>
-              <dl className="fuma-creator-performance-report__metrics">
-                <div><dt>조회수</dt><dd>{formatCount(creator.views)}</dd></div>
-                <div><dt>좋아요</dt><dd>{formatCount(creator.likes)}</dd></div>
-                <div><dt>구매 전환</dt><dd>{formatCount(creator.conversions)}</dd></div>
-                <div><dt>ER</dt><dd>{engagementRate}</dd></div>
-              </dl>
-              <div className="fuma-creator-performance-report__contribution">
-                <span>전환 기여도 <b>{contribution.toFixed(1)}%</b></span>
-                <i aria-hidden="true"><em style={{ width: `${contribution}%` }} /></i>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-      <section className="fuma-creator-performance-report__evidence">
-        <div className="fuma-creator-performance-report__note">
-          <p>REPORT NOTE</p>
-          <h3>콘텐츠 반응보다 전환 성과를 함께 확인하세요.</h3>
-          <ul>
-            <li>조회수는 도달 규모, 구매 전환은 실제 캠페인 기여를 의미합니다.</li>
-            <li>ER은 좋아요와 댓글을 조회수 대비 비율로 계산했습니다.</li>
-            <li>크리에이터별 캠페인·플랫폼 차이를 함께 고려해 비교하세요.</li>
-          </ul>
+        <div className="fuma-selector-performance-report__charts">
+          <figure aria-label="TOP 5 셀렉터스 구매 전환" className="fuma-selector-performance-report__chart">
+            <figcaption><strong>TOP 5 셀렉터스 구매 전환</strong><span>구매 전환 수</span></figcaption>
+            <div className="fuma-selector-performance-report__bars">
+              {topSelectors.map((selector) => (
+                <div className="fuma-selector-performance-report__bar-item" key={selector.id}>
+                  <strong>{formatCount(selector.conversions)}</strong>
+                  <i aria-hidden="true"><b style={{ height: `${(selector.conversions / maxTopConversions) * 100}%` }} /></i>
+                  <span>{selector.name}</span>
+                </div>
+              ))}
+            </div>
+          </figure>
+          <figure aria-label="전체 셀렉터스 전환 기여도 분포" className="fuma-selector-performance-report__chart">
+            <figcaption><strong>전체 셀렉터스 전환 기여도 분포</strong><span>구매 전환 기여 비중</span></figcaption>
+            <div className="fuma-selector-performance-report__bars fuma-selector-performance-report__bars--cohort">
+              {conversionDistribution.map((group) => (
+                <div className="fuma-selector-performance-report__bar-item" key={group.label}>
+                  <strong>{group.share.toFixed(1)}%</strong>
+                  <i aria-hidden="true"><b style={{ height: `${(group.share / maxDistributionShare) * 100}%` }} /></i>
+                  <span>{group.label}</span>
+                </div>
+              ))}
+            </div>
+          </figure>
         </div>
-        <PerformanceAreaChart
-          description="크리에이터별 비교"
-          points={points}
-          primaryLabel="조회 수"
-          secondaryLabel="구매 전환"
-          title="성과 근거"
-        />
+      </section>
+      <section aria-labelledby="top-selectors-title" className="fuma-selector-performance-report__ranking">
+        <header>
+          <div>
+            <p>TOP SELECTORS</p>
+            <h3 id="top-selectors-title">TOP 셀렉터스</h3>
+          </div>
+          <span>전환 성과 순</span>
+        </header>
+        <div className="fuma-selector-performance-report__list">
+          {rankedSelectors.map((selector, index) => {
+            const contribution = totalConversions === 0 ? 0 : (selector.conversions / totalConversions) * 100;
+            const profilePath = selectorProfilePath(selector.id);
+
+            return (
+              <article className="fuma-selector-performance-report__entry" key={selector.id}>
+                <span className="fuma-selector-performance-report__rank">{String(index + 1).padStart(2, "0")}</span>
+                <img
+                  alt={`${selector.name} 프로필`}
+                  className="fuma-selector-performance-report__profile"
+                  src={`${import.meta.env.BASE_URL}${profilePath}`}
+                />
+                <div className="fuma-selector-performance-report__identity">
+                  <h4>{selector.name}</h4>
+                  <div className="fuma-selector-performance-report__identity-meta">
+                    <span>{selector.cohort}</span>
+                    <span aria-label={`${selector.platforms.join(" 및 ")} 플랫폼`} className="fuma-selector-performance-report__platforms">
+                      {selector.platforms.map((platform) => (
+                        <PlatformIcon decorative key={platform} platform={platform} />
+                      ))}
+                    </span>
+                  </div>
+                </div>
+                <dl className="fuma-selector-performance-report__metrics">
+                  <div><dt>클릭 수</dt><dd>{formatCount(selector.clicks)}</dd></div>
+                  <div><dt>구매 전환</dt><dd>{formatCount(selector.conversions)}</dd></div>
+                  <div><dt>전환율</dt><dd>{formatRate(selector.conversions, selector.clicks)}</dd></div>
+                </dl>
+                <div className="fuma-selector-performance-report__contribution">
+                  <span>기여도 <b>{contribution.toFixed(1)}%</b></span>
+                  <i aria-hidden="true"><em style={{ width: `${contribution}%` }} /></i>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </section>
     </section>
   );
 }
 
-function ContentPerformanceShowcase({ contents }: { contents: readonly ContentInfluence[] }) {
-  return (
-    <section aria-label="주요 콘텐츠 성과" className="fuma-content-performance-showcase">
-      <div className="fuma-performance-section-heading">
-        <div><p>TOP CONTENT</p><h2>주요 콘텐츠 성과</h2></div>
-        <span>조회 및 전환 기준</span>
+function trendDateLabel(recordedAt: string | undefined) {
+  if (!recordedAt) {
+    return "";
+  }
+
+  const [, month, day] = recordedAt.split("-");
+  return month && day ? `${month}.${day}` : recordedAt;
+}
+
+function ContentTrendGraph({
+  label,
+  recordedAt,
+  tone,
+  values,
+}: {
+  label: string;
+  recordedAt: readonly string[];
+  tone: "views" | "likes";
+  values: readonly number[];
+}) {
+  if (values.length === 0) {
+    return (
+      <div aria-label={`${label} 추이 데이터 없음`} className="fuma-content-trend-graph is-empty">
+        데이터 없음
       </div>
-      <div className="fuma-content-performance-showcase__grid">
-        {contents.map((content) => {
-          const media = CONTENT_MEDIA[content.id];
+    );
+  }
+
+  const chartWidth = 144;
+  const baseline = 29;
+  const chartPadding = 4;
+  const barGap = 3;
+  const maximum = Math.max(1, ...values);
+  const barWidth = (chartWidth - chartPadding * 2 - barGap * (values.length - 1)) / values.length;
+
+  return (
+    <div aria-label={`날짜별 ${label} 추이`} className={`fuma-content-trend-graph is-${tone}`}>
+      <svg aria-hidden="true" viewBox="0 0 144 34">
+        <line x1="4" x2="140" y1="29" y2="29" />
+        {values.map((value, index) => {
+          const height = Math.max(2, (value / maximum) * 23);
+          const x = chartPadding + index * (barWidth + barGap);
+
           return (
-            <article className="fuma-content-performance-showcase__card" key={content.id}>
-              <div className="fuma-content-performance-showcase__image">
-                <img alt="" src={`${import.meta.env.BASE_URL}${media.thumbnail}`} />
-                <span>{content.platform}</span>
-              </div>
-              <div className="fuma-content-performance-showcase__body">
-                <h3>{content.title}</h3>
-                <div className="fuma-content-performance-showcase__creator">
-                  <img alt="" src={`${import.meta.env.BASE_URL}${media.creatorImage}`} />
-                  <span>{creatorNameById(content.creatorId)}</span>
-                  <em>{campaignNameById(content.campaignId)}</em>
-                </div>
-                <dl>
-                  <div><dt>조회수</dt><dd>{formatCount(content.views)}</dd></div>
-                  <div><dt>구매 전환</dt><dd>{formatCount(content.conversions)}</dd></div>
-                  <div><dt>클릭수</dt><dd>{formatCount(content.clicks)}</dd></div>
-                  <div><dt>ER</dt><dd>{formatRate(content.likes + content.comments, content.views)}</dd></div>
-                </dl>
-              </div>
-            </article>
+            <rect
+              height={height}
+              key={`${recordedAt[index]}-${value}`}
+              rx="1.5"
+              width={barWidth}
+              x={x}
+              y={baseline - height}
+            />
           );
         })}
+      </svg>
+      <div className="fuma-content-trend-graph__dates">
+        <span>{trendDateLabel(recordedAt[0])}</span>
+        <span>{trendDateLabel(recordedAt.at(-1))}</span>
+      </div>
+    </div>
+  );
+}
+
+function ContentPerformanceReport({ contents }: { contents: readonly ContentInfluence[] }) {
+  const orderById = new Map(contents.map((content, index) => [content.id, index + 1]));
+  const columns: DenseTableColumn<ContentInfluence>[] = [
+    {
+      id: "rank",
+      header: "순위",
+      width: 64,
+      align: "center",
+      render: (content) => orderById.get(content.id) ?? "-",
+    },
+    {
+      id: "content",
+      header: "콘텐츠",
+      width: 300,
+      render: (content) => {
+        const media = contentMediaFor(content);
+
+        return (
+          <div className="fuma-content-reaction-table__content">
+            <img alt="" src={`${import.meta.env.BASE_URL}${media.thumbnail}`} />
+            <div>
+              <strong>{content.title}</strong>
+              <span>{content.publishedAt}</span>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: "platform",
+      header: "플랫폼",
+      width: 112,
+      render: (content) => (
+        <span className="fuma-content-reaction-table__platform">
+          <PlatformIcon decorative platform={content.platform as "Instagram" | "YouTube"} />
+          {content.platform}
+        </span>
+      ),
+    },
+    {
+      id: "selector",
+      header: "셀렉터스",
+      width: 160,
+      render: (content) => {
+        const media = contentMediaFor(content);
+
+        return (
+          <div className="fuma-content-reaction-table__channel">
+            <img alt="" src={`${import.meta.env.BASE_URL}${media.creatorImage}`} />
+            <span>
+              <strong>{creatorNameById(content.creatorId)}</strong>
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: "followers",
+      header: "팔로워 수",
+      width: 112,
+      align: "right",
+      render: (content) => formatCount(content.followers),
+    },
+    {
+      key: "views",
+      header: "누적 조회 수",
+      width: 108,
+      align: "right",
+      render: (content) => (content.views > 0 ? formatCount(content.views) : "-"),
+    },
+    {
+      key: "likes",
+      header: "누적 좋아요 수",
+      width: 108,
+      align: "right",
+      render: (content) => <span className="fuma-content-reaction-table__count">{formatCount(content.likes)}</span>,
+    },
+    {
+      id: "viewTrend",
+      header: "조회수 추이",
+      width: 176,
+      render: (content) => (
+        <ContentTrendGraph
+          label="조회수"
+          recordedAt={content.viewsTrend.map((point) => point.recordedAt)}
+          tone="views"
+          values={content.viewsTrend.map((point) => point.views)}
+        />
+      ),
+    },
+    {
+      id: "likeTrend",
+      header: "좋아요 수 추이",
+      width: 176,
+      render: (content) => (
+        <ContentTrendGraph
+          label="좋아요 수"
+          recordedAt={content.reactionTrend.map((point) => point.recordedAt)}
+          tone="likes"
+          values={content.reactionTrend.map((point) => point.likes)}
+        />
+      ),
+    },
+  ];
+
+  return (
+    <section aria-label="콘텐츠별 반응" className="fuma-content-reaction-table">
+      <header className="fuma-content-reaction-table__toolbar">총 {contents.length}개</header>
+      <div className="fuma-wide-table">
+        <DenseTable columns={columns} rowKey={(content) => content.id} rows={[...contents]} />
       </div>
     </section>
   );
@@ -916,6 +1082,7 @@ export function PerformanceDashboardPage() {
           rows={[...CAMPAIGN_PERFORMANCE]}
           title="캠페인별 성과"
         />
+        <CampaignContentGallery />
         <PerformanceResultTable
           className="fuma-performance-selector-table"
           columns={SELECTOR_COLUMNS}
@@ -928,60 +1095,23 @@ export function PerformanceDashboardPage() {
   );
 }
 
-export function CreatorPerformancePage() {
-  const visualData = buildCreatorVisualData(CREATOR_INFLUENCE);
-
+export function SelectorPerformancePage() {
   return (
     <section className="fuma-page fuma-performance-page">
-      <PageHeader screenCode="PF201" title="크리에이터 분석 리포트" />
+      <PageHeader screenCode="PF201" title="셀렉터스 성과" />
       <div className="fuma-page__body">
-        <PerformanceFilters
-          keyword={{
-            id: "performance-creator-name",
-            label: "크리에이터명",
-            placeholder: "이름 검색",
-          }}
-        />
-        <CreatorPerformanceReport creators={CREATOR_INFLUENCE} points={visualData.areaPoints} />
+        <SelectorPerformanceReport selectors={SELECTOR_PERFORMANCE} />
       </div>
     </section>
   );
 }
 
 export function ContentPerformancePage() {
-  const visualData = buildContentVisualData(CONTENT_INFLUENCE);
-
   return (
     <section className="fuma-page fuma-performance-page">
-      <PageHeader screenCode="PF202" title="콘텐츠 영향력 분석" />
+      <PageHeader screenCode="PF202" title="콘텐츠 성과" />
       <div className="fuma-page__body">
-        <PerformanceFilters
-          keyword={{
-            id: "performance-content-keyword",
-            label: "콘텐츠/작성자",
-            placeholder: "콘텐츠 ID 또는 작성자",
-          }}
-        />
-        <ContentPerformanceShowcase contents={CONTENT_INFLUENCE} />
-        <PerformanceAnalysisHero
-          focusDetail="구매 전환 기준 1위"
-          focusLabel="바캉스 푸드 스타일링"
-          focusValue="711"
-          kpis={visualData.kpis}
-          points={visualData.areaPoints}
-          primaryLabel="조회 수"
-          periodSummaryLabel="콘텐츠 구매 전환"
-          secondaryLabel="구매 전환"
-          summaryLabel="콘텐츠 성과 요약"
-          title="콘텐츠 반응 추이"
-        />
-        <PerformanceResultTable
-          className="fuma-performance-content-table"
-          columns={CONTENT_COLUMNS}
-          rowKey={(content) => content.id}
-          rows={[...CONTENT_INFLUENCE]}
-          title="콘텐츠 영향력"
-        />
+        <ContentPerformanceReport contents={CONTENT_INFLUENCE} />
       </div>
     </section>
   );
@@ -992,7 +1122,7 @@ export function ProductPerformancePage() {
 
   return (
     <section className="fuma-page fuma-performance-page">
-      <PageHeader screenCode="PF203" title="캠페인 단위 성과 분석" />
+      <PageHeader screenCode="PF203" title="캠페인 성과" />
       <div className="fuma-page__body">
         <CampaignProductList campaigns={campaigns} />
       </div>

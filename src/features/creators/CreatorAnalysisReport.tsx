@@ -22,7 +22,6 @@ interface CreatorAnalysisFixture {
   averages: {
     views: AverageMetric;
     likes: AverageMetric;
-    comments: AverageMetric;
   };
   formatMix: readonly { label: string; count: number }[];
   supplementalInteractions: readonly { label: string; value: number }[];
@@ -61,11 +60,11 @@ const CREATOR_ANALYSES: Record<string, CreatorAnalysisFixture> = {
     postDates: SEOYEON_POST_DATES,
     engagementSamples: SEOYEON_ENGAGEMENT_SAMPLES,
     lastPostDate: "2026.08.02",
-    averages: { views: 48_200, likes: 3_050, comments: 228 },
+    averages: { views: 48_200, likes: 3_050 },
     formatMix: [
-      { label: "이미지 포함 피드", count: 8 },
-      { label: "동영상 포함 피드", count: 6 },
       { label: "릴스", count: 15 },
+      { label: "이미지", count: 8 },
+      { label: "영상", count: 6 },
     ],
     supplementalInteractions: [
       { label: "저장", value: 412 },
@@ -120,7 +119,7 @@ const CREATOR_ANALYSES: Record<string, CreatorAnalysisFixture> = {
     postDates: DOYOON_POST_DATES,
     engagementSamples: DOYOON_ENGAGEMENT_SAMPLES,
     lastPostDate: "2026.07.31",
-    averages: { views: 26_800, likes: 1_130, comments: null },
+    averages: { views: 26_800, likes: 1_130 },
     formatMix: [{ label: "숏폼", count: 14 }, { label: "롱폼", count: 6 }],
     supplementalInteractions: [{ label: "공유", value: 76 }],
     qualitativeClaims: [
@@ -152,9 +151,17 @@ function fallbackAnalysis(creator: CreatorFixture): CreatorAnalysisFixture {
     averages: {
       views: creator.profile.averageViews,
       likes: creator.profile.averageReactions,
-      comments: null,
     },
-    formatMix: [{ label: "수집 콘텐츠", count: engagementSamples.length }],
+    formatMix: creator.profile.platform === "YouTube"
+      ? [
+        { label: "숏폼", count: Math.max(1, Math.round(engagementSamples.length * 0.7)) },
+        { label: "롱폼", count: Math.max(1, Math.floor(engagementSamples.length * 0.3)) },
+      ]
+      : [
+        { label: "릴스", count: Math.max(1, Math.round(engagementSamples.length * 0.5)) },
+        { label: "이미지", count: Math.max(1, Math.round(engagementSamples.length * 0.3)) },
+        { label: "영상", count: Math.max(1, Math.floor(engagementSamples.length * 0.2)) },
+      ],
     supplementalInteractions: [],
     qualitativeClaims: [
       {
@@ -171,7 +178,7 @@ function formatNumber(value: number) {
 }
 
 function metricValue(value: AverageMetric) {
-  return value === null ? "집계 불가" : formatNumber(value);
+  return value === null ? "-" : formatNumber(value);
 }
 
 export function topNScore(creator: CreatorFixture) {
@@ -190,7 +197,6 @@ export function deriveCadence(postDates: readonly string[], updatedAt: string, w
   const longestGapDays = sortedDays.slice(1).reduce((longest, day, index) => {
     return Math.max(longest, sortedDays[index] - day - 1);
   }, 0);
-
   return {
     dailyAverage: Number((sortedDays.length / windowDays).toFixed(2)),
     weeklyAverage: Number(((sortedDays.length / windowDays) * 7).toFixed(1)),
@@ -258,55 +264,152 @@ function AnalysisFields({ children, label }: { children: React.ReactNode; label:
 
 void AnalysisFields;
 
-export function CreatorAnalysisReport({ creator }: { creator: CreatorFixture }) {
+export function CreatorAnalysisReport({
+  creator,
+  title = "크리에이터 분석 리포트",
+}: {
+  creator: CreatorFixture;
+  title?: string;
+}) {
   const analysis = CREATOR_ANALYSES[creator.id] ?? fallbackAnalysis(creator);
   const cadence = deriveCadence(analysis.postDates, analysis.updatedAt.replaceAll(".", "-"), analysis.collectionDays);
   const collectedContentCount = Math.round(cadence.dailyAverage * analysis.collectionDays);
-  const engagement = engagementResultForCreator(creator);
+  const engagement = deriveEngagementRate(analysis.engagementSamples);
+  const commentSamples = analysis.engagementSamples.filter(
+    (sample): sample is { audience: number; likes: number; comments: number } => sample.comments !== null,
+  );
+  const averageComments = commentSamples.length === 0
+    ? null
+    : Math.round(commentSamples.reduce((total, sample) => total + sample.comments, 0) / commentSamples.length);
   const formatTotal = analysis.formatMix.reduce((sum, format) => sum + format.count, 0);
-  const supplementalInteractions = analysis.supplementalInteractions.length > 0
-    ? analysis.supplementalInteractions.map((item) => `${item.label} ${formatNumber(item.value)}`).join(" · ")
-    : "집계 불가";
-  const requiredClaims: Array<[string, string]> = [
-    ["카테고리", creator.category],
-    ["키워드", creator.keywords.join(" · ")],
-    ["타깃", "AI 분석 결과 생성 중"],
-    ["협업 이력", "최근 90일 수집 데이터에서 분석 중"],
-    ["콘텐츠 유형", analysis.formatMix.map((format) => `${format.label} ${format.count}건`).join(" · ")],
-    ["톤앤매너", "AI 이미지·텍스트 분석 중"],
-    ["위험 요소", "최근 수집 콘텐츠 기준 특이 위험 요소 분석 중"],
-    ["강점/유의점", "AI 분석 결과 생성 중"],
+  const formatColors = ["#de76ce", "#667085", "#a0a8b0", "#c8cdd2"];
+  const formatSegments = analysis.formatMix.map((format, index) => {
+    const previousCount = analysis.formatMix
+      .slice(0, index)
+      .reduce((sum, previous) => sum + previous.count, 0);
+    const percentage = formatTotal === 0 ? 0 : (format.count / formatTotal) * 100;
+    const start = formatTotal === 0 ? 0 : (previousCount / formatTotal) * 100;
+    return {
+      ...format,
+      color: formatColors[index % formatColors.length],
+      percentage,
+      start,
+    };
+  });
+  const formatGradient = formatSegments.length === 0
+    ? "#d7dadd"
+    : `conic-gradient(${formatSegments.map((segment) => `${segment.color} ${segment.start}% ${segment.start + segment.percentage}%`).join(", ")})`;
+  const lastContentLabel = creator.profile.platform === "YouTube" ? "마지막 업로드일" : "마지막 게시일";
+  const engagementCards = [
+    {
+      label: "평균 조회",
+      value: metricValue(analysis.averages.views),
+      description: "콘텐츠 1건당 평균",
+    },
+    {
+      label: "평균 좋아요",
+      value: metricValue(analysis.averages.likes),
+      description: "콘텐츠 1건당 평균",
+    },
+    {
+      label: "평균 댓글",
+      value: metricValue(averageComments),
+      description: commentSamples.length === 0 ? "수집된 댓글 표본 없음" : `수집 표본 ${commentSamples.length}건 기준`,
+    },
+    {
+      label: "ER",
+      value: engagement.value === null ? "-" : `${engagement.value.toFixed(1)}%`,
+      description: engagement.value === null ? "유효 반응 표본 없음" : `유효 표본 ${engagement.sampleSize}건 기준`,
+    },
   ];
-  const qualitativeClaims = [...analysis.qualitativeClaims];
-  for (const [label, value] of requiredClaims) {
-    if (!qualitativeClaims.some((claim) => claim.label === label)) {
-      qualitativeClaims.push({ label, value, evidence: { label: "콘텐츠 URL", url: creator.profile.profileUrl } });
-    }
-  }
+  const contentCards = [
+    {
+      label: "팔로워·구독자",
+      value: `${formatNumber(creator.profile.followers)}명`,
+      description: "현재 공개 채널 기준",
+    },
+    {
+      label: "업로드 주기",
+      value: `주 ${cadence.weeklyAverage.toFixed(1)}회`,
+      description: `최근 ${analysis.collectionDays}일 수집 기준`,
+    },
+    {
+      label: "콘텐츠 수",
+      value: `${formatNumber(creator.contentCount)}건`,
+      description: "전체 공개 콘텐츠",
+    },
+    {
+      label: `최근 ${analysis.collectionDays}일 콘텐츠`,
+      value: `${formatNumber(collectedContentCount)}건`,
+      description: "분석에 사용한 수집 콘텐츠",
+    },
+    {
+      label: lastContentLabel,
+      value: analysis.lastPostDate,
+      description: "수집된 최신 콘텐츠",
+    },
+  ];
+  const fallbackEvidence: AnalysisEvidence = { label: "채널 프로필", url: creator.profile.profileUrl };
+  const claimFor = (label: string) => analysis.qualitativeClaims.find((claim) => claim.label === label);
+  const summarySource = claimFor("요약");
+  const summaryClaim: QualitativeClaim = summarySource
+    && (creator.aiReport.status !== "ready" || summarySource.value !== "분석 리포트 생성 대기")
+    ? summarySource
+    : {
+      label: "요약",
+      value: creator.aiReport.summary || summarySource?.value || "분석 리포트 생성 대기",
+      evidence: summarySource?.evidence ?? fallbackEvidence,
+    };
+  const narrativeClaims: QualitativeClaim[] = ["위험 요소", "강점/유의점"].flatMap((label) => {
+    const claim = claimFor(label);
+    return claim ? [claim] : [];
+  });
+  const collaborationClaim = claimFor("협업 이력");
+  const toneClaim = claimFor("톤앤매너");
+  const splitTagValues = (value: string) => value.split(" · ").map((item) => item.trim()).filter(Boolean);
+  const tagGroups = [
+    {
+      label: "카테고리",
+      values: [creator.category],
+      evidence: claimFor("카테고리")?.evidence ?? fallbackEvidence,
+    },
+    {
+      label: "키워드",
+      values: creator.keywords,
+      evidence: claimFor("키워드")?.evidence ?? fallbackEvidence,
+    },
+    {
+      label: "협업 이력",
+      values: collaborationClaim ? splitTagValues(collaborationClaim.value) : [],
+      evidence: collaborationClaim?.evidence ?? fallbackEvidence,
+    },
+    {
+      label: "콘텐츠 유형",
+      values: analysis.formatMix.map((format) => `${format.label} ${format.count}건`),
+      evidence: claimFor("콘텐츠 유형")?.evidence ?? fallbackEvidence,
+    },
+    {
+      label: "톤앤매너",
+      values: toneClaim ? splitTagValues(toneClaim.value) : [],
+      evidence: toneClaim?.evidence ?? fallbackEvidence,
+    },
+  ];
 
   return (
     <section aria-labelledby="creator-analysis-title" className="fuma-creator-analysis-report" id="analysis">
       <header className="fuma-content-section__header">
         <div>
           <p>CREATOR REPORT</p>
-          <h2 id="creator-analysis-title">크리에이터 분석</h2>
+          <h2 id="creator-analysis-title">{title}</h2>
         </div>
-        <span>
-          {creator.aiReport.status === "ready" ? "생성 완료" : "생성 대기"} · 최종 업데이트 {analysis.updatedAt} · 최근 {analysis.collectionDays}일 수집 데이터
-        </span>
       </header>
 
       <div className="fuma-creator-analysis-report__content">
           <section aria-label="리포트 요약" className="fuma-creator-analysis-overview">
             <div>
               <span>분석 요약</span>
-              <p>{creator.aiReport.status === "ready" ? creator.aiReport.summary : "AI 리포트를 생성하고 있습니다."}</p>
+              <p>{summaryClaim.value}</p>
             </div>
-            <dl>
-              <div><dt>적합도 평가</dt><dd>{creator.aiReport.fitnessScore ?? "-"}<small>점</small></dd></div>
-              <div><dt>수집 콘텐츠</dt><dd>{collectedContentCount}<small>건</small></dd></div>
-              <div><dt>주간 업로드</dt><dd>{cadence.weeklyAverage.toFixed(1)}<small>회</small></dd></div>
-            </dl>
           </section>
 
           <section aria-label="정량 분석" className="fuma-creator-analysis-block">
@@ -315,63 +418,90 @@ export function CreatorAnalysisReport({ creator }: { creator: CreatorFixture }) 
               <span>수집 데이터 기준</span>
             </div>
             <div className="fuma-creator-analysis-metrics">
-              <section className="fuma-creator-metric-group fuma-creator-metric-group--performance">
-                <header>
-                  <div><strong>반응 성과</strong><span>콘텐츠 1건당 평균 반응</span></div>
-                  <b>{engagement.value === null ? "ER 집계 불가" : `ER ${engagement.value.toFixed(1)}%`}</b>
+              <section className="fuma-creator-metric-group fuma-creator-metric-group--performance fuma-analysis-engagement">
+                <header className="fuma-analysis-engagement__header">
+                  <div><strong>인게이지먼트</strong><span>수집된 콘텐츠의 평균 반응</span></div>
                 </header>
-                <dl className="fuma-creator-metric-hero-list">
-                  <div><dt>평균 조회</dt><dd>{metricValue(analysis.averages.views)}</dd></div>
-                  <div><dt>평균 좋아요</dt><dd>{metricValue(analysis.averages.likes)}</dd></div>
-                  <div><dt>평균 댓글</dt><dd>{metricValue(analysis.averages.comments)}</dd></div>
-                </dl>
-              </section>
-
-              <section className="fuma-creator-metric-group fuma-creator-metric-group--activity">
-                <header>
-                  <div><strong>활동 리듬</strong><span>최근 {analysis.collectionDays}일 업로드 흐름</span></div>
-                  <b>주 {cadence.weeklyAverage.toFixed(1)}회</b>
-                </header>
-                <dl className="fuma-creator-metric-data-list">
-                  <div><dt>수집 게시물</dt><dd>{collectedContentCount}<small>건</small></dd></div>
-                  <div><dt>마지막 게시</dt><dd>{analysis.lastPostDate}</dd></div>
-                  <div><dt>최대 공백</dt><dd>{cadence.longestGapDays}<small>일</small></dd></div>
-                  <div><dt>전체 콘텐츠</dt><dd>{formatNumber(creator.contentCount)}<small>건</small></dd></div>
-                </dl>
-              </section>
-
-              <section className="fuma-creator-metric-group fuma-creator-metric-group--format">
-                <header>
-                  <div><strong>콘텐츠 구성</strong><span>수집된 콘텐츠 형식 비중</span></div>
-                  <b>{formatTotal}<small>건</small></b>
-                </header>
-                <ul className="fuma-creator-metric-format-list">
-                  {analysis.formatMix.map((format) => (
-                    <li key={format.label}>
-                      <span>{format.label}</span>
-                      <i><b style={{ width: `${formatTotal > 0 ? (format.count / formatTotal) * 100 : 0}%` }} /></i>
-                      <strong>{format.count}<small>건</small></strong>
-                    </li>
+                <div className="fuma-analysis-engagement__grid">
+                  {engagementCards.map((metric) => (
+                    <article className="fuma-analysis-engagement__card" key={metric.label}>
+                      <span>{metric.label}</span>
+                      <strong className={metric.label === "ER" ? "fuma-analysis-engagement__er" : undefined}>{metric.value}</strong>
+                      <small>{metric.description}</small>
+                    </article>
                   ))}
-                </ul>
-                <div className="fuma-creator-metric-footnotes">
-                  <span>보조 상호작용 <b>{supplementalInteractions}</b></span>
-                  <span>분석 기준 <b>{analysis.updatedAt} · 최근 {analysis.collectionDays}일</b></span>
+                </div>
+              </section>
+
+              <section className="fuma-creator-metric-group fuma-analysis-content">
+                <header className="fuma-analysis-content__header">
+                  <div><strong>콘텐츠</strong><span>최근 {analysis.collectionDays}일 수집 데이터</span></div>
+                </header>
+                <div className="fuma-analysis-content__grid">
+                  {contentCards.map((metric) => (
+                    <article className="fuma-analysis-content__card" key={metric.label}>
+                      <span>{metric.label}</span>
+                      <strong>{metric.value}</strong>
+                      <small>{metric.description}</small>
+                    </article>
+                  ))}
+                  <article className="fuma-analysis-content__card fuma-analysis-content__card--formats">
+                    <span>콘텐츠 형식</span>
+                    <strong>{formatNumber(formatTotal)}건</strong>
+                    <div className="fuma-analysis-format-breakdown">
+                      <div
+                        aria-label={`콘텐츠 형식 총 ${formatNumber(formatTotal)}건`}
+                        className="fuma-analysis-format-breakdown__donut"
+                        role="img"
+                        style={{ background: formatGradient }}
+                      >
+                        <div><strong>{formatNumber(formatTotal)}</strong><span>건</span></div>
+                      </div>
+                      <ul className="fuma-analysis-format-breakdown__legend">
+                        {formatSegments.map((format) => (
+                          <li key={format.label}>
+                            <i style={{ backgroundColor: format.color }} />
+                            <span>{format.label}</span>
+                            <strong>{format.percentage.toFixed(0)}% <small>{formatNumber(format.count)}건</small></strong>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </article>
                 </div>
               </section>
             </div>
           </section>
 
-          <section aria-label="AI 정성 분석" className="fuma-creator-analysis-block">
+          <section aria-label="AI 정성 분석" className="fuma-creator-analysis-block fuma-analysis-qualitative">
             <h3>AI 정성 분석</h3>
-            <dl className="fuma-creator-analysis-claims">
-              {qualitativeClaims.map((claim) => (
+            <dl className="fuma-creator-analysis-claims fuma-analysis-qualitative__narrative-list">
+              {narrativeClaims.map((claim) => (
                 <div key={claim.label}>
                   <dt>{claim.label}</dt>
                   <dd><span>{claim.value}</span><a href={claim.evidence.url} rel="noreferrer" target="_blank">근거 보기 ↗</a></dd>
                 </div>
               ))}
             </dl>
+            <div className="fuma-analysis-tags">
+              {tagGroups.map((group) => (
+                <section aria-label={`${group.label} 태그`} className="fuma-analysis-tags__group" key={group.label}>
+                  <header>
+                    <strong>{group.label}</strong>
+                    <a className="fuma-analysis-tags__evidence" href={group.evidence.url} rel="noreferrer" target="_blank">근거 보기 ↗</a>
+                  </header>
+                  <ul className="fuma-analysis-tags__list">
+                    {group.values.length > 0
+                      ? group.values.map((value) => (
+                        <li className={`fuma-analysis-tags__tag${group.label === "키워드" ? " fuma-analysis-tags__tag--keyword" : ""}`} key={value}>
+                          {value}
+                        </li>
+                      ))
+                      : <li className="fuma-analysis-tags__empty">수집된 태그 없음</li>}
+                  </ul>
+                </section>
+              ))}
+            </div>
           </section>
         </div>
     </section>

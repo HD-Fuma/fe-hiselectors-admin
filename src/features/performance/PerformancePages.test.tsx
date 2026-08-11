@@ -443,57 +443,55 @@ test("renders creator influence filters and exact engagement metrics", () => {
   expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
 });
 
-test("renders content influence filters and exact content engagement rows", () => {
+test("renders content status tracking with per-content view totals", () => {
   renderRoute("/performance/contents");
 
-  expect(screen.getByRole("heading", { name: "콘텐츠 영향력 분석" })).toBeInTheDocument();
-  expect(screen.getByText("PF202")).toBeInTheDocument();
-  const search = screen.getByRole("search", { name: "검색 조건" });
-  expectCommonFilters(search);
   expect(
-    within(search).getByRole("textbox", { name: "콘텐츠/작성자" }),
-  ).toHaveAttribute("placeholder", "콘텐츠 ID 또는 작성자");
+    screen.getByRole("heading", { level: 1, name: "콘텐츠 성과" }),
+  ).toBeInTheDocument();
 
-  const metrics = screen.getByRole("group", { name: "콘텐츠 성과 요약" });
-  for (const [label, value] of [
-    ["콘텐츠 수", "5개"],
-    ["총 조회 수", "309,300"],
-    ["총 반응", "24,606"],
-    ["구매 전환 수", "1,399"],
-  ]) {
-    expect(within(metrics).getByText(label)).toBeInTheDocument();
-    expect(within(metrics).getByText(value)).toBeInTheDocument();
-  }
+  const statusMonitor = screen.getByRole("region", { name: "콘텐츠 상태 추적" });
+  expect(
+    within(statusMonitor).getByRole("heading", {
+      level: 2,
+      name: "콘텐츠 상태 추적",
+    }),
+  ).toBeInTheDocument();
+  expect(
+    within(statusMonitor).getByText(
+      "콘텐츠가 갑자기 비공개되거나 오류가 발생해도 자동 알림으로 즉시 대응하여 캠페인을 안정적으로 이어갈 수 있습니다.",
+    ),
+  ).toBeInTheDocument();
+  expect(
+    within(statusMonitor).getByRole("button", { name: "이상 감지" }),
+  ).toHaveAttribute("type", "button");
 
-  const chart = screen.getByRole("figure", { name: /콘텐츠 반응 추이/ });
-  for (const content of CONTENT_INFLUENCE) {
-    expect(
-      within(chart).getByText(
-        `${content.title.slice(0, 5)}: 조회 수 ${formatCount(content.views)}, 구매 전환 ${formatCount(content.conversions)}`,
-      ),
-    ).toBeInTheDocument();
-  }
-
-  expect(screen.getByText("콘텐츠 영향력", { selector: "strong" })).toBeInTheDocument();
-  const results = screen.getByRole("region", { name: "콘텐츠 영향력" });
-  expect(within(results).getByText("총 5건")).toBeInTheDocument();
-  expectColumnHeaders(results, [
-    "콘텐츠 ID",
-    "콘텐츠 제목",
-    "작성자",
-    "기수",
-    "캠페인",
-    "플랫폼",
-    "구매 전환 수",
-    "조회 수",
-    "좋아요",
-    "댓글",
+  const table = within(statusMonitor).getByRole("table");
+  expectColumnHeaders(table, [
+    "전체 콘텐츠 선택",
+    "No.",
+    "콘텐츠",
+    "성과",
+    "Σ 총합",
+    "25-09-01",
+    "25-09-02",
+    "25-09-03",
+    "25-09-04",
   ]);
-  expect(within(results).getByRole("row", {
-    name: /ct-001 가을 라운딩 패딩 팬츠 소개 김서연 3기 2026 가을 골프웨어 셀렉션 Instagram 164 48,200 3,880 274/,
-  })).toBeInTheDocument();
-  expect(within(results).getByRole("row", {
-    name: /ct-005 바캉스 푸드 스타일링 오하늘 2기 여름 바캉스 스타일링 Instagram 711 154,200 11,920 940/,
-  })).toBeInTheDocument();
-  expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
+  expect(
+    within(table).getByRole("checkbox", { name: "전체 콘텐츠 선택" }),
+  ).toBeChecked();
+  expect(within(table).getAllByRole("row")).toHaveLength(
+    CONTENT_INFLUENCE.length + 1,
+  );
+
+  for (const [index, content] of CONTENT_INFLUENCE.entries()) {
+    const row = within(table).getByRole("row", {
+      name: new RegExp(`${content.title} 선택 ${index + 1}`),
+    });
+    expect(
+      within(row).getByRole("checkbox", { name: `${content.title} 선택` }),
+    ).toBeChecked();
+    expect(within(row).getByText(formatCount(content.views))).toBeInTheDocument();
+  }
 });

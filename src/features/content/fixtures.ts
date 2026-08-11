@@ -1,6 +1,12 @@
 export type ReviewType = "NEW" | "VIOLATION_CORRECTION" | "EDITED";
 export type ReviewStatus = "검수 대기" | "수정 요청" | "승인" | "위반 확정";
 export type ProcessingState = "미처리" | "안내 대기" | "처리 완료";
+export type ContentFormat =
+  | "유튜브 롱폼"
+  | "유튜브 쇼츠"
+  | "인스타 릴스"
+  | "인스타 피드"
+  | "인스타 이미지";
 
 export type ContentAnnotationTarget =
   | {
@@ -32,6 +38,7 @@ export interface ContentSnapshot {
   mediaCount: number;
   mediaKinds: string[];
   mediaUrls: string[];
+  youtubeVideoId?: string;
   capturedAt: string;
   annotations?: ContentAnnotation[];
 }
@@ -68,6 +75,9 @@ export interface ContentReviewReport {
 
 export interface ContentReviewFixture {
   id: string;
+  contentTitle: string;
+  contentFormat: ContentFormat;
+  duration?: string;
   author: string;
   cohort: string;
   sourcePlatform: string;
@@ -107,6 +117,9 @@ export const REVIEW_TYPE_LABELS: Record<ReviewType, string> = {
 export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
   {
     id: "ct-001",
+    contentTitle: "가을 라운딩 패딩 팬츠 스타일링",
+    contentFormat: "인스타 피드",
+    duration: "00:18",
     author: "김서연",
     cohort: "3기",
     sourcePlatform: "Instagram",
@@ -114,7 +127,7 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
     reviewType: "NEW",
     previousSnapshot: null,
     currentSnapshot: {
-      label: "최초 수집 원본",
+      label: "현재 콘텐츠",
       capturedAt: "2026-08-03 10:40",
       text: "가을 라운딩을 위한 세인트앤드류스 패딩 팬츠를 지금 가장 저렴한 가격에 만나보세요. #현대홈쇼핑 #셀렉터스 #광고",
       urls: ["https://www.hmall.com/p/2200098405"],
@@ -124,6 +137,7 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
         "/creator-media/kr-cr-001-01.jpg",
         "/creator-media/kr-cr-001-02.jpg",
         "/creator-media/kr-cr-001-03.jpg",
+        "/creator-media/kr-cr-004-01.jpg",
       ],
     },
     aiStatus: "ready",
@@ -198,6 +212,9 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
   },
   {
     id: "ct-002",
+    contentTitle: "신상 골프 패딩 일주일 착용 리뷰",
+    contentFormat: "유튜브 롱폼",
+    duration: "08:42",
     author: "박도윤",
     cohort: "3기",
     sourcePlatform: "YouTube",
@@ -217,6 +234,8 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
         "/creator-media/kr-cr-002-01.jpg",
         "/creator-media/kr-cr-002-02.jpg",
         "/creator-media/kr-cr-002-03.jpg",
+        "/creator-media/kr-cr-004-02.jpg",
+        "/creator-media/kr-cr-004-03.jpg",
       ],
       annotations: [
         {
@@ -261,6 +280,7 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
         "/creator-media/kr-cr-001-01.jpg",
         "/creator-media/kr-cr-001-02.jpg",
         "/creator-media/kr-cr-001-03.jpg",
+        "/creator-media/kr-cr-004-01.jpg",
       ],
       annotations: [
         {
@@ -344,6 +364,8 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
   },
   {
     id: "ct-003",
+    contentTitle: "선선한 아침 라운딩 코디",
+    contentFormat: "인스타 피드",
     author: "김서연",
     cohort: "3기",
     sourcePlatform: "Instagram",
@@ -359,6 +381,7 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
       mediaUrls: [
         "/creator-media/kr-cr-003-01.jpg",
         "/creator-media/kr-cr-003-02.jpg",
+        "/creator-media/kr-cr-003-03.jpg",
       ],
     },
     currentSnapshot: {
@@ -375,6 +398,7 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
         "/creator-media/kr-cr-003-01.jpg",
         "/creator-media/kr-cr-003-02.jpg",
         "/creator-media/kr-cr-003-03.jpg",
+        "/creator-media/kr-cr-004-02.jpg",
       ],
     },
     aiStatus: "ready",

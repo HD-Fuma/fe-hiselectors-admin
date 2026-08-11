@@ -21,8 +21,10 @@ import {
 import { PlatformIcon } from "./PlatformIcon";
 import {
   CREATORS,
+  CREATOR_CATEGORIES,
   PENDING_AI_REPORT,
   PROPOSALS,
+  type CreatorCategory,
   type CreatorFixture,
   type CreatorProfileFixture,
   type ProposalFixture,
@@ -33,16 +35,8 @@ const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube"].map((label) => ({
   label,
   value: label === "전체" ? "" : label,
 }));
-const PROPOSAL_CHANNEL_OPTIONS = ["전체", "이메일"].map((label) => ({
-  label,
-  value: label === "전체" ? "" : label,
-}));
-const PROPOSAL_STATUS_OPTIONS = [
-  "전체",
-  "발송 대기",
-  "발송 완료",
-  "발송 실패",
-].map((label) => ({ label, value: label === "전체" ? "" : label }));
+const PROPOSAL_HISTORY_STATUSES: ProposalStatus[] = ["발송 대기", "발송 완료", "발송 실패"];
+const PROPOSAL_PAGE_SIZE = 20;
 function formatNumber(value: number) {
   return value.toLocaleString("ko-KR");
 }
@@ -86,24 +80,6 @@ function FilterField({ children, htmlFor, label }: FilterFieldProps) {
       <span>{label}</span>
       {children}
     </label>
-  );
-}
-
-function SearchActions() {
-  return (
-    <>
-      <Button variant="primary">조회</Button>
-      <Button>초기화</Button>
-    </>
-  );
-}
-
-function ResultToolbar({ count, title }: { count: number; title: string }) {
-  return (
-    <div className="fuma-result-toolbar">
-      <strong>{title}</strong>
-      <span>총 {count}건</span>
-    </div>
   );
 }
 
@@ -168,8 +144,36 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
 export function CreatorListPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const selectedCategory = CREATOR_CATEGORIES.find((category) => category === searchParams.get("category")) ?? "";
+  const creatorPoolPath = selectedCategory ? `/creators?category=${encodeURIComponent(selectedCategory)}` : "/creators";
   const detailCreatorId = searchParams.get("detail");
-  const creators = [...(searchParams.get("fixture") === "empty" ? [] : CREATORS)].sort(
+  const [keyword, setKeyword] = useState("");
+  const [followersMin, setFollowersMin] = useState("");
+  const [followersMax, setFollowersMax] = useState("");
+  const [platform, setPlatform] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
+  const [appliedFollowersMin, setAppliedFollowersMin] = useState("");
+  const [appliedFollowersMax, setAppliedFollowersMax] = useState("");
+  const [appliedPlatform, setAppliedPlatform] = useState("");
+  const creators = [...(searchParams.get("fixture") === "empty" ? [] : CREATORS)]
+    .filter((creator) => !selectedCategory || creator.category === selectedCategory)
+    .filter((creator) => {
+      const normalizedKeyword = appliedKeyword.trim().toLowerCase();
+      const minimum = Number(appliedFollowersMin) || 0;
+      const maximum = Number(appliedFollowersMax) || Number.POSITIVE_INFINITY;
+      const matchesKeyword = !normalizedKeyword || [
+        creator.id,
+        creator.name,
+        creator.profile.handle,
+        ...creator.keywords,
+      ].some((value) => value.toLowerCase().includes(normalizedKeyword));
+
+      return matchesKeyword
+        && creator.profile.followers >= minimum
+        && creator.profile.followers <= maximum
+        && (!appliedPlatform || creator.profile.platform === appliedPlatform);
+    })
+    .sort(
     (left, right) => {
       const leftRate = engagementResultForCreator(left).value;
       const rightRate = engagementResultForCreator(right).value;
@@ -179,13 +183,38 @@ export function CreatorListPage() {
   const [view, setView] = useState<CreatorPoolView>("cards");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const applySearch = () => {
+    setAppliedKeyword(keyword);
+    setAppliedFollowersMin(followersMin);
+    setAppliedFollowersMax(followersMax);
+    setAppliedPlatform(platform);
+    setSelectedIds(new Set());
+  };
+  const resetSearch = () => {
+    setKeyword("");
+    setFollowersMin("");
+    setFollowersMax("");
+    setPlatform("");
+    setAppliedKeyword("");
+    setAppliedFollowersMin("");
+    setAppliedFollowersMax("");
+    setAppliedPlatform("");
+    setSelectedIds(new Set());
+  };
   const toggleSelected = (creatorId: string) => {
     setSelectedIds((current) => {
       const next = new Set(current);
-      next.has(creatorId) ? next.delete(creatorId) : next.add(creatorId);
+      if (next.has(creatorId)) {
+        next.delete(creatorId);
+      } else {
+        next.add(creatorId);
+      }
       return next;
     });
   };
+  const openCategory = (category?: CreatorCategory) => navigate(
+    category ? `/creators?category=${encodeURIComponent(category)}` : "/creators",
+  );
   const toggleAll = () => setSelectedIds((current) => current.size === creators.length ? new Set() : new Set(creators.map((creator) => creator.id)));
   const sendBatchProposal = () => navigate(`/proposals/new?creators=${[...selectedIds].join(",")}`);
   const creatorColumns: DenseTableColumn<CreatorFixture>[] = selectionMode
@@ -204,36 +233,63 @@ export function CreatorListPage() {
   return (
     <>
     <section className="fuma-page">
-      <PageHeader screenCode="CR101" title="크리에이터 풀" />
+      <PageHeader screenCode="CR101" title={selectedCategory ? `${selectedCategory} 크리에이터` : "크리에이터 풀"} />
       <div className="fuma-page__body">
-        <SearchPanel actions={<SearchActions />}>
-          <FilterField htmlFor="creator-keyword" label="키워드">
-            <TextInput
-              id="creator-keyword"
-              name="keyword"
-              placeholder="이름 또는 채널명 검색"
-            />
-          </FilterField>
-          <div className="fuma-follower-range">
-            <span>팔로워·구독자</span>
-            <div className="fuma-follower-range__inputs">
-              <TextInput id="creator-followers-min" name="followersMin" placeholder="최소" />
-              <i aria-hidden="true" />
-              <TextInput id="creator-followers-max" name="followersMax" placeholder="최대" />
-              <em>명</em>
+        <div className="fuma-operations-search fuma-settlement-search fuma-creator-pool-search">
+          <SearchPanel actions={<><Button onClick={applySearch} variant="primary">조회</Button><Button onClick={resetSearch}>초기화</Button></>}>
+            <FilterField htmlFor="creator-keyword" label="키워드">
+              <TextInput
+                id="creator-keyword"
+                name="keyword"
+                onChange={(event) => setKeyword(event.target.value)}
+                placeholder="이름 또는 채널명 검색"
+                value={keyword}
+              />
+            </FilterField>
+            <div className="fuma-follower-range">
+              <span>팔로워·구독자</span>
+              <div className="fuma-follower-range__inputs">
+                <TextInput id="creator-followers-min" inputMode="numeric" name="followersMin" onChange={(event) => setFollowersMin(event.target.value)} placeholder="최소" value={followersMin} />
+                <i aria-hidden="true" />
+                <TextInput id="creator-followers-max" inputMode="numeric" name="followersMax" onChange={(event) => setFollowersMax(event.target.value)} placeholder="최대" value={followersMax} />
+                <em>명</em>
+              </div>
             </div>
+            <FilterField htmlFor="creator-platform" label="플랫폼">
+              <Select id="creator-platform" name="platform" onChange={(event) => setPlatform(event.target.value)} options={PLATFORM_OPTIONS} value={platform} />
+            </FilterField>
+          </SearchPanel>
+        </div>
+        <nav aria-label="크리에이터 카테고리" className="fuma-creator-category-filter">
+          <div>
+            <button
+              aria-pressed={!selectedCategory}
+              className="fuma-creator-category-filter__option"
+              onClick={() => openCategory()}
+              type="button"
+            >
+              전체
+            </button>
+            {CREATOR_CATEGORIES.map((category) => (
+              <button
+                  aria-pressed={selectedCategory === category}
+                  className="fuma-creator-category-filter__option"
+                  key={category}
+                  onClick={() => openCategory(category)}
+                type="button"
+              >
+                {category}
+              </button>
+            ))}
           </div>
-          <FilterField htmlFor="creator-platform" label="플랫폼">
-            <Select id="creator-platform" name="platform" options={PLATFORM_OPTIONS} />
-          </FilterField>
-        </SearchPanel>
+        </nav>
         <CreatorResultToolbar count={creators.length} onBatchProposal={sendBatchProposal} onSelectionModeChange={() => setSelectionMode((current) => !current)} onViewChange={setView} selectedCount={selectedIds.size} selectionMode={selectionMode} view={view} />
         {creators.length === 0 ? (
           <EmptyState title="검색 결과가 없습니다." />
         ) : view === "cards" ? (
           <CreatorCardGrid
             creators={creators}
-            onOpen={(creator) => navigate(`/creators?detail=${creator.id}`)}
+            onOpen={(creator) => navigate(`${creatorPoolPath}${selectedCategory ? "&" : "?"}detail=${creator.id}`)}
             onSelect={toggleSelected}
             selectedIds={selectedIds}
             selectionMode={selectionMode}
@@ -243,21 +299,20 @@ export function CreatorListPage() {
             <DenseTable
               columns={creatorColumns}
               emptyMessage="검색 결과가 없습니다."
-              onRowClick={(creator) => selectionMode ? toggleSelected(creator.id) : navigate(`/creators?detail=${creator.id}`)}
+              onRowClick={(creator) => selectionMode ? toggleSelected(creator.id) : navigate(`${creatorPoolPath}${selectedCategory ? "&" : "?"}detail=${creator.id}`)}
               rowKey={(creator) => creator.id}
               rows={creators}
               selectedRowKeys={[...selectedIds]}
             />
           </div>
         )}
-        <Pagination page={1} pageSize={20} totalPages={1} />
       </div>
     </section>
     {detailCreatorId ? (
       <CreatorDetailPage
         embedded
         creatorIdOverride={detailCreatorId}
-        onClose={() => navigate("/creators")}
+        onClose={() => navigate(creatorPoolPath)}
       />
     ) : null}
     </>
@@ -367,11 +422,12 @@ function CreatorDetailSidebar({
   const engagement = engagementResultForCreator(creator);
   const audienceLabel = creator.profile.platform === "Instagram" ? "팔로워" : "구독자";
   const proposalHref = `/proposals/new?creator=${creator.id}&channel=${encodeURIComponent("이메일")}`;
-  const isPreSend = creator.proposalStatus === "발송 전" || creator.proposalStatus === "미제안";
+  const proposalTooltipId = `creator-${creator.id}-proposal-tooltip`;
 
   return (
     <aside className="fuma-creator-detail-sidebar">
       <section className="fuma-creator-detail-sidebar__profile">
+        <div className="fuma-social-profile__identity">
         <div className="fuma-creator-detail-sidebar__portrait">
           <CreatorProfilePhoto creatorName={creator.name} src={creator.profile.profileImageUrl} />
           <PlatformIcon platform={creator.profile.platform} />
@@ -380,6 +436,17 @@ function CreatorDetailSidebar({
           {statusPill ?? <StatusPill tone={proposalTone(creator.proposalStatus)}>{creator.proposalStatus}</StatusPill>}
           <h2>{creator.name}</h2>
           <a href={creator.profile.profileUrl} rel="noreferrer" target="_blank">{creator.profile.handle} ↗</a>
+        </div>
+        </div>
+        <dl className="fuma-social-profile__metrics">
+          <div><dt>게시물</dt><dd>{creator.contentCount}</dd></div>
+          <div><dt>{audienceLabel}</dt><dd>{formatNumber(creator.profile.followers)}</dd></div>
+          <div><dt>ER</dt><dd>{engagement.value === null ? "-" : `${engagement.value.toFixed(1)}%`}</dd></div>
+        </dl>
+        <div className="fuma-social-profile__gallery" aria-label="대표 콘텐츠">
+          {creator.featuredContents.map((content) => (
+            <CreatorContentPhoto creatorName={creator.name} key={content.id} src={content.thumbnailUrl} title={content.title} />
+          ))}
         </div>
       </section>
 
@@ -398,11 +465,11 @@ function CreatorDetailSidebar({
       </section>
 
       {actionSection ?? (
-        <section className={`fuma-creator-detail-sidebar__proposal${isPreSend ? " fuma-creator-detail-sidebar__proposal--pre-send" : ""}`}>
-          <span>영입 제안</span>
-          <strong><i aria-hidden="true" />{creator.proposalStatus}</strong>
-          <p>{isPreSend ? "분석 결과를 확인하고 제안 내용을 준비해 주세요." : "발송한 제안의 진행 상태를 확인할 수 있습니다."}</p>
-          <Link to={proposalHref}>제안 작성</Link>
+        <section className="fuma-creator-detail-sidebar__proposal fuma-creator-detail-sidebar__proposal--send">
+          <div className="fuma-creator-detail-sidebar__proposal-action">
+            <Link aria-describedby={proposalTooltipId} to={proposalHref}>제안하기</Link>
+            <span id={proposalTooltipId} role="tooltip">크리에이터에게 영입을 제안해보세요.</span>
+          </div>
         </section>
       )}
     </aside>
@@ -498,6 +565,7 @@ interface CreatorDetailPageProps {
   creatorOverride?: CreatorFixture;
   embedded?: boolean;
   onClose?: () => void;
+  reportTitle?: string;
   statusPill?: ReactNode;
   title?: string;
 }
@@ -508,6 +576,7 @@ export function CreatorDetailPage({
   creatorOverride,
   embedded = false,
   onClose,
+  reportTitle,
   statusPill,
   title = "크리에이터 상세",
 }: CreatorDetailPageProps = {}) {
@@ -533,7 +602,7 @@ export function CreatorDetailPage({
                 statusPill={statusPill}
               />
               <main className="fuma-creator-detail-main">
-                <CreatorAnalysisReport creator={creator} />
+                <CreatorAnalysisReport creator={creator} title={reportTitle} />
               </main>
             </div>
           ) : (
@@ -661,11 +730,22 @@ function createProposalColumns(): DenseTableColumn<ProposalFixture>[] {
     id: "target",
     header: "크리에이터",
     width: 120,
+    align: "center",
     render: (proposal) => proposal.receiver,
   },
-  { key: "recipientEmail", header: "이메일 주소", width: 210 },
+  {
+    id: "platform",
+    header: "플랫폼",
+    width: 120,
+    align: "center",
+    render: (proposal) => {
+      const creator = CREATORS.find((item) => item.id === proposal.targetId);
+      return creator ? <PlatformLabel platform={creator.profile.platform} /> : "-";
+    },
+  },
+  { key: "recipientEmail", header: "이메일 주소", width: 210, align: "center" },
   { key: "sentAt", header: "발송 시각", width: 150, align: "center" },
-  { key: "administratorName", header: "발송자", width: 130 },
+  { key: "administratorName", header: "발송자", width: 130, align: "center" },
   {
     key: "status",
     header: "상태",
@@ -682,10 +762,6 @@ function ProposalDeliveryDetail({ proposal }: { proposal: ProposalFixture }) {
   return (
     <div className="fuma-detail-panel__content fuma-proposal-delivery-detail">
       <section aria-label="발송 내역" className="fuma-proposal-delivery-detail__section">
-        <header>
-          <span>발송 내역</span>
-          <h3>{proposal.receiver}</h3>
-        </header>
         <dl className="fuma-proposal-delivery-detail__list">
           <div>
             <dt>크리에이터 SNS ID</dt>
@@ -694,10 +770,6 @@ function ProposalDeliveryDetail({ proposal }: { proposal: ProposalFixture }) {
           <div>
             <dt>발송 관리자 ID</dt>
             <dd>{proposal.administratorId}</dd>
-          </div>
-          <div>
-            <dt>발송 방법</dt>
-            <dd>{proposal.channel}</dd>
           </div>
           <div>
             <dt>발송 시각</dt>
@@ -718,43 +790,162 @@ function ProposalDeliveryDetail({ proposal }: { proposal: ProposalFixture }) {
 }
 
 export function ProposalHistoryPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [page, setPage] = useState(1);
   const [selectedProposal, setSelectedProposal] = useState<ProposalFixture | null>(null);
+  const [sentDateInput, setSentDateInput] = useState(searchParams.get("sentDate") ?? "");
+  const [keywordInput, setKeywordInput] = useState(
+    searchParams.get("keyword") ?? searchParams.get("creator") ?? "",
+  );
   const creatorId = searchParams.get("creator");
-  const proposals =
+  const requestedStatus = searchParams.get("status");
+  const selectedStatus = PROPOSAL_HISTORY_STATUSES.find((status) => status === requestedStatus);
+  const sentDate = searchParams.get("sentDate");
+  const keyword = searchParams.get("keyword")?.trim().toLocaleLowerCase("ko-KR");
+  const proposals = (
     searchParams.get("fixture") === "empty"
       ? []
       : creatorId
         ? PROPOSALS.filter((proposal) => proposal.targetId === creatorId)
-        : PROPOSALS;
+        : PROPOSALS
+  ).filter((proposal) => (
+    (!selectedStatus || proposal.status === selectedStatus)
+    && (!sentDate || proposal.sentAt.startsWith(sentDate))
+    && (!keyword || [
+      proposal.targetId,
+      proposal.targetName,
+      proposal.receiver,
+      proposal.recipientEmail,
+    ].some((value) => value.toLocaleLowerCase("ko-KR").includes(keyword)))
+  ));
+  const totalPages = Math.max(1, Math.ceil(proposals.length / PROPOSAL_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedProposals = proposals.slice(
+    (currentPage - 1) * PROPOSAL_PAGE_SIZE,
+    currentPage * PROPOSAL_PAGE_SIZE,
+  );
+
+  const selectStatus = (status?: ProposalStatus) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (status) {
+      nextParams.set("status", status);
+    } else {
+      nextParams.delete("status");
+    }
+    setPage(1);
+    setSearchParams(nextParams);
+  };
+
+  const searchProposals = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("creator");
+    if (sentDateInput) {
+      nextParams.set("sentDate", sentDateInput);
+    } else {
+      nextParams.delete("sentDate");
+    }
+    if (keywordInput.trim()) {
+      nextParams.set("keyword", keywordInput.trim());
+    } else {
+      nextParams.delete("keyword");
+    }
+    setPage(1);
+    setSearchParams(nextParams);
+  };
+
+  const resetProposalSearch = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("creator");
+    nextParams.delete("sentDate");
+    nextParams.delete("keyword");
+    setSentDateInput("");
+    setKeywordInput("");
+    setPage(1);
+    setSearchParams(nextParams);
+  };
 
   return (
     <section className="fuma-page">
       <PageHeader screenCode="CR201" title="제안 이력 관리" />
       <div className="fuma-page__body">
-        <SearchPanel actions={<SearchActions />}>
-          <FilterField htmlFor="proposal-channel" label="채널">
-            <Select
-              id="proposal-channel"
-              name="channel"
-              options={PROPOSAL_CHANNEL_OPTIONS}
-            />
-          </FilterField>
-          <FilterField htmlFor="proposal-status" label="상태">
-            <Select id="proposal-status" name="status" options={PROPOSAL_STATUS_OPTIONS} />
-          </FilterField>
-        </SearchPanel>
-        <ResultToolbar count={proposals.length} title="제안 이력 목록" />
-        <div aria-label="제안 이력 목록" className="fuma-wide-table" role="region">
+        <div className="fuma-operations-search fuma-settlement-search fuma-proposal-history-search">
+          <SearchPanel
+            actions={(
+              <>
+                <Button onClick={searchProposals} variant="primary">조회</Button>
+                <Button onClick={resetProposalSearch}>초기화</Button>
+              </>
+            )}
+          >
+            <FilterField htmlFor="proposal-sent-date" label="발송일">
+              <TextInput
+                aria-label="발송일"
+                id="proposal-sent-date"
+                onChange={(event) => setSentDateInput(event.target.value)}
+                type="date"
+                value={sentDateInput}
+              />
+            </FilterField>
+            <FilterField htmlFor="proposal-keyword" label="ID 또는 이름">
+              <TextInput
+                aria-label="ID 또는 이름"
+                id="proposal-keyword"
+                onChange={(event) => setKeywordInput(event.target.value)}
+                placeholder="크리에이터 ID 또는 이름 검색"
+                value={keywordInput}
+              />
+            </FilterField>
+          </SearchPanel>
+        </div>
+        <nav aria-label="제안 발송 상태" className="fuma-creator-category-filter fuma-proposal-status-filter">
+          <div>
+            <button
+              aria-pressed={!selectedStatus}
+              className="fuma-creator-category-filter__option"
+              onClick={() => selectStatus()}
+              type="button"
+            >
+              전체
+            </button>
+            {PROPOSAL_HISTORY_STATUSES.map((status) => (
+              <button
+                aria-pressed={selectedStatus === status}
+                className="fuma-creator-category-filter__option"
+                key={status}
+                onClick={() => selectStatus(status)}
+                type="button"
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+        </nav>
+        <div className="fuma-result-toolbar fuma-simple-result-toolbar">
+          <strong>제안 이력 목록</strong>
+          <div className="fuma-settlement-result-meta">
+            <span>{sentDate ? sentDate.replaceAll("-", ".") : "전체 발송일"}</span>
+            <span>총 {proposals.length}건</span>
+          </div>
+        </div>
+        <div
+          aria-label="제안 이력 목록"
+          className="fuma-wide-table fuma-settlement-table fuma-proposal-history-table"
+          role="region"
+        >
           <DenseTable
             columns={createProposalColumns()}
             emptyMessage="등록된 제안 이력이 없습니다."
             onRowClick={setSelectedProposal}
             rowKey={(proposal) => proposal.id}
-            rows={proposals}
+            rows={pagedProposals}
           />
         </div>
-        <Pagination page={1} pageSize={20} totalPages={1} />
+        <Pagination
+          onPageChange={setPage}
+          page={currentPage}
+          pageSize={PROPOSAL_PAGE_SIZE}
+          totalPages={totalPages}
+        />
       </div>
       {selectedProposal ? (
         <SidePanel onClose={() => setSelectedProposal(null)} title="발송 내역">

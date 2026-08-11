@@ -91,27 +91,27 @@ export const ADMIN_REQUIREMENT_COVERAGE = [
     route: "/selectors",
     rows: [15],
     expectedTexts: [
+      "코드",
+      "닉네임",
       "SNS",
       "활동 상태",
       "콘텐츠 수",
       "위반 횟수",
-      "클릭",
-      "전환",
       "최근 활동일",
     ],
     expectedActions: ["조회", "초기화"],
     expectedControls: [
-      { role: "textbox", name: "셀렉터스명" },
+      { role: "textbox", name: "이름" },
       { role: "combobox", name: "기수" },
-      { role: "combobox", name: "활동 상태" },
+      { role: "combobox", name: "SNS" },
     ],
     expectedTables: [
       {
         region: "셀렉터스 목록",
-        columns: ["SNS", "활동 상태", "콘텐츠 수", "위반 횟수", "클릭", "전환"],
+        columns: ["코드", "이름", "닉네임", "SNS", "활동 상태", "콘텐츠 수", "위반 횟수"],
       },
     ],
-    primaryRole: { role: "heading", name: "기수별 셀렉터스 현황" },
+    primaryRole: { role: "heading", name: "셀렉터스 목록" },
   },
   {
     route: "/selectors/qualifications",

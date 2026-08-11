@@ -6,6 +6,8 @@ export interface ModalProps {
   title: string;
   children: ReactNode;
   actions?: ReactNode;
+  className?: string;
+  onClose?: () => void;
 }
 
 const focusableSelector = [
@@ -23,7 +25,7 @@ function focusableElements(dialog: HTMLElement) {
   );
 }
 
-export function Modal({ actions, children, open, title }: ModalProps) {
+export function Modal({ actions, children, className, onClose, open, title }: ModalProps) {
   const titleId = useId();
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
@@ -58,6 +60,12 @@ export function Modal({ actions, children, open, title }: ModalProps) {
     (focusableElements(dialog)[0] ?? dialog).focus();
 
     const containFocus = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && onClose) {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
       if (event.key !== "Tab") {
         return;
       }
@@ -102,7 +110,7 @@ export function Modal({ actions, children, open, title }: ModalProps) {
         previousFocus.focus();
       }
     };
-  }, [open]);
+  }, [onClose, open]);
 
   if (!open || typeof document === "undefined") {
     return null;
@@ -113,7 +121,7 @@ export function Modal({ actions, children, open, title }: ModalProps) {
       <section
         aria-labelledby={titleId}
         aria-modal="true"
-        className="hsas-modal"
+        className={["hsas-modal", className].filter(Boolean).join(" ")}
         data-visual-contract="modal"
         ref={dialogRef}
         role="dialog"
@@ -123,6 +131,16 @@ export function Modal({ actions, children, open, title }: ModalProps) {
           <h2 className="hsas-modal__title" id={titleId}>
             {title}
           </h2>
+          {onClose ? (
+            <button
+              aria-label={`${title} 닫기`}
+              className="hsas-modal__close"
+              onClick={onClose}
+              type="button"
+            >
+              ×
+            </button>
+          ) : null}
         </header>
         <div className="hsas-modal__body">{children}</div>
         {actions ? <footer className="hsas-modal__actions">{actions}</footer> : null}
