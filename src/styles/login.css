@@ -41,18 +41,11 @@
 
 .partners-login__eyebrow {
   display: block;
-  margin-bottom: var(--hsas-space-4);
+  margin-bottom: var(--hsas-space-2);
   color: var(--hsas-text-muted);
   font-size: var(--hsas-font-10);
   font-weight: 600;
   letter-spacing: 1.4px;
-}
-
-.partners-login__subtitle {
-  margin: var(--hsas-space-20) 0 0;
-  color: var(--hsas-color-ink-500);
-  font-size: var(--hsas-font-13);
-  text-align: center;
 }
 
 .partners-login__form {
@@ -63,7 +56,7 @@
 
 .partners-login__field {
   display: grid;
-  gap: var(--hsas-space-8);
+  gap: var(--hsas-space-5);
   color: var(--hsas-color-ink-700);
   font-size: var(--hsas-font-13);
 }

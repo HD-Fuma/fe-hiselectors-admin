@@ -1,4 +1,10 @@
-import { Navigate, createBrowserRouter, createMemoryRouter, type RouteObject } from "react-router-dom";
+import { Suspense, type ComponentType, type LazyExoticComponent } from "react";
+import {
+  Navigate,
+  createBrowserRouter,
+  createMemoryRouter,
+  type RouteObject,
+} from "react-router-dom";
 import { LoginPage } from "../features/auth/LoginPage";
 import { AdminLayout } from "./layout";
 import {
@@ -7,12 +13,26 @@ import {
   DEFAULT_ADMIN_ROUTE,
 } from "./navigation";
 
+const routeLoadingFallback = (
+  <div aria-live="polite" role="status">
+    화면을 불러오는 중입니다.
+  </div>
+);
+
+function renderLazyPage(Component: LazyExoticComponent<ComponentType>) {
+  return (
+    <Suspense fallback={routeLoadingFallback}>
+      <Component />
+    </Suspense>
+  );
+}
+
 const adminRouteObjects: RouteObject[] = ADMIN_ROUTE_MANIFEST.map((route) => {
   const { Component } = route;
 
   return {
     path: route.path.slice(1),
-    element: <Component />,
+    element: renderLazyPage(Component),
   };
 });
 
@@ -29,7 +49,7 @@ const routes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <DefaultAdminPage />,
+        element: renderLazyPage(DefaultAdminPage),
       },
       {
         path: "home",

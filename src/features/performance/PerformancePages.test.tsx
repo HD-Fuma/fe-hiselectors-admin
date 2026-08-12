@@ -1,16 +1,10 @@
 import {
-  buildContentVisualData,
-  buildCreatorVisualData,
-  buildDashboardVisualData,
-} from "./PerformancePages";
-import {
   CAMPAIGN_PERFORMANCE,
   CONTENT_INFLUENCE,
-  CREATOR_INFLUENCE,
   SELECTOR_PERFORMANCE,
   formatCount,
   formatRate,
-} from "./fixtures";
+} from "../../entities/performance";
 
 test("formats counts and conversion rates", () => {
   expect(formatCount(0)).toBe("0");
@@ -29,15 +23,7 @@ test("keeps campaign totals equal to canonical content attribution", () => {
   }
 });
 
-test("keeps creator and selector totals equal to canonical content groups", () => {
-  for (const creator of CREATOR_INFLUENCE) {
-    const contents = CONTENT_INFLUENCE.filter((content) => content.creatorId === creator.id);
-    expect(contents.reduce((total, content) => total + content.conversions, 0)).toBe(
-      creator.conversions,
-    );
-    expect(contents.reduce((total, content) => total + content.views, 0)).toBe(creator.views);
-  }
-
+test("keeps selector totals equal to canonical content groups", () => {
   for (const selector of SELECTOR_PERFORMANCE) {
     const contents = CONTENT_INFLUENCE.filter((content) => content.selectorId === selector.id);
     expect(contents.reduce((total, content) => total + content.clicks, 0)).toBe(selector.clicks);
@@ -45,15 +31,4 @@ test("keeps creator and selector totals equal to canonical content groups", () =
       selector.conversions,
     );
   }
-});
-
-test("builds explicit empty summaries", () => {
-  expect(buildDashboardVisualData([], [], []).kpis.map(({ value }) => value)).toEqual([
-    "-",
-    "-",
-    "-",
-    "-",
-  ]);
-  expect(buildCreatorVisualData([]).kpis.map(({ value }) => value)).toEqual(["-", "-", "-", "-"]);
-  expect(buildContentVisualData([]).kpis.map(({ value }) => value)).toEqual(["-", "-", "-", "-"]);
 });

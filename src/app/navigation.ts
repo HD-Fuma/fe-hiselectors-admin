@@ -1,55 +1,95 @@
-import type { ComponentType } from "react";
-import {
-  ApplicantDetailPage,
-  ApplicantListPage,
-} from "../features/applicants/ApplicantPages";
-import {
-  CampaignCreatePage,
-  CampaignDetailPage,
-  CampaignEditPage,
-  CampaignListPage,
-} from "../features/campaigns/CampaignPages";
-import {
-  ContentReviewDetailPage,
-  ContentReviewListPage,
-} from "../features/content/ContentPages";
-import {
-  CreatorDetailPage,
-  CreatorListPage,
-  ProposalComposePage,
-  ProposalHistoryPage,
-} from "../features/creators/CreatorPages";
-import { SettlementManagementPage } from "../features/operations/OperationsPages";
-import {
-  ContentPerformancePage,
-  ProductPerformancePage,
-  SelectorPerformancePage,
-} from "../features/performance/PerformancePages";
-import {
-  CohortManagementPage,
-  ExcellentSelectorListPage,
-  QualificationManagementPage,
-  SelectorDetailPage,
-  SelectorOverviewPage,
-} from "../features/selectors/SelectorPages";
+import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 import type {
   AdminNavigation,
   AdminRouteMeta,
   NavGroupMeta,
 } from "../components/shell/navigationModel";
 
-export type {
-  AdminNavigation,
-  AdminRouteMeta,
-  NavGroup,
-  NavGroupMeta,
-} from "../components/shell/navigationModel";
-
-export interface AdminRouteManifestEntry extends AdminRouteMeta {
-  Component: ComponentType;
+interface AdminRouteManifestEntry extends AdminRouteMeta {
+  Component: LazyExoticComponent<ComponentType>;
 }
 
-export const NAV_GROUPS: readonly NavGroupMeta[] = [
+function lazyPage(loader: () => Promise<ComponentType>) {
+  return lazy(async () => ({ default: await loader() }));
+}
+
+const CreatorListPage = lazyPage(() =>
+  import("../features/creators/CreatorPages").then((module) => module.CreatorListPage),
+);
+const CreatorDetailPage = lazyPage(() =>
+  import("../features/creators/CreatorPages").then((module) => module.CreatorDetailPage),
+);
+const ProposalHistoryPage = lazyPage(() =>
+  import("../features/creators/CreatorPages").then((module) => module.ProposalHistoryPage),
+);
+const ProposalComposePage = lazyPage(() =>
+  import("../features/creators/CreatorPages").then((module) => module.ProposalComposePage),
+);
+const SelectorOverviewPage = lazyPage(() =>
+  import("../features/selectors/SelectorPages").then((module) => module.SelectorOverviewPage),
+);
+const QualificationManagementPage = lazyPage(() =>
+  import("../features/selectors/SelectorPages").then(
+    (module) => module.QualificationManagementPage,
+  ),
+);
+const ExcellentSelectorListPage = lazyPage(() =>
+  import("../features/selectors/SelectorPages").then(
+    (module) => module.ExcellentSelectorListPage,
+  ),
+);
+const SelectorDetailPage = lazyPage(() =>
+  import("../features/selectors/SelectorPages").then((module) => module.SelectorDetailPage),
+);
+const CohortManagementPage = lazyPage(() =>
+  import("../features/selectors/SelectorPages").then((module) => module.CohortManagementPage),
+);
+const ApplicantListPage = lazyPage(() =>
+  import("../features/applicants/ApplicantPages").then((module) => module.ApplicantListPage),
+);
+const ApplicantDetailPage = lazyPage(() =>
+  import("../features/applicants/ApplicantPages").then((module) => module.ApplicantDetailPage),
+);
+const CampaignListPage = lazyPage(() =>
+  import("../features/campaigns/CampaignPages").then((module) => module.CampaignListPage),
+);
+const CampaignCreatePage = lazyPage(() =>
+  import("../features/campaigns/CampaignPages").then((module) => module.CampaignCreatePage),
+);
+const CampaignDetailPage = lazyPage(() =>
+  import("../features/campaigns/CampaignPages").then((module) => module.CampaignDetailPage),
+);
+const CampaignEditPage = lazyPage(() =>
+  import("../features/campaigns/CampaignPages").then((module) => module.CampaignEditPage),
+);
+const ContentInspectionListPage = lazyPage(() =>
+  import("../features/content/ContentPages").then((module) => module.ContentInspectionListPage),
+);
+const ContentInspectionDetailPage = lazyPage(() =>
+  import("../features/content/ContentPages").then((module) => module.ContentInspectionDetailPage),
+);
+const SelectorPerformancePage = lazyPage(() =>
+  import("../features/performance/PerformancePages").then(
+    (module) => module.SelectorPerformancePage,
+  ),
+);
+const ContentPerformancePage = lazyPage(() =>
+  import("../features/performance/PerformancePages").then(
+    (module) => module.ContentPerformancePage,
+  ),
+);
+const ProductPerformancePage = lazyPage(() =>
+  import("../features/performance/PerformancePages").then(
+    (module) => module.ProductPerformancePage,
+  ),
+);
+const SettlementManagementPage = lazyPage(() =>
+  import("../features/settlements/SettlementPages").then(
+    (module) => module.SettlementManagementPage,
+  ),
+);
+
+const NAV_GROUPS: readonly NavGroupMeta[] = [
   { id: "creators", label: "크리에이터" },
   { id: "applicants", label: "지원자" },
   { id: "selectors", label: "셀렉터스" },
@@ -207,8 +247,8 @@ export const ADMIN_ROUTE_MANIFEST = [
     workTabParentPath: "/campaigns",
   },
   {
-    path: "/content/reviews",
-    Component: ContentReviewListPage,
+    path: "/content/inspections",
+    Component: ContentInspectionListPage,
     group: "content",
     menuLabel: "콘텐츠 검수",
     title: "콘텐츠 검수",
@@ -216,14 +256,14 @@ export const ADMIN_ROUTE_MANIFEST = [
     workTabLabel: "콘텐츠 검수",
   },
   {
-    path: "/content/reviews/:contentId",
-    Component: ContentReviewDetailPage,
+    path: "/content/inspections/:contentId",
+    Component: ContentInspectionDetailPage,
     group: "content",
     menuLabel: "콘텐츠 검수",
     title: "콘텐츠 검수",
     screenCode: "CT102",
     workTabLabel: "검수 상세",
-    workTabSingletonId: "content-review-detail",
+    workTabSingletonId: "content-inspection-detail",
   },
   {
     path: "/performance/selectors",
@@ -263,7 +303,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   },
 ] as const satisfies readonly AdminRouteManifestEntry[];
 
-export const ADMIN_ROUTES: readonly AdminRouteMeta[] = ADMIN_ROUTE_MANIFEST;
+const ADMIN_ROUTES: readonly AdminRouteMeta[] = ADMIN_ROUTE_MANIFEST;
 export const DEFAULT_ADMIN_ROUTE = ADMIN_ROUTE_MANIFEST[0];
 
 export const ADMIN_NAVIGATION = {

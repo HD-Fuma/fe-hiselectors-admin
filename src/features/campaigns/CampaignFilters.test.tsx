@@ -2,9 +2,9 @@ import { fireEvent, screen, within } from "@testing-library/react";
 import { renderRoute } from "../../test/renderRoute";
 
 describe("campaign filter behavior", () => {
-  test("filters by query, status, and date and restores the full list", () => {
+  test("filters by query, status, and date and restores the full list", async () => {
     renderRoute("/campaigns");
-    const search = screen.getByRole("search", { name: "검색 조건" });
+    const search = await screen.findByRole("search", { name: "검색 조건" });
     const results = screen.getByRole("region", { name: "캠페인 목록" });
 
     fireEvent.change(within(search).getByRole("textbox", { name: "검색어" }), {
@@ -48,9 +48,9 @@ describe("campaign filter behavior", () => {
     expect(screen.getByText("총 3건")).toBeInTheDocument();
   });
 
-  test("switches the campaign detail dataset with its tabs", () => {
+  test("switches the campaign detail dataset with its tabs", async () => {
     renderRoute("/campaigns/cp-001");
-    const detail = screen.getByRole("dialog", { name: "캠페인 상세" });
+    const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
 
     expect(within(detail).getByRole("region", { name: "참여 셀렉터스" })).toBeInTheDocument();
     expect(within(detail).queryByRole("region", { name: "포함 상품" })).not.toBeInTheDocument();
@@ -61,9 +61,9 @@ describe("campaign filter behavior", () => {
     expect(within(detail).queryByRole("region", { name: "참여 셀렉터스" })).not.toBeInTheDocument();
   });
 
-  test("filters the product picker without losing hidden selections", () => {
+  test("filters the product picker without losing hidden selections", async () => {
     renderRoute("/campaigns/new?fixture=product-modal");
-    const dialog = screen.getByRole("dialog", { name: "해당 상품 선택", hidden: true });
+    const dialog = await screen.findByRole("dialog", { name: "해당 상품 선택", hidden: true });
     const productList = within(dialog).getByRole("region", { name: "상품 목록", hidden: true });
     const query = within(dialog).getByRole("textbox", { name: "상품 검색", hidden: true });
 

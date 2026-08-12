@@ -26,7 +26,7 @@ test("primary administrator routes render their current page", async ({ page }) 
     ["/applicants", "지원자 승인"],
     ["/selectors", "셀렉터스 목록"],
     ["/campaigns", "캠페인 관리"],
-    ["/content/reviews", "콘텐츠 검수"],
+    ["/content/inspections", "콘텐츠 검수"],
     ["/performance/selectors", "셀렉터스 성과"],
     ["/settlements", "정산 관리"],
   ] as const;

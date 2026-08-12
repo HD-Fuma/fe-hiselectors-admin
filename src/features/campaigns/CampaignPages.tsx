@@ -13,6 +13,7 @@ import {
   Checkbox,
   TextInput,
 } from "../../components/ui/Controls";
+import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
@@ -26,8 +27,8 @@ import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill
 import { paginate } from "../../lib/pagination";
 import { assetUrl } from "../../lib/assetUrl";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
-import { CREATORS, type CreatorFixture } from "../../entities/creator/model/fixtures";
-import { CONTENT_INFLUENCE } from "../../entities/performance/model/fixtures";
+import { CREATORS, type CreatorFixture } from "../../entities/creator";
+import { CONTENT_INFLUENCE } from "../../entities/performance";
 import {
   CAMPAIGNS,
   CAMPAIGN_PRODUCTS,
@@ -215,35 +216,22 @@ export function CampaignListPage() {
             </div>
           </SearchPanel>
         </div>
-        <nav aria-label="캠페인 상태" className="fuma-creator-category-filter fuma-campaign-status-tabs fuma-list-action-toolbar">
-          <div>
-            <button
-              aria-pressed={selectedStatus === null}
-              className="fuma-creator-category-filter__option"
-              onClick={() => selectStatus(null)}
-              type="button"
+        <ChoiceTabs
+          actions={(
+            <Link
+              className={buttonClassNames("primary", "fuma-result-toolbar__link")}
+              to="/campaigns/new"
             >
-              전체
-            </button>
-            {CAMPAIGN_STATUS_CATEGORIES.map((status) => (
-              <button
-                aria-pressed={selectedStatus === status}
-                className="fuma-creator-category-filter__option"
-                key={status}
-                onClick={() => selectStatus(status)}
-                type="button"
-              >
-                {status}
-              </button>
-            ))}
-          </div>
-          <Link
-            className={buttonClassNames("primary", "fuma-result-toolbar__link")}
-            to="/campaigns/new"
-          >
-            캠페인 생성
-          </Link>
-        </nav>
+              캠페인 생성
+            </Link>
+          )}
+          ariaLabel="캠페인 상태"
+          className="fuma-campaign-status-tabs fuma-list-action-toolbar"
+          emptyOption={{ label: "전체", onSelect: () => selectStatus(null) }}
+          onChange={selectStatus}
+          options={CAMPAIGN_STATUS_CATEGORIES}
+          value={selectedStatus}
+        />
         <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-result-toolbar">
           <strong>캠페인 목록</strong>
           <div className="fuma-settlement-result-meta">
@@ -684,26 +672,16 @@ export function CampaignDetailPage({
               </div>
             </section>
 
-            <nav aria-label="캠페인 상세 메뉴" className="fuma-creator-category-filter fuma-campaign-detail-tabs">
-              <div>
-                <button
-                  aria-pressed={activeDetailTab === "participants"}
-                  className="fuma-creator-category-filter__option"
-                  onClick={() => setActiveDetailTab("participants")}
-                  type="button"
-                >
-                  참여 셀렉터스
-                </button>
-                <button
-                  aria-pressed={activeDetailTab === "products"}
-                  className="fuma-creator-category-filter__option"
-                  onClick={() => setActiveDetailTab("products")}
-                  type="button"
-                >
-                  포함 상품
-                </button>
-              </div>
-            </nav>
+            <ChoiceTabs
+              ariaLabel="캠페인 상세 메뉴"
+              className="fuma-campaign-detail-tabs"
+              onChange={setActiveDetailTab}
+              options={[
+                { label: "참여 셀렉터스", value: "participants" },
+                { label: "포함 상품", value: "products" },
+              ]}
+              value={activeDetailTab}
+            />
 
             <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar">
               <strong>{activeDetailTab === "participants" ? "셀렉터스 목록" : "포함 상품 목록"}</strong>

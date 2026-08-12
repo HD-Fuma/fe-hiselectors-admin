@@ -36,7 +36,7 @@ export function CreatorResultToolbar({
         <span aria-hidden="true" className="fuma-creator-toolbar__divider" />
         <SegmentedControl
           ariaLabel="보기 방식"
-          onChange={(nextView) => onViewChange(nextView as CreatorPoolView)}
+          onChange={onViewChange}
           options={[
             { label: "카드", value: "cards" },
             { label: "목록", value: "list" },

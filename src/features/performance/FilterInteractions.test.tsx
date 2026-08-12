@@ -1,6 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { COHORTS, QUALIFICATIONS, SELECTORS } from "../../entities/selector/model/fixtures";
+import { COHORTS, QUALIFICATIONS, SELECTORS } from "../../entities/selectors";
 import { SETTLEMENTS } from "../../entities/settlement";
 import { renderRoute } from "../../test/renderRoute";
 
@@ -11,7 +11,7 @@ function paginationSummary(page: number, count: number) {
 test("selector, cohort, and qualification filters reset data and page bounds", async () => {
   const user = userEvent.setup();
   const selectorView = renderRoute("/selectors");
-  const selectorSearch = screen.getByRole("search", { name: "검색 조건" });
+  const selectorSearch = await screen.findByRole("search", { name: "검색 조건" });
 
   expect(screen.getByText(paginationSummary(1, SELECTORS.length))).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "다음 페이지" }));
@@ -30,7 +30,7 @@ test("selector, cohort, and qualification filters reset data and page bounds", a
   selectorView.unmount();
 
   const cohortView = renderRoute("/cohorts");
-  const cohortSearch = screen.getByRole("search", { name: "검색 조건" });
+  const cohortSearch = await screen.findByRole("search", { name: "검색 조건" });
   await user.type(
     within(cohortSearch).getByRole("textbox", { name: "기수명" }),
     COHORTS[0].name,
@@ -42,7 +42,7 @@ test("selector, cohort, and qualification filters reset data and page bounds", a
   cohortView.unmount();
 
   renderRoute("/selectors/qualifications");
-  const qualificationSearch = screen.getByRole("search", { name: "검색 조건" });
+  const qualificationSearch = await screen.findByRole("search", { name: "검색 조건" });
   await user.type(
     within(qualificationSearch).getByRole("textbox", { name: "이름 / ID" }),
     QUALIFICATIONS[0].selectorId,
@@ -55,7 +55,7 @@ test("selector, cohort, and qualification filters reset data and page bounds", a
 test("settlement query, status, and reset control the rows and pagination", async () => {
   const user = userEvent.setup();
   renderRoute("/settlements");
-  const search = screen.getByRole("search", { name: "검색 조건" });
+  const search = await screen.findByRole("search", { name: "검색 조건" });
   const keyword = within(search).getByRole("textbox", { name: "ID 또는 이름" });
 
   await user.type(keyword, "박도윤");

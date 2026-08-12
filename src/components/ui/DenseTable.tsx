@@ -127,14 +127,21 @@ export function DenseTable<T extends object>({
           ) : (
             rows.map((row) => {
               const key = rowKey(row);
+              const rowIsInteractive = Boolean(onRowClick);
+              const rowIsSelected = selectedRowKeys
+                ? selectedRowKeys.includes(key)
+                : rowIsInteractive
+                  ? selectedRowKey === key
+                  : undefined;
+
               return (
                 <tr
-                  aria-selected={selectedRowKeys ? selectedRowKeys.includes(key) : selectedRowKey === key}
+                  aria-selected={rowIsSelected}
                   className="hsas-dense-table__row"
                   key={key}
-                  onClick={(event) => handleRowClick(event, row)}
-                  onKeyDown={(event) => handleRowKeyDown(event, row)}
-                  tabIndex={0}
+                  onClick={rowIsInteractive ? (event) => handleRowClick(event, row) : undefined}
+                  onKeyDown={rowIsInteractive ? (event) => handleRowKeyDown(event, row) : undefined}
+                  tabIndex={rowIsInteractive ? 0 : undefined}
                 >
                   {columns.map((column) => (
                     <td

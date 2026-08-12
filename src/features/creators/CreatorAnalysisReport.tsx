@@ -1,11 +1,11 @@
-import { Siren } from "lucide-react";
 import { formatNumber } from "../../lib/formatters";
-import { AnalysisFormatDonut } from "../../components/charts/AnalysisFormatDonut";
-import { CREATORS, type CreatorFixture } from "../../entities/creator/model/fixtures";
+import { ProfileAnalysisReport } from "../../components/ui/ProfileAnalysisReport";
 import {
+  CREATORS,
   deriveCadence,
   deriveEngagementRate,
-} from "../../entities/creator/model/analysis";
+  type CreatorFixture,
+} from "../../entities/creator";
 
 type AverageMetric = number | null;
 
@@ -242,21 +242,6 @@ function creatorPercentileContext(): AnalysisPercentileContext {
   };
 }
 
-function hasRiskFactor(value: string) {
-  return !["미확인", "없음", "해당 없음", "발견되지 않"].some((phrase) => value.includes(phrase));
-}
-
-function AnalysisFields({ children, label }: { children: React.ReactNode; label: string }) {
-  return (
-    <div className="fuma-key-value-grid__item">
-      <dt>{label}</dt>
-      <dd>{children}</dd>
-    </div>
-  );
-}
-
-void AnalysisFields;
-
 export function CreatorAnalysisReport({
   creator,
   eyebrow = "CREATOR REPORT",
@@ -422,121 +407,19 @@ export function CreatorAnalysisReport({
   ];
 
   return (
-    <section aria-labelledby="creator-analysis-title" className="fuma-creator-analysis-report" id="analysis">
-      <header className="fuma-content-section__header">
-        <div>
-          <p>{eyebrow}</p>
-          <h2 id="creator-analysis-title">{title}</h2>
-        </div>
-      </header>
-
-      <div className="fuma-creator-analysis-report__content">
-          <section aria-label="리포트 요약" className="fuma-creator-analysis-overview">
-            <div>
-              <span>분석 요약</span>
-              <p>{summaryClaim.value}</p>
-            </div>
-          </section>
-
-          <section aria-label="정량 분석" className="fuma-creator-analysis-block">
-            <div className="fuma-creator-analysis-block__heading">
-              <h3>정량 분석</h3>
-              <span>수집 시각 {analysis.collectedAt}</span>
-            </div>
-            <div className="fuma-creator-analysis-metrics">
-              <section className="fuma-creator-metric-group fuma-creator-metric-group--performance fuma-analysis-engagement">
-                <header className="fuma-analysis-engagement__header">
-                  <div><strong>인게이지먼트</strong><span>최근 {analysis.collectionDays}일 수집 콘텐츠 기준</span></div>
-                </header>
-                <div className="fuma-analysis-engagement__grid">
-                  {engagementCards.map((metric) => (
-                    <article className="fuma-analysis-engagement__card" key={metric.label}>
-                      <span>{metric.label}</span>
-                      <strong className={metric.label === "ER" ? "fuma-analysis-engagement__er" : undefined}>{metric.value}</strong>
-                      {metric.percentile !== null ? (
-                        <small className={`fuma-analysis-engagement__percentile${comparison.label === "지원자 중" ? " fuma-analysis-engagement__percentile--applicant" : ""}`}>
-                          {comparison.label} 상위 {metric.percentile}%
-                        </small>
-                      ) : null}
-                    </article>
-                  ))}
-                </div>
-              </section>
-
-              <section className="fuma-creator-metric-group fuma-analysis-content">
-                <header className="fuma-analysis-content__header">
-                  <div><strong>콘텐츠</strong><span>최근 {analysis.collectionDays}일 수집 콘텐츠 기준</span></div>
-                </header>
-                <div className="fuma-analysis-content__grid">
-                  {contentCards.map((metric) => (
-                    <article className="fuma-analysis-content__card" key={metric.label}>
-                      <span>{metric.label}</span>
-                      <strong>{metric.value}</strong>
-                    </article>
-                  ))}
-                  <article className="fuma-analysis-content__card fuma-analysis-content__card--formats">
-                    <span>콘텐츠 형식</span>
-                    <div className="fuma-analysis-format-breakdown">
-                      <AnalysisFormatDonut segments={formatSegments} total={formatTotal} />
-                      <ul className="fuma-analysis-format-breakdown__legend">
-                        {formatSegments.map((format) => (
-                          <li key={format.label}>
-                            <i style={{ backgroundColor: format.color }} />
-                            <span>{format.label}</span>
-                            <strong>{format.percentage.toFixed(0)}% <small>{formatNumber(format.count)}건</small></strong>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </article>
-                </div>
-              </section>
-            </div>
-          </section>
-
-          <section aria-label="AI 정성 분석" className="fuma-creator-analysis-block fuma-analysis-qualitative">
-            <h3>AI 정성 분석</h3>
-            <dl className="fuma-creator-analysis-claims fuma-analysis-qualitative__narrative-list">
-              {narrativeClaims.map((claim) => (
-                <div
-                  className={`fuma-creator-analysis-claim${claim.label === "강점" || claim.label === "유의점" ? " fuma-creator-analysis-claim--plain" : ""}${claim.label === "위험 요소" && hasRiskFactor(claim.value) ? " fuma-creator-analysis-claim--risk" : ""}`}
-                  key={claim.label}
-                >
-                  <dt>
-                    {claim.label === "위험 요소" ? (
-                      <span
-                        className="fuma-analysis-risk-label"
-                        data-risk={hasRiskFactor(claim.value) ? "true" : "false"}
-                      >
-                        <Siren aria-hidden="true" size={16} strokeWidth={2} />
-                        <span>{claim.label}</span>
-                      </span>
-                    ) : <span>{claim.label}</span>}
-                  </dt>
-                  <dd>{claim.value}</dd>
-                </div>
-              ))}
-            </dl>
-            <div className="fuma-analysis-tags">
-              {tagGroups.map((group) => (
-                <section aria-label={`${group.label} 태그`} className="fuma-analysis-tags__group" key={group.label}>
-                  <header>
-                    <strong>{group.label}</strong>
-                  </header>
-                  <ul className="fuma-analysis-tags__list">
-                    {group.values.length > 0
-                      ? group.values.map((value) => (
-                        <li className={`fuma-analysis-tags__tag${group.label === "키워드" || group.label === "카테고리" ? " fuma-analysis-tags__tag--keyword" : ""}`} key={value}>
-                          {value}
-                        </li>
-                      ))
-                      : <li className="fuma-analysis-tags__empty">수집된 태그 없음</li>}
-                  </ul>
-                </section>
-              ))}
-            </div>
-          </section>
-        </div>
-    </section>
+    <ProfileAnalysisReport
+      collectedAt={analysis.collectedAt}
+      collectionDays={analysis.collectionDays}
+      comparisonLabel={comparison.label}
+      contentMetrics={contentCards}
+      engagementMetrics={engagementCards}
+      eyebrow={eyebrow}
+      formatSegments={formatSegments}
+      formatTotal={formatTotal}
+      narratives={narrativeClaims}
+      summary={summaryClaim.value}
+      tagGroups={tagGroups}
+      title={title}
+    />
   );
 }

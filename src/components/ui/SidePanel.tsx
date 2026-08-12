@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useId,
   useRef,
   useState,
@@ -20,7 +21,12 @@ export function SidePanel({ actions, children, onClose, title }: SidePanelProps)
   const titleId = useId();
   const backdropRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
   const [panelWidth, setPanelWidth] = useState<number | null>(null);
+
+  useEffect(() => () => {
+    resizeCleanupRef.current?.();
+  }, []);
 
   useDialogLifecycle({
     backdropRef,
@@ -44,17 +50,23 @@ export function SidePanel({ actions, children, onClose, title }: SidePanelProps)
       return;
     }
     event.preventDefault();
+    resizeCleanupRef.current?.();
     document.body.classList.add("fuma-detail-panel-is-resizing");
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       setPanelWidth(clampWidth(window.innerWidth - moveEvent.clientX));
     };
-    const handlePointerUp = () => {
+    const cleanupResize = () => {
       document.body.classList.remove("fuma-detail-panel-is-resizing");
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
+      resizeCleanupRef.current = null;
+    };
+    const handlePointerUp = () => {
+      cleanupResize();
     };
 
+    resizeCleanupRef.current = cleanupResize;
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp, { once: true });
   };

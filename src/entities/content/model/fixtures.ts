@@ -1,5 +1,5 @@
-export type ReviewType = "NEW" | "VIOLATION_CORRECTION" | "EDITED";
-export type ReviewStatus = "검수 대기" | "수정 요청" | "승인" | "위반 확정";
+export type InspectionType = "NEW" | "VIOLATION_CORRECTION" | "EDITED";
+export type InspectionStatus = "검수 대기" | "수정 요청" | "승인" | "위반 확정";
 export type ProcessingState = "미처리" | "안내 대기" | "처리 완료";
 export type ContentFormat =
   | "유튜브 롱폼"
@@ -60,37 +60,37 @@ export interface ContentSnapshot {
   annotations?: ContentAnnotation[];
 }
 
-export type ReviewSignalTone = "pass" | "warning" | "critical";
+export type InspectionSignalTone = "pass" | "warning" | "critical";
 
-export interface ContentReviewSignal {
+export interface ContentInspectionSignal {
   title: string;
   detail: string;
   source: string;
   evidence: string;
   guidance?: string;
-  tone: ReviewSignalTone;
+  tone: InspectionSignalTone;
 }
 
-export interface ContentReviewExtract {
+export interface ContentInspectionExtract {
   type: "OCR" | "STT";
   text: string;
   location: string;
 }
 
-export interface ContentReviewHistoryItem {
+export interface ContentInspectionHistoryItem {
   at: string;
   label: string;
   actor: string;
 }
 
-export interface ContentReviewReport {
+export interface ContentInspectionReport {
   generatedAt: string;
-  signals: ContentReviewSignal[];
-  extracts: ContentReviewExtract[];
-  history: ContentReviewHistoryItem[];
+  signals: ContentInspectionSignal[];
+  extracts: ContentInspectionExtract[];
+  history: ContentInspectionHistoryItem[];
 }
 
-export interface ContentReviewFixture {
+export interface ContentInspectionFixture {
   id: string;
   contentTitle: string;
   contentFormat: ContentFormat;
@@ -99,39 +99,27 @@ export interface ContentReviewFixture {
   cohort: string;
   sourcePlatform: string;
   submittedAt: string;
-  reviewType: ReviewType;
+  inspectionType: InspectionType;
   previousSnapshot: ContentSnapshot | null;
   currentSnapshot: ContentSnapshot;
   aiStatus: "ready" | "pending";
   aiSummary: string;
   detectedIssues: string[];
   violationType: string | null;
-  reviewStatus: ReviewStatus;
+  inspectionStatus: InspectionStatus;
   processingState: ProcessingState;
   availableActions: string[];
   changeItems: string[];
-  report: ContentReviewReport;
+  report: ContentInspectionReport;
 }
 
-export interface ViolationFixture {
-  id: string;
-  cohort: string;
-  selectorName: string;
-  contentId: string;
-  violationType: string;
-  noticeText: string;
-  noticeStatus: "미발송" | "발송 대기" | "발송 완료" | "발송 실패";
-  processingState: "미처리" | "처리 중" | "처리 완료";
-  accumulatedPenalties: number;
-}
-
-export const REVIEW_TYPE_LABELS: Record<ReviewType, string> = {
+export const INSPECTION_TYPE_LABELS: Record<InspectionType, string> = {
   NEW: "신규 콘텐츠",
   VIOLATION_CORRECTION: "위반 수정본",
   EDITED: "일반 수정본",
 };
 
-export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
+export const CONTENT_INSPECTIONS: readonly ContentInspectionFixture[] = [
   {
     id: "ct-001",
     contentTitle: "가을 라운딩 패딩 팬츠 스타일링",
@@ -141,7 +129,7 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
     cohort: "3기",
     sourcePlatform: "Instagram",
     submittedAt: "2026-08-03 10:42",
-    reviewType: "NEW",
+    inspectionType: "NEW",
     previousSnapshot: null,
     currentSnapshot: {
       label: "현재 콘텐츠",
@@ -162,7 +150,7 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
       "광고 표기와 공식 상품 링크는 확인되었습니다. 원문, OCR, STT 텍스트에서 가격·효과를 단정한 표현 3건을 위반 후보로 분류했습니다.",
     detectedIssues: ["원문 위반 후보 1건", "OCR 위반 후보 1건", "STT 위반 후보 1건"],
     violationType: "허위·과장 표현",
-    reviewStatus: "검수 대기",
+    inspectionStatus: "검수 대기",
     processingState: "미처리",
     availableActions: ["검수 완료", "수정 요청", "위반 판정"],
     changeItems: ["이전 비교 대상 없음", "URL 1개", "미디어 4개"],
@@ -236,7 +224,7 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
     cohort: "3기",
     sourcePlatform: "YouTube",
     submittedAt: "2026-08-03 09:45",
-    reviewType: "VIOLATION_CORRECTION",
+    inspectionType: "VIOLATION_CORRECTION",
     previousSnapshot: {
       label: "직전 위반 판정본",
       capturedAt: "2026-08-01 14:30",
@@ -322,7 +310,7 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
       "광고 표기와 공식 상품 링크가 보완되었고 과장 표현이 삭제되었습니다. 미디어는 5개에서 4개로 변경되었습니다.",
     detectedIssues: ["필수 광고 표기 누락", "비공식 단축 URL"],
     violationType: "필수 광고 표기 누락",
-    reviewStatus: "검수 대기",
+    inspectionStatus: "검수 대기",
     processingState: "처리 완료",
     availableActions: ["위반 해제", "재수정 요청", "위반 유지"],
     changeItems: ["본문 변경됨", "URL 2 → 1", "미디어 5 → 4"],
@@ -387,7 +375,7 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
     cohort: "3기",
     sourcePlatform: "Instagram",
     submittedAt: "2026-08-03 16:25",
-    reviewType: "EDITED",
+    inspectionType: "EDITED",
     previousSnapshot: {
       label: "직전 승인본",
       capturedAt: "2026-08-02 12:10",
@@ -423,7 +411,7 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
       "본문과 링크, 이미지 수 변경을 감지했습니다. 필수 광고 표기와 공식 상품 링크는 유지되었습니다.",
     detectedIssues: ["이벤트 URL 1개 추가", "이미지 1개 추가", "감지된 위반 없음"],
     violationType: null,
-    reviewStatus: "검수 대기",
+    inspectionStatus: "검수 대기",
     processingState: "미처리",
     availableActions: ["변경 승인", "수정 요청", "위반 판정"],
     changeItems: ["본문 변경됨", "URL 1 → 2", "미디어 3 → 4"],
@@ -476,42 +464,6 @@ export const CONTENT_REVIEWS: readonly ContentReviewFixture[] = [
   },
 ];
 
-export const VIOLATIONS: readonly ViolationFixture[] = [
-  {
-    id: "vr-001",
-    cohort: "3기",
-    selectorName: "김서연",
-    contentId: "ct-005",
-    violationType: "상품 링크 누락",
-    noticeText: "공식 상품 링크를 추가한 뒤 수정본을 제출해 주세요.",
-    noticeStatus: "미발송",
-    processingState: "미처리",
-    accumulatedPenalties: 0,
-  },
-  {
-    id: "vr-002",
-    cohort: "3기",
-    selectorName: "박도윤",
-    contentId: "ct-002",
-    violationType: "필수 광고 표기 누락",
-    noticeText: "광고 표기를 본문 첫 줄에 추가하고 공식 상품 링크로 수정해 주세요.",
-    noticeStatus: "발송 대기",
-    processingState: "처리 중",
-    accumulatedPenalties: 2,
-  },
-  {
-    id: "vr-003",
-    cohort: "2기",
-    selectorName: "이지아",
-    contentId: "ct-004",
-    violationType: "허위·과장 표현",
-    noticeText: "최저가를 단정하는 표현을 삭제한 수정본을 제출해 주세요.",
-    noticeStatus: "발송 완료",
-    processingState: "처리 완료",
-    accumulatedPenalties: 3,
-  },
-];
-
-export function findContentReviewFixture(contentId: string | undefined) {
-  return CONTENT_REVIEWS.find((content) => content.id === contentId);
+export function findContentInspectionFixture(contentId: string | undefined) {
+  return CONTENT_INSPECTIONS.find((content) => content.id === contentId);
 }

@@ -1,8 +1,6 @@
-import type { AiSummaryReport } from "../../entities/analysis/model/AiSummaryReport";
+import type { AiSummaryReport } from "../../entities/analysis";
 
 export type ReviewStatus = "검토 대기" | "승인" | "반려" | "자동 반려";
-export type DeliveryChannel = "이메일" | "알림톡";
-export type DeliveryStatus = "전송 대기" | "전송 완료" | "전송 실패";
 
 export interface ApplicantMetric {
   platform: "Instagram" | "YouTube";
@@ -14,18 +12,6 @@ export interface ApplicantMetric {
   averageReactions: number;
 }
 
-export interface ApplicantDeliveryRecord {
-  channel: DeliveryChannel;
-  recipient: string;
-  status: DeliveryStatus;
-  sentAt: string;
-}
-
-export type ApplicantDeliveryRecords = readonly [
-  primaryDelivery: ApplicantDeliveryRecord,
-  ...fallbackDeliveries: ApplicantDeliveryRecord[],
-];
-
 export interface ApplicantFixture extends ApplicantMetric {
   id: string;
   name: string;
@@ -36,10 +22,8 @@ export interface ApplicantFixture extends ApplicantMetric {
   reviewStatus: ReviewStatus;
   autoRejected: boolean;
   aiReport: AiSummaryReport;
-  failedCriteria: string[];
   internalReason: string;
   reviewNote: string;
-  deliveries: ApplicantDeliveryRecords;
 }
 
 export interface ApplicantFeaturedContent {
@@ -106,23 +90,8 @@ export const APPLICANTS: readonly ApplicantFixture[] = [
         "최근 60일 콘텐츠 14건",
       ],
     },
-    failedCriteria: [],
     internalReason: "",
     reviewNote: "최근 게시물 품질과 브랜드 적합성을 확인했습니다.",
-    deliveries: [
-      {
-        channel: "이메일",
-        recipient: "minji@example.com",
-        status: "전송 대기",
-        sentAt: "-",
-      },
-      {
-        channel: "알림톡",
-        recipient: "010-4821-7326",
-        status: "전송 대기",
-        sentAt: "-",
-      },
-    ],
   },
   {
     id: "ap-002",
@@ -150,23 +119,8 @@ export const APPLICANTS: readonly ApplicantFixture[] = [
         "최근 60일 콘텐츠 11건",
       ],
     },
-    failedCriteria: [],
     internalReason: "",
     reviewNote: "콘텐츠 완성도와 활동 주기를 확인하고 승인했습니다.",
-    deliveries: [
-      {
-        channel: "알림톡",
-        recipient: "010-2396-1184",
-        status: "전송 완료",
-        sentAt: "2026-08-03 10:36",
-      },
-      {
-        channel: "이메일",
-        recipient: "harin.lab@example.com",
-        status: "전송 완료",
-        sentAt: "2026-08-03 10:38",
-      },
-    ],
   },
   {
     id: "ap-003",
@@ -194,25 +148,8 @@ export const APPLICANTS: readonly ApplicantFixture[] = [
         "최근 활동일 2026-03-14",
       ],
     },
-    failedCriteria: [
-      "최근 90일 공개 게시물 2건으로 최소 기준 3건 미만",
-    ],
     internalReason: "최근 90일 공개 게시물 수가 최소 기준에 미달해 자동 반려되었습니다.",
     reviewNote: "자동 반려 기준과 수집 지표를 확인했습니다.",
-    deliveries: [
-      {
-        channel: "알림톡",
-        recipient: "010-9037-2461",
-        status: "전송 실패",
-        sentAt: "2026-08-03 11:07",
-      },
-      {
-        channel: "이메일",
-        recipient: "sora_daily@example.com",
-        status: "전송 완료",
-        sentAt: "2026-08-03 11:08",
-      },
-    ],
   },
   {
     id: "ap-004",
@@ -240,23 +177,8 @@ export const APPLICANTS: readonly ApplicantFixture[] = [
         "최근 60일 콘텐츠 8건",
       ],
     },
-    failedCriteria: [],
     internalReason: "채널 적합도 검토 결과 이번 기수 운영 방향과 맞지 않습니다.",
     reviewNote: "최근 콘텐츠 주제와 모집 기수의 운영 방향을 비교했습니다.",
-    deliveries: [
-      {
-        channel: "알림톡",
-        recipient: "010-6754-3902",
-        status: "전송 완료",
-        sentAt: "2026-08-02 09:20",
-      },
-      {
-        channel: "이메일",
-        recipient: "yena.style@example.com",
-        status: "전송 완료",
-        sentAt: "2026-08-02 09:21",
-      },
-    ],
   },
 ];
 

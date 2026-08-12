@@ -1,8 +1,8 @@
-import { CONTENT_REVIEWS } from "./fixtures";
+import { CONTENT_INSPECTIONS } from "../../entities/content";
 
 test("keeps annotation targets valid and resolved content free of active violations", () => {
-  const review = CONTENT_REVIEWS.find(({ id }) => id === "ct-002")!;
-  const previous = review.previousSnapshot!;
+  const inspection = CONTENT_INSPECTIONS.find(({ id }) => id === "ct-002")!;
+  const previous = inspection.previousSnapshot!;
   const activeAnnotations = previous.annotations?.filter(({ state }) => state === "active") ?? [];
 
   for (const annotation of activeAnnotations) {
@@ -18,15 +18,15 @@ test("keeps annotation targets valid and resolved content free of active violati
     }
   }
 
-  expect(review.currentSnapshot.annotations?.some(({ state }) => state === "active")).toBe(false);
+  expect(inspection.currentSnapshot.annotations?.some(({ state }) => state === "active")).toBe(false);
 });
 
 test("marks an ordinary edit as detected and policy-safe", () => {
-  const review = CONTENT_REVIEWS.find(({ id }) => id === "ct-003")!;
-  expect(review.report.signals).toContainEqual(
+  const inspection = CONTENT_INSPECTIONS.find(({ id }) => id === "ct-003")!;
+  expect(inspection.report.signals).toContainEqual(
     expect.objectContaining({ title: "변경 감지", tone: "pass" }),
   );
-  expect(review.report.history).toEqual(
+  expect(inspection.report.history).toEqual(
     expect.arrayContaining([expect.objectContaining({ label: "수정 감지" })]),
   );
 });

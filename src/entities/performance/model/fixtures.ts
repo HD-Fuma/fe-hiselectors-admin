@@ -1,4 +1,4 @@
-import { SELECTORS } from "../../selector/model/fixtures";
+import { SELECTORS } from "../../selectors/model/fixtures";
 
 export function formatCount(value: number) {
   return new Intl.NumberFormat("ko-KR").format(value);
@@ -62,18 +62,6 @@ export interface SelectorPerformance {
   conversions: number;
 }
 
-export interface CreatorInfluence {
-  id: string;
-  name: string;
-  cohort: string;
-  platform: string;
-  campaign: string;
-  conversions: number;
-  views: number;
-  likes: number;
-  comments: number;
-}
-
 export interface ContentInfluence {
   id: string;
   title: string;
@@ -109,13 +97,6 @@ export interface ProductInfluence {
   category: string;
   campaignId: string;
   contentCount: number;
-  clicks: number;
-  conversions: number;
-}
-
-export interface PerformanceTrendPoint {
-  date: string;
-  label: string;
   clicks: number;
   conversions: number;
 }
@@ -365,27 +346,6 @@ export const PRODUCT_INFLUENCE: readonly ProductInfluence[] = [
   },
 ];
 
-export const PERFORMANCE_TREND: readonly PerformanceTrendPoint[] = [
-  {
-    date: "2026-08-01",
-    label: "8월 1일",
-    clicks: 13_200,
-    conversions: 410,
-  },
-  {
-    date: "2026-08-02",
-    label: "8월 2일",
-    clicks: 14_100,
-    conversions: 463,
-  },
-  {
-    date: "2026-08-03",
-    label: "8월 3일",
-    clicks: 14_900,
-    conversions: 526,
-  },
-];
-
 type ContentMetric = "clicks" | "conversions" | "views" | "likes" | "comments";
 
 function sumContentMetric(contents: readonly ContentInfluence[], metric: ContentMetric) {
@@ -428,27 +388,6 @@ export const SELECTOR_PERFORMANCE: readonly SelectorPerformance[] = SELECTOR_MET
       ...selector,
       clicks: sumContentMetric(contents, "clicks"),
       conversions: sumContentMetric(contents, "conversions"),
-    };
-  },
-);
-
-export const CREATOR_INFLUENCE: readonly CreatorInfluence[] = CREATOR_METADATA.map(
-  (creator) => {
-    const contents = CONTENT_INFLUENCE.filter(
-      (content) => content.creatorId === creator.id,
-    );
-    const campaignIds = [...new Set(contents.map((content) => content.campaignId))];
-
-    return {
-      ...creator,
-      campaign:
-        campaignIds.length === 1
-          ? campaignNameById(campaignIds[0])
-          : `${campaignIds.length}개 캠페인`,
-      conversions: sumContentMetric(contents, "conversions"),
-      views: sumContentMetric(contents, "views"),
-      likes: sumContentMetric(contents, "likes"),
-      comments: sumContentMetric(contents, "comments"),
     };
   },
 );

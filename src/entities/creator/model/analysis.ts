@@ -49,32 +49,3 @@ export function deriveEngagementRate(samples: readonly EngagementSample[]) {
 export function engagementResultForCreator(creator: CreatorFixture) {
   return deriveEngagementRate(ENGAGEMENT_SAMPLES[creator.id] ?? []);
 }
-
-export function topNScore(creator: CreatorFixture) {
-  const engagement = engagementResultForCreator(creator);
-  return engagement.value === null ? null : engagement.value * Math.log(1 + creator.profile.followers);
-}
-
-export function rankTopTwoN(creators: readonly CreatorFixture[], targetCount: number) {
-  return [...creators]
-    .filter((creator) => topNScore(creator) !== null)
-    .sort((left, right) => (topNScore(right) ?? 0) - (topNScore(left) ?? 0))
-    .slice(0, targetCount * 2);
-}
-
-export function selectTopNWithCategoryQuota(
-  candidates: readonly CreatorFixture[],
-  targetCount: number,
-  maxPerCategory: number,
-) {
-  const categoryCounts = new Map<string, number>();
-  const selected: CreatorFixture[] = [];
-  for (const creator of candidates) {
-    if (selected.length === targetCount || (categoryCounts.get(creator.category) ?? 0) >= maxPerCategory) {
-      continue;
-    }
-    categoryCounts.set(creator.category, (categoryCounts.get(creator.category) ?? 0) + 1);
-    selected.push(creator);
-  }
-  return selected;
-}

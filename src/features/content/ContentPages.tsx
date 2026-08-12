@@ -22,9 +22,10 @@ import {
   ThumbsUp,
   Volume2,
 } from "lucide-react";
-import "../../styles/content-review.css";
+import "../../styles/content-inspection.css";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, SegmentedControl, Select, TextInput } from "../../components/ui/Controls";
+import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
@@ -33,50 +34,50 @@ import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { paginate } from "../../lib/pagination";
-import { CreatorCardProfileHeader } from "../../entities/creator/ui/CreatorCardProfileHeader";
+import { CreatorCardProfileHeader } from "../../entities/creator";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
 import {
-  CONTENT_REVIEWS,
-  REVIEW_TYPE_LABELS,
-  findContentReviewFixture,
+  CONTENT_INSPECTIONS,
+  INSPECTION_TYPE_LABELS,
+  findContentInspectionFixture,
   type ContentAnnotation,
   type ContentAnnotationTarget,
   type ContentFormat,
-  type ContentReviewFixture,
+  type ContentInspectionFixture,
   type ContentSnapshot,
-  type ReviewStatus,
-} from "./fixtures";
+  type InspectionStatus,
+} from "../../entities/content";
 
-const CONTENT_REVIEW_PAGE_SIZE = 20;
-type ContentReviewCategory = "신규" | "수정" | "검수 완료";
+const CONTENT_INSPECTION_PAGE_SIZE = 20;
+type ContentInspectionCategory = "신규" | "수정" | "검수 완료";
 
 interface QueueFilterValues {
   keyword: string;
   platform: string;
 }
 
-const CONTENT_REVIEW_CATEGORIES: readonly ContentReviewCategory[] = [
+const CONTENT_INSPECTION_CATEGORIES: readonly ContentInspectionCategory[] = [
   "신규",
   "수정",
   "검수 완료",
 ];
 
-function contentReviewCategory(content: ContentReviewFixture): ContentReviewCategory {
-  if (content.reviewStatus === "승인" || content.reviewStatus === "위반 확정") return "검수 완료";
-  if (content.reviewType !== "NEW") return "수정";
+function contentInspectionCategory(content: ContentInspectionFixture): ContentInspectionCategory {
+  if (content.inspectionStatus === "승인" || content.inspectionStatus === "위반 확정") return "검수 완료";
+  if (content.inspectionType !== "NEW") return "수정";
   return "신규";
 }
 
-function contentReviewCategoryTone(
-  category: ContentReviewCategory,
+function contentInspectionCategoryTone(
+  category: ContentInspectionCategory,
 ): NonNullable<StatusPillProps["tone"]> {
   if (category === "검수 완료") return "approved";
   if (category === "수정") return "pending";
   return "neutral";
 }
 
-function reviewStatusTone(status: ReviewStatus): NonNullable<StatusPillProps["tone"]> {
+function inspectionStatusTone(status: InspectionStatus): NonNullable<StatusPillProps["tone"]> {
   if (status === "승인") return "approved";
   if (status === "검수 대기") return "pending";
   return "rejected";
@@ -120,21 +121,21 @@ function QueueFilters({
   };
 
   return (
-    <div className="fuma-operations-search fuma-settlement-search fuma-content-review-search">
+    <div className="fuma-operations-search fuma-settlement-search fuma-content-inspection-search">
       <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
-        <FilterField htmlFor="content-review-keyword" label="콘텐츠/작성자">
+        <FilterField htmlFor="content-inspection-keyword" label="콘텐츠/작성자">
           <TextInput
             aria-label="콘텐츠/작성자"
-            id="content-review-keyword"
+            id="content-inspection-keyword"
             onChange={(event) => setKeyword(event.target.value)}
             onKeyDown={applyOnEnter}
             placeholder="콘텐츠 ID 또는 작성자"
             value={keyword}
           />
         </FilterField>
-        <FilterField htmlFor="content-review-platform" label="플랫폼">
+        <FilterField htmlFor="content-inspection-platform" label="플랫폼">
           <Select
-            id="content-review-platform"
+            id="content-inspection-platform"
             onChange={(event) => setPlatform(event.target.value)}
             options={SOCIAL_PLATFORM_FILTER_OPTIONS}
             value={platform}
@@ -145,17 +146,17 @@ function QueueFilters({
   );
 }
 
-const CONTENT_REVIEW_AUTHORS = [
+const CONTENT_INSPECTION_AUTHORS = [
   "김서연", "박도윤", "이지아", "오하늘", "한유진", "정하린", "윤채원", "서민준", "배수아", "임도현",
   "최가은", "문지후", "유나영", "강태윤", "신예린", "장서준", "노아린", "홍지민", "백승현", "송하윤",
 ] as const;
 
-const CONTENT_REVIEW_SNS_IDS = [
+const CONTENT_INSPECTION_SNS_IDS = [
   "@seoyeon", "@doyoon", "@zia", "@haneul", "@yujin", "@harin", "@chaewon", "@minjun", "@sua", "@dohyun",
   "@gaeun", "@jihoo", "@nayoung", "@taeyoon", "@yerin", "@seojun", "@arin", "@jimin", "@seunghyun", "@hayoon",
 ] as const;
 
-interface ContentReviewTemplateIssue {
+interface ContentInspectionTemplateIssue {
   detail: string;
   evidence: string;
   guidance: string;
@@ -163,10 +164,10 @@ interface ContentReviewTemplateIssue {
   title: string;
 }
 
-interface ContentReviewTemplate {
+interface ContentInspectionTemplate {
   contentFormat: ContentFormat;
   duration?: string;
-  issue?: ContentReviewTemplateIssue;
+  issue?: ContentInspectionTemplateIssue;
   mediaKinds: readonly ("이미지" | "동영상")[];
   platform: "Instagram" | "YouTube";
   text: string;
@@ -174,7 +175,7 @@ interface ContentReviewTemplate {
   youtubeVideoId?: string;
 }
 
-const CONTENT_REVIEW_TEMPLATES: readonly ContentReviewTemplate[] = [
+const CONTENT_INSPECTION_TEMPLATES: readonly ContentInspectionTemplate[] = [
   {
     contentFormat: "유튜브 롱폼",
     duration: "12:48",
@@ -332,7 +333,7 @@ const CONTENT_REVIEW_TEMPLATES: readonly ContentReviewTemplate[] = [
   },
 ] as const;
 
-const CONTENT_REVIEW_MEDIA = [
+const CONTENT_INSPECTION_MEDIA = [
   "/creator-media/kr-cr-001-01.jpg",
   "/creator-media/kr-cr-001-02.jpg",
   "/creator-media/kr-cr-001-03.jpg",
@@ -347,15 +348,15 @@ const CONTENT_REVIEW_MEDIA = [
   "/creator-media/kr-cr-004-03.jpg",
 ] as const;
 
-const CONTENT_REVIEW_PRODUCT_URLS = [
+const CONTENT_INSPECTION_PRODUCT_URLS = [
   "https://www.hmall.com/p/2200098405",
   "https://www.hmall.com/p/2200089867",
   "https://www.hmall.com/p/2200089740",
 ] as const;
 
-const CONTENT_REVIEW_LIST_ITEMS: readonly ContentReviewFixture[] = Array.from({ length: 50 }, (_, index) => {
-  const source = CONTENT_REVIEWS[index % CONTENT_REVIEWS.length];
-  const template = CONTENT_REVIEW_TEMPLATES[index % CONTENT_REVIEW_TEMPLATES.length];
+const CONTENT_INSPECTION_LIST_ITEMS: readonly ContentInspectionFixture[] = Array.from({ length: 50 }, (_, index) => {
+  const source = CONTENT_INSPECTIONS[index % CONTENT_INSPECTIONS.length];
+  const template = CONTENT_INSPECTION_TEMPLATES[index % CONTENT_INSPECTION_TEMPLATES.length];
   const day = String(1 + (index % 10)).padStart(2, "0");
   const hour = String(9 + (index % 10)).padStart(2, "0");
   const minute = String((index * 7) % 60).padStart(2, "0");
@@ -367,7 +368,7 @@ const CONTENT_REVIEW_LIST_ITEMS: readonly ContentReviewFixture[] = Array.from({ 
     : issue?.source === "OCR"
       ? "OCR · 이미지 1"
       : "STT · 00:05–00:09";
-  const signals: ContentReviewFixture["report"]["signals"] = [
+  const signals: ContentInspectionFixture["report"]["signals"] = [
     {
       title: "광고 표시",
       detail: "본문에서 유료광고 및 광고 해시태그를 확인했습니다.",
@@ -429,7 +430,7 @@ const CONTENT_REVIEW_LIST_ITEMS: readonly ContentReviewFixture[] = Array.from({ 
     title: issue.title,
   } : undefined;
 
-  const extracts: ContentReviewFixture["report"]["extracts"] = [];
+  const extracts: ContentInspectionFixture["report"]["extracts"] = [];
   if (template.mediaKinds.includes("이미지")) {
     extracts.push({
       type: "OCR",
@@ -445,12 +446,12 @@ const CONTENT_REVIEW_LIST_ITEMS: readonly ContentReviewFixture[] = Array.from({ 
     });
   }
 
-  const reviewStatus: ReviewStatus = issue
+  const inspectionStatus: InspectionStatus = issue
     ? index % 3 === 0 ? "위반 확정" : index % 3 === 1 ? "수정 요청" : "검수 대기"
     : index % 4 === 0 ? "검수 대기" : "승인";
   const mediaUrls = Array.from(
     { length: template.mediaKinds.length },
-    (_, mediaIndex) => CONTENT_REVIEW_MEDIA[(index + mediaIndex) % CONTENT_REVIEW_MEDIA.length],
+    (_, mediaIndex) => CONTENT_INSPECTION_MEDIA[(index + mediaIndex) % CONTENT_INSPECTION_MEDIA.length],
   );
 
   return {
@@ -459,27 +460,27 @@ const CONTENT_REVIEW_LIST_ITEMS: readonly ContentReviewFixture[] = Array.from({ 
     contentTitle: template.title,
     contentFormat: template.contentFormat,
     duration: template.duration,
-    author: CONTENT_REVIEW_AUTHORS[index % CONTENT_REVIEW_AUTHORS.length],
+    author: CONTENT_INSPECTION_AUTHORS[index % CONTENT_INSPECTION_AUTHORS.length],
     cohort: String(2 + (index % 3)) + "기",
     sourcePlatform: template.platform,
     submittedAt: capturedAt,
-    reviewType: isRevision ? "VIOLATION_CORRECTION" : "NEW",
+    inspectionType: isRevision ? "VIOLATION_CORRECTION" : "NEW",
     previousSnapshot: isRevision ? {
       ...source.currentSnapshot,
       annotations: undefined,
       capturedAt: `2026-08-${day} 08:${minute}`,
       label: "이전 버전",
       text: template.text.replaceAll("#광고", ""),
-      urls: [CONTENT_REVIEW_PRODUCT_URLS[index % CONTENT_REVIEW_PRODUCT_URLS.length]],
+      urls: [CONTENT_INSPECTION_PRODUCT_URLS[index % CONTENT_INSPECTION_PRODUCT_URLS.length]],
       mediaCount: template.mediaKinds.length,
       mediaKinds: [...template.mediaKinds],
       mediaUrls,
       youtubeVideoId: template.youtubeVideoId,
     } : null,
-    reviewStatus,
-    processingState: reviewStatus === "승인"
+    inspectionStatus,
+    processingState: inspectionStatus === "승인"
       ? "처리 완료"
-      : reviewStatus === "수정 요청"
+      : inspectionStatus === "수정 요청"
         ? "안내 대기"
         : "미처리",
     aiStatus: "ready",
@@ -498,7 +499,7 @@ const CONTENT_REVIEW_LIST_ITEMS: readonly ContentReviewFixture[] = Array.from({ 
       capturedAt,
       label: template.contentFormat,
       text: template.text,
-      urls: [CONTENT_REVIEW_PRODUCT_URLS[index % CONTENT_REVIEW_PRODUCT_URLS.length]],
+      urls: [CONTENT_INSPECTION_PRODUCT_URLS[index % CONTENT_INSPECTION_PRODUCT_URLS.length]],
       mediaCount: template.mediaKinds.length,
       mediaKinds: [...template.mediaKinds],
       mediaUrls,
@@ -524,12 +525,12 @@ function contentAuthorProfileImage(contentId: string) {
 
 function contentAuthorSnsId(contentId: string) {
   const sequence = Number.parseInt(contentId.replace(/\D/g, ""), 10) || 1;
-  return CONTENT_REVIEW_SNS_IDS[(sequence - 1) % CONTENT_REVIEW_SNS_IDS.length];
+  return CONTENT_INSPECTION_SNS_IDS[(sequence - 1) % CONTENT_INSPECTION_SNS_IDS.length];
 }
 
-function reviewRequiredContents() {
-  return CONTENT_REVIEW_LIST_ITEMS
-    .filter((content) => content.reviewStatus === "검수 대기")
+function inspectionRequiredContents() {
+  return CONTENT_INSPECTION_LIST_ITEMS
+    .filter((content) => content.inspectionStatus === "검수 대기")
     .slice()
     .sort((left, right) => (
       left.submittedAt.localeCompare(right.submittedAt) || left.id.localeCompare(right.id)
@@ -540,8 +541,8 @@ function CollectionCard({
   content,
   onSelect,
 }: {
-  content: ContentReviewFixture;
-  onSelect: (content: ContentReviewFixture) => void;
+  content: ContentInspectionFixture;
+  onSelect: (content: ContentInspectionFixture) => void;
 }) {
   const snapshot = content.currentSnapshot;
   const mainMedia = snapshot.mediaUrls[0];
@@ -564,10 +565,10 @@ function CollectionCard({
         snsId={contentAuthorSnsId(content.id)}
       />
       <StatusPill
-        className="fuma-content-collection__review-status"
-        tone={reviewStatusTone(content.reviewStatus)}
+        className="fuma-content-collection__inspection-status"
+        tone={inspectionStatusTone(content.inspectionStatus)}
       >
-        {content.reviewStatus}
+        {content.inspectionStatus}
       </StatusPill>
       <div className="fuma-content-collection__media">
         {mainMedia ? (
@@ -596,7 +597,7 @@ function CollectionCard({
   );
 }
 
-function ContentReviewCollection({
+function ContentInspectionCollection({
   contents,
   onChangeView,
   onChangeViolationOnly,
@@ -605,17 +606,17 @@ function ContentReviewCollection({
   violationOnly,
   viewMode,
 }: {
-  contents: readonly ContentReviewFixture[];
+  contents: readonly ContentInspectionFixture[];
   onChangeView: (viewMode: "grid" | "list") => void;
   onChangeViolationOnly: (violationOnly: boolean) => void;
-  onSelect: (content: ContentReviewFixture) => void;
+  onSelect: (content: ContentInspectionFixture) => void;
   totalCount: number;
   violationOnly: boolean;
   viewMode: "grid" | "list";
 }) {
   return (
     <section aria-label="수집 콘텐츠 목록" className="fuma-content-collection">
-      <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-applicant-result-toolbar fuma-content-review-toolbar">
+      <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-applicant-result-toolbar fuma-content-inspection-toolbar">
         <div className="fuma-applicant-minimum-filter">
           <label className="fuma-applicant-minimum-toggle">
             <input
@@ -634,7 +635,7 @@ function ContentReviewCollection({
           <span aria-hidden="true" className="fuma-creator-toolbar__divider" />
           <SegmentedControl
             ariaLabel="보기 방식"
-            onChange={(nextView) => onChangeView(nextView as "grid" | "list")}
+            onChange={onChangeView}
             options={[
               { label: "카드", value: "grid" },
               { label: "목록", value: "list" },
@@ -663,54 +664,48 @@ function ContentReviewCollection({
   );
 }
 
-function ContentReviewCategoryTabs({
-  onStartReview,
+function ContentInspectionCategoryTabs({
+  onStartInspection,
   pendingCount,
   selectedCategory,
   onSelect,
 }: {
-  onStartReview: () => void;
+  onStartInspection: () => void;
   pendingCount: number;
-  selectedCategory: ContentReviewCategory;
-  onSelect: (category: ContentReviewCategory) => void;
+  selectedCategory: ContentInspectionCategory;
+  onSelect: (category: ContentInspectionCategory) => void;
 }) {
   return (
-    <nav aria-label="콘텐츠 처리 구분" className="fuma-creator-category-filter fuma-list-action-toolbar">
-      <div>
-        {CONTENT_REVIEW_CATEGORIES.map((category) => (
-          <button
-            aria-pressed={selectedCategory === category}
-            className="fuma-creator-category-filter__option"
-            key={category}
-            onClick={() => onSelect(category)}
-            type="button"
-          >
-            {category}
-          </button>
-        ))}
-      </div>
-      <Button
-        className="fuma-content-review-start-button"
-        disabled={pendingCount === 0}
-        onClick={onStartReview}
-        variant="primary"
-      >
-        검수 시작
-      </Button>
-    </nav>
+    <ChoiceTabs
+      actions={(
+        <Button
+          className="fuma-content-inspection-start-button"
+          disabled={pendingCount === 0}
+          onClick={onStartInspection}
+          variant="primary"
+        >
+          검수 시작
+        </Button>
+      )}
+      ariaLabel="콘텐츠 처리 구분"
+      className="fuma-list-action-toolbar"
+      onChange={onSelect}
+      options={CONTENT_INSPECTION_CATEGORIES}
+      value={selectedCategory}
+    />
   );
 }
 
-function queueColumns(): DenseTableColumn<ContentReviewFixture>[] {
+function queueColumns(): DenseTableColumn<ContentInspectionFixture>[] {
   return [
     { key: "id", header: "콘텐츠 ID", width: 96 },
     { key: "contentTitle", header: "콘텐츠 제목", width: 280 },
     { key: "contentFormat", header: "형식", width: 110, align: "center" },
     {
-      key: "reviewType",
+      key: "inspectionType",
       header: "검수 유형",
       width: 120,
-      render: (content) => REVIEW_TYPE_LABELS[content.reviewType],
+      render: (content) => INSPECTION_TYPE_LABELS[content.inspectionType],
     },
     { key: "author", header: "작성자", width: 100 },
     {
@@ -733,23 +728,23 @@ function queueColumns(): DenseTableColumn<ContentReviewFixture>[] {
       ),
     },
     {
-      key: "reviewStatus",
+      key: "inspectionStatus",
       header: "처리 구분",
       width: 110,
       align: "center",
       render: (content) => {
-        const category = contentReviewCategory(content);
-        return <StatusPill tone={contentReviewCategoryTone(category)}>{category}</StatusPill>;
+        const category = contentInspectionCategory(content);
+        return <StatusPill tone={contentInspectionCategoryTone(category)}>{category}</StatusPill>;
       },
     },
   ];
 }
 
-export function ContentReviewListPage() {
+export function ContentInspectionListPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedCategory = CONTENT_REVIEW_CATEGORIES.find(
+  const selectedCategory = CONTENT_INSPECTION_CATEGORIES.find(
     (category) => category === searchParams.get("category"),
   ) ?? "신규";
   const violationOnly = searchParams.get("issues") === "1";
@@ -761,8 +756,8 @@ export function ContentReviewListPage() {
       : "",
   };
   const normalizedKeyword = appliedFilters.keyword.trim().toLocaleLowerCase("ko-KR");
-  const filteredContents = CONTENT_REVIEW_LIST_ITEMS.filter((content) => {
-    const matchesCategory = contentReviewCategory(content) === selectedCategory;
+  const filteredContents = CONTENT_INSPECTION_LIST_ITEMS.filter((content) => {
+    const matchesCategory = contentInspectionCategory(content) === selectedCategory;
     const hasViolation = content.report.signals.some((signal) => signal.tone !== "pass");
     const matchesKeyword = !normalizedKeyword || [
       content.id,
@@ -780,9 +775,9 @@ export function ContentReviewListPage() {
   const { currentPage, pagedItems: pageContents, totalPages } = paginate(
     filteredContents,
     requestedPage,
-    CONTENT_REVIEW_PAGE_SIZE,
+    CONTENT_INSPECTION_PAGE_SIZE,
   );
-  const pendingContents = reviewRequiredContents();
+  const pendingContents = inspectionRequiredContents();
 
   const updateListParam = (
     key: "category" | "issues" | "page" | "view",
@@ -804,7 +799,7 @@ export function ContentReviewListPage() {
       platform: filters.platform,
     };
 
-    nextParams.delete("reviewType");
+    nextParams.delete("inspectionType");
 
     Object.entries(values).forEach(([key, value]) => {
       if (value) nextParams.set(key, value);
@@ -816,14 +811,14 @@ export function ContentReviewListPage() {
 
   const resetQueueFilters = () => {
     const nextParams = new URLSearchParams(searchParams);
-    ["q", "platform", "reviewType", "category", "issues", "page"].forEach((key) => {
+    ["q", "platform", "inspectionType", "category", "issues", "page"].forEach((key) => {
       nextParams.delete(key);
     });
     setSearchParams(nextParams, { replace: true });
   };
 
   return (
-    <section className="fuma-page" data-visual-contract="content-review">
+    <section className="fuma-page" data-visual-contract="content-inspection">
       <PageHeader title="콘텐츠 검수" />
       <div className="fuma-page__body">
         <QueueFilters
@@ -832,25 +827,25 @@ export function ContentReviewListPage() {
           onApply={applyQueueFilters}
           onReset={resetQueueFilters}
         />
-        <ContentReviewCategoryTabs
-          onStartReview={() => {
+        <ContentInspectionCategoryTabs
+          onStartInspection={() => {
             const firstPendingContent = pendingContents[0];
             if (!firstPendingContent) return;
-            navigate(`/content/reviews/${firstPendingContent.id}`, {
-              state: { from: `${location.pathname}${location.search}`, reviewSession: true },
+            navigate(`/content/inspections/${firstPendingContent.id}`, {
+              state: { from: `${location.pathname}${location.search}`, inspectionSession: true },
             });
           }}
           onSelect={(category) => updateListParam("category", category, "신규", true)}
           pendingCount={pendingContents.length}
           selectedCategory={selectedCategory}
         />
-        <ContentReviewCollection
+        <ContentInspectionCollection
           contents={pageContents}
           onChangeView={(nextViewMode) => updateListParam("view", nextViewMode, "grid")}
           onChangeViolationOnly={(nextViolationOnly) => (
             updateListParam("issues", nextViolationOnly ? "1" : "0", "0", true)
           )}
-          onSelect={(content) => navigate(`/content/reviews/${content.id}`, {
+          onSelect={(content) => navigate(`/content/inspections/${content.id}`, {
             state: { from: `${location.pathname}${location.search}` },
           })}
           totalCount={filteredContents.length}
@@ -861,7 +856,7 @@ export function ContentReviewListPage() {
           <Pagination
             onPageChange={(page) => updateListParam("page", String(page), "1")}
             page={currentPage}
-            pageSize={CONTENT_REVIEW_PAGE_SIZE}
+            pageSize={CONTENT_INSPECTION_PAGE_SIZE}
             totalPages={totalPages}
           />
         ) : null}
@@ -870,21 +865,21 @@ export function ContentReviewListPage() {
   );
 }
 
-type ReviewHistoryItem = ContentReviewFixture["report"]["history"][number];
+type InspectionHistoryItem = ContentInspectionFixture["report"]["history"][number];
 
-const REVIEW_HISTORY_COLUMNS: DenseTableColumn<ReviewHistoryItem>[] = [
+const INSPECTION_HISTORY_COLUMNS: DenseTableColumn<InspectionHistoryItem>[] = [
   { key: "at", header: "처리 일시", width: "34%", align: "center" },
   { key: "label", header: "처리 내용", align: "center" },
   { key: "actor", header: "처리 주체", width: "24%", align: "center" },
 ];
 
-function ReviewHistory({ content }: { content: ContentReviewFixture }) {
+function InspectionHistory({ content }: { content: ContentInspectionFixture }) {
   return (
     <section
       aria-label="검수 이력"
-      className="fuma-creator-analysis-report fuma-content-analysis-report fuma-content-review-history-report"
+      className="fuma-creator-analysis-report fuma-content-analysis-report fuma-content-inspection-history-report"
     >
-      <header className="fuma-minimal-review-section__header fuma-content-analysis-report__header">
+      <header className="fuma-minimal-inspection-section__header fuma-content-analysis-report__header">
         <div><span>HISTORY</span><h3>검수 이력</h3></div>
       </header>
       <div className="fuma-creator-analysis-report__content">
@@ -894,7 +889,7 @@ function ReviewHistory({ content }: { content: ContentReviewFixture }) {
           role="region"
         >
           <DenseTable
-            columns={REVIEW_HISTORY_COLUMNS}
+            columns={INSPECTION_HISTORY_COLUMNS}
             rowKey={(item) => `${item.at}-${item.label}`}
             rows={[...content.report.history]}
           />
@@ -904,16 +899,16 @@ function ReviewHistory({ content }: { content: ContentReviewFixture }) {
   );
 }
 
-function MinimalReviewOverview({ content }: { content: ContentReviewFixture }) {
+function MinimalInspectionOverview({ content }: { content: ContentInspectionFixture }) {
   return (
-    <section className="fuma-minimal-review-overview">
+    <section className="fuma-minimal-inspection-overview">
       <header>
         <div>
-          <span>{REVIEW_TYPE_LABELS[content.reviewType]}</span>
+          <span>{INSPECTION_TYPE_LABELS[content.inspectionType]}</span>
           <h2>{content.contentTitle}</h2>
           <p>{content.author} · {content.sourcePlatform} · {content.contentFormat}</p>
         </div>
-        <StatusPill tone={reviewStatusTone(content.reviewStatus)}>{content.reviewStatus}</StatusPill>
+        <StatusPill tone={inspectionStatusTone(content.inspectionStatus)}>{content.inspectionStatus}</StatusPill>
       </header>
       <dl>
         <div><dt>제출일</dt><dd>{content.submittedAt}</dd></div>
@@ -939,7 +934,7 @@ function annotationQuote(target: ContentAnnotationTarget) {
 
 function annotationMatchesSignal(
   annotation: ContentAnnotation,
-  signal: ContentReviewFixture["report"]["signals"][number],
+  signal: ContentInspectionFixture["report"]["signals"][number],
 ) {
   const quote = annotationQuote(annotation.target);
   return annotation.title === signal.title || (quote !== null && quote === signal.evidence);
@@ -958,7 +953,7 @@ function timeRangeFromSource(source: string) {
 }
 
 function annotationFromSignal(
-  signal: ContentReviewFixture["report"]["signals"][number],
+  signal: ContentInspectionFixture["report"]["signals"][number],
   snapshot: ContentSnapshot,
   ordinal: number,
 ): IndexedContentAnnotation {
@@ -997,7 +992,7 @@ function annotationFromSignal(
 }
 
 function indexedViolationAnnotations(
-  content: ContentReviewFixture,
+  content: ContentInspectionFixture,
   snapshot: ContentSnapshot,
 ): IndexedContentAnnotation[] {
   const candidates = content.report.signals.filter((signal) => signal.tone !== "pass");
@@ -1076,7 +1071,7 @@ function ViolationHighlightedText({
     nodes.push(
       <mark
         aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
-        className="fuma-review-text-violation"
+        className="fuma-inspection-text-violation"
         data-ordinal={annotation.ordinal}
         data-severity={annotation.severity}
         data-violation-anchor={anchorPrefix ? annotation.ordinal : undefined}
@@ -1101,7 +1096,7 @@ function MinimalVersionCard({
   label,
   snapshot,
 }: {
-  content: ContentReviewFixture;
+  content: ContentInspectionFixture;
   focusedViolation?: { ordinal: number; requestId: number } | null;
   label: string;
   snapshot: ContentSnapshot;
@@ -1175,18 +1170,18 @@ function MinimalVersionCard({
       ref={cardRef}
     >
       <header><strong>{label}</strong><time>{snapshot.capturedAt}</time></header>
-      <div className="fuma-platform-review-frame">
+      <div className="fuma-platform-inspection-frame">
         {isInstagram ? (
-          <div className="fuma-platform-review-frame__instagram-header">
-            <span className="fuma-platform-review-frame__avatar"><img alt={`${content.author} 프로필`} src={avatarUrl} /></span>
+          <div className="fuma-platform-inspection-frame__instagram-header">
+            <span className="fuma-platform-inspection-frame__avatar"><img alt={`${content.author} 프로필`} src={avatarUrl} /></span>
             <div><strong>{handle}</strong><small>현대홈쇼핑 셀렉터스 · 4일</small></div>
             <button aria-label="게시물 메뉴" type="button"><MoreHorizontal aria-hidden="true" size={20} /></button>
           </div>
         ) : null}
 
-        <div className={`fuma-platform-review-frame__media${isVerticalVideo ? " is-vertical" : ""}${embedUrl ? " has-youtube-embed" : ""}`}>
+        <div className={`fuma-platform-inspection-frame__media${isVerticalVideo ? " is-vertical" : ""}${embedUrl ? " has-youtube-embed" : ""}`}>
           <div
-            className="fuma-platform-review-frame__asset-stage"
+            className="fuma-platform-inspection-frame__asset-stage"
             data-fit={mediaStageFit}
             style={mediaStageFit === "fill" ? undefined : { aspectRatio: String(mediaAspectRatio) }}
           >
@@ -1194,7 +1189,7 @@ function MinimalVersionCard({
               <iframe
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
-                className="fuma-platform-review-frame__youtube-embed"
+                className="fuma-platform-inspection-frame__youtube-embed"
                 loading="lazy"
                 referrerPolicy="strict-origin-when-cross-origin"
                 src={embedUrl}
@@ -1218,14 +1213,14 @@ function MinimalVersionCard({
               <Images aria-hidden="true" size={26} />
             )}
             {activeMediaAnnotations.length > 0 ? (
-              <div aria-label="미디어 위반 위치" className="fuma-platform-review-frame__violation-layer">
+              <div aria-label="미디어 위반 위치" className="fuma-platform-inspection-frame__violation-layer">
                 {activeMediaAnnotations.map((annotation) => {
                   if (annotation.target.kind !== "media") return null;
                   const { box, timeRange } = annotation.target;
                   return (
                     <span
                       aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
-                      className="fuma-platform-review-frame__violation-box"
+                      className="fuma-platform-inspection-frame__violation-box"
                       data-violation-anchor={focusedViolation !== undefined ? annotation.ordinal : undefined}
                       data-severity={annotation.severity}
                       id={focusedViolation !== undefined ? `${content.id}-violation-${annotation.ordinal}` : undefined}
@@ -1239,7 +1234,7 @@ function MinimalVersionCard({
                       }}
                       tabIndex={focusedViolation !== undefined ? -1 : undefined}
                     >
-                      <span className="fuma-review-annotation-pin">{annotation.ordinal}</span>
+                      <span className="fuma-inspection-annotation-pin">{annotation.ordinal}</span>
                       <small>{timeRange ? `${timeRange.start}–${timeRange.end}` : annotation.title}</small>
                     </span>
                   );
@@ -1248,23 +1243,23 @@ function MinimalVersionCard({
             ) : null}
           </div>
           {activeMedia?.kind === "동영상" ? (
-            <span aria-label="동영상" className="fuma-platform-review-frame__play">
+            <span aria-label="동영상" className="fuma-platform-inspection-frame__play">
               <Play aria-hidden="true" size={20} />
             </span>
           ) : null}
           {activeMedia?.kind === "동영상" && content.duration ? (
-            <span className="fuma-platform-review-frame__duration">{content.duration}</span>
+            <span className="fuma-platform-inspection-frame__duration">{content.duration}</span>
           ) : null}
           {mediaItems.length > 1 ? (
             <>
               <button aria-label="이전 사진" className="is-prev" onClick={() => moveMedia(-1)} type="button"><ChevronLeft aria-hidden="true" size={17} /></button>
               <button aria-label="다음 사진" className="is-next" onClick={() => moveMedia(1)} type="button"><ChevronRight aria-hidden="true" size={17} /></button>
-              <span className="fuma-platform-review-frame__count">{visibleIndex + 1} / {mediaItems.length}</span>
+              <span className="fuma-platform-inspection-frame__count">{visibleIndex + 1} / {mediaItems.length}</span>
             </>
           ) : null}
           {!isInstagram && !embedUrl ? (
-            <div className="fuma-platform-review-frame__player-controls">
-              <div className="fuma-platform-review-frame__progress"><span /></div>
+            <div className="fuma-platform-inspection-frame__player-controls">
+              <div className="fuma-platform-inspection-frame__progress"><span /></div>
               <div>
                 <span>
                   <button aria-label="재생" type="button"><Play aria-hidden="true" size={17} fill="currentColor" /></button>
@@ -1282,7 +1277,7 @@ function MinimalVersionCard({
         </div>
 
         {isInstagram && mediaItems.length > 1 ? (
-          <div aria-label="사진 목록" className="fuma-platform-review-frame__carousel-dots" role="group">
+          <div aria-label="사진 목록" className="fuma-platform-inspection-frame__carousel-dots" role="group">
             {mediaItems.map((media, index) => (
               <button
                 aria-label={`${index + 1}번 ${media.kind} 보기`}
@@ -1300,7 +1295,7 @@ function MinimalVersionCard({
 
         {isInstagram ? (
           <>
-            <div className="fuma-platform-review-frame__instagram-actions">
+            <div className="fuma-platform-inspection-frame__instagram-actions">
               <span>
                 <button aria-label="좋아요" type="button"><Heart aria-hidden="true" size={23} /></button>
                 <button aria-label="댓글" type="button"><MessageCircle aria-hidden="true" size={23} /></button>
@@ -1309,7 +1304,7 @@ function MinimalVersionCard({
               </span>
               <button aria-label="저장" type="button"><Bookmark aria-hidden="true" size={23} /></button>
             </div>
-            <div className="fuma-platform-review-frame__instagram-copy">
+            <div className="fuma-platform-inspection-frame__instagram-copy">
               <strong>좋아요 {instagramLikes}개</strong>
               <p><b>{handle}</b>{" "}<ViolationHighlightedText anchorPrefix={focusedViolation !== undefined ? content.id : undefined} annotations={annotations} text={snapshot.text} useStoredIndexes /></p>
               <button type="button">댓글 {instagramComments}개 모두 보기</button>
@@ -1317,15 +1312,15 @@ function MinimalVersionCard({
             </div>
           </>
         ) : (
-          <div className={`fuma-platform-review-frame__youtube-copy${embedUrl ? " is-embedded" : ""}`}>
+          <div className={`fuma-platform-inspection-frame__youtube-copy${embedUrl ? " is-embedded" : ""}`}>
             <h4>{content.contentTitle}</h4>
-            <div className="fuma-platform-review-frame__youtube-toolbar">
-              <div className="fuma-platform-review-frame__youtube-channel">
-                <span className="fuma-platform-review-frame__avatar"><img alt={`${content.author} 채널 프로필`} src={avatarUrl} /></span>
+            <div className="fuma-platform-inspection-frame__youtube-toolbar">
+              <div className="fuma-platform-inspection-frame__youtube-channel">
+                <span className="fuma-platform-inspection-frame__avatar"><img alt={`${content.author} 채널 프로필`} src={avatarUrl} /></span>
                 <span><strong>{content.author}</strong><small>구독자 2.5만명</small></span>
                 <button type="button">구독</button>
               </div>
-              <div className="fuma-platform-review-frame__youtube-actions">
+              <div className="fuma-platform-inspection-frame__youtube-actions">
                 <button type="button"><ThumbsUp aria-hidden="true" size={17} /> {youtubeLikes}</button>
                 <button aria-label="싫어요" type="button"><ThumbsDown aria-hidden="true" size={17} /></button>
                 <button type="button"><Share2 aria-hidden="true" size={17} /> 공유</button>
@@ -1333,7 +1328,7 @@ function MinimalVersionCard({
                 <button aria-label="더보기" type="button"><MoreHorizontal aria-hidden="true" size={18} /></button>
               </div>
             </div>
-            <div className="fuma-platform-review-frame__youtube-description">
+            <div className="fuma-platform-inspection-frame__youtube-description">
               <strong>조회수 {youtubeViews}회 · {postDate}</strong>
               <p><ViolationHighlightedText anchorPrefix={focusedViolation !== undefined ? content.id : undefined} annotations={annotations} text={snapshot.text} useStoredIndexes /></p>
             </div>
@@ -1348,14 +1343,14 @@ function MinimalVersionComparison({
   content,
   focusedViolation,
 }: {
-  content: ContentReviewFixture;
+  content: ContentInspectionFixture;
   focusedViolation: { ordinal: number; requestId: number } | null;
 }) {
   const isRevision = Boolean(content.previousSnapshot);
 
   return (
-    <section className="fuma-minimal-review-section">
-      <header className="fuma-minimal-review-section__header">
+    <section className="fuma-minimal-inspection-section">
+      <header className="fuma-minimal-inspection-section__header">
         <h3>{isRevision ? "수정 콘텐츠 비교" : "등록 콘텐츠"}</h3>
         <span>{isRevision ? `${content.changeItems.length}건 수정됨` : "신규 등록"}</span>
       </header>
@@ -1380,7 +1375,7 @@ function MinimalVersionComparison({
   );
 }
 
-function MinimalAnalysisReport({ content }: { content: ContentReviewFixture }) {
+function MinimalAnalysisReport({ content }: { content: ContentInspectionFixture }) {
   const ocrExtract = content.report.extracts.find((extract) => extract.type === "OCR");
   const sttExtract = content.report.extracts.find((extract) => extract.type === "STT");
   const annotations = indexedViolationAnnotations(content, content.currentSnapshot);
@@ -1424,9 +1419,9 @@ function MinimalAnalysisReport({ content }: { content: ContentReviewFixture }) {
   return (
     <section
       aria-label="분석 리포트"
-      className="fuma-minimal-review-section fuma-creator-analysis-report fuma-content-analysis-report"
+      className="fuma-minimal-inspection-section fuma-creator-analysis-report fuma-content-analysis-report"
     >
-      <header className="fuma-minimal-review-section__header fuma-content-analysis-report__header">
+      <header className="fuma-minimal-inspection-section__header fuma-content-analysis-report__header">
         <div><span>CONTENT REPORT</span><h3>분석 리포트</h3></div>
         <time>{content.report.generatedAt}</time>
       </header>
@@ -1484,11 +1479,11 @@ function MinimalAnalysisReport({ content }: { content: ContentReviewFixture }) {
   );
 }
 
-function MinimalFinalReview({
+function MinimalFinalInspection({
   content,
   onNavigateToViolation,
 }: {
-  content: ContentReviewFixture;
+  content: ContentInspectionFixture;
   onNavigateToViolation: (ordinal: number) => void;
 }) {
   const [decision, setDecision] = useState<"승인" | "반려" | null>(null);
@@ -1503,16 +1498,16 @@ function MinimalFinalReview({
   };
 
   return (
-    <section aria-label="최종 검수" className="fuma-minimal-final-review">
+    <section aria-label="최종 검수" className="fuma-minimal-final-inspection">
       <header>
-        <div><span>FINAL REVIEW</span><h3>최종 검수</h3></div>
+        <div><span>FINAL INSPECTION</span><h3>최종 검수</h3></div>
         <ShieldCheck aria-hidden="true" size={22} />
       </header>
       <dl>
         <div><dt>검수 상태</dt><dd>{decision ?? "검수 전"}</dd></div>
         <div><dt>후보 판정</dt><dd>{decidedCount} / {candidates.length}</dd></div>
       </dl>
-      <section className="fuma-minimal-final-review__candidates">
+      <section className="fuma-minimal-final-inspection__candidates">
         <header><strong>위반 여부 판정</strong><span>{decidedCount}/{candidates.length}</span></header>
         {candidates.length > 0 ? candidates.map((candidate, index) => {
           const key = `${candidate.source}-${candidate.title}`;
@@ -1521,7 +1516,7 @@ function MinimalFinalReview({
             <article key={key}>
               <button
                 aria-label={`${candidate.title} 위반 위치로 이동`}
-                className="fuma-minimal-final-review__candidate-jump"
+                className="fuma-minimal-final-inspection__candidate-jump"
                 onClick={() => onNavigateToViolation(index + 1)}
                 type="button"
               >
@@ -1529,7 +1524,7 @@ function MinimalFinalReview({
                 <blockquote>“{candidate.evidence}”</blockquote>
                 <small>{candidate.source}</small>
               </button>
-              <div className="fuma-minimal-final-review__candidate-actions">
+              <div className="fuma-minimal-final-inspection__candidate-actions">
                 <Button
                   aria-pressed={candidateDecision === "위반"}
                   className={candidateDecision === "위반" ? "is-violation" : undefined}
@@ -1551,7 +1546,7 @@ function MinimalFinalReview({
           <p><CheckCircle2 aria-hidden="true" size={15} /> 판정할 위반 후보가 없습니다.</p>
         )}
       </section>
-      <div className="fuma-minimal-final-review__actions">
+      <div className="fuma-minimal-final-inspection__actions">
         <Button
           aria-pressed={decision === "반려"}
           className={decision === "반려" ? "is-rejected" : undefined}
@@ -1574,7 +1569,7 @@ function MinimalFinalReview({
   );
 }
 
-function ContentReviewDetailContent({ content }: { content: ContentReviewFixture }) {
+function ContentInspectionDetailContent({ content }: { content: ContentInspectionFixture }) {
   const [focusedViolation, setFocusedViolation] = useState<{
     ordinal: number;
     requestId: number;
@@ -1588,28 +1583,28 @@ function ContentReviewDetailContent({ content }: { content: ContentReviewFixture
   };
 
   return (
-    <div className="fuma-minimal-review-layout">
-      <main className="fuma-minimal-review-main">
-        <MinimalReviewOverview content={content} />
+    <div className="fuma-minimal-inspection-layout">
+      <main className="fuma-minimal-inspection-main">
+        <MinimalInspectionOverview content={content} />
         <MinimalVersionComparison content={content} focusedViolation={focusedViolation} />
         <MinimalAnalysisReport content={content} />
-        <ReviewHistory content={content} />
+        <InspectionHistory content={content} />
       </main>
-      <aside className="fuma-minimal-review-sidebar">
-        <MinimalFinalReview content={content} key={content.id} onNavigateToViolation={navigateToViolation} />
+      <aside className="fuma-minimal-inspection-sidebar">
+        <MinimalFinalInspection content={content} key={content.id} onNavigateToViolation={navigateToViolation} />
       </aside>
     </div>
   );
 }
 
-export function ContentReviewDetailPage() {
+export function ContentInspectionDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { contentId } = useParams();
-  const content = CONTENT_REVIEW_LIST_ITEMS.find((item) => item.id === contentId)
-    ?? findContentReviewFixture(contentId);
+  const content = CONTENT_INSPECTION_LIST_ITEMS.find((item) => item.id === contentId)
+    ?? findContentInspectionFixture(contentId);
   const returnPath = (location.state as { from?: unknown } | null)?.from;
-  const pendingContents = reviewRequiredContents();
+  const pendingContents = inspectionRequiredContents();
   const currentPendingIndex = pendingContents.findIndex((item) => item.id === contentId);
   const nextContent = currentPendingIndex >= 0
     ? pendingContents[currentPendingIndex + 1]
@@ -1619,15 +1614,15 @@ export function ContentReviewDetailPage() {
     : pendingContents.length;
 
   return (
-    <section className="fuma-page fuma-content-review-detail" data-visual-contract="content-review">
+    <section className="fuma-page fuma-content-inspection-detail" data-visual-contract="content-inspection">
       <PageHeader title="콘텐츠 검수 상세" />
       <div className="fuma-page__body">
         {content ? (
           <>
-            <div className="fuma-detail-toolbar fuma-minimal-review-toolbar">
+            <div className="fuma-detail-toolbar fuma-minimal-inspection-toolbar">
               <button
                 className="hsas-button fuma-detail-toolbar__link"
-                onClick={() => typeof returnPath === "string" ? navigate(-1) : navigate("/content/reviews")}
+                onClick={() => typeof returnPath === "string" ? navigate(-1) : navigate("/content/inspections")}
                 type="button"
               >
                 <ArrowLeft aria-hidden="true" size={14} strokeWidth={1.8} />
@@ -1636,16 +1631,16 @@ export function ContentReviewDetailPage() {
               <div>
                 <span><strong>{remainingCount}건</strong>의 콘텐츠가 남았습니다.</span>
                 <Button
-                  className="fuma-content-review-next-button"
+                  className="fuma-content-inspection-next-button"
                   disabled={!nextContent}
-                  onClick={() => nextContent && navigate(`/content/reviews/${nextContent.id}`, { state: location.state })}
+                  onClick={() => nextContent && navigate(`/content/inspections/${nextContent.id}`, { state: location.state })}
                   variant="primary"
                 >
                   다음 콘텐츠 <ChevronRight aria-hidden="true" size={14} />
                 </Button>
               </div>
             </div>
-            <ContentReviewDetailContent content={content} />
+            <ContentInspectionDetailContent content={content} />
           </>
         ) : (
           <EmptyState

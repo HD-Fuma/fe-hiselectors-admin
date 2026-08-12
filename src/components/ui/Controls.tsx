@@ -93,24 +93,24 @@ export function Checkbox({ className, label, ...props }: CheckboxProps) {
   );
 }
 
-export interface SegmentedControlOption {
-  value: string;
+export interface SegmentedControlOption<T extends string = string> {
+  value: T;
   label: ReactNode;
 }
 
-export interface SegmentedControlProps {
+export interface SegmentedControlProps<T extends string = string> {
   ariaLabel?: string;
-  value: string;
-  options: SegmentedControlOption[];
-  onChange?: (id: string) => void;
+  value: T;
+  options: readonly SegmentedControlOption<T>[];
+  onChange?: (id: T) => void;
 }
 
-export function SegmentedControl({
+export function SegmentedControl<T extends string>({
   ariaLabel = "선택 옵션",
   value,
   options,
   onChange,
-}: SegmentedControlProps) {
+}: SegmentedControlProps<T>) {
   return (
     <div
       aria-label={ariaLabel}

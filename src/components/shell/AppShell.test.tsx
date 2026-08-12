@@ -1,4 +1,4 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, screen, waitForElementToBeRemoved, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderRoute } from "../../test/renderRoute";
 
@@ -11,7 +11,7 @@ const expectedSidebarLinks = [
   ["우수 활동자", "/selectors/excellent"],
   ["지원자 승인", "/applicants"],
   ["캠페인 관리", "/campaigns"],
-  ["콘텐츠 검수", "/content/reviews"],
+  ["콘텐츠 검수", "/content/inspections"],
   ["셀렉터스 성과", "/performance/selectors"],
   ["콘텐츠 성과", "/performance/contents"],
   ["캠페인 성과", "/performance/products"],
@@ -133,7 +133,7 @@ test("opens and closes work tabs as screens are visited", async () => {
     within(workTabs).getByRole("button", { name: "콘텐츠 성과 탭 닫기" }),
   );
 
-  expect(screen.getByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
 });
 
 test("keeps the administrator identity and utility controls in the sidebar", () => {
@@ -142,7 +142,7 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
   const shell = screen.getByTestId("admin-shell");
   expect(within(shell).getByText("관리자")).toBeInTheDocument();
   expect(within(shell).getByText("관리자 계정")).toBeInTheDocument();
-  expect(within(shell).getAllByRole("button", { name: "설정" })).toHaveLength(1);
+  expect(within(shell).queryByRole("button", { name: "설정" })).not.toBeInTheDocument();
   expect(within(shell).getAllByRole("button", { name: "로그아웃" })).toHaveLength(1);
 });
 
@@ -273,7 +273,7 @@ const routeCases = [
     routeIsExact: false,
   },
   {
-    path: "/content/reviews",
+    path: "/content/inspections",
     group: "content",
     menuLabel: "콘텐츠 검수",
     title: "콘텐츠 검수",
@@ -281,7 +281,7 @@ const routeCases = [
     routeIsExact: true,
   },
   {
-    path: "/content/reviews/ct-001",
+    path: "/content/inspections/ct-001",
     group: "content",
     menuLabel: "콘텐츠 검수",
     title: "콘텐츠 검수 상세",
@@ -324,8 +324,10 @@ const routeCases = [
 
 test.each(routeCases)(
   "$path selects its group and menu item",
-  ({ path, group, menuLabel, routeIsExact }) => {
+  async ({ path, group, menuLabel, routeIsExact }) => {
     renderRoute(path);
+    const loading = screen.queryByText("화면을 불러오는 중입니다.");
+    if (loading) await waitForElementToBeRemoved(loading);
 
     const shell = screen.getByTestId("admin-shell");
     const sidebar = shell.querySelector('[data-shell-part="sidebar"]');

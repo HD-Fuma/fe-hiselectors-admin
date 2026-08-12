@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
+import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { FilterField } from "../../components/ui/FilterField";
 import { FormRow } from "../../components/ui/FormRow";
@@ -13,7 +14,7 @@ import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
-import { SelectorDetailPanel } from "../../entities/selector";
+import { SelectorDetailPanel } from "../../entities/selectors";
 import { formatNumber, formatWon } from "../../lib/formatters";
 import { paginate } from "../../lib/pagination";
 import {
@@ -23,7 +24,7 @@ import {
   type CohortFixture,
   type QualificationFixture,
   type SelectorFixture,
-} from "./fixtures";
+} from "../../entities/selectors";
 
 const COHORT_STATUS_CATEGORIES: CohortFixture["status"][] = ["활성", "비활성"];
 const SELECTOR_COHORT_OPTIONS = [
@@ -248,36 +249,24 @@ export function CohortManagementPage() {
             </FilterField>
           </SearchPanel>
         </div>
-        <nav aria-label="기수 상태" className="fuma-creator-category-filter fuma-list-action-toolbar">
-          <div>
-            <button
-              aria-pressed={selectedStatus === null}
-              className="fuma-creator-category-filter__option"
-              onClick={() => {
-                setSelectedStatus(null);
-                setPage(1);
-              }}
-              type="button"
-            >
-              전체
-            </button>
-            {COHORT_STATUS_CATEGORIES.map((cohortStatus) => (
-              <button
-                aria-pressed={selectedStatus === cohortStatus}
-                className="fuma-creator-category-filter__option"
-                key={cohortStatus}
-                onClick={() => {
-                  setSelectedStatus(cohortStatus);
-                  setPage(1);
-                }}
-                type="button"
-              >
-                {cohortStatus}
-              </button>
-            ))}
-          </div>
-          <Button onClick={openCreateModal} variant="primary">기수 생성</Button>
-        </nav>
+        <ChoiceTabs
+          actions={<Button onClick={openCreateModal} variant="primary">기수 생성</Button>}
+          ariaLabel="기수 상태"
+          className="fuma-list-action-toolbar"
+          emptyOption={{
+            label: "전체",
+            onSelect: () => {
+              setSelectedStatus(null);
+              setPage(1);
+            },
+          }}
+          onChange={(status) => {
+            setSelectedStatus(status);
+            setPage(1);
+          }}
+          options={COHORT_STATUS_CATEGORIES}
+          value={selectedStatus}
+        />
         <ResultToolbar
           className="fuma-simple-result-toolbar"
           meta={<span>총 {filteredCohorts.length}건</span>}
@@ -474,35 +463,23 @@ export function SelectorOverviewPage() {
             </FilterField>
           </SearchPanel>
         </div>
-        <nav aria-label="활동 상태" className="fuma-creator-category-filter fuma-selector-status-filter">
-          <div>
-            <button
-              aria-pressed={selectedStatus === null}
-              className="fuma-creator-category-filter__option"
-              onClick={() => {
-                setSelectedStatus(null);
-                setPage(1);
-              }}
-              type="button"
-            >
-              전체
-            </button>
-            {SELECTOR_STATUS_CATEGORIES.map((status) => (
-              <button
-                aria-pressed={selectedStatus === status}
-                className="fuma-creator-category-filter__option"
-                key={status}
-                onClick={() => {
-                  setSelectedStatus(status);
-                  setPage(1);
-                }}
-                type="button"
-              >
-                {status}
-              </button>
-            ))}
-          </div>
-        </nav>
+        <ChoiceTabs
+          ariaLabel="활동 상태"
+          className="fuma-selector-status-filter"
+          emptyOption={{
+            label: "전체",
+            onSelect: () => {
+              setSelectedStatus(null);
+              setPage(1);
+            },
+          }}
+          onChange={(status) => {
+            setSelectedStatus(status);
+            setPage(1);
+          }}
+          options={SELECTOR_STATUS_CATEGORIES}
+          value={selectedStatus}
+        />
         <ResultToolbar
           className="fuma-simple-result-toolbar"
           meta={

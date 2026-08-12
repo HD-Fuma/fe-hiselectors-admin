@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { Button, TextInput } from "./Controls";
+import { ChoiceTabs } from "./ChoiceTabs";
 import { DenseTable, type DenseTableColumn, type DenseTableProps } from "./DenseTable";
 import { EmptyState } from "./EmptyState";
 import { FilterField } from "./FilterField";
@@ -12,7 +13,6 @@ import { Pagination } from "./Pagination";
 import { ResultToolbar } from "./ResultToolbar";
 import { SearchActions } from "./SearchActions";
 import { SearchPanel } from "./SearchPanel";
-import { SectionTabs, type SectionTabsProps } from "./SectionTabs";
 import { SidePanel } from "./SidePanel";
 import { StatusPill } from "./StatusPill";
 
@@ -20,11 +20,8 @@ import { StatusPill } from "./StatusPill";
 const invalidFormRowLabel: FormRowProps = { children: "field", label: 42 };
 // @ts-expect-error Form-row help is a text-only contract.
 const invalidFormRowHelp: FormRowProps = { children: "field", help: 42, label: "Label" };
-// @ts-expect-error Section-tab labels are text-only contracts.
-const invalidSectionTabLabel: SectionTabsProps = { activeId: "details", items: [{ id: "details", label: 42 }] };
 void invalidFormRowLabel;
 void invalidFormRowHelp;
-void invalidSectionTabLabel;
 
 test("renders a form row label, required marker, control, and help text", () => {
   render(
@@ -79,24 +76,6 @@ test("renders search fields and actions inside an accessible search landmark", (
   const search = screen.getByRole("search", { name: "검색 조건" });
   expect(within(search).getByRole("textbox", { name: "Search term" })).toBeInTheDocument();
   expect(within(search).getByRole("button", { name: "Search" })).toBeInTheDocument();
-});
-
-test("marks the active static section without interactive tab semantics", () => {
-  render(
-    <SectionTabs
-      activeId="media"
-      items={[
-        { id: "details", label: "Details" },
-        { id: "media", label: "Media" },
-      ]}
-    />,
-  );
-
-  const navigation = screen.getByRole("navigation", { name: "섹션" });
-  expect(within(navigation).getByText("Media")).toHaveAttribute("aria-current", "page");
-  expect(within(navigation).getByText("Details")).not.toHaveAttribute("aria-current");
-  expect(within(navigation).queryByRole("tab")).not.toBeInTheDocument();
-  expect(within(navigation).queryByRole("button")).not.toBeInTheDocument();
 });
 
 test("shows the current page, total pages, and page size", () => {
@@ -253,9 +232,12 @@ test("shares scroll locking, focus containment, Escape close, and focus restore 
   await user.tab({ shift: true });
   expect(panelAction).toHaveFocus();
 
+  fireEvent.pointerDown(resizeHandle, { button: 0 });
+  expect(document.body).toHaveClass("fuma-detail-panel-is-resizing");
   await user.keyboard("{Escape}");
 
   expect(screen.queryByRole("dialog", { name: "Product details" })).not.toBeInTheDocument();
+  expect(document.body).not.toHaveClass("fuma-detail-panel-is-resizing");
   expect(trigger).toHaveFocus();
   expect(document.body.style.overflow).toBe(previousOverflow);
   expect(backgroundRoot).not.toHaveAttribute("aria-hidden");
@@ -409,6 +391,59 @@ test("renders typed table columns, rows, custom cells, and a footer", () => {
   expect(within(table).getByRole("cell", { name: "P-001" })).toBeInTheDocument();
   expect(within(table).getByText("approved")).toHaveClass("hsas-status-pill--approved");
   expect(screen.getByText("1 product")).toBeInTheDocument();
+});
+
+test("switches a typed choice tab while preserving an optional action", async () => {
+  const user = userEvent.setup();
+
+  function ChoiceTabsFixture() {
+    const [value, setValue] = useState<"draft" | "done" | null>(null);
+
+    return (
+      <ChoiceTabs
+        actions={<Button>Add item</Button>}
+        ariaLabel="Review status"
+        className="fixture-tabs"
+        emptyOption={{ label: "All", onSelect: () => setValue(null) }}
+        onChange={setValue}
+        options={[
+          { label: "Draft", value: "draft" },
+          { label: "Complete", value: "done" },
+        ]}
+        value={value}
+      />
+    );
+  }
+
+  render(<ChoiceTabsFixture />);
+
+  const navigation = screen.getByRole("navigation", { name: "Review status" });
+  expect(navigation).toHaveClass("fuma-creator-category-filter", "fixture-tabs");
+  expect(within(navigation).getByRole("button", { name: "All" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect(within(navigation).getByRole("button", { name: "Add item" })).toBeInTheDocument();
+
+  await user.click(within(navigation).getByRole("button", { name: "Complete" }));
+  expect(within(navigation).getByRole("button", { name: "Complete" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+});
+
+test("keeps read-only table rows out of the keyboard tab order", () => {
+  render(
+    <DenseTable
+      columns={productColumns}
+      rowKey={(row) => row.id}
+      rows={[{ id: 101, code: "P-001", name: "Read-only product", status: "approved" }]}
+    />,
+  );
+
+  const row = screen.getByRole("row", { name: /Read-only product/ });
+  expect(row).not.toHaveAttribute("tabindex");
+  expect(row).not.toHaveAttribute("aria-selected");
 });
 
 test("selects rows by mouse and keyboard and ignores nested controls", async () => {

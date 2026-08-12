@@ -1,4 +1,4 @@
-import { CREATORS, type CreatorPlatform } from "../../entities/creator/model/fixtures";
+import { CREATORS, type CreatorPlatform } from "../../entities/creator";
 
 // @ts-expect-error Facebook is not a supported creator profile platform.
 const unsupportedPlatform: CreatorPlatform = "Facebook";

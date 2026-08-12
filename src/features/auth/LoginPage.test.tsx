@@ -7,7 +7,7 @@ describe("administrator login", () => {
     renderRoute("/login");
 
     expect(screen.getByRole("heading", { name: "Hi-Selectors" })).toBeInTheDocument();
-    expect(screen.getByText("관리자 계정으로 로그인하세요.")).toBeInTheDocument();
+    expect(screen.queryByText("관리자 계정으로 로그인하세요.")).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("아이디 입력")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("비밀번호 입력")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "로그인" })).toBeInTheDocument();
@@ -28,7 +28,7 @@ describe("administrator login", () => {
 
     await user.click(screen.getByRole("button", { name: "로그인" }));
 
-    expect(screen.getByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
     expect(screen.getByTestId("admin-shell")).toBeInTheDocument();
   });
 });

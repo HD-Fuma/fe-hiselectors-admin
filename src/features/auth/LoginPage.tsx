@@ -22,7 +22,6 @@ export function LoginPage() {
             <h1 id="hi-selectors-login-title">Hi-Selectors</h1>
           </div>
         </header>
-        <p className="partners-login__subtitle">관리자 계정으로 로그인하세요.</p>
 
         <form
           aria-label="관리자 로그인"

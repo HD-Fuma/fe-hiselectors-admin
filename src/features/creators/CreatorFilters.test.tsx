@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { CreatorListPage, ProposalHistoryPage } from "./CreatorPages";
-import { CREATORS, PROPOSALS } from "../../entities/creator/model/fixtures";
+import { CREATORS, PROPOSALS } from "../../entities/creator";
 
 function renderCreatorPage(path = "/creators") {
   return render(

@@ -1,15 +1,13 @@
 import { CreatorEvidenceCard } from "./CreatorEvidenceCard";
-import type { CreatorFixture } from "../../entities/creator/model/fixtures";
+import type { CreatorFixture } from "../../entities/creator";
 
 export function CreatorCardGrid({
-  actionFor,
   creators,
   onOpen = () => undefined,
   onSelect = () => undefined,
   selectionMode = false,
   selectedIds = new Set<string>(),
 }: {
-  actionFor?: (creator: CreatorFixture) => { label: string; to: string };
   creators: readonly CreatorFixture[];
   onOpen?: (creator: CreatorFixture) => void;
   onSelect?: (creatorId: string) => void;
@@ -26,7 +24,6 @@ export function CreatorCardGrid({
     >
       {creators.map((creator) => (
         <CreatorEvidenceCard
-          actionFor={actionFor}
           creator={creator}
           key={creator.id}
           onOpen={onOpen}

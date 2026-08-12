@@ -6,7 +6,6 @@ import {
   FileSearch,
   LogOut,
   Megaphone,
-  Settings,
   UsersRound,
   WalletCards,
   type LucideIcon,
@@ -173,13 +172,6 @@ export function AdminSidebar({
           <span>관리자 계정</span>
         </span>
         <span className="hsas-admin-sidebar__account-actions">
-          <button
-            type="button"
-            className="hsas-admin-sidebar__account-action"
-            aria-label="설정"
-          >
-            <Settings aria-hidden="true" />
-          </button>
           <button
             type="button"
             className="hsas-admin-sidebar__account-action"

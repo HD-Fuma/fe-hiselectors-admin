@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import adminStyles from "./admin.css?raw";
-import contentReviewStyles from "./content-review.css?raw";
+import contentInspectionStyles from "./content-inspection.css?raw";
 import globalStyles from "./global.css?raw";
 import loginStyles from "./login.css?raw";
 import performanceStyles from "./performance-dashboard.css?raw";
@@ -10,7 +10,7 @@ import tokensSource from "./tokens.css?raw";
 
 const styleFiles = [
   { file: "admin.css", source: adminStyles },
-  { file: "content-review.css", source: contentReviewStyles },
+  { file: "content-inspection.css", source: contentInspectionStyles },
   { file: "global.css", source: globalStyles },
   { file: "login.css", source: loginStyles },
   { file: "performance-dashboard.css", source: performanceStyles },

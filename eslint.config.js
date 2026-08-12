@@ -29,8 +29,28 @@ export default tseslint.config(
         {
           patterns: [
             {
-              regex: "^(?:\\.\\./)+(?:applicants|auth|campaigns|content|creators|operations|performance|selectors)(?:/|$)",
+              regex: "^(?:\\.\\./)+(?:applicants|auth|campaigns|content|creators|performance|selectors|settlements)(?:/|$)",
               message: "Feature끼리 직접 import하지 말고 app 조합 또는 entities/shared 경계를 사용하세요.",
+            },
+            {
+              regex: "^(?:\\.\\./)+entities/[^/]+/(?:model|ui)(?:/|$)",
+              message: "Entity 내부 경로 대신 해당 entity의 공개 index.ts를 사용하세요.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/app/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^(?:\\.\\./)+entities/[^/]+/(?:model|ui)(?:/|$)",
+              message: "Entity 내부 경로 대신 해당 entity의 공개 index.ts를 사용하세요.",
             },
           ],
         },

@@ -1,9 +1,7 @@
-import { CREATORS } from "../../entities/creator/model/fixtures";
 import {
   deriveCadence,
   deriveEngagementRate,
-  rankTopTwoN,
-} from "../../entities/creator/model/analysis";
+} from "../../entities/creator";
 
 describe("creator analysis derivations", () => {
   test("derives cadence and longest gap from posting dates", () => {
@@ -23,9 +21,5 @@ describe("creator analysis derivations", () => {
       value: null,
       sampleSize: 0,
     });
-  });
-
-  test("ranks Top 2N candidates before category adjustment", () => {
-    expect(rankTopTwoN(CREATORS, 2).map(({ id }) => id)).toEqual(["cr-001", "cr-004", "cr-003"]);
   });
 });

@@ -1,5 +1,7 @@
-import type { CreatorFeaturedContentFixture } from "../../entities/creator/model/fixtures";
-import { CreatorContentPhoto } from "../../entities/creator/ui/CreatorArtwork";
+import {
+  CreatorContentPhoto,
+  type CreatorFeaturedContentFixture,
+} from "../../entities/creator";
 
 export function CreatorMediaMosaic({
   contents,

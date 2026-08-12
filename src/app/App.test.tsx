@@ -9,10 +9,10 @@ test("renders the FUMA application root", () => {
   expect(container.querySelector('[data-app-ready="true"]')).toBeInTheDocument();
 });
 
-test("opens the default administrator screen at the application root", () => {
+test("opens the default administrator screen at the application root", async () => {
   render(<App initialEntries={["/"]} />);
 
-  expect(screen.getByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
   expect(screen.getByRole("navigation", { name: "관리자 메뉴" })).toBeInTheDocument();
 });
 

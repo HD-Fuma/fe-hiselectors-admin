@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
-import type { CreatorFeaturedContentFixture } from "../../entities/creator/model/fixtures";
-import { CreatorContentPhoto, CreatorProfilePhoto } from "../../entities/creator/ui/CreatorArtwork";
+import {
+  CreatorContentPhoto,
+  CreatorProfilePhoto,
+  type CreatorFeaturedContentFixture,
+} from "../../entities/creator";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
 
 afterEach(() => {
