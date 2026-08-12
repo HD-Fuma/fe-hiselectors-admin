@@ -3572,6 +3572,11 @@
   text-align: center;
 }
 
+.hsas-alert-dialog__confirm.hsas-button--primary,
+.hsas-alert-dialog__confirm.hsas-button--primary:hover:not(:disabled) {
+  border-color: transparent;
+}
+
 .fuma-cohort-detail__selectors h3,
 .fuma-cohort-detail__selectors span {
   display: block;
@@ -4117,6 +4122,11 @@
 .fuma-proposal-compose__footer > div {
   display: flex;
   gap: var(--hsas-space-6);
+}
+
+.fuma-proposal-compose__submit.hsas-button--primary,
+.fuma-proposal-compose__submit.hsas-button--primary:hover:not(:disabled) {
+  border-color: transparent;
 }
 
 .fuma-proposal-delivery-detail {
