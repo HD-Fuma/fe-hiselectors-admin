@@ -818,7 +818,7 @@ ${isBatchProposal
               <span>발송 후 제안 이력에서 상태를 확인할 수 있습니다.</span>
               <div>
                 <Button onClick={() => navigate(-1)}>취소</Button>
-                <Button type="submit" variant="primary">제안 발송</Button>
+                <Button className="fuma-proposal-compose__submit" type="submit" variant="primary">제안 발송</Button>
               </div>
             </footer>
           </form>
@@ -827,7 +827,10 @@ ${isBatchProposal
     </section>
     <AlertDialog
       message="제안이 완료되었습니다."
-      onClose={() => setProposalCompleted(false)}
+      onClose={() => {
+        setProposalCompleted(false);
+        navigate("/creators");
+      }}
       open={proposalCompleted}
       title="제안 발송 완료"
     />

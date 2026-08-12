@@ -19,7 +19,7 @@ export function AlertDialog({
 }: AlertDialogProps) {
   return (
     <Modal
-      actions={<Button onClick={onClose} variant="primary">{confirmLabel}</Button>}
+      actions={<Button className="hsas-alert-dialog__confirm" onClick={onClose} variant="primary">{confirmLabel}</Button>}
       className="hsas-alert-dialog"
       onClose={onClose}
       open={open}

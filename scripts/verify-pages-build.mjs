@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-const repositoryBase = "/fe-selectors-admin/";
+const repositoryBase = "/fe-hiselectors-admin/";
 
 async function readRequired(relativePath) {
   try {
