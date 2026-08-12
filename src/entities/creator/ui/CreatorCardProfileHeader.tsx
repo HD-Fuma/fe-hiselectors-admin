@@ -1,6 +1,14 @@
+import type { SocialPlatform } from "../../../components/social/PlatformIcon";
+import { PlatformIcon } from "../../../components/social/PlatformIcon";
 import { CreatorProfilePhoto } from "./CreatorArtwork";
-import { PlatformIcon } from "../../components/social/PlatformIcon";
-import type { CreatorPlatform } from "./fixtures";
+
+export interface CreatorCardProfileHeaderProps {
+  badgeLabel: string;
+  displayName: string;
+  platform: SocialPlatform;
+  profileImageUrl: string;
+  snsId?: string;
+}
 
 export function CreatorCardProfileHeader({
   badgeLabel,
@@ -8,13 +16,7 @@ export function CreatorCardProfileHeader({
   platform,
   profileImageUrl,
   snsId,
-}: {
-  badgeLabel: string;
-  displayName: string;
-  platform: CreatorPlatform;
-  profileImageUrl: string;
-  snsId?: string;
-}) {
+}: CreatorCardProfileHeaderProps) {
   return (
     <header className="fuma-creator-card__header">
       <span className="fuma-creator-card__portrait">

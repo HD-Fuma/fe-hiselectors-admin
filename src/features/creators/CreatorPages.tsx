@@ -15,10 +15,10 @@ import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill
 import { formatNumber } from "../../lib/formatters";
 import { paginate } from "../../lib/pagination";
 import { CreatorCardGrid } from "./CreatorCardGrid";
-import { CreatorContentPhoto, CreatorProfilePhoto } from "./CreatorArtwork";
+import { CreatorContentPhoto, CreatorProfilePhoto } from "../../entities/creator/ui/CreatorArtwork";
 import { CreatorKeywordTags } from "./CreatorKeywordTags";
-import { assetUrl } from "./assetUrl";
-import { engagementResultForCreator } from "./CreatorAnalysisReport";
+import { assetUrl } from "../../lib/assetUrl";
+import { engagementResultForCreator } from "../../entities/creator/model/analysis";
 import {
   CreatorAnalysisReport,
   type AnalysisMetricOverrides,
@@ -29,6 +29,7 @@ import {
   type CreatorPoolView,
 } from "./CreatorResultToolbar";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
+import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
 import {
   CREATORS,
   CREATOR_CATEGORIES,
@@ -39,12 +40,8 @@ import {
   type CreatorProfileFixture,
   type ProposalFixture,
   type ProposalStatus,
-} from "./fixtures";
+} from "../../entities/creator/model/fixtures";
 
-const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube"].map((label) => ({
-  label,
-  value: label === "전체" ? "" : label,
-}));
 const PROPOSAL_HISTORY_STATUSES: ProposalStatus[] = ["발송 대기", "발송 완료", "발송 실패"];
 const PROPOSAL_PAGE_SIZE = 20;
 const CREATOR_LIST_PAGE_SIZE = 20;
@@ -260,7 +257,7 @@ export function CreatorListPage() {
   return (
     <>
     <section className="fuma-page">
-      <PageHeader screenCode="CR101" title={selectedCategory ? `${selectedCategory} 크리에이터` : "크리에이터 풀"} />
+      <PageHeader title={selectedCategory ? `${selectedCategory} 크리에이터` : "크리에이터 풀"} />
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-creator-pool-search">
           <SearchPanel actions={<SearchActions onReset={resetSearch} onSearch={applySearch} />}>
@@ -283,7 +280,7 @@ export function CreatorListPage() {
               </div>
             </div>
             <FilterField htmlFor="creator-platform" label="플랫폼">
-              <Select id="creator-platform" name="platform" onChange={(event) => setPlatform(event.target.value)} options={PLATFORM_OPTIONS} value={platform} />
+              <Select id="creator-platform" name="platform" onChange={(event) => setPlatform(event.target.value)} options={SOCIAL_PLATFORM_FILTER_OPTIONS} value={platform} />
             </FilterField>
           </SearchPanel>
         </div>
@@ -393,71 +390,6 @@ export function BasicInformation({ creator }: { creator: CreatorFixture }) {
   );
 }
 
-function CreatorProfileHero({
-  creator,
-}: {
-  creator: CreatorFixture;
-}) {
-  const engagement = engagementResultForCreator(creator);
-  const audienceLabel = creator.profile.platform === "Instagram" ? "팔로워" : "구독자";
-  const engagementValue =
-    engagement.value === null ? "집계 불가" : `${engagement.value.toFixed(1)}%`;
-  const proposalHref = `/proposals/new?creator=${creator.id}&channel=${encodeURIComponent("이메일")}`;
-
-  return (
-    <section aria-label={`${creator.name} 프로필 요약`} className="fuma-creator-detail-hero fuma-unified-detail-hero">
-      <div className="fuma-creator-detail-hero__portrait">
-        <CreatorProfilePhoto creatorName={creator.name} src={creator.profile.profileImageUrl} />
-        <span className="fuma-creator-detail-hero__platform">
-          <PlatformIcon platform={creator.profile.platform} />
-        </span>
-      </div>
-      <div className="fuma-creator-detail-hero__content">
-        <div className="fuma-creator-detail-hero__identity">
-          <div className="fuma-creator-detail-hero__title-row">
-            <h2>{creator.name}</h2>
-            <StatusPill tone={proposalTone(creator.proposalStatus)}>{creator.proposalStatus}</StatusPill>
-          </div>
-          <a className="fuma-creator-detail-hero__channel" href={creator.profile.profileUrl} rel="noreferrer" target="_blank">
-            <PlatformLabel platform={creator.profile.platform} />
-            <span>{creator.profile.handle}</span>
-            <span aria-hidden="true">↗</span>
-          </a>
-          <div aria-label="카테고리" className="fuma-creator-detail-hero__categories">
-            <strong>{creator.category}</strong>
-            <span aria-hidden="true">/</span>
-            <span>{creator.keywords.join("  ")}</span>
-          </div>
-        </div>
-        <p className="fuma-unified-detail-hero__summary">{creator.aiReport.status === "ready" ? creator.aiReport.summary : "크리에이터 분석 리포트를 생성하고 있습니다."}</p>
-        <dl className="fuma-creator-detail-hero__metrics">
-          <div>
-            <dt>{audienceLabel}</dt>
-            <dd>{formatNumber(creator.profile.followers)}</dd>
-          </div>
-          <div>
-            <dt>ER</dt>
-            <dd>{engagementValue}</dd>
-          </div>
-          <div>
-            <dt>콘텐츠</dt>
-            <dd>{formatNumber(creator.contentCount)}</dd>
-          </div>
-          <div><dt>최근 활동</dt><dd>{creator.recentActivity}</dd></div>
-        </dl>
-      </div>
-      <aside aria-label="영입 제안" className="fuma-creator-detail-hero__actions fuma-review-summary">
-        <span>영입 제안</span>
-        <StatusPill tone={proposalTone(creator.proposalStatus)}>{creator.proposalStatus}</StatusPill>
-        <p>대표 콘텐츠와 분석 결과를 확인한 뒤 영입 제안을 보낼 수 있습니다.</p>
-        <Link className="fuma-review-summary__proposal" to={proposalHref}>제안 보내기</Link>
-      </aside>
-    </section>
-  );
-}
-
-void CreatorProfileHero;
-
 function CreatorDetailSidebar({
   actionSection,
   creator,
@@ -523,89 +455,6 @@ function CreatorDetailSidebar({
     </aside>
   );
 }
-
-void CreatorDetailSidebar;
-
-function CreatorFeaturedPosts({ creator }: { creator: CreatorFixture }) {
-  return (
-    <section aria-labelledby="creator-featured-title" className="fuma-content-section fuma-detail-featured" id="featured">
-      <header className="fuma-content-section__header">
-        <div>
-          <h2 id="creator-featured-title">대표 콘텐츠</h2>
-          <span>조회 수가 높은 콘텐츠를 기준으로 표시합니다.</span>
-        </div>
-        <a href={creator.profile.profileUrl} rel="noreferrer" target="_blank">채널에서 전체 보기 ↗</a>
-      </header>
-      <div className="fuma-detail-featured__grid">
-        {creator.featuredContents.map((content, index) => (
-          <a className="fuma-detail-featured__post" href={creator.profile.profileUrl} key={content.id} rel="noreferrer" target="_blank">
-            <div className="fuma-detail-featured__image">
-              <CreatorContentPhoto creatorName={creator.name} src={content.thumbnailUrl} title={content.title} />
-              <span>{index + 1}</span>
-              {content.mediaType === "동영상" ? <b aria-label="동영상">▶</b> : null}
-            </div>
-            <div className="fuma-detail-featured__copy">
-              <div><strong>{content.title}</strong><span>{content.mediaType}</span></div>
-              <dl className="fuma-detail-featured__metrics">
-                <div><dt>조회</dt><dd>{formatNumber(content.views)}</dd></div>
-                <div><dt>평균 반응</dt><dd>{formatNumber(creator.profile.averageReactions)}</dd></div>
-                <div><dt>도달률</dt><dd>{((content.views / creator.profile.followers) * 100).toFixed(1)}%</dd></div>
-              </dl>
-            </div>
-          </a>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-void CreatorFeaturedPosts;
-
-function ProposalMethod({
-  buttonLabel,
-  children,
-  href,
-  title,
-}: {
-  buttonLabel: string;
-  children: ReactNode;
-  href: string;
-  title: string;
-}) {
-  return (
-    <article className="fuma-proposal-method">
-      <h3>{title}</h3>
-      <div className="fuma-proposal-method__details">{children}</div>
-      <Link className="hsas-button hsas-button--primary" to={href}>{buttonLabel}</Link>
-    </article>
-  );
-}
-
-function ProposalMethods({ creator }: { creator: CreatorFixture }) {
-  return (
-    <section
-      aria-labelledby="creator-proposal-title"
-      className="fuma-content-section"
-      id="proposal"
-    >
-      <header className="fuma-content-section__header">
-        <h2 id="creator-proposal-title">영입 제안</h2>
-      </header>
-      <div className="fuma-proposal-methods">
-        <ProposalMethod buttonLabel="이메일 제안 작성" href={`/proposals/new?creator=${creator.id}&channel=${encodeURIComponent("이메일")}`} title="이메일">
-          <dl>
-            <div>
-              <dt>이메일</dt>
-              <dd>{creator.email}</dd>
-            </div>
-          </dl>
-        </ProposalMethod>
-      </div>
-    </section>
-  );
-}
-
-void ProposalMethods;
 
 interface CreatorDetailPageProps {
   actionSection?: ReactNode;
@@ -732,7 +581,7 @@ export function ProposalComposePage() {
   if (!creator) {
     return (
       <section className="fuma-page">
-        <PageHeader screenCode="CR202" title="셀렉터스 제안" />
+        <PageHeader title="셀렉터스 제안" />
         <div className="fuma-page__body">
           <EmptyState
             description="크리에이터 풀에서 제안할 대상을 선택해 주세요."
@@ -770,7 +619,7 @@ ${isBatchProposal
   return (
     <>
     <section className="fuma-page fuma-proposal-compose">
-      <PageHeader screenCode="CR202" title="셀렉터스 제안" />
+      <PageHeader title="셀렉터스 제안" />
       <div className="fuma-page__body">
         <div className="fuma-proposal-compose__layout">
           {isBatchProposal ? (
@@ -980,7 +829,7 @@ export function ProposalHistoryPage() {
 
   return (
     <section className="fuma-page">
-      <PageHeader screenCode="CR201" title="제안 이력 관리" />
+      <PageHeader title="제안 이력 관리" />
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-proposal-history-search">
           <SearchPanel actions={<SearchActions onReset={resetProposalSearch} onSearch={searchProposals} />}>

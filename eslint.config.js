@@ -21,4 +21,36 @@ export default tseslint.config(
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
     },
   },
+  {
+    files: ["src/features/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^(?:\\.\\./)+(?:applicants|auth|campaigns|content|creators|operations|performance|selectors)(?:/|$)",
+              message: "Feature끼리 직접 import하지 말고 app 조합 또는 entities/shared 경계를 사용하세요.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/entities/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^(?:\\.\\./)+features(?:/|$)",
+              message: "Entity 계층은 feature 계층에 의존할 수 없습니다.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

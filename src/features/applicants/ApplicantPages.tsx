@@ -21,16 +21,12 @@ import {
   ApplicantAutomaticReview,
   ApplicantFeaturedContents,
 } from "./ApplicantAnalysisReport";
-import { CreatorDetailPage } from "../creators/CreatorPages";
-import type { AnalysisPercentileContext } from "../creators/CreatorAnalysisReport";
-import { CreatorKeywordTags } from "../creators/CreatorKeywordTags";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
-import type { CreatorFixture, CreatorMediaVisual } from "../creators/fixtures";
+import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
 import {
   APPLICANTS,
   APPLICANT_CATEGORIES,
   applicantAnalysisFor,
-  applicantFeaturedContentFor,
   applicantProfileImageUrl,
   applicantProfileUrl,
   findApplicantFixture,
@@ -41,10 +37,6 @@ import {
   type ReviewStatus,
 } from "./fixtures";
 
-const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube"].map((label) => ({
-  label,
-  value: label === "전체" ? "" : label,
-}));
 const REVIEW_STATUS_OPTIONS = ["전체", "검토 대기", "승인", "반려", "자동 반려"].map(
   (label) => ({ label, value: label === "전체" ? "" : label }),
 );
@@ -86,7 +78,7 @@ function deliveryStatusTone(
   return "rejected";
 }
 
-function PlatformLabel({ platform }: { platform: CreatorFixture["profile"]["platform"] }) {
+function PlatformLabel({ platform }: { platform: ApplicantFixture["platform"] }) {
   return (
     <span className="fuma-platform-label">
       <PlatformIcon platform={platform} />
@@ -95,60 +87,28 @@ function PlatformLabel({ platform }: { platform: CreatorFixture["profile"]["plat
   );
 }
 
-const APPLICANT_VISUALS: CreatorMediaVisual[] = [
-  "beauty",
-  "fashion",
-  "cooking",
-  "table",
-  "city",
-  "coffee",
-];
+function ApplicantKeywordTags({ keywords }: { keywords: readonly string[] }) {
+  return (
+    <span className="fuma-creator-keyword-tags">
+      {keywords.slice(0, 3).map((keyword) => <span key={keyword}>{keyword}</span>)}
+    </span>
+  );
+}
 
-type ApplicantListRow = CreatorFixture & {
-  appliedAt: string;
-  autoRejected: boolean;
-  reviewStatus: ReviewStatus;
-  theHyundaiHiMemberNumber: string;
+type ApplicantListRow = ApplicantFixture & {
+  category: ApplicantCategory;
+  engagementRate: number;
+  keywords: readonly string[];
 };
 
-function applicantToCreatorCard(applicant: ApplicantFixture): ApplicantListRow {
+function applicantToListRow(applicant: ApplicantFixture): ApplicantListRow {
   const analysis = applicantAnalysisFor(applicant);
-  const [primaryDelivery] = applicant.deliveries;
 
   return {
-    id: applicant.id,
-    name: applicant.name,
-    profile: {
-      platform: applicant.platform,
-      handle: applicant.channelName,
-      profileUrl: applicantProfileUrl(applicant),
-      followers: applicant.followerCount,
-      averageViews: applicant.averageViews,
-      averageReactions: applicant.averageReactions,
-      engagementRate: analysis.engagementRate,
-      profileImageUrl: applicantProfileImageUrl(applicant),
-    },
+    ...applicant,
     category: analysis.category,
+    engagementRate: analysis.engagementRate,
     keywords: analysis.keywords.slice(0, 3).map((keyword) => `#${keyword.label}`),
-    tier: "T3",
-    contentCount: applicant.contentCount,
-    recentActivity: applicant.recentActivity,
-    featuredContents: applicantFeaturedContentFor(applicant).map((content, index) => ({
-      id: content.id,
-      title: content.title,
-      mediaType: content.mediaType,
-      views: content.views,
-      visual: APPLICANT_VISUALS[index % APPLICANT_VISUALS.length],
-      thumbnailUrl: content.thumbnailUrl,
-    })),
-    aiReport: applicant.aiReport,
-    appliedAt: applicant.appliedAt,
-    proposalStatus: primaryDelivery.status === "전송 완료" ? "발송 완료" : "발송 전",
-    availableProposalChannels: ["이메일"],
-    autoRejected: applicant.autoRejected,
-    email: applicant.email,
-    reviewStatus: applicant.reviewStatus,
-    theHyundaiHiMemberNumber: applicant.theHyundaiHiMemberNumber,
   };
 }
 
@@ -252,14 +212,14 @@ function applicantListColumns({
     header: "플랫폼",
     width: 115,
     align: "center",
-    render: (applicant) => <PlatformLabel platform={applicant.profile.platform} />,
+    render: (applicant) => <PlatformLabel platform={applicant.platform} />,
   },
   {
     id: "account",
     header: "SNS ID",
     width: 130,
     align: "center",
-    render: (applicant) => applicant.profile.handle,
+    render: (applicant) => applicant.channelName,
   },
   {
     id: "categories",
@@ -273,21 +233,21 @@ function applicantListColumns({
     header: "키워드",
     width: 165,
     align: "center",
-    render: (applicant) => <CreatorKeywordTags keywords={applicant.keywords} />,
+    render: (applicant) => <ApplicantKeywordTags keywords={applicant.keywords} />,
   },
   {
     id: "followers",
     header: "팔로워/구독자",
     width: 105,
     align: "right",
-    render: (applicant) => formatNumber(applicant.profile.followers),
+    render: (applicant) => formatNumber(applicant.followerCount),
   },
   {
     id: "engagementRate",
     header: "ER",
     width: 72,
     align: "right",
-    render: (applicant) => `${applicant.profile.engagementRate.toFixed(1)}%`,
+    render: (applicant) => `${applicant.engagementRate.toFixed(1)}%`,
   },
   {
     key: "appliedAt",
@@ -372,7 +332,7 @@ export function ApplicantListPage() {
         && (!appliedReviewStatus || effectiveReviewStatus === appliedReviewStatus);
     })
     .map((applicant) => (
-      applicantToCreatorCard({
+      applicantToListRow({
         ...applicant,
         reviewStatus: reviewOverrides[applicant.id] ?? applicant.reviewStatus,
       })
@@ -383,16 +343,6 @@ export function ApplicantListPage() {
     APPLICANT_PAGE_SIZE,
   );
   const detailApplicant = applicants.find((applicant) => applicant.id === detailApplicantId);
-  const detailApplicantFixture = findApplicantFixture(detailApplicantId ?? undefined);
-  const applicantAnalyses = APPLICANTS.map((applicant) => applicantAnalysisFor(applicant));
-  const applicantPercentileContext: AnalysisPercentileContext = {
-    label: "지원자 중",
-    audience: APPLICANTS.map((applicant) => applicant.followerCount),
-    views: APPLICANTS.map((applicant) => applicant.averageViews),
-    likes: applicantAnalyses.map((analysis) => analysis.averageLikes),
-    comments: applicantAnalyses.map((analysis) => analysis.averageComments),
-    engagement: applicantAnalyses.map((analysis) => analysis.engagementRate),
-  };
   const openApplicant = (applicant: ApplicantListRow) => navigate(
     `${applicantPoolPath}${selectedCategory ? "&" : "?"}detail=${applicant.id}`,
   );
@@ -481,7 +431,7 @@ export function ApplicantListPage() {
   return (
     <>
     <section className="fuma-page">
-      <PageHeader screenCode="AP101" title="지원자 심사" />
+      <PageHeader title="지원자 심사" />
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-applicant-search">
           <SearchPanel actions={<SearchActions onReset={resetSearch} onSearch={applySearch} />}>
@@ -499,7 +449,7 @@ export function ApplicantListPage() {
                 id="applicant-platform"
                 name="platform"
                 onChange={(event) => setPlatform(event.target.value)}
-                options={PLATFORM_OPTIONS}
+                options={SOCIAL_PLATFORM_FILTER_OPTIONS}
                 value={platform}
               />
             </FilterField>
@@ -571,47 +521,12 @@ export function ApplicantListPage() {
       </div>
     </section>
     {detailApplicantId ? (
-      <CreatorDetailPage
-        actionSection={detailApplicant ? (
-          <section className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions">
-            <div className="fuma-applicant-detail-actions__heading">
-              <span>심사 처리</span>
-              <StatusPill tone={reviewStatusTone(detailApplicant.reviewStatus)}>
-                {detailApplicant.reviewStatus}
-              </StatusPill>
-            </div>
-            <div className="fuma-applicant-detail-actions__buttons">
-              <Button
-                onClick={() => applySingleStatus(detailApplicant.id, "승인")}
-                variant="primary"
-              >
-                승인
-              </Button>
-              <Button
-                onClick={() => applySingleStatus(detailApplicant.id, "반려")}
-                variant="danger"
-              >
-                반려
-              </Button>
-            </div>
-          </section>
-        ) : undefined}
-        creatorOverride={detailApplicant}
-        analysisMetricOverrides={detailApplicantFixture ? {
-          averageComments: applicantAnalysisFor(detailApplicantFixture).averageComments,
-          engagementRate: applicantAnalysisFor(detailApplicantFixture).engagementRate,
-        } : undefined}
-        analysisPercentileContext={applicantPercentileContext}
+      <ApplicantDetailPage
+        applicantIdOverride={detailApplicantId}
+        applicantOverride={detailApplicant}
         embedded
         onClose={() => navigate(applicantPoolPath)}
-        reportEyebrow="APPLICANT REPORT"
-        reportTitle="지원자 분석 리포트"
-        statusPill={detailApplicant ? (
-          <StatusPill tone={reviewStatusTone(detailApplicant.reviewStatus)}>
-            {detailApplicant.reviewStatus}
-          </StatusPill>
-        ) : undefined}
-        title="지원자 상세"
+        onDecision={(decision) => applySingleStatus(decision.applicantId, decision.status)}
       />
     ) : null}
     </>
@@ -885,25 +800,33 @@ const DETAIL_TABS = [
 
 interface ApplicantDetailPageProps {
   applicantIdOverride?: string;
+  applicantOverride?: ApplicantFixture;
   embedded?: boolean;
   onClose?: () => void;
+  onDecision?: (decision: ApplicantReviewDecision) => void;
 }
 
 export function ApplicantDetailPage({
   applicantIdOverride,
+  applicantOverride,
   embedded = false,
   onClose,
+  onDecision,
 }: ApplicantDetailPageProps = {}) {
   const { applicantId: routeApplicantId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const applicantId = applicantIdOverride ?? routeApplicantId;
-  const applicant = findApplicantFixture(applicantId);
+  const applicant = applicantOverride ?? findApplicantFixture(applicantId);
   const showAutoRejectionDetails =
     applicant?.id === "ap-003" && searchParams.get("fixture") === "auto-rejected";
   const [activeSection, setActiveSection] = useState("featured");
   const [reviewDecision, setReviewDecision] = useState<ApplicantReviewDecision | null>(null);
   const currentDecision = reviewDecision?.applicantId === applicant?.id ? reviewDecision : null;
+  const handleDecision = (decision: ApplicantReviewDecision) => {
+    setReviewDecision(decision);
+    onDecision?.(decision);
+  };
 
   return (
     <>
@@ -921,7 +844,7 @@ export function ApplicantDetailPage({
             <ReviewSection
               applicant={applicant}
               key={`${applicant.id}-${showAutoRejectionDetails}`}
-              onDecision={setReviewDecision}
+              onDecision={handleDecision}
               showAutoRejectionDetails={showAutoRejectionDetails}
             />
             <DeliverySection applicant={applicant} />

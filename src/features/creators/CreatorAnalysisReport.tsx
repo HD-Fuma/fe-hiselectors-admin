@@ -1,7 +1,11 @@
 import { Siren } from "lucide-react";
 import { formatNumber } from "../../lib/formatters";
-import { AnalysisFormatDonut } from "./AnalysisFormatDonut";
-import { CREATORS, type CreatorFixture } from "./fixtures";
+import { AnalysisFormatDonut } from "../../components/charts/AnalysisFormatDonut";
+import { CREATORS, type CreatorFixture } from "../../entities/creator/model/fixtures";
+import {
+  deriveCadence,
+  deriveEngagementRate,
+} from "../../entities/creator/model/analysis";
 
 type AverageMetric = number | null;
 
@@ -240,78 +244,6 @@ function creatorPercentileContext(): AnalysisPercentileContext {
 
 function hasRiskFactor(value: string) {
   return !["미확인", "없음", "해당 없음", "발견되지 않"].some((phrase) => value.includes(phrase));
-}
-
-export function topNScore(creator: CreatorFixture) {
-  const engagement = engagementResultForCreator(creator);
-  return engagement.value === null ? null : engagement.value * Math.log(1 + creator.profile.followers);
-}
-
-export function deriveCadence(postDates: readonly string[], updatedAt: string, windowDays: number) {
-  const toDay = (date: string) => Date.parse(`${date}T00:00:00Z`) / 86_400_000;
-  const updatedDay = toDay(updatedAt);
-  const firstDay = updatedDay - windowDays + 1;
-  const sortedDays = postDates
-    .map(toDay)
-    .filter((day) => day >= firstDay && day <= updatedDay)
-    .sort((left, right) => right - left);
-  const longestGapDays = sortedDays.slice(1).reduce((longest, day, index) => {
-    return Math.max(longest, sortedDays[index] - day - 1);
-  }, 0);
-  return {
-    dailyAverage: Number((sortedDays.length / windowDays).toFixed(2)),
-    weeklyAverage: Number(((sortedDays.length / windowDays) * 7).toFixed(1)),
-    longestGapDays,
-  };
-}
-
-export function deriveEngagementRate(
-  samples: readonly { audience: number; likes: number; comments: number | null }[],
-) {
-  const eligible = samples.filter(
-    (sample): sample is { audience: number; likes: number; comments: number } =>
-      sample.audience > 0 && sample.comments !== null,
-  );
-  if (eligible.length === 0) {
-    return { value: null, sampleSize: 0 };
-  }
-
-  const totalRate = eligible.reduce(
-    (sum, sample) => sum + ((sample.likes + sample.comments) / sample.audience) * 100,
-    0,
-  );
-  return { value: Number((totalRate / eligible.length).toFixed(2)), sampleSize: eligible.length };
-}
-
-export function engagementResultForCreator(creator: CreatorFixture) {
-  const samples = CREATOR_ANALYSES[creator.id]?.engagementSamples
-    ?? ADDITIONAL_ENGAGEMENT_SAMPLES[creator.id]
-    ?? [];
-  return deriveEngagementRate(samples);
-}
-
-export function rankTopTwoN(creators: readonly CreatorFixture[], targetCount: number) {
-  return [...creators]
-    .filter((creator) => topNScore(creator) !== null)
-    .sort((left, right) => (topNScore(right) ?? 0) - (topNScore(left) ?? 0))
-    .slice(0, targetCount * 2);
-}
-
-export function selectTopNWithCategoryQuota(
-  candidates: readonly CreatorFixture[],
-  targetCount: number,
-  maxPerCategory: number,
-) {
-  const categoryCounts = new Map<string, number>();
-  const selected: CreatorFixture[] = [];
-  for (const creator of candidates) {
-    if (selected.length === targetCount || (categoryCounts.get(creator.category) ?? 0) >= maxPerCategory) {
-      continue;
-    }
-    categoryCounts.set(creator.category, (categoryCounts.get(creator.category) ?? 0) + 1);
-    selected.push(creator);
-  }
-  return selected;
 }
 
 function AnalysisFields({ children, label }: { children: React.ReactNode; label: string }) {

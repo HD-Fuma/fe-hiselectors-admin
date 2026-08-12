@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
-import type { CreatorFixture } from "./fixtures";
+import type { CreatorFixture } from "../../entities/creator/model/fixtures";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
-import { CreatorCardProfileHeader } from "./CreatorCardProfileHeader";
+import { CreatorCardProfileHeader } from "../../entities/creator/ui/CreatorCardProfileHeader";
 import { CreatorKeywordTags } from "./CreatorKeywordTags";
 
 // eslint-disable-next-line react-refresh/only-export-components

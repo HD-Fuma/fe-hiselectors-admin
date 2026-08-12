@@ -9,11 +9,11 @@ test("renders the FUMA application root", () => {
   expect(container.querySelector('[data-app-ready="true"]')).toBeInTheDocument();
 });
 
-test("opens the administrator performance dashboard at the application root", () => {
+test("opens the default administrator screen at the application root", () => {
   render(<App initialEntries={["/"]} />);
 
-  expect(screen.getByRole("heading", { name: "관리자 성과 대시보드" })).toBeInTheDocument();
-  expect(screen.getByText("PF101")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
+  expect(screen.getByRole("navigation", { name: "관리자 메뉴" })).toBeInTheDocument();
 });
 
 test("renders browser routes beneath a GitHub Pages repository base path", () => {
@@ -25,7 +25,7 @@ test("renders browser routes beneath a GitHub Pages repository base path", () =>
     render(<RouterProvider router={router} />);
 
     expect(screen.getByRole("main")).toBeInTheDocument();
-    expect(screen.getByText("Partners")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hi-Selectors" })).toBeInTheDocument();
   } finally {
     window.history.replaceState({}, "", previousPath || "/");
   }

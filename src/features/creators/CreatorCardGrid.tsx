@@ -1,5 +1,5 @@
 import { CreatorEvidenceCard } from "./CreatorEvidenceCard";
-import type { CreatorFixture } from "./fixtures";
+import type { CreatorFixture } from "../../entities/creator/model/fixtures";
 
 export function CreatorCardGrid({
   actionFor,

@@ -6,21 +6,24 @@ import { Pagination } from "../../components/ui/Pagination";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
-import { SettlementTable } from "../../components/ui/SettlementTable";
-import { formatWon } from "../../lib/formatters";
-import { paginate } from "../../lib/pagination";
-import { SelectorDetailPanel } from "../selectors/SelectorPages";
-import { SELECTORS, type SelectorFixture } from "../selectors/fixtures";
 import {
   SETTLEMENTS,
-  type PaymentStatus,
-  type SettlementFixture,
-} from "./fixtures";
+  SETTLEMENT_PAYMENT_STATUSES,
+  SettlementTable,
+  type Settlement,
+  type SettlementPaymentStatus,
+} from "../../entities/settlement";
+import {
+  SELECTORS,
+  SelectorDetailPanel,
+  type SelectorFixture,
+} from "../../entities/selector";
+import { formatWon } from "../../lib/formatters";
+import { paginate } from "../../lib/pagination";
 
-const PAYMENT_STATUS_CATEGORIES: PaymentStatus[] = ["대기", "확정", "지급 완료"];
 const SETTLEMENT_PAGE_SIZE = 20;
 
-function selectorDetailForSettlement(settlement: SettlementFixture): SelectorFixture {
+function selectorDetailForSettlement(settlement: Settlement): SelectorFixture {
   const selector = SELECTORS.find((item) => item.id === settlement.selectorId);
 
   if (selector) {
@@ -89,12 +92,12 @@ function SettlementFilters({
 
 export function SettlementManagementPage() {
   const [page, setPage] = useState(1);
-  const [selectedSettlement, setSelectedSettlement] = useState<SettlementFixture | null>(null);
+  const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(null);
   const [selectedMonth, setSelectedMonth] = useState("2026-08");
   const [keyword, setKeyword] = useState("");
   const [appliedMonth, setAppliedMonth] = useState("2026-08");
   const [appliedKeyword, setAppliedKeyword] = useState("");
-  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<PaymentStatus | null>(null);
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<SettlementPaymentStatus | null>(null);
   const normalizedKeyword = appliedKeyword.trim().toLowerCase();
   const monthlySettlements = appliedMonth
     ? SETTLEMENTS.filter((settlement) => settlement.attributionMonth === appliedMonth)
@@ -134,7 +137,7 @@ export function SettlementManagementPage() {
 
   return (
     <section className="fuma-page">
-      <PageHeader screenCode="ST101" title="정산 지급 관리" />
+      <PageHeader title="정산 지급 관리" />
       <div className="fuma-page__body">
         <SettlementFilters
           keyword={keyword}
@@ -157,7 +160,7 @@ export function SettlementManagementPage() {
             >
               전체
             </button>
-            {PAYMENT_STATUS_CATEGORIES.map((status) => (
+            {SETTLEMENT_PAYMENT_STATUSES.map((status) => (
               <button
                 aria-pressed={selectedPaymentStatus === status}
                 className="fuma-creator-category-filter__option"

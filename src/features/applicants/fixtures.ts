@@ -1,4 +1,4 @@
-import type { AiSummaryReport } from "../../components/content/AiSummaryPanel";
+import type { AiSummaryReport } from "../../entities/analysis/model/AiSummaryReport";
 
 export type ReviewStatus = "검토 대기" | "승인" | "반려" | "자동 반려";
 export type DeliveryChannel = "이메일" | "알림톡";

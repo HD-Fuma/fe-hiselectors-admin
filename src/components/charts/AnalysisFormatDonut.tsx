@@ -8,13 +8,12 @@ export interface AnalysisFormatSegment {
   start: number;
 }
 
-export function AnalysisFormatDonut({
-  segments,
-  total,
-}: {
+export interface AnalysisFormatDonutProps {
   segments: readonly AnalysisFormatSegment[];
   total: number;
-}) {
+}
+
+export function AnalysisFormatDonut({ segments, total }: AnalysisFormatDonutProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const radius = 40;
   const circumference = 2 * Math.PI * radius;

@@ -11,8 +11,10 @@
     "build": "tsc -b && vite build",
     "build:pages": "tsc -b && vite build --mode pages && node scripts/prepare-pages-build.mjs && node scripts/verify-pages-build.mjs",
     "test": "vitest",
+    "test:run": "vitest --run",
     "test:visual": "playwright test",
     "lint": "eslint .",
+    "check": "npm run lint && npm run test:run && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {

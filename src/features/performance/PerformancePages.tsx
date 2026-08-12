@@ -1193,7 +1193,7 @@ export function PerformanceDashboardPage() {
 
   return (
     <section className="fuma-page fuma-performance-page">
-      <PageHeader screenCode="PF101" title="관리자 성과 대시보드" />
+      <PageHeader title="관리자 성과 대시보드" />
       <div className="fuma-page__body">
         <PerformanceFilters
           onChange={updateDraftFilter}
@@ -1277,7 +1277,7 @@ export function SelectorPerformancePage() {
 
   return (
     <section className="fuma-page fuma-performance-page">
-      <PageHeader screenCode="PF201" title="셀렉터스 성과" />
+      <PageHeader title="셀렉터스 성과" />
       <div className="fuma-page__body">
         <PerformanceFilters
           keyword={{
@@ -1503,7 +1503,7 @@ export function ContentPerformancePage() {
 
   return (
     <section className="fuma-page fuma-performance-page">
-      <PageHeader screenCode="PF202" title="콘텐츠 성과" />
+      <PageHeader title="콘텐츠 성과" />
       <div className="fuma-page__body">
         <PerformanceFilters
           keyword={{
@@ -1576,7 +1576,7 @@ export function ProductPerformancePage() {
 
   return (
     <section className="fuma-page fuma-performance-page">
-      <PageHeader screenCode="PF203" title="캠페인 성과" />
+      <PageHeader title="캠페인 성과" />
       <div className="fuma-page__body">
         <PerformanceFilters
           keyword={{

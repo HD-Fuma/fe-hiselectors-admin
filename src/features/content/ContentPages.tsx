@@ -33,8 +33,9 @@ import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { paginate } from "../../lib/pagination";
-import { CreatorCardProfileHeader } from "../creators/CreatorCardProfileHeader";
+import { CreatorCardProfileHeader } from "../../entities/creator/ui/CreatorCardProfileHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
+import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
 import {
   CONTENT_REVIEWS,
   REVIEW_TYPE_LABELS,
@@ -47,10 +48,6 @@ import {
   type ReviewStatus,
 } from "./fixtures";
 
-const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube"].map((label) => ({
-  label,
-  value: label === "전체" ? "" : label,
-}));
 const CONTENT_REVIEW_PAGE_SIZE = 20;
 type ContentReviewCategory = "신규" | "수정" | "검수 완료";
 
@@ -139,7 +136,7 @@ function QueueFilters({
           <Select
             id="content-review-platform"
             onChange={(event) => setPlatform(event.target.value)}
-            options={PLATFORM_OPTIONS}
+            options={SOCIAL_PLATFORM_FILTER_OPTIONS}
             value={platform}
           />
         </FilterField>
@@ -678,7 +675,7 @@ function ContentReviewCategoryTabs({
   onSelect: (category: ContentReviewCategory) => void;
 }) {
   return (
-    <nav aria-label="콘텐츠 처리 구분" className="fuma-creator-category-filter fuma-cohort-status-filter">
+    <nav aria-label="콘텐츠 처리 구분" className="fuma-creator-category-filter fuma-list-action-toolbar">
       <div>
         {CONTENT_REVIEW_CATEGORIES.map((category) => (
           <button
@@ -759,7 +756,7 @@ export function ContentReviewListPage() {
   const viewMode = searchParams.get("view") === "list" ? "list" : "grid";
   const appliedFilters: QueueFilterValues = {
     keyword: searchParams.get("q") ?? "",
-    platform: PLATFORM_OPTIONS.some(({ value }) => value === searchParams.get("platform"))
+    platform: SOCIAL_PLATFORM_FILTER_OPTIONS.some(({ value }) => value === searchParams.get("platform"))
       ? searchParams.get("platform") ?? ""
       : "",
   };
@@ -827,7 +824,7 @@ export function ContentReviewListPage() {
 
   return (
     <section className="fuma-page" data-visual-contract="content-review">
-      <PageHeader screenCode="CT101" title="콘텐츠 검수" />
+      <PageHeader title="콘텐츠 검수" />
       <div className="fuma-page__body">
         <QueueFilters
           appliedFilters={appliedFilters}
@@ -1623,7 +1620,7 @@ export function ContentReviewDetailPage() {
 
   return (
     <section className="fuma-page fuma-content-review-detail" data-visual-contract="content-review">
-      <PageHeader screenCode="CT102" title="콘텐츠 검수 상세" />
+      <PageHeader title="콘텐츠 검수 상세" />
       <div className="fuma-page__body">
         {content ? (
           <>

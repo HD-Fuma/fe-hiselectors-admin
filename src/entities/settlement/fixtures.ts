@@ -1,16 +1,4 @@
-export type ConfirmationStatus = "미확정" | "확정";
-export type PaymentStatus = "대기" | "확정" | "지급 완료";
-
-export interface SettlementFixture {
-  id: string;
-  attributionMonth: string;
-  selectorId: string;
-  selectorName: string;
-  expectedAmount: number;
-  confirmedAmount: number;
-  confirmationStatus: ConfirmationStatus;
-  paymentStatus: PaymentStatus;
-}
+import type { Settlement, SettlementPaymentStatus } from "./model";
 
 const ADDITIONAL_SETTLEMENT_SEEDS = [
   ["김하린", 328000],
@@ -56,8 +44,8 @@ const ADDITIONAL_SETTLEMENT_SEEDS = [
 ] as const;
 
 const ADDITIONAL_SETTLEMENTS = ADDITIONAL_SETTLEMENT_SEEDS.map(
-  ([selectorName, expectedAmount], index): SettlementFixture => {
-    const paymentStatus: PaymentStatus =
+  ([selectorName, expectedAmount], index): Settlement => {
+    const paymentStatus: SettlementPaymentStatus =
       index % 3 === 0 ? "대기" : index % 3 === 1 ? "확정" : "지급 완료";
     const sequence = index + 5;
 
@@ -74,7 +62,7 @@ const ADDITIONAL_SETTLEMENTS = ADDITIONAL_SETTLEMENT_SEEDS.map(
   },
 );
 
-export const SETTLEMENTS: readonly SettlementFixture[] = [
+export const SETTLEMENTS: readonly Settlement[] = [
   {
     id: "st-001",
     attributionMonth: "2026-08",
@@ -117,5 +105,3 @@ export const SETTLEMENTS: readonly SettlementFixture[] = [
   },
   ...ADDITIONAL_SETTLEMENTS,
 ];
-
-export { formatWon } from "../../lib/formatters";

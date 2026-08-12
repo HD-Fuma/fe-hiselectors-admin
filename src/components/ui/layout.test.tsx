@@ -7,7 +7,6 @@ import { DenseTable, type DenseTableColumn, type DenseTableProps } from "./Dense
 import { EmptyState } from "./EmptyState";
 import { FilterField } from "./FilterField";
 import { FormRow, type FormRowProps } from "./FormRow";
-import { ImageTile, type ImageTileProps } from "./ImageTile";
 import { Modal } from "./Modal";
 import { Pagination } from "./Pagination";
 import { ResultToolbar } from "./ResultToolbar";
@@ -23,12 +22,9 @@ const invalidFormRowLabel: FormRowProps = { children: "field", label: 42 };
 const invalidFormRowHelp: FormRowProps = { children: "field", help: 42, label: "Label" };
 // @ts-expect-error Section-tab labels are text-only contracts.
 const invalidSectionTabLabel: SectionTabsProps = { activeId: "details", items: [{ id: "details", label: 42 }] };
-// @ts-expect-error Image-tile actions must be string labels.
-const invalidImageTileActions: ImageTileProps = { actions: [42], alt: "Product image" };
 void invalidFormRowLabel;
 void invalidFormRowHelp;
 void invalidSectionTabLabel;
-void invalidImageTileActions;
 
 test("renders a form row label, required marker, control, and help text", () => {
   render(
@@ -111,32 +107,6 @@ test("shows the current page, total pages, and page size", () => {
   expect(within(pagination).getByText("페이지당 25개")).toBeInTheDocument();
   expect(within(pagination).getByRole("button", { name: "이전 페이지" })).toBeDisabled();
   expect(within(pagination).getByRole("button", { name: "다음 페이지" })).toBeDisabled();
-});
-
-test("renders an image with alt text or an empty upload tile with actions", () => {
-  render(
-    <>
-      <ImageTile alt="Product thumbnail" src="/product-thumbnail.png" />
-      <ImageTile alt="Additional product image" empty actions={["Add image"]} />
-    </>,
-  );
-
-  expect(screen.getByRole("img", { name: "Product thumbnail" })).toHaveAttribute(
-    "src",
-    "/product-thumbnail.png",
-  );
-  const emptyTile = screen.getByRole("group", { name: "Additional product image" });
-  expect(within(emptyTile).getByText("이미지 등록")).toBeInTheDocument();
-  expect(within(emptyTile).getByRole("button", { name: "Add image" })).toBeInTheDocument();
-});
-
-test("renders string image actions as inert tile controls", () => {
-  render(<ImageTile alt="Gallery image" empty actions={["Register", "Delete", "View"]} />);
-
-  const tile = screen.getByRole("group", { name: "Gallery image" });
-  expect(within(tile).getByRole("button", { name: "Register" })).toBeInTheDocument();
-  expect(within(tile).getByRole("button", { name: "Delete" })).toBeInTheDocument();
-  expect(within(tile).getByRole("button", { name: "View" })).toBeInTheDocument();
 });
 
 test("renders modal content and actions only while open", () => {

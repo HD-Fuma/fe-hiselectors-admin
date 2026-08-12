@@ -232,8 +232,7 @@
 }
 
 .hsas-search-panel__actions,
-.hsas-modal__actions,
-.hsas-image-tile__actions {
+.hsas-modal__actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -300,72 +299,6 @@
 .hsas-pagination__size {
   padding-left: var(--hsas-space-8);
   border-left: 1px solid var(--hsas-border);
-}
-
-.hsas-image-tile {
-  display: inline-flex;
-  width: 132px;
-  flex-direction: column;
-  border: 1px solid var(--hsas-border);
-  border-radius: var(--hsas-radius-square);
-  background: var(--hsas-surface);
-  vertical-align: top;
-}
-
-.hsas-image-tile__preview {
-  display: flex;
-  width: 130px;
-  height: 104px;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background: #f4f5f6;
-}
-
-.hsas-image-tile__image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.hsas-image-tile__placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--hsas-space-4);
-  color: var(--hsas-text-muted);
-  font-size: var(--hsas-font-11);
-}
-
-.hsas-image-tile__placeholder-icon {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  place-items: center;
-  border: 1px solid var(--hsas-border-dark);
-  background: var(--hsas-surface);
-  color: var(--hsas-teal);
-  font-size: var(--hsas-font-18);
-  line-height: 1;
-}
-
-.hsas-image-tile__actions {
-  min-height: 33px;
-  padding: var(--hsas-space-3);
-  border-top: 1px solid var(--hsas-border);
-}
-
-.hsas-image-tile__action {
-  min-width: 0;
-  height: 25px;
-  flex: 1;
-  padding: 0 var(--hsas-space-3);
-  border: 1px solid var(--hsas-border-dark);
-  border-radius: var(--hsas-radius-square);
-  background: var(--hsas-surface);
-  color: #4d5559;
-  font-size: var(--hsas-font-11);
-  cursor: default;
 }
 
 .hsas-modal-backdrop {
@@ -3420,16 +3353,22 @@
   font-size: var(--hsas-font-11);
 }
 
-.fuma-cohort-status-filter {
+.fuma-list-action-toolbar {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
   gap: var(--hsas-space-20);
 }
 
-.fuma-cohort-status-filter > .hsas-button {
+.fuma-list-action-toolbar > .hsas-button {
   flex: 0 0 auto;
-  margin-top: 0;
+  margin-block: var(--hsas-space-4);
+  border-color: transparent;
+}
+
+.fuma-list-action-toolbar > .hsas-button:hover:not(:disabled),
+.fuma-list-action-toolbar > .hsas-button:disabled {
+  border-color: transparent;
 }
 
 .fuma-settlement-result-meta {

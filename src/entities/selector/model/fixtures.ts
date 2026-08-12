@@ -1,0 +1,553 @@
+export interface CohortFixture {
+  id: string;
+  generationId: number;
+  name: string;
+  startDate: string;
+  endDate: string;
+  status: "활성" | "비활성";
+  participantCount: number;
+}
+
+export interface SelectorFixture {
+  id: string;
+  selectorCode: string;
+  name: string;
+  shopNickname: string;
+  cohort: string;
+  sns: "Instagram" | "YouTube";
+  category?: string;
+  followers?: number;
+  status: "활동 중" | "경고" | "박탈" | "수료";
+  contentCount: number;
+  violationCount: number;
+  clicks: number;
+  conversions: number;
+  recentActivity: string;
+}
+
+export interface QualificationFixture {
+  selectorId: string;
+  name: string;
+  cohort: string;
+  currentStatus: SelectorFixture["status"];
+  proposedStatus: SelectorFixture["status"];
+  penaltyCount: number;
+  revocationReason: string;
+  blacklisted: boolean;
+  blacklistedAt: string;
+  nextCohortRestricted: boolean;
+  changeReason: string;
+}
+
+function formatFixtureDate(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function fixtureCohortStatus(startDate: string, endDate: string): CohortFixture["status"] {
+  const today = formatFixtureDate(new Date());
+  return startDate <= today && today <= endDate ? "활성" : "비활성";
+}
+
+export const COHORTS: CohortFixture[] = Array.from({ length: 60 }, (_, index) => {
+  const generationId = 60 - index;
+  const start = new Date(2022, generationId - 1, 1);
+  const end = new Date(2022, generationId + 2, 0);
+  const startDate = formatFixtureDate(start);
+  const endDate = formatFixtureDate(end);
+
+  return {
+    id: `cohort-${String(generationId).padStart(3, "0")}`,
+    generationId,
+    name: `테스트기수${generationId}`,
+    startDate,
+    endDate,
+    status: fixtureCohortStatus(startDate, endDate),
+    participantCount: startDate > formatFixtureDate(new Date()) ? 0 : 24 + ((generationId * 7) % 43),
+  };
+});
+
+const SELECTOR_BASE_FIXTURES: Array<Omit<SelectorFixture, "selectorCode" | "shopNickname">> = [
+  {
+    id: "sl-001",
+    name: "김서연",
+    cohort: "3기",
+    sns: "Instagram",
+    category: "뷰티",
+    followers: 82_400,
+    status: "활동 중",
+    contentCount: 18,
+    violationCount: 0,
+    clicks: 12840,
+    conversions: 428,
+    recentActivity: "2026-08-02",
+  },
+  {
+    id: "sl-002",
+    name: "박도윤",
+    cohort: "3기",
+    sns: "YouTube",
+    category: "리빙/라이프",
+    followers: 76_200,
+    status: "경고",
+    contentCount: 11,
+    violationCount: 2,
+    clicks: 7640,
+    conversions: 206,
+    recentActivity: "2026-08-01",
+  },
+  {
+    id: "sl-003",
+    name: "이지아",
+    cohort: "2기",
+    sns: "Instagram",
+    category: "여행",
+    followers: 32_700,
+    status: "박탈",
+    contentCount: 7,
+    violationCount: 3,
+    clicks: 3120,
+    conversions: 54,
+    recentActivity: "2026-07-18",
+  },
+  {
+    id: "sl-004",
+    name: "오하늘",
+    cohort: "2기",
+    sns: "Instagram",
+    category: "푸드",
+    followers: 486_000,
+    status: "수료",
+    contentCount: 24,
+    violationCount: 0,
+    clicks: 18600,
+    conversions: 711,
+    recentActivity: "2026-07-31",
+  },
+  {
+    id: "sl-005",
+    name: "김하린",
+    cohort: "3기",
+    sns: "Instagram",
+    category: "패션",
+    followers: 112_400,
+    status: "활동 중",
+    contentCount: 21,
+    violationCount: 0,
+    clicks: 15_980,
+    conversions: 604,
+    recentActivity: "2026-08-05",
+  },
+  {
+    id: "sl-006",
+    name: "윤서준",
+    cohort: "3기",
+    sns: "YouTube",
+    category: "유아동/패밀리",
+    followers: 68_600,
+    status: "활동 중",
+    contentCount: 16,
+    violationCount: 0,
+    clicks: 9_640,
+    conversions: 282,
+    recentActivity: "2026-08-04",
+  },
+  {
+    id: "sl-007",
+    name: "박다은",
+    cohort: "3기",
+    sns: "Instagram",
+    category: "컬처/서비스",
+    followers: 44_900,
+    status: "활동 중",
+    contentCount: 13,
+    violationCount: 0,
+    clicks: 6_280,
+    conversions: 156,
+    recentActivity: "2026-08-03",
+  },
+  {
+    id: "sl-008",
+    name: "최민호",
+    cohort: "3기",
+    sns: "Instagram",
+    category: "스포츠/레저",
+    followers: 158_000,
+    status: "활동 중",
+    contentCount: 28,
+    violationCount: 0,
+    clicks: 21_420,
+    conversions: 768,
+    recentActivity: "2026-08-05",
+  },
+  {
+    id: "sl-009",
+    name: "이수아",
+    cohort: "3기",
+    sns: "Instagram",
+    category: "반려생활",
+    followers: 53_800,
+    status: "경고",
+    contentCount: 9,
+    violationCount: 1,
+    clicks: 4_730,
+    conversions: 103,
+    recentActivity: "2026-07-30",
+  },
+  {
+    id: "sl-010",
+    name: "정현우",
+    cohort: "3기",
+    sns: "YouTube",
+    category: "아울렛",
+    followers: 96_500,
+    status: "활동 중",
+    contentCount: 18,
+    violationCount: 0,
+    clicks: 11_840,
+    conversions: 395,
+    recentActivity: "2026-08-04",
+  },
+  {
+    id: "sl-011",
+    name: "한유진",
+    cohort: "3기",
+    sns: "Instagram",
+    category: "뷰티",
+    followers: 127_300,
+    status: "활동 중",
+    contentCount: 25,
+    violationCount: 0,
+    clicks: 19_670,
+    conversions: 721,
+    recentActivity: "2026-08-05",
+  },
+  {
+    id: "sl-012",
+    name: "오지민",
+    cohort: "3기",
+    sns: "YouTube",
+    category: "리빙/라이프",
+    followers: 39_200,
+    status: "경고",
+    contentCount: 8,
+    violationCount: 2,
+    clicks: 3_980,
+    conversions: 79,
+    recentActivity: "2026-07-29",
+  },
+  {
+    id: "sl-013",
+    name: "서도현",
+    cohort: "3기",
+    sns: "Instagram",
+    category: "여행",
+    followers: 74_100,
+    status: "활동 중",
+    contentCount: 17,
+    violationCount: 0,
+    clicks: 10_260,
+    conversions: 318,
+    recentActivity: "2026-08-02",
+  },
+  {
+    id: "sl-014",
+    name: "문채원",
+    cohort: "3기",
+    sns: "YouTube",
+    category: "푸드",
+    followers: 214_000,
+    status: "활동 중",
+    contentCount: 31,
+    violationCount: 0,
+    clicks: 27_480,
+    conversions: 1_049,
+    recentActivity: "2026-08-05",
+  },
+  {
+    id: "sl-015",
+    name: "류시온",
+    cohort: "2기",
+    sns: "Instagram",
+    category: "패션",
+    followers: 57_600,
+    status: "수료",
+    contentCount: 22,
+    violationCount: 0,
+    clicks: 13_120,
+    conversions: 438,
+    recentActivity: "2026-07-28",
+  },
+  {
+    id: "sl-016",
+    name: "장예린",
+    cohort: "2기",
+    sns: "Instagram",
+    category: "유아동/패밀리",
+    followers: 42_100,
+    status: "박탈",
+    contentCount: 6,
+    violationCount: 3,
+    clicks: 2_140,
+    conversions: 29,
+    recentActivity: "2026-07-12",
+  },
+  {
+    id: "sl-017",
+    name: "신태윤",
+    cohort: "2기",
+    sns: "Instagram",
+    category: "컬처/서비스",
+    followers: 88_900,
+    status: "활동 중",
+    contentCount: 20,
+    violationCount: 0,
+    clicks: 14_860,
+    conversions: 496,
+    recentActivity: "2026-08-01",
+  },
+  {
+    id: "sl-018",
+    name: "권나연",
+    cohort: "2기",
+    sns: "YouTube",
+    category: "스포츠/레저",
+    followers: 61_400,
+    status: "수료",
+    contentCount: 19,
+    violationCount: 0,
+    clicks: 12_430,
+    conversions: 384,
+    recentActivity: "2026-07-31",
+  },
+  {
+    id: "sl-019",
+    name: "배준호",
+    cohort: "2기",
+    sns: "Instagram",
+    category: "반려생활",
+    followers: 36_500,
+    status: "활동 중",
+    contentCount: 14,
+    violationCount: 0,
+    clicks: 7_320,
+    conversions: 192,
+    recentActivity: "2026-08-03",
+  },
+  {
+    id: "sl-020",
+    name: "임소율",
+    cohort: "2기",
+    sns: "Instagram",
+    category: "아울렛",
+    followers: 105_800,
+    status: "활동 중",
+    contentCount: 23,
+    violationCount: 0,
+    clicks: 17_240,
+    conversions: 579,
+    recentActivity: "2026-08-04",
+  },
+];
+
+const SELECTOR_SHOP_NICKNAMES = [
+  "서연픽",
+  "도윤리빙",
+  "지아트립",
+  "하늘키친",
+  "하린클로젯",
+  "서준패밀리",
+  "다은컬처",
+  "민호플레이",
+  "수아펫",
+  "현우아울렛",
+  "유진뷰티",
+  "지민홈",
+  "도현트립",
+  "채원테이블",
+  "시온스타일",
+  "예린패밀리",
+  "태윤컬처",
+  "나연스포츠",
+  "준호펫",
+  "소율아울렛",
+] as const;
+
+const GENERATED_BLACKLIST_NAMES = [
+  "김민지",
+  "이준서",
+  "박서윤",
+  "최지후",
+  "정하은",
+  "강민재",
+  "조예원",
+  "윤도현",
+  "장수빈",
+  "임지호",
+  "한서아",
+  "오시우",
+  "신채린",
+  "권태민",
+  "황유나",
+  "안재윤",
+  "송다인",
+  "전우진",
+  "홍나경",
+  "배시현",
+  "백예서",
+  "문건우",
+  "류아린",
+  "고현준",
+  "남지안",
+  "심도윤",
+  "노하영",
+  "하민성",
+  "주서현",
+  "양유준",
+  "성채아",
+  "차은호",
+  "원소민",
+  "천재희",
+  "방서우",
+  "공민서",
+  "표지환",
+  "진예은",
+] as const;
+
+const GENERATED_BLACKLIST_NICKNAMES = [
+  "민지뷰티",
+  "준서리빙",
+  "서윤트립",
+  "지후키친",
+  "하은스타일",
+  "민재패밀리",
+  "예원컬처",
+  "도현플레이",
+  "수빈펫",
+  "지호마켓",
+  "서아뷰티",
+  "시우홈",
+  "채린트립",
+  "태민테이블",
+  "유나클로젯",
+  "재윤패밀리",
+  "다인컬처",
+  "우진스포츠",
+  "나경펫",
+  "시현아울렛",
+  "예서픽",
+  "건우리빙",
+  "아린트립",
+  "현준키친",
+  "지안스타일",
+  "도윤패밀리",
+  "하영컬처",
+  "민성플레이",
+  "서현펫",
+  "유준마켓",
+  "채아뷰티",
+  "은호홈",
+  "소민트립",
+  "재희테이블",
+  "서우클로젯",
+  "민서패밀리",
+  "지환컬처",
+  "예은플레이",
+] as const;
+
+const GENERATED_BLACKLIST_CATEGORIES = [
+  "뷰티",
+  "리빙/라이프",
+  "여행",
+  "푸드",
+  "패션",
+  "유아동/패밀리",
+  "컬처/서비스",
+  "스포츠/레저",
+  "반려생활",
+  "아울렛",
+] as const;
+
+const GENERATED_BLACKLIST_FIXTURES: SelectorFixture[] = GENERATED_BLACKLIST_NAMES.map(
+  (name, index): SelectorFixture => {
+    const selectorNumber = index + 21;
+
+    return {
+      id: `sl-${String(selectorNumber).padStart(3, "0")}`,
+      selectorCode: `SEL-${String(selectorNumber).padStart(4, "0")}`,
+      name,
+      shopNickname: GENERATED_BLACKLIST_NICKNAMES[index],
+      cohort: `테스트기수${52 - (index % 19)}`,
+      sns: index % 3 === 0 ? "YouTube" : "Instagram",
+      category: GENERATED_BLACKLIST_CATEGORIES[index % GENERATED_BLACKLIST_CATEGORIES.length],
+      followers: 24_500 + index * 3_750,
+      status: "박탈",
+      contentCount: 5 + (index % 9),
+      violationCount: 3 + (index % 4),
+      clicks: 1_860 + index * 285,
+      conversions: 21 + index * 7,
+      recentActivity: `2026-07-${String(28 - (index % 24)).padStart(2, "0")}`,
+    };
+  },
+);
+
+export const SELECTORS: SelectorFixture[] = [
+  ...SELECTOR_BASE_FIXTURES.map((selector, index) => ({
+    ...selector,
+    cohort: selector.cohort === "3기" ? "테스트기수56" : "테스트기수53",
+    selectorCode: `SEL-${String(index + 1).padStart(4, "0")}`,
+    shopNickname: SELECTOR_SHOP_NICKNAMES[index] ?? `${selector.name}샵`,
+    sns: selector.sns === "YouTube" ? "YouTube" as const : "Instagram" as const,
+  })),
+  ...GENERATED_BLACKLIST_FIXTURES,
+];
+
+export const SELECTED_QUALIFICATION: QualificationFixture = {
+  selectorId: "sl-003",
+  name: "이지아",
+  cohort: "테스트기수53",
+  currentStatus: "박탈",
+  proposedStatus: "박탈",
+  penaltyCount: 3,
+  revocationReason: "콘텐츠 운영 기준 위반 3회 누적",
+  blacklisted: true,
+  blacklistedAt: "2026-07-18",
+  nextCohortRestricted: true,
+  changeReason: "누적 위반 확정으로 블랙리스트 등록",
+};
+
+const BLACKLIST_REVOCATION_REASONS = [
+  "콘텐츠 운영 기준 위반 3회 누적",
+  "필수 광고 표기 누락 반복",
+  "허위·과장 정보 게시 반복",
+  "승인되지 않은 공동구매 진행",
+  "타인 콘텐츠 무단 사용 누적",
+  "정산 및 주문 처리 기준 위반",
+  "금지 품목 홍보 콘텐츠 게시",
+  "운영진 시정 요청 불이행",
+] as const;
+
+export const QUALIFICATIONS: QualificationFixture[] = SELECTORS.filter(
+  (selector) => selector.status === "박탈",
+).map((selector, index) => {
+  if (selector.id === SELECTED_QUALIFICATION.selectorId) {
+    return SELECTED_QUALIFICATION;
+  }
+
+  return {
+    selectorId: selector.id,
+    name: selector.name,
+    cohort: selector.cohort,
+    currentStatus: "박탈",
+    proposedStatus: "박탈",
+    penaltyCount: Math.max(3, selector.violationCount),
+    revocationReason: BLACKLIST_REVOCATION_REASONS[index % BLACKLIST_REVOCATION_REASONS.length],
+    blacklisted: true,
+    blacklistedAt: `2026-${String(7 - (index % 4)).padStart(2, "0")}-${String(28 - (index % 20)).padStart(2, "0")}`,
+    nextCohortRestricted: true,
+    changeReason: "누적 운영 기준 위반으로 블랙리스트 등록",
+  };
+});

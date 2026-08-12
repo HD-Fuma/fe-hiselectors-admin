@@ -56,7 +56,7 @@ export interface SelectOption {
 }
 
 export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  options?: SelectOption[];
+  options?: readonly SelectOption[];
 }
 
 export function Select({ children, className, options, ...props }: SelectProps) {

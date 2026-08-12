@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { assetUrl } from "./assetUrl";
+import { assetUrl } from "../../../lib/assetUrl";
 
 export function CreatorProfilePhoto({
   creatorName,

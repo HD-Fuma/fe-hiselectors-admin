@@ -12,13 +12,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { Link, matchPath } from "react-router-dom";
-import {
-  NAV_GROUPS,
-  getGroupMenuItems,
-  type AdminRouteMeta,
-  type NavGroup,
-} from "../../app/navigation";
+import { Link, matchPath, useNavigate } from "react-router-dom";
+import type {
+  AdminRouteMeta,
+  NavGroup,
+  NavGroupMeta,
+} from "./navigationModel";
 import "../../styles/sidebar-account.css";
 import "../../styles/sidebar-brand.css";
 
@@ -35,11 +34,32 @@ const GROUP_ICONS: Record<NavGroup, LucideIcon> = {
 interface AdminSidebarProps {
   activeRoute: AdminRouteMeta;
   currentPath: string;
+  groups: readonly NavGroupMeta[];
+  routes: readonly AdminRouteMeta[];
 }
 
-export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
+function getGroupMenuItems(routes: readonly AdminRouteMeta[], group: NavGroup) {
+  const labels = new Set<string>();
+
+  return routes.filter((route) => {
+    if (route.group !== group || labels.has(route.menuLabel)) {
+      return false;
+    }
+
+    labels.add(route.menuLabel);
+    return true;
+  });
+}
+
+export function AdminSidebar({
+  activeRoute,
+  currentPath,
+  groups,
+  routes,
+}: AdminSidebarProps) {
+  const navigate = useNavigate();
   const [expandedGroups, setExpandedGroups] = useState<Set<NavGroup>>(
-    () => new Set(NAV_GROUPS.map(({ id }) => id)),
+    () => new Set(groups.map(({ id }) => id)),
   );
 
   const toggleGroup = (groupId: NavGroup) => {
@@ -70,7 +90,7 @@ export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
         aria-label="관리자 메뉴"
         data-selected-group={activeRoute.group}
       >
-        {NAV_GROUPS.map((group) => {
+        {groups.map((group) => {
           const Icon = GROUP_ICONS[group.id];
           const headingId = `hsas-admin-sidebar-group-${group.id}`;
           const listId = `${headingId}-items`;
@@ -110,7 +130,7 @@ export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
                 className="hsas-admin-sidebar__list"
                 hidden={!isExpanded}
               >
-                {getGroupMenuItems(group.id).map((item) => {
+                {getGroupMenuItems(routes, group.id).map((item) => {
                   const isSectionSelected =
                     item.group === activeRoute.group &&
                     item.menuLabel === activeRoute.menuLabel;
@@ -164,6 +184,7 @@ export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
             type="button"
             className="hsas-admin-sidebar__account-action"
             aria-label="로그아웃"
+            onClick={() => navigate("/login", { replace: true })}
           >
             <LogOut aria-hidden="true" />
           </button>

@@ -1,97 +1,22 @@
 import { Navigate, createBrowserRouter, createMemoryRouter, type RouteObject } from "react-router-dom";
-import { AppShell } from "../components/shell/AppShell";
-import { PlaceholderPage } from "../components/shell/PlaceholderPage";
 import { LoginPage } from "../features/auth/LoginPage";
+import { AdminLayout } from "./layout";
 import {
-  ApplicantDetailPage,
-  ApplicantListPage,
-} from "../features/applicants/ApplicantPages";
-import {
-  CreatorDetailPage,
-  CreatorListPage,
-  ProposalComposePage,
-  ProposalHistoryPage,
-} from "../features/creators/CreatorPages";
-import {
-  CohortManagementPage,
-  ExcellentSelectorListPage,
-  QualificationManagementPage,
-  SelectorDetailPage,
-  SelectorOverviewPage,
-} from "../features/selectors/SelectorPages";
-import {
-  CampaignCreatePage,
-  CampaignDetailPage,
-  CampaignEditPage,
-  CampaignListPage,
-} from "../features/campaigns/CampaignPages";
-import {
-  ContentReviewDetailPage,
-  ContentReviewListPage,
-} from "../features/content/ContentPages";
-import {
-  ContentPerformancePage,
-  ProductPerformancePage,
-  SelectorPerformancePage,
-} from "../features/performance/PerformancePages";
-import {
-  SettlementManagementPage,
-} from "../features/operations/OperationsPages";
-import { ADMIN_ROUTES, DEFAULT_ADMIN_ROUTE } from "./navigation";
+  ADMIN_NAVIGATION,
+  ADMIN_ROUTE_MANIFEST,
+  DEFAULT_ADMIN_ROUTE,
+} from "./navigation";
 
-function adminRouteElement(path: string, title: string, screenCode: string) {
-  switch (path) {
-    case "/creators":
-      return <CreatorListPage />;
-    case "/creators/:creatorId":
-      return <CreatorDetailPage />;
-    case "/proposals":
-      return <ProposalHistoryPage />;
-    case "/proposals/new":
-      return <ProposalComposePage />;
-    case "/cohorts":
-      return <CohortManagementPage />;
-    case "/selectors":
-      return <SelectorOverviewPage />;
-    case "/selectors/:selectorId":
-      return <SelectorDetailPage />;
-    case "/selectors/qualifications":
-      return <QualificationManagementPage />;
-    case "/selectors/excellent":
-      return <ExcellentSelectorListPage />;
-    case "/applicants":
-      return <ApplicantListPage />;
-    case "/applicants/:applicantId":
-      return <ApplicantDetailPage />;
-    case "/campaigns":
-      return <CampaignListPage />;
-    case "/campaigns/new":
-      return <CampaignCreatePage />;
-    case "/campaigns/:campaignId":
-      return <CampaignDetailPage />;
-    case "/campaigns/:campaignId/edit":
-      return <CampaignEditPage />;
-    case "/content/reviews":
-      return <ContentReviewListPage />;
-    case "/content/reviews/:contentId":
-      return <ContentReviewDetailPage />;
-    case "/performance/selectors":
-      return <SelectorPerformancePage />;
-    case "/performance/contents":
-      return <ContentPerformancePage />;
-    case "/performance/products":
-      return <ProductPerformancePage />;
-    case "/settlements":
-      return <SettlementManagementPage />;
-    default:
-      return <PlaceholderPage title={title} screenCode={screenCode} />;
-  }
-}
+const adminRouteObjects: RouteObject[] = ADMIN_ROUTE_MANIFEST.map((route) => {
+  const { Component } = route;
 
-const adminRouteObjects: RouteObject[] = ADMIN_ROUTES.map((route) => ({
-  path: route.path.slice(1),
-  element: adminRouteElement(route.path, route.title, route.screenCode),
-}));
+  return {
+    path: route.path.slice(1),
+    element: <Component />,
+  };
+});
+
+const DefaultAdminPage = DEFAULT_ADMIN_ROUTE.Component;
 
 const routes: RouteObject[] = [
   {
@@ -100,15 +25,11 @@ const routes: RouteObject[] = [
   },
   {
     path: "/",
-    element: <AppShell />,
+    element: <AdminLayout navigation={ADMIN_NAVIGATION} />,
     children: [
       {
         index: true,
-        element: adminRouteElement(
-          DEFAULT_ADMIN_ROUTE.path,
-          DEFAULT_ADMIN_ROUTE.title,
-          DEFAULT_ADMIN_ROUTE.screenCode,
-        ),
+        element: <DefaultAdminPage />,
       },
       {
         path: "home",

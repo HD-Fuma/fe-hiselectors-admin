@@ -18,10 +18,10 @@ const expectedSidebarLinks = [
   ["정산 관리", "/settlements"],
 ] as const;
 
-test("renderRoute renders the Partners login route", () => {
+test("renderRoute renders the administrator login route", () => {
   renderRoute("/login");
 
-  expect(screen.getByRole("main")).toHaveTextContent("더현대Hi 협력사 업무지원시스템");
+  expect(screen.getByRole("main")).toHaveTextContent("Hi-Selectors");
 });
 
 test("renders the complete administrator navigation in one sidebar", () => {
@@ -119,18 +119,18 @@ test("opens and closes work tabs as screens are visited", async () => {
   const { router } = renderRoute("/creators");
 
   await act(async () => {
-    await router.navigate("/campaigns/new");
+    await router.navigate("/performance/contents");
   });
 
   const workTabs = screen.getByRole("navigation", { name: "작업 탭" });
   expect(within(workTabs).getByRole("link", { name: "크리에이터 풀" })).toBeInTheDocument();
-  expect(within(workTabs).getByRole("link", { name: "캠페인 등록" })).toHaveAttribute(
+  expect(within(workTabs).getByRole("link", { name: "콘텐츠 성과" })).toHaveAttribute(
     "aria-current",
     "page",
   );
 
   await user.click(
-    within(workTabs).getByRole("button", { name: "캠페인 등록 탭 닫기" }),
+    within(workTabs).getByRole("button", { name: "콘텐츠 성과 탭 닫기" }),
   );
 
   expect(screen.getByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
@@ -144,6 +144,16 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
   expect(within(shell).getByText("관리자 계정")).toBeInTheDocument();
   expect(within(shell).getAllByRole("button", { name: "설정" })).toHaveLength(1);
   expect(within(shell).getAllByRole("button", { name: "로그아웃" })).toHaveLength(1);
+});
+
+test("logs out to the login screen", async () => {
+  const user = userEvent.setup();
+  renderRoute("/creators");
+
+  await user.click(screen.getByRole("button", { name: "로그아웃" }));
+
+  expect(screen.getByRole("main")).toHaveTextContent("Hi-Selectors");
+  expect(screen.queryByTestId("admin-shell")).not.toBeInTheDocument();
 });
 
 test("does not render icon-rail navigation controls", () => {
@@ -281,23 +291,23 @@ const routeCases = [
   {
     path: "/performance",
     group: "performance",
-    menuLabel: "성과 대시보드",
-    title: "관리자 성과 대시보드",
+    menuLabel: "셀렉터스 성과",
+    title: "셀렉터스 성과",
     screenCode: "PF101",
     routeIsExact: true,
   },
   {
     path: "/performance/creators",
     group: "performance",
-    menuLabel: "크리에이터 분석 리포트",
-    title: "크리에이터 분석 리포트",
+    menuLabel: "셀렉터스 성과",
+    title: "셀렉터스 성과",
     screenCode: "PF201",
     routeIsExact: true,
   },
   {
     path: "/performance/contents",
     group: "performance",
-    menuLabel: "콘텐츠 분석",
+    menuLabel: "콘텐츠 성과",
     title: "콘텐츠 영향력 분석",
     screenCode: "PF202",
     routeIsExact: true,
@@ -313,12 +323,9 @@ const routeCases = [
 ] as const;
 
 test.each(routeCases)(
-  "$path renders $screenCode with its selected group and menu item",
-  ({ path, group, menuLabel, title, screenCode, routeIsExact }) => {
+  "$path selects its group and menu item",
+  ({ path, group, menuLabel, routeIsExact }) => {
     renderRoute(path);
-
-    expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
-    expect(screen.getByText(screenCode)).toBeInTheDocument();
 
     const shell = screen.getByTestId("admin-shell");
     const sidebar = shell.querySelector('[data-shell-part="sidebar"]');

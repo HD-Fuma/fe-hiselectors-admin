@@ -1,33 +1,52 @@
-import { matchPath } from "react-router-dom";
+import type { ComponentType } from "react";
+import {
+  ApplicantDetailPage,
+  ApplicantListPage,
+} from "../features/applicants/ApplicantPages";
+import {
+  CampaignCreatePage,
+  CampaignDetailPage,
+  CampaignEditPage,
+  CampaignListPage,
+} from "../features/campaigns/CampaignPages";
+import {
+  ContentReviewDetailPage,
+  ContentReviewListPage,
+} from "../features/content/ContentPages";
+import {
+  CreatorDetailPage,
+  CreatorListPage,
+  ProposalComposePage,
+  ProposalHistoryPage,
+} from "../features/creators/CreatorPages";
+import { SettlementManagementPage } from "../features/operations/OperationsPages";
+import {
+  ContentPerformancePage,
+  ProductPerformancePage,
+  SelectorPerformancePage,
+} from "../features/performance/PerformancePages";
+import {
+  CohortManagementPage,
+  ExcellentSelectorListPage,
+  QualificationManagementPage,
+  SelectorDetailPage,
+  SelectorOverviewPage,
+} from "../features/selectors/SelectorPages";
+import type {
+  AdminNavigation,
+  AdminRouteMeta,
+  NavGroupMeta,
+} from "../components/shell/navigationModel";
 
-export type NavGroup =
-  | "creators"
-  | "selectors"
-  | "applicants"
-  | "campaigns"
-  | "content"
-  | "performance"
-  | "settlements";
+export type {
+  AdminNavigation,
+  AdminRouteMeta,
+  NavGroup,
+  NavGroupMeta,
+} from "../components/shell/navigationModel";
 
-export interface AdminRouteMeta {
-  path: string;
-  group: NavGroup;
-  menuLabel: string;
-  title: string;
-  screenCode: string;
-  workTabLabel: string;
-  workTabSingletonId?: string;
-  workTabParentPath?: string;
-  workTabParentQuery?: {
-    parameter: string;
-    value: string;
-    path: string;
-  };
-}
-
-export interface NavGroupMeta {
-  id: NavGroup;
-  label: string;
+export interface AdminRouteManifestEntry extends AdminRouteMeta {
+  Component: ComponentType;
 }
 
 export const NAV_GROUPS: readonly NavGroupMeta[] = [
@@ -40,9 +59,10 @@ export const NAV_GROUPS: readonly NavGroupMeta[] = [
   { id: "settlements", label: "정산" },
 ];
 
-export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
+export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/creators",
+    Component: CreatorListPage,
     group: "creators",
     menuLabel: "크리에이터 풀",
     title: "크리에이터 풀",
@@ -51,6 +71,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/creators/:creatorId",
+    Component: CreatorDetailPage,
     group: "creators",
     menuLabel: "크리에이터 풀",
     title: "크리에이터 풀",
@@ -60,6 +81,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/proposals",
+    Component: ProposalHistoryPage,
     group: "creators",
     menuLabel: "제안 이력",
     title: "제안 이력",
@@ -68,6 +90,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/proposals/new",
+    Component: ProposalComposePage,
     group: "creators",
     menuLabel: "크리에이터 풀",
     title: "셀렉터스 제안",
@@ -76,6 +99,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/selectors",
+    Component: SelectorOverviewPage,
     group: "selectors",
     menuLabel: "셀렉터스 목록",
     title: "셀렉터스 목록",
@@ -84,6 +108,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/selectors/qualifications",
+    Component: QualificationManagementPage,
     group: "selectors",
     menuLabel: "블랙리스트 관리",
     title: "블랙리스트 관리",
@@ -92,6 +117,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/selectors/excellent",
+    Component: ExcellentSelectorListPage,
     group: "selectors",
     menuLabel: "우수 활동자",
     title: "우수 활동자",
@@ -100,6 +126,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/selectors/:selectorId",
+    Component: SelectorDetailPage,
     group: "selectors",
     menuLabel: "셀렉터스 목록",
     title: "셀렉터스 목록",
@@ -114,6 +141,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/cohorts",
+    Component: CohortManagementPage,
     group: "selectors",
     menuLabel: "기수 관리",
     title: "기수 관리",
@@ -122,6 +150,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/applicants",
+    Component: ApplicantListPage,
     group: "applicants",
     menuLabel: "지원자 승인",
     title: "지원자 승인",
@@ -130,6 +159,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/applicants/:applicantId",
+    Component: ApplicantDetailPage,
     group: "applicants",
     menuLabel: "지원자 승인",
     title: "지원자 승인",
@@ -139,6 +169,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/campaigns",
+    Component: CampaignListPage,
     group: "campaigns",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
@@ -147,6 +178,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/campaigns/new",
+    Component: CampaignCreatePage,
     group: "campaigns",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
@@ -156,6 +188,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/campaigns/:campaignId",
+    Component: CampaignDetailPage,
     group: "campaigns",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
@@ -165,6 +198,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/campaigns/:campaignId/edit",
+    Component: CampaignEditPage,
     group: "campaigns",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
@@ -174,6 +208,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/content/reviews",
+    Component: ContentReviewListPage,
     group: "content",
     menuLabel: "콘텐츠 검수",
     title: "콘텐츠 검수",
@@ -182,6 +217,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/content/reviews/:contentId",
+    Component: ContentReviewDetailPage,
     group: "content",
     menuLabel: "콘텐츠 검수",
     title: "콘텐츠 검수",
@@ -191,6 +227,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/performance/selectors",
+    Component: SelectorPerformancePage,
     group: "performance",
     menuLabel: "셀렉터스 성과",
     title: "셀렉터스 성과",
@@ -199,6 +236,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/performance/contents",
+    Component: ContentPerformancePage,
     group: "performance",
     menuLabel: "콘텐츠 성과",
     title: "콘텐츠 성과",
@@ -207,6 +245,7 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/performance/products",
+    Component: ProductPerformancePage,
     group: "performance",
     menuLabel: "캠페인 성과",
     title: "캠페인 성과",
@@ -215,31 +254,20 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
   },
   {
     path: "/settlements",
+    Component: SettlementManagementPage,
     group: "settlements",
     menuLabel: "정산 관리",
     title: "정산 관리",
     screenCode: "ST101",
     workTabLabel: "정산 관리",
   },
-];
+] as const satisfies readonly AdminRouteManifestEntry[];
 
-export const DEFAULT_ADMIN_ROUTE = ADMIN_ROUTES.find(
-  (route) => route.path === "/creators",
-) ?? ADMIN_ROUTES[0];
+export const ADMIN_ROUTES: readonly AdminRouteMeta[] = ADMIN_ROUTE_MANIFEST;
+export const DEFAULT_ADMIN_ROUTE = ADMIN_ROUTE_MANIFEST[0];
 
-export function findAdminRoute(pathname: string) {
-  return ADMIN_ROUTES.find((route) => matchPath({ path: route.path, end: true }, pathname));
-}
-
-export function getGroupMenuItems(group: NavGroup) {
-  const labels = new Set<string>();
-
-  return ADMIN_ROUTES.filter((route) => {
-    if (route.group !== group || labels.has(route.menuLabel)) {
-      return false;
-    }
-
-    labels.add(route.menuLabel);
-    return true;
-  });
-}
+export const ADMIN_NAVIGATION = {
+  groups: NAV_GROUPS,
+  routes: ADMIN_ROUTES,
+  defaultRoute: DEFAULT_ADMIN_ROUTE,
+} satisfies AdminNavigation;

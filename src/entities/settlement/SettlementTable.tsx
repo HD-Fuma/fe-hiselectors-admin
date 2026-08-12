@@ -1,18 +1,8 @@
 import type { Key } from "react";
+import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
+import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { formatWon } from "../../lib/formatters";
-import { DenseTable, type DenseTableColumn } from "./DenseTable";
-import { StatusPill, type StatusPillProps } from "./StatusPill";
-
-export type SettlementPaymentStatus = "대기" | "확정" | "지급 완료";
-
-export interface SettlementTableRow {
-  attributionMonth: string;
-  expectedAmount: number;
-  id: string;
-  paymentStatus: SettlementPaymentStatus;
-  selectorId: string;
-  selectorName: string;
-}
+import type { SettlementPaymentStatus, SettlementTableRow } from "./model";
 
 export interface SettlementTableProps<T extends SettlementTableRow> {
   ariaLabel?: string;

@@ -1,12 +1,12 @@
-import type { AdminRouteMeta } from "../../app/navigation";
 import { PageHeader } from "./PageHeader";
+import type { AdminRouteMeta } from "./navigationModel";
 
-type PlaceholderPageProps = Pick<AdminRouteMeta, "title" | "screenCode">;
+type PlaceholderPageProps = Pick<AdminRouteMeta, "title">;
 
-export function PlaceholderPage({ title, screenCode }: PlaceholderPageProps) {
+export function PlaceholderPage({ title }: PlaceholderPageProps) {
   return (
     <section className="hsas-placeholder-page">
-      <PageHeader title={title} screenCode={screenCode} />
+      <PageHeader title={title} />
       <div className="hsas-placeholder-page__body" aria-label={`${title} 화면`} />
     </section>
   );

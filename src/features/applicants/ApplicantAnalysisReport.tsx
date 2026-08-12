@@ -1,7 +1,7 @@
 import { Siren } from "lucide-react";
 import { StatusPill } from "../../components/ui/StatusPill";
 import { formatNumber } from "../../lib/formatters";
-import { AnalysisFormatDonut } from "../creators/AnalysisFormatDonut";
+import { AnalysisFormatDonut } from "../../components/charts/AnalysisFormatDonut";
 import {
   APPLICANTS,
   applicantAnalysisFor,

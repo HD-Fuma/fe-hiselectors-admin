@@ -24,10 +24,10 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { paginate } from "../../lib/pagination";
-import { assetUrl } from "../creators/assetUrl";
+import { assetUrl } from "../../lib/assetUrl";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
-import { CREATORS, type CreatorFixture } from "../creators/fixtures";
-import { CONTENT_INFLUENCE } from "../performance/fixtures";
+import { CREATORS, type CreatorFixture } from "../../entities/creator/model/fixtures";
+import { CONTENT_INFLUENCE } from "../../entities/performance/model/fixtures";
 import {
   CAMPAIGNS,
   CAMPAIGN_PRODUCTS,
@@ -191,7 +191,7 @@ export function CampaignListPage() {
   return (
     <>
     <section className="fuma-page">
-      <PageHeader screenCode="CP101" title="캠페인 관리" />
+      <PageHeader title="캠페인 관리" />
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-campaign-search">
           <SearchPanel actions={<SearchActions onReset={resetSearch} onSearch={applySearch} />}>
@@ -215,7 +215,7 @@ export function CampaignListPage() {
             </div>
           </SearchPanel>
         </div>
-        <nav aria-label="캠페인 상태" className="fuma-creator-category-filter fuma-campaign-status-tabs">
+        <nav aria-label="캠페인 상태" className="fuma-creator-category-filter fuma-campaign-status-tabs fuma-list-action-toolbar">
           <div>
             <button
               aria-pressed={selectedStatus === null}
@@ -237,6 +237,12 @@ export function CampaignListPage() {
               </button>
             ))}
           </div>
+          <Link
+            className={buttonClassNames("primary", "fuma-result-toolbar__link")}
+            to="/campaigns/new"
+          >
+            캠페인 생성
+          </Link>
         </nav>
         <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-result-toolbar">
           <strong>캠페인 목록</strong>
@@ -244,12 +250,6 @@ export function CampaignListPage() {
             <span>{selectedStatus ?? "전체"}</span>
             <span>총 {filteredCampaigns.length}건</span>
           </div>
-          <Link
-            className={buttonClassNames("primary", "fuma-result-toolbar__link")}
-            to="/campaigns/new"
-          >
-            캠페인 생성
-          </Link>
         </div>
         <div
           aria-label="캠페인 목록"
