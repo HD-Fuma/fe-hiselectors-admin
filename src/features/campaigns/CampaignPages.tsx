@@ -3,25 +3,29 @@ import {
   useState,
   type ChangeEvent,
   type FormEvent,
-  type ReactNode,
+  type KeyboardEvent,
 } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import {
   Button,
+  buttonClassNames,
   Checkbox,
   TextInput,
 } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { FilterField } from "../../components/ui/FilterField";
 import { FormRow } from "../../components/ui/FormRow";
 import { Modal } from "../../components/ui/Modal";
 import { Pagination } from "../../components/ui/Pagination";
+import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { paginate } from "../../lib/pagination";
 import { assetUrl } from "../creators/assetUrl";
-import { PlatformIcon } from "../creators/PlatformIcon";
+import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { CREATORS, type CreatorFixture } from "../creators/fixtures";
 import { CONTENT_INFLUENCE } from "../performance/fixtures";
 import {
@@ -34,25 +38,7 @@ import {
 } from "./fixtures";
 
 const CAMPAIGN_STATUS_CATEGORIES: CampaignStatus[] = ["시작 전", "진행 중", "종료"];
-
-interface FilterFieldProps {
-  children: ReactNode;
-  htmlFor: string;
-  label: string;
-  className?: string;
-}
-
-function FilterField({ children, className, htmlFor, label }: FilterFieldProps) {
-  return (
-    <label
-      className={["fuma-filter-field", className].filter(Boolean).join(" ")}
-      htmlFor={htmlFor}
-    >
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
+const CAMPAIGN_PAGE_SIZE = 20;
 
 function statusTone(status: CampaignStatus): NonNullable<StatusPillProps["tone"]> {
   if (status === "시작 전") {
@@ -138,7 +124,7 @@ export function CampaignListPage() {
   const [appliedPeriodStart, setAppliedPeriodStart] = useState("");
   const [appliedPeriodEnd, setAppliedPeriodEnd] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | null>(null);
-  const campaigns = CAMPAIGNS.filter((campaign) => (
+  const filteredCampaigns = CAMPAIGNS.filter((campaign) => (
     (!appliedKeyword || [campaign.name, campaign.id].some((value) => (
       value.toLowerCase().includes(appliedKeyword.toLowerCase())
     )))
@@ -146,11 +132,32 @@ export function CampaignListPage() {
     && (!appliedPeriodEnd || campaign.startDate <= appliedPeriodEnd)
     && (!selectedStatus || campaign.status === selectedStatus)
   ));
+  const requestedPage = Number.parseInt(searchParams.get("page") ?? "1", 10);
+  const { currentPage, pagedItems: campaigns, totalPages } = paginate(
+    filteredCampaigns,
+    requestedPage,
+    CAMPAIGN_PAGE_SIZE,
+  );
+
+  const resetPage = () => {
+    if (!searchParams.has("page")) return;
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("page");
+    setSearchParams(nextParams, { replace: true });
+  };
 
   const applySearch = () => {
     setAppliedKeyword(keyword);
     setAppliedPeriodStart(periodStart);
     setAppliedPeriodEnd(periodEnd);
+    resetPage();
+  };
+
+  const applySearchOnEnter = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      applySearch();
+    }
   };
 
   const resetSearch = () => {
@@ -161,6 +168,12 @@ export function CampaignListPage() {
     setAppliedPeriodStart("");
     setAppliedPeriodEnd("");
     setSelectedStatus(null);
+    resetPage();
+  };
+
+  const selectStatus = (status: CampaignStatus | null) => {
+    setSelectedStatus(status);
+    resetPage();
   };
 
   const openDetail = (campaignId: string) => {
@@ -181,12 +194,13 @@ export function CampaignListPage() {
       <PageHeader screenCode="CP101" title="캠페인 관리" />
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-campaign-search">
-          <SearchPanel actions={<><Button onClick={applySearch} variant="primary">조회</Button><Button onClick={resetSearch}>초기화</Button></>}>
+          <SearchPanel actions={<SearchActions onReset={resetSearch} onSearch={applySearch} />}>
             <FilterField htmlFor="campaign-keyword" label="검색어">
               <TextInput
                 aria-label="검색어"
                 id="campaign-keyword"
                 onChange={(event) => setKeyword(event.target.value)}
+                onKeyDown={applySearchOnEnter}
                 placeholder="캠페인명 또는 ID 검색"
                 value={keyword}
               />
@@ -206,7 +220,7 @@ export function CampaignListPage() {
             <button
               aria-pressed={selectedStatus === null}
               className="fuma-creator-category-filter__option"
-              onClick={() => setSelectedStatus(null)}
+              onClick={() => selectStatus(null)}
               type="button"
             >
               전체
@@ -216,7 +230,7 @@ export function CampaignListPage() {
                 aria-pressed={selectedStatus === status}
                 className="fuma-creator-category-filter__option"
                 key={status}
-                onClick={() => setSelectedStatus(status)}
+                onClick={() => selectStatus(status)}
                 type="button"
               >
                 {status}
@@ -228,9 +242,12 @@ export function CampaignListPage() {
           <strong>캠페인 목록</strong>
           <div className="fuma-settlement-result-meta">
             <span>{selectedStatus ?? "전체"}</span>
-            <span>총 {campaigns.length}건</span>
+            <span>총 {filteredCampaigns.length}건</span>
           </div>
-          <Link className="hsas-button hsas-button--primary fuma-result-toolbar__link" to="/campaigns/new">
+          <Link
+            className={buttonClassNames("primary", "fuma-result-toolbar__link")}
+            to="/campaigns/new"
+          >
             캠페인 생성
           </Link>
         </div>
@@ -246,7 +263,17 @@ export function CampaignListPage() {
             rows={campaigns}
           />
         </div>
-        <Pagination page={1} pageSize={20} totalPages={1} />
+        <Pagination
+          onPageChange={(page) => {
+            const nextParams = new URLSearchParams(searchParams);
+            if (page === 1) nextParams.delete("page");
+            else nextParams.set("page", String(page));
+            setSearchParams(nextParams, { replace: true });
+          }}
+          page={currentPage}
+          pageSize={CAMPAIGN_PAGE_SIZE}
+          totalPages={totalPages}
+        />
       </div>
     </section>
     {detailCampaignId ? (

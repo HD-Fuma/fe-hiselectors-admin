@@ -1,7 +1,7 @@
 .hsas-admin-sidebar__account-actions {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--hsas-space-2);
 }
 
 .hsas-admin-sidebar__account-action {

@@ -68,12 +68,13 @@ export interface ApplicantAnalysisReport {
   maxGapDays: number;
   recent90ContentCount: number;
   riskFactors: string;
+  strengths: string;
+  cautions: string;
   summary: string;
   toneAndManner: string;
   updatedAt: string;
   uploadFrequency: number;
   keywords: Array<{ label: string; percentage: number }>;
-  strengthsAndNotes: string;
   averageLikes: number;
   averageComments: number;
 }
@@ -278,10 +279,11 @@ const APPLICANT_ANALYSIS: Record<string, ApplicantAnalysisReport> = {
     category: "뷰티",
     keywords: [{ label: "톤메이크업", percentage: 38 }, { label: "데일리룩", percentage: 34 }, { label: "뷰티리뷰", percentage: 28 }],
     collaborationBrands: ["올리브영", "무신사", "A브랜드"],
-    contentStyle: "리뷰 · 하울 · 튜토리얼",
+    contentStyle: "리뷰 · 브이로그 · 하울",
     toneAndManner: "친근함 · 정보 전달형 · 트렌디",
     riskFactors: "최근 90일 수집 콘텐츠에서 특이 위험 요소 미확인",
-    strengthsAndNotes: "강점: 실사용 비교형 콘텐츠 반응이 안정적 · 유의점: 광고 고지 문구 사전 확인 필요",
+    strengths: "실사용 비교형 콘텐츠 반응이 안정적",
+    cautions: "광고 고지 문구 사전 확인 필요",
   },
   "ap-002": {
     updatedAt: "2026.08.05",
@@ -300,7 +302,8 @@ const APPLICANT_ANALYSIS: Record<string, ApplicantAnalysisReport> = {
     contentStyle: "브이로그 · 사용법 · 비교 리뷰",
     toneAndManner: "차분함 · 친근함 · 정보 전달형",
     riskFactors: "최근 90일 수집 콘텐츠에서 특이 위험 요소 미확인",
-    strengthsAndNotes: "강점: 검색 의도가 명확한 정보성 영상 · 유의점: 롱폼 업로드 주기 변동 확인 필요",
+    strengths: "검색 의도가 명확한 정보성 영상",
+    cautions: "롱폼 업로드 주기 변동 확인 필요",
   },
   "ap-003": {
     updatedAt: "2026.08.05",
@@ -319,7 +322,8 @@ const APPLICANT_ANALYSIS: Record<string, ApplicantAnalysisReport> = {
     contentStyle: "일상 기록",
     toneAndManner: "친근함",
     riskFactors: "활동 공백이 길어 캠페인 운영 리스크가 존재",
-    strengthsAndNotes: "강점: 소규모 팔로워와의 친밀도 · 유의점: 최근 90일 공개 콘텐츠 기준 미달",
+    strengths: "소규모 팔로워와의 친밀도",
+    cautions: "최근 90일 공개 콘텐츠 기준 미달",
   },
   "ap-004": {
     updatedAt: "2026.08.05",
@@ -338,7 +342,8 @@ const APPLICANT_ANALYSIS: Record<string, ApplicantAnalysisReport> = {
     contentStyle: "룩북 · 하울",
     toneAndManner: "트렌디 · 활발함",
     riskFactors: "특이 위험 요소 미확인",
-    strengthsAndNotes: "강점: 짧은 형식의 착장 콘텐츠 완성도 · 유의점: 모집 카테고리와의 적합도 재검토 필요",
+    strengths: "짧은 형식의 착장 콘텐츠 완성도",
+    cautions: "모집 카테고리와의 적합도 재검토 필요",
   },
 };
 

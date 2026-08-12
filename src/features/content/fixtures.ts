@@ -12,11 +12,28 @@ export type ContentAnnotationTarget =
   | {
       kind: "text";
       quote: string;
-      occurrence: number;
+      occurrence?: number;
+      startIndex?: number;
+      endIndex?: number;
     }
   | {
       kind: "url";
       targetIndex: number;
+    }
+  | {
+      kind: "media";
+      mediaIndex: number;
+      quote: string;
+      box: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      };
+      timeRange?: {
+        start: string;
+        end: string;
+      };
     };
 
 export interface ContentAnnotation {

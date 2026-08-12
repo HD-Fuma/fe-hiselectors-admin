@@ -118,6 +118,4 @@ export const SETTLEMENTS: readonly SettlementFixture[] = [
   ...ADDITIONAL_SETTLEMENTS,
 ];
 
-export function formatWon(amount: number) {
-  return `${new Intl.NumberFormat("ko-KR").format(amount)}원`;
-}
+export { formatWon } from "../../lib/formatters";

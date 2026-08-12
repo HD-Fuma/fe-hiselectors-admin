@@ -1,22 +1,30 @@
 import { useState, type ReactNode } from "react";
+import { CircleHelp } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { FilterField } from "../../components/ui/FilterField";
 import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
+import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
+import { SelectionModeButton } from "../../components/ui/SelectionModeButton";
 import { SectionTabs } from "../../components/ui/SectionTabs";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { formatNumber } from "../../lib/formatters";
+import { paginate } from "../../lib/pagination";
 import {
   ApplicantAnalysisReport,
   ApplicantAutomaticReview,
   ApplicantFeaturedContents,
 } from "./ApplicantAnalysisReport";
 import { CreatorDetailPage } from "../creators/CreatorPages";
-import { PlatformIcon } from "../creators/PlatformIcon";
+import type { AnalysisPercentileContext } from "../creators/CreatorAnalysisReport";
+import { CreatorKeywordTags } from "../creators/CreatorKeywordTags";
+import { PlatformIcon } from "../../components/social/PlatformIcon";
 import type { CreatorFixture, CreatorMediaVisual } from "../creators/fixtures";
 import {
   APPLICANTS,
@@ -40,6 +48,7 @@ const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube"].map((label) => ({
 const REVIEW_STATUS_OPTIONS = ["전체", "검토 대기", "승인", "반려", "자동 반려"].map(
   (label) => ({ label, value: label === "전체" ? "" : label }),
 );
+const APPLICANT_PAGE_SIZE = 20;
 const INTERNAL_REASON_OPTIONS = [
   { label: "선택", value: "" },
   { label: "정량 기준 미충족", value: "정량 기준 미충족" },
@@ -53,25 +62,6 @@ interface ApplicantReviewDecision {
   note: string;
   reason: string;
   status: "승인" | "반려";
-}
-
-interface FilterFieldProps {
-  children: ReactNode;
-  htmlFor: string;
-  label: string;
-}
-
-function FilterField({ children, htmlFor, label }: FilterFieldProps) {
-  return (
-    <label className="fuma-filter-field" htmlFor={htmlFor}>
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function formatNumber(value: number) {
-  return value.toLocaleString("ko-KR");
 }
 
 function reviewStatusTone(status: ReviewStatus): NonNullable<StatusPillProps["tone"]> {
@@ -183,10 +173,7 @@ function ApplicantApprovalToolbar({
 }) {
   return (
     <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-applicant-result-toolbar">
-      <div className="fuma-settlement-result-meta">
-        <span>총 {count}건</span>
-      </div>
-      <div className="fuma-creator-toolbar__controls">
+      <div className="fuma-applicant-minimum-filter">
         <label className="fuma-applicant-minimum-toggle">
           <input
             checked={minimumCriteriaOnly}
@@ -196,17 +183,34 @@ function ApplicantApprovalToolbar({
           <span aria-hidden="true" />
           <b>최저 기준 필터링</b>
         </label>
-        <button
-          aria-pressed={selectionMode}
-          className="fuma-creator-toolbar__select-mode"
-          onClick={onSelectionModeChange}
-          type="button"
-        >
-          {selectionMode ? "선택 완료" : "선택"}
-        </button>
+        <span className="fuma-applicant-minimum-tooltip">
+          <button
+            aria-describedby="applicant-minimum-tooltip"
+            aria-label="최저 기준 필터링 안내"
+            type="button"
+          >
+            <CircleHelp aria-hidden="true" size={15} strokeWidth={1.8} />
+          </button>
+          <span id="applicant-minimum-tooltip" role="tooltip">
+            팔로워·구독자 500명 이하 또는 최근 3개월 내 활동 콘텐츠가 3건 이하인 지원자를 필터링합니다.
+          </span>
+        </span>
+      </div>
+      <div className="fuma-settlement-result-meta">
+        <span>{selectionMode ? `${selectedCount}/${count}명` : `총 ${count}건`}</span>
+      </div>
+      <div className="fuma-creator-toolbar__controls">
+        <SelectionModeButton active={selectionMode} onClick={onSelectionModeChange} />
         {selectionMode ? (
-          <>
-            <span className="fuma-creator-toolbar__selected">{selectedCount}명 선택</span>
+          <div className="fuma-applicant-batch-actions">
+            <button
+              className="fuma-creator-toolbar__proposal fuma-applicant-batch-reject"
+              disabled={selectedCount === 0}
+              onClick={onReject}
+              type="button"
+            >
+              일괄 반려
+            </button>
             <button
               className="fuma-creator-toolbar__proposal"
               disabled={selectedCount === 0}
@@ -215,15 +219,7 @@ function ApplicantApprovalToolbar({
             >
               일괄 승인
             </button>
-            <button
-              className="fuma-creator-toolbar__proposal"
-              disabled={selectedCount === 0}
-              onClick={onReject}
-              type="button"
-            >
-              일괄 반려
-            </button>
-          </>
+          </div>
         ) : null}
       </div>
     </div>
@@ -260,7 +256,7 @@ function applicantListColumns({
   },
   {
     id: "account",
-    header: "계정",
+    header: "SNS ID",
     width: 130,
     align: "center",
     render: (applicant) => applicant.profile.handle,
@@ -270,15 +266,14 @@ function applicantListColumns({
     header: "카테고리",
     width: 110,
     align: "center",
-    render: (applicant) => (
-      <span className="fuma-applicant-category-chip">{applicant.category}</span>
-    ),
+    render: (applicant) => applicant.category,
   },
   {
     id: "keywords",
     header: "키워드",
     width: 165,
-    render: (applicant) => applicant.keywords.join(" "),
+    align: "center",
+    render: (applicant) => <CreatorKeywordTags keywords={applicant.keywords} />,
   },
   {
     id: "followers",
@@ -344,7 +339,7 @@ function applicantListColumns({
 }
 
 export function ApplicantListPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedCategory = APPLICANT_CATEGORIES.find((category) => category === searchParams.get("category")) ?? "";
   const applicantPoolPath = selectedCategory ? `/applicants?category=${encodeURIComponent(selectedCategory)}` : "/applicants";
@@ -357,6 +352,7 @@ export function ApplicantListPage() {
   const [appliedReviewStatus, setAppliedReviewStatus] = useState("");
   const [minimumCriteriaOnly, setMinimumCriteriaOnly] = useState(false);
   const [reviewOverrides, setReviewOverrides] = useState<Partial<Record<string, ReviewStatus>>>({});
+  const [page, setPage] = useState(1);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const applicants = APPLICANTS
@@ -381,18 +377,40 @@ export function ApplicantListPage() {
         reviewStatus: reviewOverrides[applicant.id] ?? applicant.reviewStatus,
       })
     ));
+  const { currentPage, pagedItems: pagedApplicants, totalPages } = paginate(
+    applicants,
+    page,
+    APPLICANT_PAGE_SIZE,
+  );
   const detailApplicant = applicants.find((applicant) => applicant.id === detailApplicantId);
+  const detailApplicantFixture = findApplicantFixture(detailApplicantId ?? undefined);
+  const applicantAnalyses = APPLICANTS.map((applicant) => applicantAnalysisFor(applicant));
+  const applicantPercentileContext: AnalysisPercentileContext = {
+    label: "지원자 중",
+    audience: APPLICANTS.map((applicant) => applicant.followerCount),
+    views: APPLICANTS.map((applicant) => applicant.averageViews),
+    likes: applicantAnalyses.map((analysis) => analysis.averageLikes),
+    comments: applicantAnalyses.map((analysis) => analysis.averageComments),
+    engagement: applicantAnalyses.map((analysis) => analysis.engagementRate),
+  };
   const openApplicant = (applicant: ApplicantListRow) => navigate(
     `${applicantPoolPath}${selectedCategory ? "&" : "?"}detail=${applicant.id}`,
   );
-  const openCategory = (category?: ApplicantCategory) => navigate(
-    category ? `/applicants?category=${encodeURIComponent(category)}` : "/applicants",
-  );
+  const openCategory = (category?: ApplicantCategory) => {
+    setPage(1);
+    setSelectedIds(new Set());
+    const nextParams = new URLSearchParams(searchParams);
+    if (category) nextParams.set("category", category);
+    else nextParams.delete("category");
+    nextParams.delete("detail");
+    setSearchParams(nextParams);
+  };
   const applySearch = () => {
     setAppliedKeyword(keyword);
     setAppliedPlatform(platform);
     setAppliedReviewStatus(reviewStatus);
     setSelectedIds(new Set());
+    setPage(1);
   };
   const resetSearch = () => {
     setKeyword("");
@@ -401,7 +419,13 @@ export function ApplicantListPage() {
     setAppliedKeyword("");
     setAppliedPlatform("");
     setAppliedReviewStatus("");
+    setMinimumCriteriaOnly(false);
     setSelectedIds(new Set());
+    setPage(1);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("category");
+    nextParams.delete("detail");
+    setSearchParams(nextParams);
   };
   const toggleSelected = (applicantId: string) => {
     setSelectedIds((current) => {
@@ -421,9 +445,15 @@ export function ApplicantListPage() {
     setSelectionMode((current) => !current);
   };
   const toggleAll = () => {
-    setSelectedIds((current) => (
-      current.size === applicants.length ? new Set() : new Set(applicants.map((applicant) => applicant.id))
-    ));
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      const shouldClearPage = pagedApplicants.every((applicant) => next.has(applicant.id));
+      pagedApplicants.forEach((applicant) => {
+        if (shouldClearPage) next.delete(applicant.id);
+        else next.add(applicant.id);
+      });
+      return next;
+    });
   };
   const applyBatchStatus = (status: ReviewStatus) => {
     setReviewOverrides((current) => {
@@ -434,12 +464,14 @@ export function ApplicantListPage() {
       return next;
     });
     setSelectedIds(new Set());
+    setPage(1);
   };
   const applySingleStatus = (applicantId: string, status: ReviewStatus) => {
     setReviewOverrides((current) => ({ ...current, [applicantId]: status }));
   };
   const columns = applicantListColumns({
-    allSelected: applicants.length > 0 && selectedIds.size === applicants.length,
+    allSelected: pagedApplicants.length > 0
+      && pagedApplicants.every((applicant) => selectedIds.has(applicant.id)),
     onToggleAll: toggleAll,
     onToggleSelected: toggleSelected,
     selectedIds,
@@ -452,7 +484,7 @@ export function ApplicantListPage() {
       <PageHeader screenCode="AP101" title="지원자 심사" />
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-applicant-search">
-          <SearchPanel actions={<><Button onClick={applySearch} variant="primary">조회</Button><Button onClick={resetSearch}>초기화</Button></>}>
+          <SearchPanel actions={<SearchActions onReset={resetSearch} onSearch={applySearch} />}>
             <FilterField htmlFor="applicant-keyword" label="검색어">
               <TextInput
                 id="applicant-keyword"
@@ -512,6 +544,7 @@ export function ApplicantListPage() {
           onMinimumCriteriaOnlyChange={(checked) => {
             setMinimumCriteriaOnly(checked);
             setSelectedIds(new Set());
+            setPage(1);
           }}
           onReject={() => applyBatchStatus("반려")}
           onSelectionModeChange={toggleSelectionMode}
@@ -525,11 +558,16 @@ export function ApplicantListPage() {
               selectionMode ? toggleSelected(applicant.id) : openApplicant(applicant)
             )}
             rowKey={(applicant) => applicant.id}
-            rows={applicants}
+            rows={pagedApplicants}
             selectedRowKeys={selectionMode ? [...selectedIds] : undefined}
           />
         </div>
-        <Pagination page={1} pageSize={20} totalPages={1} />
+        <Pagination
+          onPageChange={setPage}
+          page={currentPage}
+          pageSize={APPLICANT_PAGE_SIZE}
+          totalPages={totalPages}
+        />
       </div>
     </section>
     {detailApplicantId ? (
@@ -559,8 +597,14 @@ export function ApplicantListPage() {
           </section>
         ) : undefined}
         creatorOverride={detailApplicant}
+        analysisMetricOverrides={detailApplicantFixture ? {
+          averageComments: applicantAnalysisFor(detailApplicantFixture).averageComments,
+          engagementRate: applicantAnalysisFor(detailApplicantFixture).engagementRate,
+        } : undefined}
+        analysisPercentileContext={applicantPercentileContext}
         embedded
         onClose={() => navigate(applicantPoolPath)}
+        reportEyebrow="APPLICANT REPORT"
         reportTitle="지원자 분석 리포트"
         statusPill={detailApplicant ? (
           <StatusPill tone={reviewStatusTone(detailApplicant.reviewStatus)}>

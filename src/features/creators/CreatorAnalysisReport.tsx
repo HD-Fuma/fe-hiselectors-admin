@@ -1,4 +1,7 @@
-import type { CreatorFixture } from "./fixtures";
+import { Siren } from "lucide-react";
+import { formatNumber } from "../../lib/formatters";
+import { AnalysisFormatDonut } from "./AnalysisFormatDonut";
+import { CREATORS, type CreatorFixture } from "./fixtures";
 
 type AverageMetric = number | null;
 
@@ -15,6 +18,7 @@ interface QualitativeClaim {
 
 interface CreatorAnalysisFixture {
   updatedAt: string;
+  collectedAt: string;
   collectionDays: number;
   postDates: readonly string[];
   engagementSamples: readonly { audience: number; likes: number; comments: number | null }[];
@@ -26,6 +30,20 @@ interface CreatorAnalysisFixture {
   formatMix: readonly { label: string; count: number }[];
   supplementalInteractions: readonly { label: string; value: number }[];
   qualitativeClaims: readonly QualitativeClaim[];
+}
+
+export interface AnalysisPercentileContext {
+  label: string;
+  audience: readonly number[];
+  views: readonly number[];
+  likes: readonly number[];
+  comments: readonly number[];
+  engagement: readonly number[];
+}
+
+export interface AnalysisMetricOverrides {
+  averageComments?: number | null;
+  engagementRate?: number | null;
 }
 
 const SEOYEON_POST_DATES = Array.from({ length: 29 }, (_, index) => {
@@ -56,6 +74,7 @@ const ADDITIONAL_ENGAGEMENT_SAMPLES: Record<
 const CREATOR_ANALYSES: Record<string, CreatorAnalysisFixture> = {
   "cr-001": {
     updatedAt: "2026.08.05",
+    collectedAt: "2026.08.05 09:30",
     collectionDays: 90,
     postDates: SEOYEON_POST_DATES,
     engagementSamples: SEOYEON_ENGAGEMENT_SAMPLES,
@@ -93,7 +112,7 @@ const CREATOR_ANALYSES: Record<string, CreatorAnalysisFixture> = {
       },
       {
         label: "콘텐츠 유형",
-        value: "리뷰 · 하울 · 튜토리얼",
+        value: "리뷰 · 브이로그 · 하울",
         evidence: { label: "AI 분석 근거 게시글", url: "https://www.instagram.com/p/C_05evidence/" },
       },
       {
@@ -107,14 +126,20 @@ const CREATOR_ANALYSES: Record<string, CreatorAnalysisFixture> = {
         evidence: { label: "AI 분석 근거 게시글", url: "https://www.instagram.com/p/C_07evidence/" },
       },
       {
-        label: "강점/유의점",
-        value: "강점: 신뢰도 높은 실사용 비교 콘텐츠 · 유의점: 광고 고지 문구 사전 협의 필요",
+        label: "강점",
+        value: "신뢰도 높은 실사용 비교 콘텐츠",
+        evidence: { label: "AI 분석 근거 게시글", url: "https://www.instagram.com/p/C_08evidence/" },
+      },
+      {
+        label: "유의점",
+        value: "광고 고지 문구 사전 협의 필요",
         evidence: { label: "AI 분석 근거 게시글", url: "https://www.instagram.com/p/C_08evidence/" },
       },
     ],
   },
   "cr-002": {
     updatedAt: "2026.08.05",
+    collectedAt: "2026.08.05 09:45",
     collectionDays: 90,
     postDates: DOYOON_POST_DATES,
     engagementSamples: DOYOON_ENGAGEMENT_SAMPLES,
@@ -140,6 +165,7 @@ function fallbackAnalysis(creator: CreatorFixture): CreatorAnalysisFixture {
   }));
   return {
     updatedAt: "2026.08.05",
+    collectedAt: "2026.08.05 10:00",
     collectionDays: 90,
     postDates: engagementSamples.map((_, index) =>
       new Date(Date.parse(`${creator.recentActivity}T00:00:00Z`) - index * 3 * 86_400_000)
@@ -173,12 +199,47 @@ function fallbackAnalysis(creator: CreatorFixture): CreatorAnalysisFixture {
   };
 }
 
-function formatNumber(value: number) {
-  return value.toLocaleString("ko-KR");
+function topPercentile(value: number, pool: readonly number[]) {
+  if (pool.length === 0) return null;
+  const rank = pool.filter((candidate) => candidate > value).length + 1;
+  return Math.max(1, Math.ceil((rank / pool.length) * 100));
 }
 
 function metricValue(value: AverageMetric) {
   return value === null ? "-" : formatNumber(value);
+}
+
+function averageCommentsForSamples(
+  samples: CreatorAnalysisFixture["engagementSamples"],
+) {
+  const comments = samples
+    .map((sample) => sample.comments)
+    .filter((value): value is number => value !== null);
+  return comments.length === 0
+    ? null
+    : Math.round(comments.reduce((total, value) => total + value, 0) / comments.length);
+}
+
+function creatorPercentileContext(): AnalysisPercentileContext {
+  const analyses = CREATORS.map((candidate) => (
+    CREATOR_ANALYSES[candidate.id] ?? fallbackAnalysis(candidate)
+  ));
+  const comments = analyses
+    .map((candidate) => averageCommentsForSamples(candidate.engagementSamples))
+    .filter((value): value is number => value !== null);
+
+  return {
+    label: "크리에이터 풀",
+    audience: CREATORS.map((candidate) => candidate.profile.followers),
+    views: CREATORS.map((candidate) => candidate.profile.averageViews),
+    likes: CREATORS.map((candidate) => candidate.profile.averageReactions),
+    comments,
+    engagement: CREATORS.map((candidate) => candidate.profile.engagementRate),
+  };
+}
+
+function hasRiskFactor(value: string) {
+  return !["미확인", "없음", "해당 없음", "발견되지 않"].some((phrase) => value.includes(phrase));
 }
 
 export function topNScore(creator: CreatorFixture) {
@@ -266,21 +327,43 @@ void AnalysisFields;
 
 export function CreatorAnalysisReport({
   creator,
+  eyebrow = "CREATOR REPORT",
+  metricOverrides,
+  percentileContext,
   title = "크리에이터 분석 리포트",
 }: {
   creator: CreatorFixture;
+  eyebrow?: string;
+  metricOverrides?: AnalysisMetricOverrides;
+  percentileContext?: AnalysisPercentileContext;
   title?: string;
 }) {
   const analysis = CREATOR_ANALYSES[creator.id] ?? fallbackAnalysis(creator);
   const cadence = deriveCadence(analysis.postDates, analysis.updatedAt.replaceAll(".", "-"), analysis.collectionDays);
   const collectedContentCount = Math.round(cadence.dailyAverage * analysis.collectionDays);
   const engagement = deriveEngagementRate(analysis.engagementSamples);
-  const commentSamples = analysis.engagementSamples.filter(
-    (sample): sample is { audience: number; likes: number; comments: number } => sample.comments !== null,
-  );
-  const averageComments = commentSamples.length === 0
-    ? null
-    : Math.round(commentSamples.reduce((total, sample) => total + sample.comments, 0) / commentSamples.length);
+  const engagementRate = metricOverrides?.engagementRate === undefined
+    ? engagement.value
+    : metricOverrides.engagementRate;
+  const averageComments = metricOverrides?.averageComments === undefined
+    ? averageCommentsForSamples(analysis.engagementSamples)
+    : metricOverrides.averageComments;
+  const comparison = percentileContext ?? creatorPercentileContext();
+  const poolPercentiles = {
+    audience: topPercentile(creator.profile.followers, comparison.audience),
+    views: analysis.averages.views === null
+      ? null
+      : topPercentile(analysis.averages.views, comparison.views),
+    likes: analysis.averages.likes === null
+      ? null
+      : topPercentile(analysis.averages.likes, comparison.likes),
+    comments: averageComments === null
+      ? null
+      : topPercentile(averageComments, comparison.comments),
+    engagement: engagementRate === null
+      ? null
+      : topPercentile(engagementRate, comparison.engagement),
+  };
   const formatTotal = analysis.formatMix.reduce((sum, format) => sum + format.count, 0);
   const formatColors = ["#de76ce", "#667085", "#a0a8b0", "#c8cdd2"];
   const formatSegments = analysis.formatMix.map((format, index) => {
@@ -296,57 +379,49 @@ export function CreatorAnalysisReport({
       start,
     };
   });
-  const formatGradient = formatSegments.length === 0
-    ? "#d7dadd"
-    : `conic-gradient(${formatSegments.map((segment) => `${segment.color} ${segment.start}% ${segment.start + segment.percentage}%`).join(", ")})`;
-  const lastContentLabel = creator.profile.platform === "YouTube" ? "마지막 업로드일" : "마지막 게시일";
   const engagementCards = [
+    {
+      label: "팔로워/구독자",
+      value: `${formatNumber(creator.profile.followers)}명`,
+      percentile: poolPercentiles.audience,
+    },
     {
       label: "평균 조회",
       value: metricValue(analysis.averages.views),
-      description: "콘텐츠 1건당 평균",
+      percentile: poolPercentiles.views,
     },
     {
       label: "평균 좋아요",
       value: metricValue(analysis.averages.likes),
-      description: "콘텐츠 1건당 평균",
+      percentile: poolPercentiles.likes,
     },
     {
       label: "평균 댓글",
       value: metricValue(averageComments),
-      description: commentSamples.length === 0 ? "수집된 댓글 표본 없음" : `수집 표본 ${commentSamples.length}건 기준`,
+      percentile: poolPercentiles.comments,
     },
     {
       label: "ER",
-      value: engagement.value === null ? "-" : `${engagement.value.toFixed(1)}%`,
-      description: engagement.value === null ? "유효 반응 표본 없음" : `유효 표본 ${engagement.sampleSize}건 기준`,
+      value: engagementRate === null ? "-" : `${engagementRate.toFixed(1)}%`,
+      percentile: poolPercentiles.engagement,
     },
   ];
   const contentCards = [
     {
-      label: "팔로워·구독자",
-      value: `${formatNumber(creator.profile.followers)}명`,
-      description: "현재 공개 채널 기준",
-    },
-    {
-      label: "업로드 주기",
-      value: `주 ${cadence.weeklyAverage.toFixed(1)}회`,
-      description: `최근 ${analysis.collectionDays}일 수집 기준`,
-    },
-    {
       label: "콘텐츠 수",
       value: `${formatNumber(creator.contentCount)}건`,
-      description: "전체 공개 콘텐츠",
     },
     {
       label: `최근 ${analysis.collectionDays}일 콘텐츠`,
       value: `${formatNumber(collectedContentCount)}건`,
-      description: "분석에 사용한 수집 콘텐츠",
     },
     {
-      label: lastContentLabel,
+      label: "업로드 주기",
+      value: `주 ${cadence.weeklyAverage.toFixed(1)}회`,
+    },
+    {
+      label: "마지막 게시일",
       value: analysis.lastPostDate,
-      description: "수집된 최신 콘텐츠",
     },
   ];
   const fallbackEvidence: AnalysisEvidence = { label: "채널 프로필", url: creator.profile.profileUrl };
@@ -360,11 +435,30 @@ export function CreatorAnalysisReport({
       value: creator.aiReport.summary || summarySource?.value || "분석 리포트 생성 대기",
       evidence: summarySource?.evidence ?? fallbackEvidence,
     };
-  const narrativeClaims: QualitativeClaim[] = ["위험 요소", "강점/유의점"].flatMap((label) => {
-    const claim = claimFor(label);
-    return claim ? [claim] : [];
-  });
+  const combinedStrengthClaim = claimFor("강점/유의점");
+  const combinedParts = combinedStrengthClaim?.value.split("·").map((value) => value.trim()) ?? [];
+  const narrativeClaims: QualitativeClaim[] = [
+    claimFor("위험 요소") ?? {
+      label: "위험 요소",
+      value: "최근 수집 콘텐츠에서 특이 위험 요소 미확인",
+      evidence: fallbackEvidence,
+    },
+    claimFor("강점") ?? {
+      label: "강점",
+      value: combinedParts[0]?.replace(/^강점:\s*/, "")
+        || creator.aiReport.summary
+        || `${creator.category} 콘텐츠의 반응이 안정적입니다.`,
+      evidence: combinedStrengthClaim?.evidence ?? fallbackEvidence,
+    },
+    claimFor("유의점") ?? {
+      label: "유의점",
+      value: combinedParts[1]?.replace(/^유의점:\s*/, "")
+        || "협업 전 최근 콘텐츠의 광고 고지 방식과 업로드 일정을 확인해야 합니다.",
+      evidence: combinedStrengthClaim?.evidence ?? fallbackEvidence,
+    },
+  ];
   const collaborationClaim = claimFor("협업 이력");
+  const contentTypeClaim = claimFor("콘텐츠 유형");
   const toneClaim = claimFor("톤앤매너");
   const splitTagValues = (value: string) => value.split(" · ").map((item) => item.trim()).filter(Boolean);
   const tagGroups = [
@@ -385,8 +479,8 @@ export function CreatorAnalysisReport({
     },
     {
       label: "콘텐츠 유형",
-      values: analysis.formatMix.map((format) => `${format.label} ${format.count}건`),
-      evidence: claimFor("콘텐츠 유형")?.evidence ?? fallbackEvidence,
+      values: contentTypeClaim ? splitTagValues(contentTypeClaim.value) : ["리뷰", "브이로그", "하울"],
+      evidence: contentTypeClaim?.evidence ?? fallbackEvidence,
     },
     {
       label: "톤앤매너",
@@ -399,7 +493,7 @@ export function CreatorAnalysisReport({
     <section aria-labelledby="creator-analysis-title" className="fuma-creator-analysis-report" id="analysis">
       <header className="fuma-content-section__header">
         <div>
-          <p>CREATOR REPORT</p>
+          <p>{eyebrow}</p>
           <h2 id="creator-analysis-title">{title}</h2>
         </div>
       </header>
@@ -415,19 +509,23 @@ export function CreatorAnalysisReport({
           <section aria-label="정량 분석" className="fuma-creator-analysis-block">
             <div className="fuma-creator-analysis-block__heading">
               <h3>정량 분석</h3>
-              <span>수집 데이터 기준</span>
+              <span>수집 시각 {analysis.collectedAt}</span>
             </div>
             <div className="fuma-creator-analysis-metrics">
               <section className="fuma-creator-metric-group fuma-creator-metric-group--performance fuma-analysis-engagement">
                 <header className="fuma-analysis-engagement__header">
-                  <div><strong>인게이지먼트</strong><span>수집된 콘텐츠의 평균 반응</span></div>
+                  <div><strong>인게이지먼트</strong><span>최근 {analysis.collectionDays}일 수집 콘텐츠 기준</span></div>
                 </header>
                 <div className="fuma-analysis-engagement__grid">
                   {engagementCards.map((metric) => (
                     <article className="fuma-analysis-engagement__card" key={metric.label}>
                       <span>{metric.label}</span>
                       <strong className={metric.label === "ER" ? "fuma-analysis-engagement__er" : undefined}>{metric.value}</strong>
-                      <small>{metric.description}</small>
+                      {metric.percentile !== null ? (
+                        <small className={`fuma-analysis-engagement__percentile${comparison.label === "지원자 중" ? " fuma-analysis-engagement__percentile--applicant" : ""}`}>
+                          {comparison.label} 상위 {metric.percentile}%
+                        </small>
+                      ) : null}
                     </article>
                   ))}
                 </div>
@@ -435,28 +533,19 @@ export function CreatorAnalysisReport({
 
               <section className="fuma-creator-metric-group fuma-analysis-content">
                 <header className="fuma-analysis-content__header">
-                  <div><strong>콘텐츠</strong><span>최근 {analysis.collectionDays}일 수집 데이터</span></div>
+                  <div><strong>콘텐츠</strong><span>최근 {analysis.collectionDays}일 수집 콘텐츠 기준</span></div>
                 </header>
                 <div className="fuma-analysis-content__grid">
                   {contentCards.map((metric) => (
                     <article className="fuma-analysis-content__card" key={metric.label}>
                       <span>{metric.label}</span>
                       <strong>{metric.value}</strong>
-                      <small>{metric.description}</small>
                     </article>
                   ))}
                   <article className="fuma-analysis-content__card fuma-analysis-content__card--formats">
                     <span>콘텐츠 형식</span>
-                    <strong>{formatNumber(formatTotal)}건</strong>
                     <div className="fuma-analysis-format-breakdown">
-                      <div
-                        aria-label={`콘텐츠 형식 총 ${formatNumber(formatTotal)}건`}
-                        className="fuma-analysis-format-breakdown__donut"
-                        role="img"
-                        style={{ background: formatGradient }}
-                      >
-                        <div><strong>{formatNumber(formatTotal)}</strong><span>건</span></div>
-                      </div>
+                      <AnalysisFormatDonut segments={formatSegments} total={formatTotal} />
                       <ul className="fuma-analysis-format-breakdown__legend">
                         {formatSegments.map((format) => (
                           <li key={format.label}>
@@ -477,9 +566,22 @@ export function CreatorAnalysisReport({
             <h3>AI 정성 분석</h3>
             <dl className="fuma-creator-analysis-claims fuma-analysis-qualitative__narrative-list">
               {narrativeClaims.map((claim) => (
-                <div key={claim.label}>
-                  <dt>{claim.label}</dt>
-                  <dd><span>{claim.value}</span><a href={claim.evidence.url} rel="noreferrer" target="_blank">근거 보기 ↗</a></dd>
+                <div
+                  className={`fuma-creator-analysis-claim${claim.label === "강점" || claim.label === "유의점" ? " fuma-creator-analysis-claim--plain" : ""}${claim.label === "위험 요소" && hasRiskFactor(claim.value) ? " fuma-creator-analysis-claim--risk" : ""}`}
+                  key={claim.label}
+                >
+                  <dt>
+                    {claim.label === "위험 요소" ? (
+                      <span
+                        className="fuma-analysis-risk-label"
+                        data-risk={hasRiskFactor(claim.value) ? "true" : "false"}
+                      >
+                        <Siren aria-hidden="true" size={16} strokeWidth={2} />
+                        <span>{claim.label}</span>
+                      </span>
+                    ) : <span>{claim.label}</span>}
+                  </dt>
+                  <dd>{claim.value}</dd>
                 </div>
               ))}
             </dl>
@@ -488,12 +590,11 @@ export function CreatorAnalysisReport({
                 <section aria-label={`${group.label} 태그`} className="fuma-analysis-tags__group" key={group.label}>
                   <header>
                     <strong>{group.label}</strong>
-                    <a className="fuma-analysis-tags__evidence" href={group.evidence.url} rel="noreferrer" target="_blank">근거 보기 ↗</a>
                   </header>
                   <ul className="fuma-analysis-tags__list">
                     {group.values.length > 0
                       ? group.values.map((value) => (
-                        <li className={`fuma-analysis-tags__tag${group.label === "키워드" ? " fuma-analysis-tags__tag--keyword" : ""}`} key={value}>
+                        <li className={`fuma-analysis-tags__tag${group.label === "키워드" || group.label === "카테고리" ? " fuma-analysis-tags__tag--keyword" : ""}`} key={value}>
                           {value}
                         </li>
                       ))

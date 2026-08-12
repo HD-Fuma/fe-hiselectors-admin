@@ -1,24 +1,34 @@
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
+import { AlertDialog } from "../../components/ui/AlertDialog";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { FilterField } from "../../components/ui/FilterField";
 import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
+import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { formatNumber } from "../../lib/formatters";
+import { paginate } from "../../lib/pagination";
 import { CreatorCardGrid } from "./CreatorCardGrid";
 import { CreatorContentPhoto, CreatorProfilePhoto } from "./CreatorArtwork";
+import { CreatorKeywordTags } from "./CreatorKeywordTags";
 import { assetUrl } from "./assetUrl";
 import { engagementResultForCreator } from "./CreatorAnalysisReport";
-import { CreatorAnalysisReport } from "./CreatorAnalysisReport";
+import {
+  CreatorAnalysisReport,
+  type AnalysisMetricOverrides,
+  type AnalysisPercentileContext,
+} from "./CreatorAnalysisReport";
 import {
   CreatorResultToolbar,
   type CreatorPoolView,
 } from "./CreatorResultToolbar";
-import { PlatformIcon } from "./PlatformIcon";
+import { PlatformIcon } from "../../components/social/PlatformIcon";
 import {
   CREATORS,
   CREATOR_CATEGORIES,
@@ -37,8 +47,14 @@ const PLATFORM_OPTIONS = ["전체", "Instagram", "YouTube"].map((label) => ({
 }));
 const PROPOSAL_HISTORY_STATUSES: ProposalStatus[] = ["발송 대기", "발송 완료", "발송 실패"];
 const PROPOSAL_PAGE_SIZE = 20;
-function formatNumber(value: number) {
-  return value.toLocaleString("ko-KR");
+const CREATOR_LIST_PAGE_SIZE = 20;
+
+function parseFollowerBound(value: string, fallback: number) {
+  const normalizedValue = value.replaceAll(",", "").trim();
+  if (!normalizedValue) return fallback;
+
+  const parsedValue = Number(normalizedValue);
+  return Number.isFinite(parsedValue) ? Math.max(0, parsedValue) : fallback;
 }
 
 function PlatformLabel({ platform }: { platform: CreatorProfileFixture["platform"] }) {
@@ -68,47 +84,34 @@ function proposalTone(
   return "neutral";
 }
 
-interface FilterFieldProps {
-  children: ReactNode;
-  htmlFor: string;
-  label: string;
-}
-
-function FilterField({ children, htmlFor, label }: FilterFieldProps) {
-  return (
-    <label className="fuma-filter-field" htmlFor={htmlFor}>
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
-
 const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
-  { key: "id", header: "ID", width: 76 },
-  { key: "name", header: "이름", width: 70 },
   {
     id: "platform",
     header: "플랫폼",
     width: 115,
+    align: "center",
     render: (creator) => <PlatformLabel platform={creator.profile.platform} />,
   },
   {
     id: "account",
-    header: "계정",
-    width: 130,
+    header: "SNS ID",
+    width: 180,
+    align: "center",
     render: (creator) => creator.profile.handle,
   },
   {
     id: "categories",
     header: "카테고리",
     width: 110,
+    align: "center",
     render: (creator) => creator.category,
   },
   {
     id: "keywords",
     header: "키워드",
     width: 165,
-    render: (creator) => creator.keywords.join(" "),
+    align: "center",
+    render: (creator) => <CreatorKeywordTags keywords={creator.keywords} />,
   },
   {
     id: "followers",
@@ -128,21 +131,10 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorFixture>[] = [
     },
   },
   { key: "recentActivity", header: "최근 활동일", width: 96, align: "center" },
-  {
-    id: "detail",
-    header: "상세",
-    width: 60,
-    align: "center",
-    render: (creator) => (
-      <Button aria-label={`${creator.name} 상세 보기`} className="fuma-table-action">
-        보기
-      </Button>
-    ),
-  },
 ];
 
 export function CreatorListPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedCategory = CREATOR_CATEGORIES.find((category) => category === searchParams.get("category")) ?? "";
   const creatorPoolPath = selectedCategory ? `/creators?category=${encodeURIComponent(selectedCategory)}` : "/creators";
@@ -159,11 +151,10 @@ export function CreatorListPage() {
     .filter((creator) => !selectedCategory || creator.category === selectedCategory)
     .filter((creator) => {
       const normalizedKeyword = appliedKeyword.trim().toLowerCase();
-      const minimum = Number(appliedFollowersMin) || 0;
-      const maximum = Number(appliedFollowersMax) || Number.POSITIVE_INFINITY;
+      const minimum = parseFollowerBound(appliedFollowersMin, 0);
+      const maximum = parseFollowerBound(appliedFollowersMax, Number.POSITIVE_INFINITY);
       const matchesKeyword = !normalizedKeyword || [
         creator.id,
-        creator.name,
         creator.profile.handle,
         ...creator.keywords,
       ].some((value) => value.toLowerCase().includes(normalizedKeyword));
@@ -181,14 +172,25 @@ export function CreatorListPage() {
     },
   );
   const [view, setView] = useState<CreatorPoolView>("cards");
+  const [listPage, setListPage] = useState(1);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const {
+    currentPage: currentListPage,
+    pagedItems: pagedCreators,
+    totalPages: totalListPages,
+  } = paginate(
+    creators,
+    listPage,
+    CREATOR_LIST_PAGE_SIZE,
+  );
   const applySearch = () => {
     setAppliedKeyword(keyword);
     setAppliedFollowersMin(followersMin);
     setAppliedFollowersMax(followersMax);
     setAppliedPlatform(platform);
     setSelectedIds(new Set());
+    setListPage(1);
   };
   const resetSearch = () => {
     setKeyword("");
@@ -200,6 +202,11 @@ export function CreatorListPage() {
     setAppliedFollowersMax("");
     setAppliedPlatform("");
     setSelectedIds(new Set());
+    setListPage(1);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("category");
+    nextParams.delete("detail");
+    setSearchParams(nextParams);
   };
   const toggleSelected = (creatorId: string) => {
     setSelectedIds((current) => {
@@ -212,21 +219,41 @@ export function CreatorListPage() {
       return next;
     });
   };
-  const openCategory = (category?: CreatorCategory) => navigate(
-    category ? `/creators?category=${encodeURIComponent(category)}` : "/creators",
-  );
-  const toggleAll = () => setSelectedIds((current) => current.size === creators.length ? new Set() : new Set(creators.map((creator) => creator.id)));
+  const toggleSelectionMode = () => {
+    if (selectionMode) setSelectedIds(new Set());
+    setSelectionMode((current) => !current);
+  };
+  const openCategory = (category?: CreatorCategory) => {
+    setListPage(1);
+    setSelectedIds(new Set());
+    const nextParams = new URLSearchParams(searchParams);
+    if (category) nextParams.set("category", category);
+    else nextParams.delete("category");
+    nextParams.delete("detail");
+    setSearchParams(nextParams);
+  };
+  const allListedCreatorsSelected = pagedCreators.length > 0
+    && pagedCreators.every((creator) => selectedIds.has(creator.id));
+  const toggleAll = () => setSelectedIds((current) => {
+    const next = new Set(current);
+    const shouldClearPage = pagedCreators.every((creator) => next.has(creator.id));
+    pagedCreators.forEach((creator) => {
+      if (shouldClearPage) next.delete(creator.id);
+      else next.add(creator.id);
+    });
+    return next;
+  });
   const sendBatchProposal = () => navigate(`/proposals/new?creators=${[...selectedIds].join(",")}`);
   const creatorColumns: DenseTableColumn<CreatorFixture>[] = selectionMode
     ? [
       {
         id: "select",
-        header: <input aria-label="전체 선택" checked={creators.length > 0 && selectedIds.size === creators.length} onChange={toggleAll} type="checkbox" />,
+        header: <input aria-label="전체 선택" checked={allListedCreatorsSelected} onChange={toggleAll} type="checkbox" />,
         width: 40,
         align: "center" as const,
-        render: (creator: CreatorFixture) => <input aria-label={`${creator.name} 선택`} checked={selectedIds.has(creator.id)} onChange={() => toggleSelected(creator.id)} type="checkbox" />,
+        render: (creator: CreatorFixture) => <input aria-label={`${creator.profile.handle} 선택`} checked={selectedIds.has(creator.id)} onChange={() => toggleSelected(creator.id)} type="checkbox" />,
       },
-      ...CREATOR_COLUMNS.filter((column) => column.id !== "detail"),
+      ...CREATOR_COLUMNS,
     ]
     : CREATOR_COLUMNS;
 
@@ -236,22 +263,22 @@ export function CreatorListPage() {
       <PageHeader screenCode="CR101" title={selectedCategory ? `${selectedCategory} 크리에이터` : "크리에이터 풀"} />
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-creator-pool-search">
-          <SearchPanel actions={<><Button onClick={applySearch} variant="primary">조회</Button><Button onClick={resetSearch}>초기화</Button></>}>
+          <SearchPanel actions={<SearchActions onReset={resetSearch} onSearch={applySearch} />}>
             <FilterField htmlFor="creator-keyword" label="키워드">
               <TextInput
                 id="creator-keyword"
                 name="keyword"
                 onChange={(event) => setKeyword(event.target.value)}
-                placeholder="이름 또는 채널명 검색"
+                placeholder="계정 또는 채널명 검색"
                 value={keyword}
               />
             </FilterField>
             <div className="fuma-follower-range">
               <span>팔로워·구독자</span>
               <div className="fuma-follower-range__inputs">
-                <TextInput id="creator-followers-min" inputMode="numeric" name="followersMin" onChange={(event) => setFollowersMin(event.target.value)} placeholder="최소" value={followersMin} />
+                <TextInput aria-label="최소 팔로워·구독자" id="creator-followers-min" inputMode="numeric" name="followersMin" onChange={(event) => setFollowersMin(event.target.value)} placeholder="최소" value={followersMin} />
                 <i aria-hidden="true" />
-                <TextInput id="creator-followers-max" inputMode="numeric" name="followersMax" onChange={(event) => setFollowersMax(event.target.value)} placeholder="최대" value={followersMax} />
+                <TextInput aria-label="최대 팔로워·구독자" id="creator-followers-max" inputMode="numeric" name="followersMax" onChange={(event) => setFollowersMax(event.target.value)} placeholder="최대" value={followersMax} />
                 <em>명</em>
               </div>
             </div>
@@ -283,28 +310,49 @@ export function CreatorListPage() {
             ))}
           </div>
         </nav>
-        <CreatorResultToolbar count={creators.length} onBatchProposal={sendBatchProposal} onSelectionModeChange={() => setSelectionMode((current) => !current)} onViewChange={setView} selectedCount={selectedIds.size} selectionMode={selectionMode} view={view} />
+        <CreatorResultToolbar
+          count={creators.length}
+          onBatchProposal={sendBatchProposal}
+          onSelectionModeChange={toggleSelectionMode}
+          onViewChange={(nextView) => {
+            setView(nextView);
+            setListPage(1);
+          }}
+          selectedCount={selectedIds.size}
+          selectionMode={selectionMode}
+          view={view}
+        />
         {creators.length === 0 ? (
           <EmptyState title="검색 결과가 없습니다." />
-        ) : view === "cards" ? (
-          <CreatorCardGrid
-            creators={creators}
-            onOpen={(creator) => navigate(`${creatorPoolPath}${selectedCategory ? "&" : "?"}detail=${creator.id}`)}
-            onSelect={toggleSelected}
-            selectedIds={selectedIds}
-            selectionMode={selectionMode}
-          />
         ) : (
-          <div aria-label="크리에이터 목록" className="fuma-wide-table" role="region">
-            <DenseTable
-              columns={creatorColumns}
-              emptyMessage="검색 결과가 없습니다."
-              onRowClick={(creator) => selectionMode ? toggleSelected(creator.id) : navigate(`${creatorPoolPath}${selectedCategory ? "&" : "?"}detail=${creator.id}`)}
-              rowKey={(creator) => creator.id}
-              rows={creators}
-              selectedRowKeys={[...selectedIds]}
+          <>
+            {view === "cards" ? (
+              <CreatorCardGrid
+                creators={pagedCreators}
+                onOpen={(creator) => navigate(`${creatorPoolPath}${selectedCategory ? "&" : "?"}detail=${creator.id}`)}
+                onSelect={toggleSelected}
+                selectedIds={selectedIds}
+                selectionMode={selectionMode}
+              />
+            ) : (
+              <div aria-label="크리에이터 목록" className="fuma-wide-table" role="region">
+                <DenseTable
+                  columns={creatorColumns}
+                  emptyMessage="검색 결과가 없습니다."
+                  onRowClick={(creator) => selectionMode ? toggleSelected(creator.id) : navigate(`${creatorPoolPath}${selectedCategory ? "&" : "?"}detail=${creator.id}`)}
+                  rowKey={(creator) => creator.id}
+                  rows={pagedCreators}
+                  selectedRowKeys={[...selectedIds]}
+                />
+              </div>
+            )}
+            <Pagination
+              onPageChange={setListPage}
+              page={currentListPage}
+              pageSize={CREATOR_LIST_PAGE_SIZE}
+              totalPages={totalListPages}
             />
-          </div>
+          </>
         )}
       </div>
     </section>
@@ -561,10 +609,13 @@ void ProposalMethods;
 
 interface CreatorDetailPageProps {
   actionSection?: ReactNode;
+  analysisMetricOverrides?: AnalysisMetricOverrides;
+  analysisPercentileContext?: AnalysisPercentileContext;
   creatorIdOverride?: string;
   creatorOverride?: CreatorFixture;
   embedded?: boolean;
   onClose?: () => void;
+  reportEyebrow?: string;
   reportTitle?: string;
   statusPill?: ReactNode;
   title?: string;
@@ -572,10 +623,13 @@ interface CreatorDetailPageProps {
 
 export function CreatorDetailPage({
   actionSection,
+  analysisMetricOverrides,
+  analysisPercentileContext,
   creatorIdOverride,
   creatorOverride,
   embedded = false,
   onClose,
+  reportEyebrow,
   reportTitle,
   statusPill,
   title = "크리에이터 상세",
@@ -587,8 +641,10 @@ export function CreatorDetailPage({
   const fixture = creatorOverride ?? CREATORS.find((creator) => creator.id === creatorId);
   const creator =
     fixture && searchParams.get("fixture") === "ai-pending"
-      ? { ...fixture, aiReport: PENDING_AI_REPORT }
-      : fixture;
+      ? { ...fixture, name: creatorOverride ? fixture.name : fixture.profile.handle, aiReport: PENDING_AI_REPORT }
+      : fixture && !creatorOverride
+        ? { ...fixture, name: fixture.profile.handle }
+        : fixture;
   return (
     <>
       {embedded ? null : <CreatorListPage />}
@@ -602,7 +658,13 @@ export function CreatorDetailPage({
                 statusPill={statusPill}
               />
               <main className="fuma-creator-detail-main">
-                <CreatorAnalysisReport creator={creator} title={reportTitle} />
+                <CreatorAnalysisReport
+                  creator={creator}
+                  eyebrow={reportEyebrow}
+                  metricOverrides={analysisMetricOverrides}
+                  percentileContext={analysisPercentileContext}
+                  title={reportTitle}
+                />
               </main>
             </div>
           ) : (
@@ -626,14 +688,13 @@ function ProposalCreatorSummary({ creator }: { creator: CreatorFixture }) {
       <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
       <div className="fuma-proposal-compose__creator-profile">
         <img
-          alt={`${creator.name} 프로필 이미지`}
+          alt={`${creator.profile.handle} 프로필 이미지`}
           src={assetUrl(creator.profile.profileImageUrl)}
         />
         <div>
-          <strong>{creator.name}</strong>
+          <strong>{creator.profile.handle}</strong>
           <span>
             <PlatformLabel platform={platform} />
-            {creator.profile.handle}
           </span>
         </div>
       </div>
@@ -654,8 +715,15 @@ function ProposalCreatorSummary({ creator }: { creator: CreatorFixture }) {
   );
 }
 
+function resizeProposalMessage(textarea: HTMLTextAreaElement) {
+  textarea.style.height = "auto";
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
 export function ProposalComposePage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [proposalCompleted, setProposalCompleted] = useState(false);
   const creatorIds = searchParams.get("creators")?.split(",") ?? [searchParams.get("creator")];
   const selectedCreators = CREATORS.filter((item) => creatorIds.includes(item.id));
   const creator = selectedCreators[0];
@@ -664,7 +732,7 @@ export function ProposalComposePage() {
   if (!creator) {
     return (
       <section className="fuma-page">
-        <PageHeader screenCode="CR202" title="크리에이터 제안 작성" />
+        <PageHeader screenCode="CR202" title="셀렉터스 제안" />
         <div className="fuma-page__body">
           <EmptyState
             description="크리에이터 풀에서 제안할 대상을 선택해 주세요."
@@ -676,20 +744,50 @@ export function ProposalComposePage() {
   }
 
   const channelOptions = [{ label: "이메일", value: "이메일" }];
+  const recipientLabel = isBatchProposal ? "크리에이터님" : `${creator.profile.handle}님`;
+  const proposalSubject = isBatchProposal
+    ? "[더현대Hi] 셀렉터스 크리에이터 활동을 제안드립니다"
+    : `[더현대Hi] ${creator.profile.handle}님, 셀렉터스 크리에이터 활동을 제안드립니다`;
+  const proposalMessage = `안녕하세요, ${recipientLabel}.
+더현대Hi 셀렉터스 운영팀입니다.
+
+${isBatchProposal
+    ? "크리에이터님의 콘텐츠를 관심 있게 보고, 더현대Hi와 함께하는 셀렉터스 활동을 제안드리고자 연락드립니다."
+    : `${creator.profile.handle}님의 ${creator.category} 콘텐츠를 관심 있게 보고, 더현대Hi와 함께하는 셀렉터스 활동을 제안드리고자 연락드립니다.`}
+
+셀렉터스는 크리에이터의 개성과 전문성을 바탕으로 더현대Hi의 상품과 브랜드를 소개하는 크리에이터 파트너 프로그램입니다.
+
+[제안 내용]
+- 더현대Hi 주요 캠페인 및 콘텐츠 협업
+- 채널 특성에 맞춘 상품과 캠페인 제안
+- 캠페인별 활동 조건 및 상세 가이드 별도 안내
+
+참여 의향이 있으시다면 본 메일에 회신해 주세요. 확인 후 활동 방식과 다음 절차를 상세히 안내드리겠습니다.
+
+감사합니다.
+더현대Hi 셀렉터스 운영팀 드림`;
 
   return (
+    <>
     <section className="fuma-page fuma-proposal-compose">
-      <PageHeader screenCode="CR202" title="크리에이터 제안 작성" />
+      <PageHeader screenCode="CR202" title="셀렉터스 제안" />
       <div className="fuma-page__body">
         <div className="fuma-proposal-compose__layout">
           {isBatchProposal ? (
             <aside aria-label="제안 대상" className="fuma-proposal-compose__creator fuma-proposal-compose__creator--batch">
               <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
               <strong>{selectedCreators.length}명 선택됨</strong>
-              <ul>{selectedCreators.map((item) => <li key={item.id}>{item.name}<span>{item.profile.handle}</span></li>)}</ul>
+              <ul>{selectedCreators.map((item) => <li key={item.id}>{item.profile.handle}<span>{item.profile.platform}</span></li>)}</ul>
             </aside>
           ) : <ProposalCreatorSummary creator={creator} />}
-          <form aria-label="제안 작성" className="fuma-proposal-compose__form">
+          <form
+            aria-label="제안 작성"
+            className="fuma-proposal-compose__form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setProposalCompleted(true);
+            }}
+          >
             <div className="fuma-proposal-compose__form-heading">
               <h2>제안 내용</h2>
               <span>필수 항목을 입력해 주세요.</span>
@@ -700,27 +798,40 @@ export function ProposalComposePage() {
             <FormRow label="제목" required>
               <TextInput
                 aria-label="제목"
-                defaultValue={isBatchProposal ? "더현대Hi 셀렉터스 활동 제안드립니다" : `더현대Hi 셀렉터스 활동 제안드립니다, ${creator.name}님`}
+                defaultValue={proposalSubject}
+                placeholder={proposalSubject}
               />
             </FormRow>
             <FormRow label="제안 메시지" required>
               <textarea
                 aria-label="제안 메시지"
                 className="hsas-control fuma-proposal-compose__textarea"
-                defaultValue={isBatchProposal ? "크리에이터님의 콘텐츠를 인상 깊게 보았습니다. 더현대Hi 셀렉터스와 함께할 기회를 제안드립니다." : `${creator.name}님의 콘텐츠를 인상 깊게 보았습니다. 더현대Hi 셀렉터스와 함께할 기회를 제안드립니다.`}
+                defaultValue={proposalMessage}
+                onInput={(event) => resizeProposalMessage(event.currentTarget)}
+                placeholder={proposalMessage}
+                ref={(textarea) => {
+                  if (textarea) resizeProposalMessage(textarea);
+                }}
               />
             </FormRow>
             <footer className="fuma-proposal-compose__footer">
               <span>발송 후 제안 이력에서 상태를 확인할 수 있습니다.</span>
               <div>
-                <Button>취소</Button>
-                <Button variant="primary">제안 발송</Button>
+                <Button onClick={() => navigate(-1)}>취소</Button>
+                <Button type="submit" variant="primary">제안 발송</Button>
               </div>
             </footer>
           </form>
         </div>
       </div>
     </section>
+    <AlertDialog
+      message="제안이 완료되었습니다."
+      onClose={() => setProposalCompleted(false)}
+      open={proposalCompleted}
+      title="제안 발송 완료"
+    />
+    </>
   );
 }
 
@@ -818,11 +929,10 @@ export function ProposalHistoryPage() {
       proposal.recipientEmail,
     ].some((value) => value.toLocaleLowerCase("ko-KR").includes(keyword)))
   ));
-  const totalPages = Math.max(1, Math.ceil(proposals.length / PROPOSAL_PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const pagedProposals = proposals.slice(
-    (currentPage - 1) * PROPOSAL_PAGE_SIZE,
-    currentPage * PROPOSAL_PAGE_SIZE,
+  const { currentPage, pagedItems: pagedProposals, totalPages } = paginate(
+    proposals,
+    page,
+    PROPOSAL_PAGE_SIZE,
   );
 
   const selectStatus = (status?: ProposalStatus) => {
@@ -858,6 +968,7 @@ export function ProposalHistoryPage() {
     nextParams.delete("creator");
     nextParams.delete("sentDate");
     nextParams.delete("keyword");
+    nextParams.delete("status");
     setSentDateInput("");
     setKeywordInput("");
     setPage(1);
@@ -869,14 +980,7 @@ export function ProposalHistoryPage() {
       <PageHeader screenCode="CR201" title="제안 이력 관리" />
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-proposal-history-search">
-          <SearchPanel
-            actions={(
-              <>
-                <Button onClick={searchProposals} variant="primary">조회</Button>
-                <Button onClick={resetProposalSearch}>초기화</Button>
-              </>
-            )}
-          >
+          <SearchPanel actions={<SearchActions onReset={resetProposalSearch} onSearch={searchProposals} />}>
             <FilterField htmlFor="proposal-sent-date" label="발송일">
               <TextInput
                 aria-label="발송일"

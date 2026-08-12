@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import {
   Button,
+  buttonClassNames,
   Checkbox,
   SegmentedControl,
   Select,
@@ -17,6 +18,12 @@ void invalidSegmentedAliases;
 void invalidStatusAlias;
 
 describe("HSAS controls", () => {
+  test("shares the button class contract with non-button elements", () => {
+    expect(buttonClassNames("primary", "custom-link")).toBe(
+      "hsas-button ui-button hsas-button--primary ui-button--primary custom-link",
+    );
+  });
+
   test("renders the primary button treatment", () => {
     render(<Button variant="primary">Save</Button>);
 

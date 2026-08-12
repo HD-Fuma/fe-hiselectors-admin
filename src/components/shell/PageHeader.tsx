@@ -10,7 +10,7 @@ interface PageHeaderProps {
 export function PageHeader({ title }: PageHeaderProps) {
   const location = useLocation();
   const requirement = findRequirementCoverage(location.pathname, location.search);
-  const pageTitle = findAdminRoute(location.pathname)?.menuLabel ?? title;
+  const pageTitle = findAdminRoute(location.pathname)?.title ?? title;
 
   return (
     <header

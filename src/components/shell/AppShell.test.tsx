@@ -8,12 +8,13 @@ const expectedSidebarLinks = [
   ["기수 관리", "/cohorts"],
   ["셀렉터스 목록", "/selectors"],
   ["블랙리스트 관리", "/selectors/qualifications"],
+  ["우수 활동자", "/selectors/excellent"],
   ["지원자 승인", "/applicants"],
   ["캠페인 관리", "/campaigns"],
   ["콘텐츠 검수", "/content/reviews"],
-  ["성과 대시보드", "/performance"],
-  ["크리에이터 분석 리포트", "/performance/creators"],
-  ["콘텐츠 분석", "/performance/contents"],
+  ["셀렉터스 성과", "/performance/selectors"],
+  ["콘텐츠 성과", "/performance/contents"],
+  ["캠페인 성과", "/performance/products"],
   ["정산 관리", "/settlements"],
 ] as const;
 
@@ -211,6 +212,14 @@ const routeCases = [
     menuLabel: "블랙리스트 관리",
     title: "블랙리스트 관리",
     screenCode: "SL301",
+    routeIsExact: true,
+  },
+  {
+    path: "/selectors/excellent",
+    group: "selectors",
+    menuLabel: "우수 활동자",
+    title: "우수 활동자",
+    screenCode: "SL302",
     routeIsExact: true,
   },
   {

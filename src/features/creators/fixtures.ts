@@ -311,17 +311,27 @@ const DEMO_CREATOR_NAMES = [
   "김하린", "윤서준", "박다은", "최민호", "이수아", "정현우", "한유진", "오지민",
   "서도현", "문채원", "류시온", "장예린", "신태윤", "권나연", "배준호", "임소율",
 ];
+const ADDITIONAL_CREATOR_NAMES = [
+  "강민서", "조유나", "송지후", "백예은", "노준영", "홍서아", "남태현", "심가은", "유재민", "고은채",
+  "안시우", "전하윤", "양도겸", "손아린", "주원석", "황예지", "차민재", "공서윤", "변우진", "여다인",
+  "진성호", "구채린", "나연우", "마지수", "표건우", "엄하린", "도윤재", "방세아", "사준혁", "피유림",
+  "곽민규", "김예나", "박시현", "이도아", "최우성", "정다현", "한지안", "오승민", "서유리", "문재하",
+  "류소민", "장도하", "신예림", "권준서", "배아영", "임현서", "윤가람", "김태리", "박선우", "이채영",
+];
 const DEMO_CREATOR_CATEGORIES: CreatorCategory[] = [
   "패션", "유아동/패밀리", "컬처/서비스", "스포츠/레저", "반려생활", "아울렛", "뷰티", "리빙/라이프",
   "여행", "푸드", "패션", "유아동/패밀리", "컬처/서비스", "스포츠/레저", "반려생활", "아울렛",
 ];
+const ALL_DEMO_CREATOR_NAMES = [...DEMO_CREATOR_NAMES, ...ADDITIONAL_CREATOR_NAMES];
 
 export const CREATORS: CreatorFixture[] = [
   ...BASE_CREATORS,
-  ...DEMO_CREATOR_NAMES.map((name, index) => {
+  ...ALL_DEMO_CREATOR_NAMES.map((name, index) => {
     const source = BASE_CREATORS[index % BASE_CREATORS.length];
     const sequence = index + 5;
     const handle = `@creator_${String(sequence).padStart(3, "0")}`;
+    const category = DEMO_CREATOR_CATEGORIES[index]
+      ?? CREATOR_CATEGORIES[(index - DEMO_CREATOR_CATEGORIES.length) % CREATOR_CATEGORIES.length];
 
     return {
       ...source,
@@ -337,8 +347,8 @@ export const CREATORS: CreatorFixture[] = [
         averageViews: source.profile.averageViews + sequence * 840,
         averageReactions: source.profile.averageReactions + sequence * 67,
       },
-      category: DEMO_CREATOR_CATEGORIES[index],
-      keywords: [`#${DEMO_CREATOR_CATEGORIES[index]}`, "#크리에이터", "#셀렉터스"],
+      category,
+      keywords: [`#${category}`, "#크리에이터", "#셀렉터스"],
       contentCount: source.contentCount + sequence * 7,
       recentActivity: `2026-08-${String((sequence % 9) + 1).padStart(2, "0")}`,
       featuredContents: source.featuredContents.map((content, contentIndex) => ({
