@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderRoute } from "../../test/renderRoute";
 import { QUALIFICATIONS, SELECTED_QUALIFICATION } from "./fixtures";
 
@@ -77,6 +78,20 @@ describe("cohort management", () => {
     expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
     expect(screen.getByText("페이지당 20개")).toBeInTheDocument();
   });
+});
+
+test("renders the excellent activity list as a full page and opens selector detail from a row", async () => {
+  const user = userEvent.setup();
+  renderRoute("/selectors/excellent");
+
+  expect(screen.getByRole("heading", { name: "우수 활동자" })).toBeInTheDocument();
+  const results = screen.getByRole("region", { name: "우수 활동자 목록" });
+  expectColumnHeaders(results, ["셀렉터스 ID", "이름", "기수", "종류", "총 매출액"]);
+  expect(within(results).getAllByRole("row").length).toBeGreaterThan(1);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+  await user.click(within(results).getAllByRole("row")[1]);
+  expect(screen.getByRole("dialog", { name: "셀렉터스 상세" })).toBeInTheDocument();
 });
 
 describe("selector overview", () => {

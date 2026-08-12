@@ -32,8 +32,8 @@ export interface NavGroupMeta {
 
 export const NAV_GROUPS: readonly NavGroupMeta[] = [
   { id: "creators", label: "크리에이터" },
-  { id: "selectors", label: "셀렉터스" },
   { id: "applicants", label: "지원자" },
+  { id: "selectors", label: "셀렉터스" },
   { id: "campaigns", label: "캠페인" },
   { id: "content", label: "콘텐츠" },
   { id: "performance", label: "성과" },
@@ -70,17 +70,9 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     path: "/proposals/new",
     group: "creators",
     menuLabel: "크리에이터 풀",
-    title: "크리에이터 풀",
+    title: "셀렉터스 제안",
     screenCode: "CR202",
     workTabLabel: "제안 작성",
-  },
-  {
-    path: "/cohorts",
-    group: "selectors",
-    menuLabel: "기수 관리",
-    title: "기수 관리",
-    screenCode: "SL101",
-    workTabLabel: "기수 관리",
   },
   {
     path: "/selectors",
@@ -99,6 +91,14 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
     workTabLabel: "블랙리스트 관리",
   },
   {
+    path: "/selectors/excellent",
+    group: "selectors",
+    menuLabel: "우수 활동자",
+    title: "우수 활동자",
+    screenCode: "SL302",
+    workTabLabel: "우수 활동자",
+  },
+  {
     path: "/selectors/:selectorId",
     group: "selectors",
     menuLabel: "셀렉터스 목록",
@@ -111,6 +111,14 @@ export const ADMIN_ROUTES: readonly AdminRouteMeta[] = [
       value: "qualifications",
       path: "/selectors/qualifications",
     },
+  },
+  {
+    path: "/cohorts",
+    group: "selectors",
+    menuLabel: "기수 관리",
+    title: "기수 관리",
+    screenCode: "SL101",
+    workTabLabel: "기수 관리",
   },
   {
     path: "/applicants",

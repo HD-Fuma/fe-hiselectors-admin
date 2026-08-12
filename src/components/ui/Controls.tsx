@@ -13,16 +13,24 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "danger" | "ghost";
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- Link controls share Button's visual contract.
+export function buttonClassNames(
+  variant: ButtonProps["variant"] = "secondary",
+  className?: string,
+) {
+  return classes(
+    "hsas-button",
+    "ui-button",
+    `hsas-button--${variant}`,
+    `ui-button--${variant}`,
+    className,
+  );
+}
+
 export function Button({ className, type = "button", variant = "secondary", ...props }: ButtonProps) {
   return (
     <button
-      className={classes(
-        "hsas-button",
-        "ui-button",
-        `hsas-button--${variant}`,
-        `ui-button--${variant}`,
-        className,
-      )}
+      className={buttonClassNames(variant, className)}
       type={type}
       {...props}
     />

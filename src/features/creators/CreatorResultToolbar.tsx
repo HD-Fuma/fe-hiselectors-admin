@@ -1,4 +1,5 @@
 import { SegmentedControl } from "../../components/ui/Controls";
+import { SelectionModeButton } from "../../components/ui/SelectionModeButton";
 
 export type CreatorPoolView = "cards" | "list";
 
@@ -23,18 +24,15 @@ export function CreatorResultToolbar({
     <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-creator-toolbar">
       <strong>크리에이터 풀</strong>
       <div className="fuma-settlement-result-meta">
-        <span>총 {count}건</span>
+        <span>{selectionMode ? `${selectedCount}/${count}명` : `총 ${count}건`}</span>
       </div>
       <div className="fuma-creator-toolbar__controls">
-        <button aria-pressed={selectionMode} className="fuma-creator-toolbar__select-mode" onClick={onSelectionModeChange} type="button">
-          {selectionMode ? "선택 종료" : "선택"}
-        </button>
-        {selectionMode ? <>
-          <span className="fuma-creator-toolbar__selected">{selectedCount}명 선택</span>
+        <SelectionModeButton active={selectionMode} onClick={onSelectionModeChange} />
+        {selectionMode ? (
           <button className="fuma-creator-toolbar__proposal" disabled={selectedCount === 0} onClick={onBatchProposal} type="button">
-            제안 발송
+            일괄 제안
           </button>
-        </> : null}
+        ) : null}
         <span aria-hidden="true" className="fuma-creator-toolbar__divider" />
         <SegmentedControl
           ariaLabel="보기 방식"

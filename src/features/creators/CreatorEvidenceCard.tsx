@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
+import { Check } from "lucide-react";
 import type { CreatorFixture } from "./fixtures";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
-import { CreatorProfilePhoto } from "./CreatorArtwork";
-import { PlatformIcon } from "./PlatformIcon";
+import { CreatorCardProfileHeader } from "./CreatorCardProfileHeader";
+import { CreatorKeywordTags } from "./CreatorKeywordTags";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const compactNumber = new Intl.NumberFormat("ko-KR", {
@@ -36,53 +37,42 @@ export function CreatorEvidenceCard({
   const action = actionFor(creator);
   const isInstagram = creator.profile.platform === "Instagram";
   const audienceLabel = isInstagram ? "팔로워" : "구독자";
-  const channelScore = creator.aiReport.fitnessScore === null ? "-" : `${creator.aiReport.fitnessScore}점`;
+  const displayName = creator.profile.handle;
 
   return (
     <li className="fuma-creator-card" data-selected={selected} role="listitem">
+      {selectionMode ? (
+        <span
+          aria-hidden="true"
+          className="fuma-creator-card__selection-indicator"
+          data-selected={selected}
+        >
+          <Check size={14} strokeWidth={2.5} />
+        </span>
+      ) : null}
       <article
-        aria-label={`${creator.name} 크리에이터 카드`}
+        aria-label={`${displayName} 크리에이터 카드`}
         className="fuma-creator-card__article"
         onClick={() => selectionMode ? onSelect(creator.id) : onOpen(creator)}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            selectionMode ? onSelect(creator.id) : onOpen(creator);
+            if (selectionMode) onSelect(creator.id);
+            else onOpen(creator);
           }
         }}
         role="button"
         tabIndex={0}
       >
-        <header className="fuma-creator-card__header">
-          <span className="fuma-creator-card__portrait">
-            <CreatorProfilePhoto
-              creatorName={creator.name}
-              src={creator.profile.profileImageUrl}
-            />
-          </span>
-          <div className="fuma-creator-card__identity">
-            <div className="fuma-creator-card__badges">
-              <span>{creator.category}</span>
-              <span className="fuma-creator-card__platform">
-                <PlatformIcon platform={creator.profile.platform} />
-                {creator.profile.platform}
-              </span>
-            </div>
-            <h2 className="fuma-creator-card__name">{creator.name} <span aria-hidden="true">›</span></h2>
-          </div>
-        </header>
-        <CreatorMediaMosaic contents={creator.featuredContents} creatorName={creator.name} />
-        <section aria-label="채널 정보" className="fuma-creator-card__channel-info">
-          <h3>채널 정보</h3>
+        <CreatorCardProfileHeader
+          badgeLabel={creator.category}
+          displayName={displayName}
+          platform={creator.profile.platform}
+          profileImageUrl={creator.profile.profileImageUrl}
+        />
+        <CreatorMediaMosaic contents={creator.featuredContents} creatorName={displayName} />
+        <section aria-label="주요 지표" className="fuma-creator-card__channel-info">
           <dl>
-            <div>
-              <dt>채널 스코어</dt>
-              <dd className="fuma-creator-card__score">{channelScore}</dd>
-            </div>
-            <div>
-              <dt>채널 카테고리</dt>
-              <dd>{creator.category}</dd>
-            </div>
             <div>
               <dt>{audienceLabel}</dt>
               <dd>{compactNumber.format(creator.profile.followers)}명</dd>
@@ -91,17 +81,36 @@ export function CreatorEvidenceCard({
               <dt>평균 좋아요수</dt>
               <dd>{compactNumber.format(creator.profile.averageReactions)}개</dd>
             </div>
+            <div>
+              <dt>ER 지수</dt>
+              <dd>{creator.profile.engagementRate.toFixed(1)}%</dd>
+            </div>
+            <div className="fuma-creator-card__keyword-row">
+              <dt>키워드</dt>
+              <dd><CreatorKeywordTags keywords={creator.keywords} /></dd>
+            </div>
+            <div>
+              <dt>최근 활동일</dt>
+              <dd>{creator.recentActivity}</dd>
+            </div>
           </dl>
         </section>
         <footer className="fuma-creator-card__actions">
-          <Link
-            aria-label={`${creator.name} 제안하기`}
-            className="fuma-creator-card__action fuma-creator-card__action--primary"
-            onClick={(event) => event.stopPropagation()}
-            to={action.to}
-          >
-            제안하기
-          </Link>
+          {selectionMode ? (
+            <span className={`fuma-creator-card__selection-state${selected ? " is-selected" : ""}`}>
+              {selected ? <Check aria-hidden="true" size={14} strokeWidth={2.5} /> : null}
+              {selected ? "선택됨" : "선택하기"}
+            </span>
+          ) : (
+            <Link
+              aria-label={`${displayName} 제안하기`}
+              className="fuma-creator-card__action fuma-creator-card__action--primary"
+              onClick={(event) => event.stopPropagation()}
+              to={action.to}
+            >
+              제안하기
+            </Link>
+          )}
         </footer>
       </article>
     </li>

@@ -1,12 +1,18 @@
+import { Siren } from "lucide-react";
 import { StatusPill } from "../../components/ui/StatusPill";
+import { formatNumber } from "../../lib/formatters";
+import { AnalysisFormatDonut } from "../creators/AnalysisFormatDonut";
 import {
+  APPLICANTS,
   applicantAnalysisFor,
   applicantFeaturedContentFor,
   type ApplicantFixture,
 } from "./fixtures";
 
-function formatNumber(value: number) {
-  return value.toLocaleString("ko-KR");
+function topPercentile(value: number, pool: readonly number[]) {
+  if (pool.length === 0) return null;
+  const rank = pool.filter((candidate) => candidate > value).length + 1;
+  return Math.max(1, Math.ceil((rank / pool.length) * 100));
 }
 
 export function ApplicantFeaturedContents({ applicant }: { applicant: ApplicantFixture }) {
@@ -84,22 +90,43 @@ export function ApplicantAutomaticReview({ applicant }: { applicant: ApplicantFi
   );
 }
 
-function Insight({ children, className = "", label }: { children: React.ReactNode; className?: string; label: string }) {
+function Insight({
+  children,
+  className = "",
+  label,
+  risk = false,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  label: string;
+  risk?: boolean;
+}) {
   return (
     <div className={`fuma-applicant-insight ${className}`.trim()}>
-      <dt>{label}</dt>
+      <dt className={label === "위험 요소" ? "fuma-analysis-risk-label" : undefined} data-risk={label === "위험 요소" ? String(risk) : undefined}>
+        {label === "위험 요소" ? <Siren aria-hidden="true" size={16} strokeWidth={2} /> : null}
+        <span>{label}</span>
+      </dt>
       <dd>{children}</dd>
     </div>
   );
 }
 
+function hasRiskFactor(value: string) {
+  return !["미확인", "없음", "해당 없음", "발견되지 않"].some((phrase) => value.includes(phrase));
+}
+
 export function ApplicantAnalysisReport({ applicant }: { applicant: ApplicantFixture }) {
   const analysis = applicantAnalysisFor(applicant);
-  const featuredContents = applicantFeaturedContentFor(applicant);
+  const poolAnalyses = APPLICANTS.map((candidate) => applicantAnalysisFor(candidate));
+  const poolPercentiles = {
+    audience: topPercentile(applicant.followerCount, APPLICANTS.map((candidate) => candidate.followerCount)),
+    views: topPercentile(applicant.averageViews, APPLICANTS.map((candidate) => candidate.averageViews)),
+    likes: topPercentile(analysis.averageLikes, poolAnalyses.map((candidate) => candidate.averageLikes)),
+    comments: topPercentile(analysis.averageComments, poolAnalyses.map((candidate) => candidate.averageComments)),
+    engagement: topPercentile(analysis.engagementRate, poolAnalyses.map((candidate) => candidate.engagementRate)),
+  };
   const audienceLabel = applicant.platform === "Instagram" ? "팔로워" : "구독자";
-  const contentCountLabel = applicant.platform === "Instagram" ? "전체 콘텐츠 수" : "전체 동영상 수";
-  const recentContentLabel = applicant.platform === "Instagram" ? "최근 90일 게시물" : "최근 90일 동영상";
-  const lastContentLabel = applicant.platform === "Instagram" ? "마지막 게시일" : "마지막 업로드일";
   const formatTotal = analysis.contentFormats.reduce((total, format) => total + format.count, 0);
   const formatColors = ["#de76ce", "#efaa62", "#7b91e3", "#62b7a6", "#9a83d3"];
   const formatBreakdown = analysis.contentFormats.reduce<Array<{
@@ -124,10 +151,6 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: ApplicantFix
 
     return formats;
   }, []);
-  const formatDonutBackground = formatBreakdown.length > 0 && formatTotal > 0
-    ? `conic-gradient(${formatBreakdown.map((format) => `${format.color} ${format.start.toFixed(2)}% ${format.end.toFixed(2)}%`).join(", ")})`
-    : "#e9ecef";
-  const formatBreakdownLabel = formatBreakdown.map((format) => `${format.label} ${format.count}건 (${format.percentage.toFixed(1)}%)`).join(", ");
 
   return (
     <section aria-labelledby="applicant-analysis-title" className="fuma-content-section fuma-applicant-analysis" id="analysis">
@@ -148,49 +171,30 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: ApplicantFix
             <header className="fuma-analysis-content__header">
               <div>
                 <strong>콘텐츠</strong>
-                <span>최근 90일 수집 데이터 기준</span>
+                <span>최근 90일 수집 콘텐츠 기준</span>
               </div>
             </header>
             <div className="fuma-analysis-content__grid">
               <article className="fuma-analysis-content__card">
-                <span>팔로워·구독자</span>
-                <strong>{formatNumber(applicant.followerCount)}명</strong>
-                <small>{applicant.platform} 공개 계정 기준</small>
+                <span>콘텐츠 수</span>
+                <strong>{formatNumber(applicant.contentCount)}건</strong>
+              </article>
+              <article className="fuma-analysis-content__card">
+                <span>최근 90일 콘텐츠</span>
+                <strong>{analysis.recent90ContentCount}건</strong>
               </article>
               <article className="fuma-analysis-content__card">
                 <span>업로드 주기</span>
                 <strong>주 {analysis.uploadFrequency.toFixed(1)}회</strong>
-                <small>최근 90일 · 최대 공백 {analysis.maxGapDays}일</small>
               </article>
               <article className="fuma-analysis-content__card">
-                <span>{contentCountLabel}</span>
-                <strong>{formatNumber(applicant.contentCount)}건</strong>
-                <small>API 수집 기준</small>
-              </article>
-              <article className="fuma-analysis-content__card">
-                <span>{recentContentLabel}</span>
-                <strong>{analysis.recent90ContentCount}건</strong>
-                <small>최근 90일 수집</small>
-              </article>
-              <article className="fuma-analysis-content__card">
-                <span>{lastContentLabel}</span>
+                <span>마지막 게시일</span>
                 <strong>{analysis.lastPostDate}</strong>
-                <small>수집 기준 마지막 콘텐츠</small>
               </article>
               <article className="fuma-analysis-content__card fuma-analysis-content__card--formats">
                 <span>콘텐츠 형식</span>
                 <div className="fuma-analysis-format-breakdown">
-                  <div
-                    aria-label={`콘텐츠 형식 비중: ${formatBreakdownLabel || "수집된 형식 없음"}`}
-                    className="fuma-analysis-format-breakdown__donut"
-                    role="img"
-                    style={{ background: formatDonutBackground }}
-                  >
-                    <div>
-                      <strong>{formatNumber(formatTotal)}건</strong>
-                      <span>전체 콘텐츠</span>
-                    </div>
-                  </div>
+                  <AnalysisFormatDonut segments={formatBreakdown} total={formatTotal} />
                   <ul className="fuma-analysis-format-breakdown__legend">
                     {formatBreakdown.map((format) => (
                       <li key={format.label}>
@@ -208,48 +212,60 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: ApplicantFix
             <header className="fuma-analysis-engagement__header">
               <div>
                 <strong>인게이지먼트</strong>
-                <span>최근 90일 수집 콘텐츠 1건당 평균</span>
+                <span>최근 90일 수집 콘텐츠 기준</span>
               </div>
             </header>
             <div className="fuma-analysis-engagement__grid">
               <article className="fuma-analysis-engagement__card">
+                <span>팔로워/구독자</span>
+                <strong>{formatNumber(applicant.followerCount)}명</strong>
+                <small className="fuma-analysis-engagement__percentile fuma-analysis-engagement__percentile--applicant">지원자 중 상위 {poolPercentiles.audience}%</small>
+              </article>
+              <article className="fuma-analysis-engagement__card">
                 <span>평균 조회</span>
                 <strong>{formatNumber(applicant.averageViews)}</strong>
-                <small>콘텐츠 1건당</small>
+                <small className="fuma-analysis-engagement__percentile fuma-analysis-engagement__percentile--applicant">지원자 중 상위 {poolPercentiles.views}%</small>
               </article>
               <article className="fuma-analysis-engagement__card">
                 <span>평균 좋아요</span>
                 <strong>{formatNumber(analysis.averageLikes)}</strong>
-                <small>콘텐츠 1건당</small>
+                <small className="fuma-analysis-engagement__percentile fuma-analysis-engagement__percentile--applicant">지원자 중 상위 {poolPercentiles.likes}%</small>
               </article>
               <article className="fuma-analysis-engagement__card">
                 <span>평균 댓글</span>
                 <strong>{formatNumber(analysis.averageComments)}</strong>
-                <small>콘텐츠 1건당</small>
+                <small className="fuma-analysis-engagement__percentile fuma-analysis-engagement__percentile--applicant">지원자 중 상위 {poolPercentiles.comments}%</small>
               </article>
               <article className="fuma-analysis-engagement__card">
                 <span>ER</span>
                 <strong className="fuma-analysis-engagement__er">{analysis.engagementRate.toFixed(1)}%</strong>
-                <small>반응 비중 · {audienceLabel} 기준</small>
+                <small className="fuma-analysis-engagement__percentile fuma-analysis-engagement__percentile--applicant">지원자 중 상위 {poolPercentiles.engagement}%</small>
               </article>
             </div>
           </section>
           <p className="fuma-applicant-analysis__formula">ER = (좋아요 + 댓글 + 공유) ÷ {audienceLabel} × 100</p>
         </section>
 
-        <section aria-labelledby="applicant-qualitative-title" className="fuma-applicant-analysis__section">
+        <section aria-labelledby="applicant-qualitative-title" className="fuma-applicant-analysis__section fuma-analysis-qualitative">
           <div className="fuma-applicant-analysis__section-title">
             <span>02</span>
             <div><h3 id="applicant-qualitative-title">정성적 지표 · AI 분석</h3><p>콘텐츠 이미지·음성·문맥을 함께 분석한 결과입니다.</p></div>
           </div>
           <dl className="fuma-applicant-insight-grid">
-            <Insight className="fuma-applicant-insight--risk" label="위험 요소">{analysis.riskFactors}</Insight>
-            <Insight className="fuma-applicant-insight--wide" label="강점/유의점">{analysis.strengthsAndNotes}</Insight>
+            <Insight
+              className={`fuma-applicant-insight--wide${hasRiskFactor(analysis.riskFactors) ? " fuma-applicant-insight--risk" : ""}`}
+              label="위험 요소"
+              risk={hasRiskFactor(analysis.riskFactors)}
+            >
+              {analysis.riskFactors}
+            </Insight>
+            <Insight className="fuma-applicant-insight--plain" label="강점">{analysis.strengths}</Insight>
+            <Insight className="fuma-applicant-insight--plain" label="유의점">{analysis.cautions}</Insight>
           </dl>
           <dl aria-label="분석 태그" className="fuma-analysis-tags">
             <div className="fuma-analysis-tags__group">
               <dt>카테고리</dt>
-              <dd className="fuma-analysis-tags__list"><span className="fuma-analysis-tags__tag">{analysis.category}</span></dd>
+              <dd className="fuma-analysis-tags__list"><span className="fuma-analysis-tags__tag fuma-analysis-tags__tag--keyword">{analysis.category}</span></dd>
             </div>
             <div className="fuma-analysis-tags__group">
               <dt>핵심 키워드</dt>
@@ -274,11 +290,6 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: ApplicantFix
               <dd className="fuma-analysis-tags__list">{analysis.toneAndManner.split(" · ").map((tone) => <span className="fuma-analysis-tags__tag" key={tone}>{tone}</span>)}</dd>
             </div>
           </dl>
-          <div className="fuma-applicant-analysis__evidence-note">
-            <strong>AI 판단 근거</strong>
-            <p>AI 판단은 아래 원문과 최근 90일 수집 콘텐츠를 근거로 합니다.</p>
-            <div>{featuredContents.map((content, index) => <a href={content.url} key={content.id} rel="noreferrer" target="_blank">근거 {index + 1}. {content.title} <span aria-hidden="true">↗</span></a>)}</div>
-          </div>
         </section>
     </section>
   );

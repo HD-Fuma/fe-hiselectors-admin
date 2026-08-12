@@ -1,7 +1,34 @@
 :root {
+  /* Shared color primitives */
+  --hsas-color-white: #fff;
+  --hsas-color-black: #111;
+  --hsas-color-neutral-950: #0f0f0f;
+  --hsas-color-ink-900: #111827;
+  --hsas-color-ink-700: #374151;
+  --hsas-color-ink-600: #4b5563;
+  --hsas-color-ink-500: #6b7280;
+  --hsas-color-neutral-800: #3f474b;
+  --hsas-color-neutral-700: #4a5155;
+  --hsas-color-neutral-600: #596166;
+  --hsas-color-neutral-500: #718078;
+  --hsas-color-neutral-450: #7a8780;
+  --hsas-color-line-100: #edf1ef;
+  --hsas-color-line-150: #edf0ee;
+  --hsas-color-line-200: #e5ece8;
+  --hsas-color-line-250: #e2e9e5;
+  --hsas-color-line-300: #e2e8e5;
+  --hsas-color-line-400: #dfe7e3;
+  --hsas-color-surface-subtle: #f7f9f8;
+  --hsas-color-surface-soft: #fbfcfb;
+  --hsas-color-danger: #b42318;
+  --hsas-color-danger-muted: #b43a31;
+  --hsas-color-accent-pink: #de76ce;
+  --hsas-color-shadow-soft: rgb(29 70 57 / 4%);
+
+  /* Semantic color aliases */
   --hsas-teal: #1e9d8b;
-  --hsas-teal-accent: #1e9d8b;
-  --hsas-teal-dark: #1e9d8b;
+  --hsas-teal-accent: var(--hsas-teal);
+  --hsas-teal-dark: var(--hsas-teal);
   --hsas-teal-soft: #f2f4f1;
 
   --hsas-sidebar-width: 248px;
@@ -9,24 +36,24 @@
   --hsas-sidebar-surface: #333333;
   --hsas-sidebar-text: #d5d5d5;
   --hsas-sidebar-heading: #b8b8b8;
-  --hsas-sidebar-active: #1e9d8b;
+  --hsas-sidebar-active: var(--hsas-teal);
   --hsas-sidebar-hover: #3a3a3a;
   --hsas-sidebar-border: rgb(255 255 255 / 10%);
   --hsas-sidebar-row-height: 32px;
   --hsas-sidebar-radius: 6px;
-  --hsas-sidebar-focus-active: #fff;
+  --hsas-sidebar-focus-active: var(--hsas-color-white);
   --hsas-sidebar-scrollbar: #8a8a8a;
 
   --hsas-background: #f7f7f8;
-  --hsas-surface: #ffffff;
+  --hsas-surface: var(--hsas-color-white);
   --hsas-surface-muted: #f7f8f8;
   --hsas-border: #d8dcdd;
   --hsas-border-dark: #aeb5b9;
   --hsas-text: #24282b;
   --hsas-text-muted: #8a8f91;
-  --hsas-text-inverse: #ffffff;
+  --hsas-text-inverse: var(--hsas-color-white);
 
-  --hsas-status-approved: #1e9d8b;
+  --hsas-status-approved: var(--hsas-teal);
   --hsas-status-approved-bg: #f5f6f4;
   --hsas-status-approved-border: #c7cec4;
   --hsas-status-pending: #8a6507;
@@ -35,22 +62,79 @@
   --hsas-status-rejected: #a13d3d;
   --hsas-status-rejected-bg: #f9eaea;
   --hsas-status-rejected-border: #d9a1a1;
-  --hsas-status-neutral: #596166;
+  --hsas-status-neutral: var(--hsas-color-neutral-600);
   --hsas-status-neutral-bg: #eef0f1;
   --hsas-status-neutral-border: #bdc3c6;
 
   --hsas-font-family: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Arial, sans-serif;
-  --hsas-font-size-body: 12px;
+  /* Exact typography steps preserve the current dense admin scale. */
+  --hsas-font-7: 7px;
+  --hsas-font-8: 8px;
+  --hsas-font-9: 9px;
+  --hsas-font-10: 10px;
+  --hsas-font-11: 11px;
+  --hsas-font-12: 12px;
+  --hsas-font-13: 13px;
+  --hsas-font-14: 14px;
+  --hsas-font-15: 15px;
+  --hsas-font-16: 16px;
+  --hsas-font-17: 17px;
+  --hsas-font-18: 18px;
+  --hsas-font-19: 19px;
+  --hsas-font-20: 20px;
+  --hsas-font-21: 21px;
+  --hsas-font-22: 22px;
+  --hsas-font-23: 23px;
+  --hsas-font-24: 24px;
+  --hsas-font-25: 25px;
+  --hsas-font-26: 26px;
+  --hsas-font-27: 27px;
+  --hsas-font-28: 28px;
+  --hsas-font-29: 29px;
+  --hsas-font-size-body: var(--hsas-font-12);
   --hsas-line-height-body: 1.45;
 
   --hsas-control-height: 27px;
   --control-height: 27px;
-  --font-body: 12px;
+  --font-body: var(--hsas-font-size-body);
   --hsas-radius-square: 0;
   --hsas-radius: 3px;
 
+  /* Exact spacing steps allow a no-layout-change migration. */
+  --hsas-space-1: 1px;
+  --hsas-space-2: 2px;
+  --hsas-space-3: 3px;
   --hsas-space-4: 4px;
+  --hsas-space-5: 5px;
+  --hsas-space-6: 6px;
+  --hsas-space-7: 7px;
   --hsas-space-8: 8px;
+  --hsas-space-9: 9px;
+  --hsas-space-10: 10px;
+  --hsas-space-11: 11px;
   --hsas-space-12: 12px;
+  --hsas-space-13: 13px;
+  --hsas-space-14: 14px;
+  --hsas-space-15: 15px;
   --hsas-space-16: 16px;
+  --hsas-space-17: 17px;
+  --hsas-space-18: 18px;
+  --hsas-space-19: 19px;
+  --hsas-space-20: 20px;
+  --hsas-space-22: 22px;
+  --hsas-space-23: 23px;
+  --hsas-space-24: 24px;
+  --hsas-space-26: 26px;
+  --hsas-space-28: 28px;
+  --hsas-space-30: 30px;
+  --hsas-space-31: 31px;
+  --hsas-space-32: 32px;
+  --hsas-space-35: 35px;
+  --hsas-space-40: 40px;
+  --hsas-space-42: 42px;
+  --hsas-space-44: 44px;
+  --hsas-space-48: 48px;
+  --hsas-space-54: 54px;
+  --hsas-space-60: 60px;
+  --hsas-space-67: 67px;
 }

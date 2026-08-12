@@ -107,7 +107,7 @@ export function DenseTable<T extends object>({
           <tr>
             {columns.map((column) => (
               <th
-                className={`hsas-dense-table__cell--${column.align ?? "left"}`}
+                className="hsas-dense-table__cell--center"
                 key={columnIdentity(column)}
                 scope="col"
                 style={{ width: column.width }}

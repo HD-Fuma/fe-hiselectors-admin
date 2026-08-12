@@ -48,7 +48,7 @@ function workTabForRoute(
 ): WorkTab {
   if (!parentPath) {
     return {
-      id: route.workTabSingletonId ?? currentPath,
+      id: route.workTabSingletonId ?? pathnameOf(currentPath),
       label: route.workTabLabel,
       to: currentPath,
     };
@@ -57,7 +57,7 @@ function workTabForRoute(
   const parentRoute = findAdminRoute(pathnameOf(parentPath)) ?? route;
 
   return {
-    id: parentPath,
+    id: pathnameOf(parentPath),
     label: parentRoute.workTabLabel,
     to: parentPath,
   };
@@ -71,30 +71,24 @@ export function AppShell() {
   const parentPath = panelParentPathFor(activeRoute, currentPath);
   const [tabs, setTabs] = useState<WorkTab[]>(() => [workTabForRoute(activeRoute, currentPath, parentPath)]);
   const parentTab = parentPath
-    ? [...tabs].reverse().find((tab) => tab.id === parentPath)
+    ? [...tabs].reverse().find((tab) => tab.id === pathnameOf(parentPath))
       ?? [...tabs].reverse().find((tab) => pathnameOf(tab.to) === pathnameOf(parentPath))
     : undefined;
-  const activeTabId = parentTab?.id ?? (parentPath ?? activeRoute.workTabSingletonId ?? currentPath);
+  const activeTabId = parentTab?.id
+    ?? (parentPath ? pathnameOf(parentPath) : activeRoute.workTabSingletonId ?? pathnameOf(currentPath));
 
   useEffect(() => {
     const nextTab = workTabForRoute(activeRoute, currentPath, parentPath);
 
     setTabs((current) => {
       const visibleTabs = current.filter((tab) => !isPanelTab(tab));
-      const tabExists = parentPath
-        ? visibleTabs.some((tab) => tab.id === parentPath)
-          || visibleTabs.some((tab) => pathnameOf(tab.to) === pathnameOf(parentPath))
-        : visibleTabs.some((tab) => tab.id === nextTab.id);
+      const tabExists = visibleTabs.some((tab) => tab.id === nextTab.id);
 
       if (!tabExists) {
         return [...visibleTabs, nextTab];
       }
 
-      if (!parentPath && activeRoute.workTabSingletonId) {
-        return visibleTabs.map((tab) => tab.id === nextTab.id ? nextTab : tab);
-      }
-
-      return visibleTabs;
+      return visibleTabs.map((tab) => tab.id === nextTab.id ? nextTab : tab);
     });
   }, [activeRoute, currentPath, parentPath]);
 

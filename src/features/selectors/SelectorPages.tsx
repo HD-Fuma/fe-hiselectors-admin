@@ -1,16 +1,21 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
+import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
+import { FilterField } from "../../components/ui/FilterField";
 import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
 import { Modal } from "../../components/ui/Modal";
+import { ResultToolbar } from "../../components/ui/ResultToolbar";
+import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
+import { SettlementTable, type SettlementTableRow } from "../../components/ui/SettlementTable";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
-import { PlatformIcon } from "../creators/PlatformIcon";
-import { formatWon } from "../operations/fixtures";
+import { formatNumber, formatWon } from "../../lib/formatters";
+import { paginate } from "../../lib/pagination";
 import {
   COHORTS,
   QUALIFICATIONS,
@@ -44,45 +49,6 @@ const SELECTOR_STATUS_CATEGORIES: SelectorListStatus[] = [
   "활동정지",
   "블랙리스트",
 ];
-interface FilterFieldProps {
-  children: ReactNode;
-  htmlFor: string;
-  label: string;
-}
-
-function FilterField({ children, htmlFor, label }: FilterFieldProps) {
-  return (
-    <label className="fuma-filter-field" htmlFor={htmlFor}>
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function ResultToolbar({
-  action,
-  className,
-  count,
-  title,
-}: {
-  action?: ReactNode;
-  className?: string;
-  count: number;
-  title: string;
-}) {
-  return (
-    <div className={["fuma-result-toolbar", className].filter(Boolean).join(" ")}>
-      <strong>{title}</strong>
-      <span>총 {count}건</span>
-      {action ? <div className="fuma-result-toolbar__actions">{action}</div> : null}
-    </div>
-  );
-}
-
-function formatNumber(value: number) {
-  return value.toLocaleString("ko-KR");
-}
-
 function selectorStatusTone(
   status: SelectorFixture["status"],
 ): NonNullable<StatusPillProps["tone"]> {
@@ -191,11 +157,11 @@ export function CohortManagementPage() {
     && (!appliedPeriodEnd || cohort.startDate <= appliedPeriodEnd)
     && (!selectedStatus || cohort.status === selectedStatus)
   ));
-  const totalPages = Math.max(1, Math.ceil(filteredCohorts.length / COHORT_PAGE_SIZE));
-  const pagedCohorts = filteredCohorts.slice(
-    (page - 1) * COHORT_PAGE_SIZE,
-    page * COHORT_PAGE_SIZE,
-  );
+  const {
+    currentPage,
+    pagedItems: pagedCohorts,
+    totalPages,
+  } = paginate(filteredCohorts, page, COHORT_PAGE_SIZE);
   const cohortSelectors = detailCohort
     ? SELECTORS.filter((selector) => selector.cohort === detailCohort.name)
     : [];
@@ -271,7 +237,7 @@ export function CohortManagementPage() {
       <PageHeader screenCode="SL101" title="셀렉터스 기수 관리" />
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-cohort-search">
-          <SearchPanel actions={<><Button onClick={applyFilters} variant="primary">조회</Button><Button onClick={resetFilters}>초기화</Button></>}>
+          <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
             <FilterField htmlFor="cohort-name" label="기수명">
               <TextInput id="cohort-name" name="cohortName" onChange={(event) => setKeyword(event.target.value)} placeholder="기수명 검색" value={keyword} />
             </FilterField>
@@ -330,7 +296,7 @@ export function CohortManagementPage() {
         </nav>
         <ResultToolbar
           className="fuma-simple-result-toolbar"
-          count={filteredCohorts.length}
+          meta={<span>총 {filteredCohorts.length}건</span>}
           title="기수 목록"
         />
         <div aria-label="기수 목록" className="fuma-wide-table" role="region">
@@ -343,7 +309,7 @@ export function CohortManagementPage() {
         </div>
         <Pagination
           onPageChange={setPage}
-          page={page}
+          page={currentPage}
           pageSize={COHORT_PAGE_SIZE}
           totalPages={totalPages}
         />
@@ -433,6 +399,8 @@ const SELECTOR_COLUMNS: DenseTableColumn<SelectorFixture>[] = [
   { key: "recentActivity", header: "최근 활동일", width: 104, align: "center" },
 ];
 
+const SELECTOR_PAGE_SIZE = 20;
+
 export function SelectorOverviewPage() {
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState("");
@@ -442,6 +410,7 @@ export function SelectorOverviewPage() {
   const [appliedCohort, setAppliedCohort] = useState("");
   const [appliedSns, setAppliedSns] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<SelectorListStatus | null>(null);
+  const [page, setPage] = useState(1);
   const selectors = SELECTORS.filter((selector) => (
     (!appliedKeyword || [selector.name, selector.id, selector.selectorCode].some((value) => (
       value.toLowerCase().includes(appliedKeyword.toLowerCase())
@@ -450,6 +419,11 @@ export function SelectorOverviewPage() {
     && (!appliedSns || selector.sns.includes(appliedSns))
     && (!selectedStatus || selectorListStatus(selector) === selectedStatus)
   ));
+  const {
+    currentPage,
+    pagedItems: pagedSelectors,
+    totalPages,
+  } = paginate(selectors, page, SELECTOR_PAGE_SIZE);
   const selectorListTitle = selectedStatus === "활동중"
     ? "활동 중인 셀렉터스 목록"
     : selectedStatus === "활동정지"
@@ -462,6 +436,7 @@ export function SelectorOverviewPage() {
     setAppliedKeyword(keyword);
     setAppliedCohort(cohort);
     setAppliedSns(sns);
+    setPage(1);
   };
 
   const resetFilters = () => {
@@ -472,6 +447,7 @@ export function SelectorOverviewPage() {
     setAppliedCohort("");
     setAppliedSns("");
     setSelectedStatus(null);
+    setPage(1);
   };
 
   return (
@@ -479,7 +455,7 @@ export function SelectorOverviewPage() {
       <PageHeader screenCode="SL201" title="셀렉터스 목록" />
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-selector-search">
-          <SearchPanel actions={<><Button onClick={applyFilters} variant="primary">조회</Button><Button onClick={resetFilters}>초기화</Button></>}>
+          <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
             <FilterField htmlFor="selector-name" label="이름 / ID">
               <TextInput id="selector-name" name="selectorName" onChange={(event) => setKeyword(event.target.value)} placeholder="이름 / ID 검색" value={keyword} />
             </FilterField>
@@ -508,7 +484,10 @@ export function SelectorOverviewPage() {
             <button
               aria-pressed={selectedStatus === null}
               className="fuma-creator-category-filter__option"
-              onClick={() => setSelectedStatus(null)}
+              onClick={() => {
+                setSelectedStatus(null);
+                setPage(1);
+              }}
               type="button"
             >
               전체
@@ -518,7 +497,10 @@ export function SelectorOverviewPage() {
                 aria-pressed={selectedStatus === status}
                 className="fuma-creator-category-filter__option"
                 key={status}
-                onClick={() => setSelectedStatus(status)}
+                onClick={() => {
+                  setSelectedStatus(status);
+                  setPage(1);
+                }}
                 type="button"
               >
                 {status}
@@ -526,13 +508,16 @@ export function SelectorOverviewPage() {
             ))}
           </div>
         </nav>
-        <div className="fuma-result-toolbar fuma-simple-result-toolbar">
-          <strong>{selectorListTitle}</strong>
-          <div className="fuma-settlement-result-meta">
-            <span>{[appliedCohort, appliedSns].filter(Boolean).join(" · ") || "전체"}</span>
-            <span>총 {selectors.length}건</span>
-          </div>
-        </div>
+        <ResultToolbar
+          className="fuma-simple-result-toolbar"
+          meta={
+            <>
+              <span>{[appliedCohort, appliedSns].filter(Boolean).join(" · ") || "전체"}</span>
+              <span>총 {selectors.length}건</span>
+            </>
+          }
+          title={selectorListTitle}
+        />
         <div
           aria-label={selectorListTitle}
           className="fuma-wide-table fuma-settlement-table fuma-selector-list-table"
@@ -542,10 +527,15 @@ export function SelectorOverviewPage() {
             columns={SELECTOR_COLUMNS}
             onRowClick={(selector) => navigate(`/selectors/${selector.id}`)}
             rowKey={(selector) => selector.id}
-            rows={selectors}
+            rows={pagedSelectors}
           />
         </div>
-        <Pagination page={1} pageSize={20} totalPages={1} />
+        <Pagination
+          onPageChange={setPage}
+          page={currentPage}
+          pageSize={SELECTOR_PAGE_SIZE}
+          totalPages={totalPages}
+        />
       </div>
     </section>
   );
@@ -560,57 +550,67 @@ export function SelectorDetailPanel({
 }) {
   const detail = selector ? getSelectorDetailData(selector) : null;
   const primarySns = detail?.snsLinks[0] ?? null;
+  const audienceLabel = selector?.sns === "YouTube" ? "구독자" : "팔로워";
+  const settlementRows: SettlementTableRow[] = selector && detail
+    ? detail.settlements.map((settlement) => ({
+      attributionMonth: settlement.month,
+      expectedAmount: settlement.amount,
+      id: settlement.id,
+      paymentStatus: settlement.status,
+      selectorId: selector.id,
+      selectorName: selector.name,
+    }))
+    : [];
 
   return (
     <SidePanel onClose={onClose} title="셀렉터스 상세">
       {selector && detail ? (
         <div className="fuma-detail-panel__content fuma-selector-detail-panel">
-          <section aria-label="셀렉터스 프로필" className="fuma-selector-detail-profile">
-            <div className="fuma-selector-detail-profile__identity">
-              <img alt="" src={detail.profileImageUrl} />
-              <div>
-                <div className="fuma-selector-detail-profile__meta">
-                  <span>{selector.id}</span>
+          <section
+            aria-label="셀렉터스 프로필"
+            className="fuma-creator-detail-hero fuma-selector-detail-hero fuma-unified-detail-hero"
+          >
+            <div className="fuma-creator-detail-hero__portrait">
+              <img alt={`${selector.name} 프로필`} src={detail.profileImageUrl} />
+              {primarySns ? (
+                <span className="fuma-creator-detail-hero__platform">
+                  <PlatformIcon platform={primarySns.platform as "Instagram" | "YouTube"} />
+                </span>
+              ) : null}
+            </div>
+            <div className="fuma-creator-detail-hero__content">
+              <div className="fuma-creator-detail-hero__identity">
+                <div className="fuma-creator-detail-hero__title-row">
+                  <h2>{selector.name}</h2>
                   <StatusPill tone={selectorStatusTone(selector.status)}>{selector.status}</StatusPill>
                 </div>
-                <h2>{selector.name}</h2>
-                <p>{selector.cohort} 셀렉터스 · 최근 활동 {selector.recentActivity}</p>
                 {primarySns ? (
-                  <a
-                    className="fuma-selector-detail-profile__channel"
-                    href={primarySns.url}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    <PlatformIcon
-                      decorative
-                      platform={primarySns.platform as "Instagram" | "YouTube"}
-                    />
-                    <strong>{primarySns.handle}</strong>
-                    <span>{primarySns.platform}</span>
-                    <i aria-hidden="true">↗</i>
+                  <a className="fuma-creator-detail-hero__channel" href={primarySns.url} rel="noreferrer" target="_blank">
+                    <PlatformIcon decorative platform={primarySns.platform as "Instagram" | "YouTube"} />
+                    <span>{primarySns.handle}</span>
+                    <span aria-hidden="true">↗</span>
                   </a>
                 ) : null}
+                <div aria-label="셀렉터스 정보" className="fuma-creator-detail-hero__categories">
+                  <strong>{selector.category ?? "셀렉터스"}</strong>
+                  <span aria-hidden="true">/</span>
+                  <span>{selector.id} · {selector.selectorCode} · {selector.shopNickname}</span>
+                </div>
               </div>
+              <p className="fuma-unified-detail-hero__summary">
+                {selector.cohort} · {selector.status} · 최근 활동 {selector.recentActivity}
+              </p>
+              <dl className="fuma-creator-detail-hero__metrics">
+                <div><dt>{audienceLabel}</dt><dd>{selector.followers ? formatNumber(selector.followers) : "-"}</dd></div>
+                <div><dt>등록 콘텐츠</dt><dd>{formatNumber(selector.contentCount)}건</dd></div>
+                <div><dt>구매 전환</dt><dd>{formatNumber(selector.conversions)}건</dd></div>
+                <div><dt>누적 정산</dt><dd>{formatWon(detail.totalSettlement)}</dd></div>
+              </dl>
             </div>
-            <dl className="fuma-selector-detail-profile__summary">
-              <div>
-                <dt>현재 기수</dt>
-                <dd>{selector.cohort}</dd>
-              </div>
-              <div>
-                <dt>등록 콘텐츠</dt>
-                <dd>{formatNumber(selector.contentCount)}건</dd>
-              </div>
-              <div>
-                <dt>누적 정산</dt>
-                <dd>{formatWon(detail.totalSettlement)}</dd>
-              </div>
-            </dl>
           </section>
 
-          <section aria-labelledby="selector-contents-title" className="fuma-selector-detail-section">
-            <header>
+          <section aria-labelledby="selector-contents-title" className="fuma-content-section fuma-selector-detail-section">
+            <header className="fuma-content-section__header">
               <h3 id="selector-contents-title">업로드 콘텐츠</h3>
               <span>최근 {detail.contents.length}건</span>
             </header>
@@ -637,8 +637,8 @@ export function SelectorDetailPanel({
           </section>
 
           <div className="fuma-selector-detail-columns">
-            <section aria-labelledby="selector-cohort-history-title" className="fuma-selector-detail-section">
-              <header>
+            <section aria-labelledby="selector-cohort-history-title" className="fuma-content-section fuma-selector-detail-section">
+              <header className="fuma-content-section__header">
                 <h3 id="selector-cohort-history-title">이전 기수 활동 내역</h3>
                 <span>{detail.cohortHistory.length}개 기수</span>
               </header>
@@ -667,29 +667,12 @@ export function SelectorDetailPanel({
               </div>
             </section>
 
-            <section aria-labelledby="selector-settlement-history-title" className="fuma-selector-detail-section">
-              <header>
+            <section aria-labelledby="selector-settlement-history-title" className="fuma-content-section fuma-selector-detail-section">
+              <header className="fuma-content-section__header">
                 <h3 id="selector-settlement-history-title">정산 내역</h3>
                 <span>총 {detail.settlements.length}건</span>
               </header>
-              <div className="fuma-selector-settlement-history">
-                <div aria-hidden="true" className="fuma-selector-settlement-history__header">
-                  <span>정산월</span>
-                  <span>정산 금액</span>
-                  <span>지급 상태</span>
-                </div>
-                {detail.settlements.map((settlement) => (
-                  <div className="fuma-selector-settlement-history__row" key={settlement.id}>
-                    <span>{settlement.month}</span>
-                    <span>{formatWon(settlement.amount)}</span>
-                    <StatusPill
-                      tone={settlement.status === "지급 완료" ? "approved" : settlement.status === "확정" ? "pending" : "neutral"}
-                    >
-                      {settlement.status}
-                    </StatusPill>
-                  </div>
-                ))}
-              </div>
+              <SettlementTable ariaLabel="셀렉터스 정산 내역" rows={settlementRows} />
             </section>
           </div>
         </div>
@@ -751,11 +734,11 @@ export function QualificationManagementPage() {
     )))
     && (!appliedCohort || qualification.cohort === appliedCohort)
   ));
-  const totalPages = Math.max(1, Math.ceil(qualifications.length / BLACKLIST_PAGE_SIZE));
-  const pagedQualifications = qualifications.slice(
-    (page - 1) * BLACKLIST_PAGE_SIZE,
-    page * BLACKLIST_PAGE_SIZE,
-  );
+  const {
+    currentPage,
+    pagedItems: pagedQualifications,
+    totalPages,
+  } = paginate(qualifications, page, BLACKLIST_PAGE_SIZE);
   const detailSelectorId = searchParams.get("detail");
   const detailSelector = SELECTORS.find((selector) => selector.id === detailSelectorId);
 
@@ -790,7 +773,7 @@ export function QualificationManagementPage() {
       <PageHeader screenCode="SL301" title="블랙리스트 관리" />
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-qualification-search">
-          <SearchPanel actions={<><Button onClick={applyFilters} variant="primary">조회</Button><Button onClick={resetFilters}>초기화</Button></>}>
+          <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
             <FilterField htmlFor="qualification-name" label="이름 / ID">
               <TextInput
                 id="qualification-name"
@@ -811,27 +794,17 @@ export function QualificationManagementPage() {
             </FilterField>
           </SearchPanel>
         </div>
-        <nav aria-label="블랙리스트 구분" className="fuma-creator-category-filter fuma-selector-status-filter">
-          <div>
-            <button
-              aria-pressed="true"
-              className="fuma-creator-category-filter__option"
-              type="button"
-            >
-              전체
-            </button>
-          </div>
-        </nav>
-        <div className="fuma-result-toolbar fuma-simple-result-toolbar">
-          <strong>블랙리스트 목록</strong>
-          <span className="fuma-result-toolbar__description">
-            블랙리스트는 향후 셀렉터스 지원 및 활동이 불가합니다.
-          </span>
-          <div className="fuma-settlement-result-meta">
-            <span>{appliedCohort || "전체"}</span>
-            <span>총 {qualifications.length}건</span>
-          </div>
-        </div>
+        <ResultToolbar
+          className="fuma-simple-result-toolbar"
+          description="블랙리스트는 향후 셀렉터스 지원 및 활동이 불가합니다."
+          meta={
+            <>
+              <span>{appliedCohort || "전체"}</span>
+              <span>총 {qualifications.length}건</span>
+            </>
+          }
+          title="블랙리스트 목록"
+        />
         <div aria-label="블랙리스트 목록" className="fuma-wide-table fuma-settlement-table" role="region">
           <DenseTable
             columns={QUALIFICATION_COLUMNS}
@@ -842,8 +815,166 @@ export function QualificationManagementPage() {
         </div>
         <Pagination
           onPageChange={setPage}
-          page={page}
+          page={currentPage}
           pageSize={BLACKLIST_PAGE_SIZE}
+          totalPages={totalPages}
+        />
+      </div>
+      {detailSelector ? <SelectorDetailPanel onClose={closeDetail} selector={detailSelector} /> : null}
+    </section>
+  );
+}
+
+interface ExcellentActivityFixture {
+  cohort: string;
+  id: string;
+  name: string;
+  totalSales: number;
+  type: string;
+}
+
+const EXCELLENT_ACTIVITY_COHORTS = ["2기", "3기", "4기"] as const;
+const EXCELLENT_ACTIVITY_RANKS = [1, 2, 3] as const;
+
+const EXCELLENT_ACTIVITIES: readonly ExcellentActivityFixture[] = SELECTORS
+  .filter((selector) => selector.status !== "박탈")
+  .slice(0, 12)
+  .map((selector, index) => {
+    const cohort = EXCELLENT_ACTIVITY_COHORTS[Math.floor(index / 4)];
+    const typeIndex = index % 4;
+    const rank = EXCELLENT_ACTIVITY_RANKS[typeIndex - 1];
+
+    return {
+      cohort,
+      id: selector.id,
+      name: selector.name,
+      totalSales: 21_000_000
+        + Math.floor(index / 4) * 2_500_000
+        + [1_500_000, 18_000_000, 12_000_000, 7_000_000][typeIndex],
+      type: typeIndex === 0
+        ? "누적 매출 1,000만원 이상 달성"
+        : `${cohort} 활동 누적 ${rank}위`,
+    };
+  })
+  .sort((left, right) => right.totalSales - left.totalSales);
+
+const EXCELLENT_ACTIVITY_COHORT_OPTIONS = [
+  { label: "전체", value: "" },
+  ...EXCELLENT_ACTIVITY_COHORTS.map((cohort) => ({ label: cohort, value: cohort })),
+];
+
+const EXCELLENT_SELECTOR_COLUMNS: DenseTableColumn<ExcellentActivityFixture>[] = [
+  { key: "id", header: "셀렉터스 ID", width: 130, align: "center" },
+  { key: "name", header: "이름", width: 110, align: "center" },
+  { key: "cohort", header: "기수", width: 100, align: "center" },
+  { key: "type", header: "종류", width: 250, align: "center" },
+  {
+    key: "totalSales",
+    header: "총 매출액",
+    width: 160,
+    align: "right",
+    render: (activity) => formatWon(activity.totalSales),
+  },
+];
+
+const EXCELLENT_SELECTOR_PAGE_SIZE = 20;
+
+export function ExcellentSelectorListPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [keyword, setKeyword] = useState("");
+  const [cohort, setCohort] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
+  const [appliedCohort, setAppliedCohort] = useState("");
+  const [page, setPage] = useState(1);
+  const excellentSelectors = EXCELLENT_ACTIVITIES
+    .filter((selector) => (
+      (!appliedKeyword || [selector.name, selector.id].some((value) => (
+        value.toLowerCase().includes(appliedKeyword.toLowerCase())
+      )))
+      && (!appliedCohort || selector.cohort === appliedCohort)
+    ));
+  const {
+    currentPage,
+    pagedItems: pagedSelectors,
+    totalPages,
+  } = paginate(excellentSelectors, page, EXCELLENT_SELECTOR_PAGE_SIZE);
+  const detailSelector = SELECTORS.find((selector) => selector.id === searchParams.get("detail"));
+
+  const applyFilters = () => {
+    setAppliedKeyword(keyword);
+    setAppliedCohort(cohort);
+    setPage(1);
+  };
+
+  const openDetail = (selectorId: string) => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("detail", selectorId);
+    setSearchParams(nextParams);
+  };
+
+  const closeDetail = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("detail");
+    setSearchParams(nextParams);
+  };
+
+  const resetFilters = () => {
+    setKeyword("");
+    setCohort("");
+    setAppliedKeyword("");
+    setAppliedCohort("");
+    setPage(1);
+  };
+
+  return (
+    <section className="fuma-page">
+      <PageHeader screenCode="SL302" title="우수 활동자" />
+      <div className="fuma-page__body">
+        <div className="fuma-operations-search fuma-settlement-search fuma-qualification-search">
+          <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
+            <FilterField htmlFor="excellent-selector-name" label="이름 / ID">
+              <TextInput
+                id="excellent-selector-name"
+                name="selectorName"
+                onChange={(event) => setKeyword(event.target.value)}
+                placeholder="이름 / ID 검색"
+                value={keyword}
+              />
+            </FilterField>
+            <FilterField htmlFor="excellent-selector-cohort" label="기수">
+              <Select
+                id="excellent-selector-cohort"
+                name="cohort"
+                onChange={(event) => setCohort(event.target.value)}
+                options={EXCELLENT_ACTIVITY_COHORT_OPTIONS}
+                value={cohort}
+              />
+            </FilterField>
+          </SearchPanel>
+        </div>
+        <ResultToolbar
+          className="fuma-simple-result-toolbar"
+          description="매출 및 활동 성과가 우수한 셀렉터스입니다."
+          meta={
+            <>
+              <span>{appliedCohort || "전체"}</span>
+              <span>총 {excellentSelectors.length}건</span>
+            </>
+          }
+          title="우수 활동자 목록"
+        />
+        <div aria-label="우수 활동자 목록" className="fuma-wide-table fuma-settlement-table" role="region">
+          <DenseTable
+            columns={EXCELLENT_SELECTOR_COLUMNS}
+            onRowClick={(selector) => openDetail(selector.id)}
+            rowKey={(selector) => selector.id}
+            rows={pagedSelectors}
+          />
+        </div>
+        <Pagination
+          onPageChange={setPage}
+          page={currentPage}
+          pageSize={EXCELLENT_SELECTOR_PAGE_SIZE}
           totalPages={totalPages}
         />
       </div>

@@ -5,7 +5,10 @@ const unsupportedPlatform: CreatorPlatform = "Facebook";
 void unsupportedPlatform;
 
 test("stores one Instagram or YouTube profile per creator", () => {
-  expect(CREATORS.map(({ id, profile }) => ({ id, ...profile }))).toEqual([
+  expect(CREATORS).toHaveLength(70);
+  expect(new Set(CREATORS.map(({ id }) => id)).size).toBe(CREATORS.length);
+
+  expect(CREATORS.slice(0, 4).map(({ id, profile }) => ({ id, ...profile }))).toEqual([
     {
       id: "cr-001",
       platform: "Instagram",
@@ -52,7 +55,7 @@ test("stores one Instagram or YouTube profile per creator", () => {
     },
   ]);
 
-  expect(CREATORS.map(({ id, featuredContents }) => ({
+  expect(CREATORS.slice(0, 4).map(({ id, featuredContents }) => ({
     id,
     thumbnailUrls: featuredContents.map(({ thumbnailUrl }) => thumbnailUrl),
   }))).toEqual([

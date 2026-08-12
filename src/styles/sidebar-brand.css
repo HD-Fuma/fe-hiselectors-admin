@@ -1,7 +1,7 @@
 .hsas-admin-sidebar__brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--hsas-space-10);
   padding: 0 var(--hsas-space-16);
 }
 

@@ -1,15 +1,18 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { PageHeader } from "../../components/shell/PageHeader";
-import { Button, TextInput } from "../../components/ui/Controls";
-import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
+import { TextInput } from "../../components/ui/Controls";
+import { FilterField } from "../../components/ui/FilterField";
 import { Pagination } from "../../components/ui/Pagination";
+import { ResultToolbar } from "../../components/ui/ResultToolbar";
+import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
-import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { SettlementTable } from "../../components/ui/SettlementTable";
+import { formatWon } from "../../lib/formatters";
+import { paginate } from "../../lib/pagination";
 import { SelectorDetailPanel } from "../selectors/SelectorPages";
 import { SELECTORS, type SelectorFixture } from "../selectors/fixtures";
 import {
   SETTLEMENTS,
-  formatWon,
   type PaymentStatus,
   type SettlementFixture,
 } from "./fixtures";
@@ -43,46 +46,24 @@ function selectorDetailForSettlement(settlement: SettlementFixture): SelectorFix
   };
 }
 
-interface FilterFieldProps {
-  children: ReactNode;
-  htmlFor: string;
-  label: string;
-}
-
-function FilterField({ children, htmlFor, label }: FilterFieldProps) {
-  return (
-    <label className="fuma-filter-field" htmlFor={htmlFor}>
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function SearchActions() {
-  return (
-    <>
-      <Button variant="primary">조회</Button>
-      <Button>초기화</Button>
-    </>
-  );
-}
-
-function paymentTone(status: PaymentStatus): NonNullable<StatusPillProps["tone"]> {
-  if (status === "지급 완료") return "approved";
-  if (status === "확정") return "pending";
-  return "neutral";
-}
-
 function SettlementFilters({
+  keyword,
+  onKeywordChange,
   onMonthChange,
+  onReset,
+  onSearch,
   selectedMonth,
 }: {
+  keyword: string;
+  onKeywordChange: (keyword: string) => void;
   onMonthChange: (month: string) => void;
+  onReset: () => void;
+  onSearch: () => void;
   selectedMonth: string;
 }) {
   return (
     <div className="fuma-operations-search fuma-settlement-search">
-      <SearchPanel actions={<SearchActions />}>
+      <SearchPanel actions={<SearchActions onReset={onReset} onSearch={onSearch} />}>
         <FilterField htmlFor="settlement-month" label="정산월">
           <TextInput
             aria-label="정산월"
@@ -96,7 +77,9 @@ function SettlementFilters({
           <TextInput
             aria-label="ID 또는 이름"
             id="settlement-selector"
+            onChange={(event) => onKeywordChange(event.target.value)}
             placeholder="ID 또는 이름 검색"
+            value={keyword}
           />
         </FilterField>
       </SearchPanel>
@@ -104,74 +87,61 @@ function SettlementFilters({
   );
 }
 
-const SETTLEMENT_COLUMNS: DenseTableColumn<SettlementFixture>[] = [
-  { key: "attributionMonth", header: "정산월", width: 92, align: "center" },
-  { key: "selectorId", header: "셀렉터스 ID", width: 104, align: "center" },
-  {
-    id: "selector",
-    header: "셀렉터스",
-    width: 118,
-    align: "center",
-    render: (settlement) => (
-      <div className="fuma-operation-person">
-        <span className="hsas-visually-hidden">{settlement.id}</span>
-        <strong>{settlement.selectorName}</strong>
-      </div>
-    ),
-  },
-  {
-    key: "expectedAmount",
-    header: "정산 금액",
-    width: 122,
-    align: "center",
-    render: (settlement) => formatWon(settlement.expectedAmount),
-  },
-  {
-    key: "paymentStatus",
-    header: "지급 상태",
-    width: 90,
-    align: "center",
-    render: (settlement) => (
-      <StatusPill tone={paymentTone(settlement.paymentStatus)}>
-        {settlement.paymentStatus}
-      </StatusPill>
-    ),
-  },
-];
-
 export function SettlementManagementPage() {
   const [page, setPage] = useState(1);
   const [selectedSettlement, setSelectedSettlement] = useState<SettlementFixture | null>(null);
   const [selectedMonth, setSelectedMonth] = useState("2026-08");
+  const [keyword, setKeyword] = useState("");
+  const [appliedMonth, setAppliedMonth] = useState("2026-08");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<PaymentStatus | null>(null);
-  const monthlySettlements = SETTLEMENTS.filter(
-    (settlement) => settlement.attributionMonth === selectedMonth,
-  );
-  const settlements = selectedPaymentStatus
-    ? monthlySettlements.filter((settlement) => settlement.paymentStatus === selectedPaymentStatus)
-    : monthlySettlements;
-  const totalPages = Math.max(1, Math.ceil(settlements.length / SETTLEMENT_PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const pagedSettlements = settlements.slice(
-    (currentPage - 1) * SETTLEMENT_PAGE_SIZE,
-    currentPage * SETTLEMENT_PAGE_SIZE,
-  );
-  const monthlyTotal = monthlySettlements.reduce(
+  const normalizedKeyword = appliedKeyword.trim().toLowerCase();
+  const monthlySettlements = appliedMonth
+    ? SETTLEMENTS.filter((settlement) => settlement.attributionMonth === appliedMonth)
+    : [...SETTLEMENTS];
+  const settlements = monthlySettlements.filter((settlement) => (
+    (!normalizedKeyword || [settlement.selectorId, settlement.selectorName].some((value) => (
+      value.toLowerCase().includes(normalizedKeyword)
+    )))
+    && (!selectedPaymentStatus || settlement.paymentStatus === selectedPaymentStatus)
+  ));
+  const {
+    currentPage,
+    pagedItems: pagedSettlements,
+    totalPages,
+  } = paginate(settlements, page, SETTLEMENT_PAGE_SIZE);
+  const settlementTotal = settlements.reduce(
     (total, settlement) => total + settlement.expectedAmount,
     0,
   );
-  const [year, month] = selectedMonth.split("-");
-  const monthLabel = selectedMonth ? `${year}년 ${Number(month)}월` : "정산월 미선택";
+  const [year, month] = appliedMonth.split("-");
+  const monthLabel = appliedMonth ? `${year}년 ${Number(month)}월` : "전체 정산월";
+
+  const applyFilters = () => {
+    setAppliedMonth(selectedMonth);
+    setAppliedKeyword(keyword);
+    setPage(1);
+  };
+
+  const resetFilters = () => {
+    setSelectedMonth("");
+    setKeyword("");
+    setAppliedMonth("");
+    setAppliedKeyword("");
+    setSelectedPaymentStatus(null);
+    setPage(1);
+  };
 
   return (
     <section className="fuma-page">
       <PageHeader screenCode="ST101" title="정산 지급 관리" />
       <div className="fuma-page__body">
         <SettlementFilters
-          onMonthChange={(month) => {
-            setSelectedMonth(month);
-            setPage(1);
-          }}
+          keyword={keyword}
+          onKeywordChange={setKeyword}
+          onMonthChange={setSelectedMonth}
+          onReset={resetFilters}
+          onSearch={applyFilters}
           selectedMonth={selectedMonth}
         />
         <nav aria-label="지급 상태" className="fuma-creator-category-filter fuma-settlement-status-filter">
@@ -203,27 +173,22 @@ export function SettlementManagementPage() {
             ))}
           </div>
         </nav>
-        <div className="fuma-result-toolbar fuma-simple-result-toolbar">
-          <strong>정산 지급 목록</strong>
-          <div className="fuma-settlement-result-meta">
-            <span>{monthLabel}</span>
-            <span>정산 총합 {formatWon(monthlyTotal)}</span>
-            <span>총 {settlements.length}건</span>
-          </div>
-        </div>
-        <div
-          aria-label="정산 지급 목록"
-          className="fuma-wide-table fuma-settlement-table"
-          role="region"
-        >
-          <DenseTable
-            columns={SETTLEMENT_COLUMNS}
-            onRowClick={setSelectedSettlement}
-            rowKey={(settlement) => settlement.id}
-            rows={pagedSettlements}
-            selectedRowKeys={selectedSettlement ? [selectedSettlement.id] : []}
-          />
-        </div>
+        <ResultToolbar
+          className="fuma-simple-result-toolbar"
+          meta={
+            <>
+              <span>{monthLabel}</span>
+              <span>정산 총합 {formatWon(settlementTotal)}</span>
+              <span>총 {settlements.length}건</span>
+            </>
+          }
+          title="정산 지급 목록"
+        />
+        <SettlementTable
+          onRowClick={setSelectedSettlement}
+          rows={pagedSettlements}
+          selectedRowKeys={selectedSettlement ? [selectedSettlement.id] : []}
+        />
         <Pagination
           onPageChange={setPage}
           page={currentPage}

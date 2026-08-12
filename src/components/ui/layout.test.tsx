@@ -5,12 +5,16 @@ import { vi } from "vitest";
 import { Button, TextInput } from "./Controls";
 import { DenseTable, type DenseTableColumn, type DenseTableProps } from "./DenseTable";
 import { EmptyState } from "./EmptyState";
+import { FilterField } from "./FilterField";
 import { FormRow, type FormRowProps } from "./FormRow";
 import { ImageTile, type ImageTileProps } from "./ImageTile";
 import { Modal } from "./Modal";
 import { Pagination } from "./Pagination";
+import { ResultToolbar } from "./ResultToolbar";
+import { SearchActions } from "./SearchActions";
 import { SearchPanel } from "./SearchPanel";
 import { SectionTabs, type SectionTabsProps } from "./SectionTabs";
+import { SidePanel } from "./SidePanel";
 import { StatusPill } from "./StatusPill";
 
 // @ts-expect-error Form-row labels are text-only contracts.
@@ -179,6 +183,7 @@ test("isolates the background, traps focus, and restores focus when a modal clos
   const { rerender } = render(modalState(false));
   const trigger = screen.getByTestId("modal-trigger");
   const backgroundRoot = trigger.parentElement!;
+  const previousOverflow = document.body.style.overflow;
   trigger.focus();
 
   rerender(modalState(true));
@@ -187,6 +192,7 @@ test("isolates the background, traps focus, and restores focus when a modal clos
   const firstControl = within(dialog).getByRole("textbox", { name: "Approval reason" });
   const lastControl = within(dialog).getByRole("button", { name: "Confirm" });
   expect(firstControl).toHaveFocus();
+  expect(document.body).toHaveStyle({ overflow: "hidden" });
   expect(backgroundRoot).toHaveAttribute("aria-hidden", "true");
   expect(backgroundRoot).toHaveAttribute("inert");
 
@@ -198,6 +204,90 @@ test("isolates the background, traps focus, and restores focus when a modal clos
   rerender(modalState(false));
 
   expect(trigger).toHaveFocus();
+  expect(document.body.style.overflow).toBe(previousOverflow);
+  expect(backgroundRoot).not.toHaveAttribute("aria-hidden");
+  expect(backgroundRoot).not.toHaveAttribute("inert");
+});
+
+test("composes shared list filters, search actions, and result metadata", async () => {
+  const user = userEvent.setup();
+  const onReset = vi.fn();
+  const onSearch = vi.fn();
+
+  render(
+    <>
+      <SearchPanel actions={<SearchActions onReset={onReset} onSearch={onSearch} />}>
+        <FilterField htmlFor="shared-keyword" label="검색어">
+          <TextInput id="shared-keyword" />
+        </FilterField>
+      </SearchPanel>
+      <ResultToolbar
+        actions={<Button>새 항목</Button>}
+        description="목록 설명"
+        meta={<span>총 12건</span>}
+        title="공통 목록"
+      />
+    </>,
+  );
+
+  expect(screen.getByLabelText("검색어")).toBeInTheDocument();
+  expect(screen.getByText("공통 목록")).toBeInTheDocument();
+  expect(screen.getByText("목록 설명")).toHaveClass("fuma-result-toolbar__description");
+  expect(screen.getByText("총 12건")).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "조회" }));
+  await user.click(screen.getByRole("button", { name: "초기화" }));
+  expect(onSearch).toHaveBeenCalledOnce();
+  expect(onReset).toHaveBeenCalledOnce();
+});
+
+test("shares scroll locking, focus containment, Escape close, and focus restore with side panels", async () => {
+  const user = userEvent.setup();
+
+  function SidePanelHarness() {
+    const [open, setOpen] = useState(false);
+
+    return (
+      <>
+        <button onClick={() => setOpen(true)} type="button">Open details</button>
+        {open ? (
+          <SidePanel onClose={() => setOpen(false)} title="Product details">
+            <div className="fuma-detail-panel__content">
+              <button type="button">Panel action</button>
+            </div>
+          </SidePanel>
+        ) : null}
+      </>
+    );
+  }
+
+  render(<SidePanelHarness />);
+  const trigger = screen.getByRole("button", { name: "Open details" });
+  const backgroundRoot = trigger.parentElement!;
+  const previousOverflow = document.body.style.overflow;
+
+  await user.click(trigger);
+
+  const dialog = screen.getByRole("dialog", { name: "Product details" });
+  const resizeHandle = within(dialog).getByRole("separator", { name: "패널 너비 조절" });
+  const closeButton = within(dialog).getByRole("button", { name: "상세 패널 닫기" });
+  const panelAction = within(dialog).getByRole("button", { name: "Panel action" });
+  expect(closeButton).toHaveFocus();
+  expect(document.body).toHaveStyle({ overflow: "hidden" });
+  expect(backgroundRoot).toHaveAttribute("aria-hidden", "true");
+  expect(backgroundRoot).toHaveAttribute("inert");
+
+  panelAction.focus();
+  await user.tab();
+  expect(resizeHandle).toHaveFocus();
+  await user.tab({ shift: true });
+  expect(panelAction).toHaveFocus();
+
+  await user.keyboard("{Escape}");
+
+  expect(screen.queryByRole("dialog", { name: "Product details" })).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+  expect(document.body.style.overflow).toBe(previousOverflow);
   expect(backgroundRoot).not.toHaveAttribute("aria-hidden");
   expect(backgroundRoot).not.toHaveAttribute("inert");
 });

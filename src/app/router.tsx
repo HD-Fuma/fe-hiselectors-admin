@@ -14,6 +14,7 @@ import {
 } from "../features/creators/CreatorPages";
 import {
   CohortManagementPage,
+  ExcellentSelectorListPage,
   QualificationManagementPage,
   SelectorDetailPage,
   SelectorOverviewPage,
@@ -56,6 +57,8 @@ function adminRouteElement(path: string, title: string, screenCode: string) {
       return <SelectorDetailPage />;
     case "/selectors/qualifications":
       return <QualificationManagementPage />;
+    case "/selectors/excellent":
+      return <ExcellentSelectorListPage />;
     case "/applicants":
       return <ApplicantListPage />;
     case "/applicants/:applicantId":

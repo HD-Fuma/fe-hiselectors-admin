@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useId,
   useRef,
   useState,
@@ -8,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { useDialogLifecycle } from "./useDialogLifecycle";
 
 export interface SidePanelProps {
   actions?: ReactNode;
@@ -21,6 +21,13 @@ export function SidePanel({ actions, children, onClose, title }: SidePanelProps)
   const backdropRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
   const [panelWidth, setPanelWidth] = useState<number | null>(null);
+
+  useDialogLifecycle({
+    backdropRef,
+    dialogRef: panelRef,
+    initialFocusSelector: "button",
+    onClose,
+  });
 
   const clampWidth = (width: number) => {
     const maximum = Math.max(360, window.innerWidth - 56);
@@ -51,54 +58,6 @@ export function SidePanel({ actions, children, onClose, title }: SidePanelProps)
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp, { once: true });
   };
-
-  useEffect(() => {
-    const backdrop = backdropRef.current;
-    const panel = panelRef.current;
-    if (!backdrop || !panel) {
-      return undefined;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    const backgroundElements = Array.from(document.body.children).filter(
-      (element): element is HTMLElement => element instanceof HTMLElement && element !== backdrop,
-    );
-    const backgroundState = backgroundElements.map((element) => ({
-      ariaHidden: element.getAttribute("aria-hidden"),
-      element,
-      inert: element.hasAttribute("inert"),
-    }));
-
-    document.body.style.overflow = "hidden";
-    for (const element of backgroundElements) {
-      element.setAttribute("aria-hidden", "true");
-      element.setAttribute("inert", "");
-    }
-
-    panel.querySelector<HTMLElement>("button")?.focus();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      for (const { ariaHidden, element, inert } of backgroundState) {
-        if (ariaHidden == null) {
-          element.removeAttribute("aria-hidden");
-        } else {
-          element.setAttribute("aria-hidden", ariaHidden);
-        }
-        if (!inert) {
-          element.removeAttribute("inert");
-        }
-      }
-    };
-  }, [onClose]);
 
   if (typeof document === "undefined") {
     return null;

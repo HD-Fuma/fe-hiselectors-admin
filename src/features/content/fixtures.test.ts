@@ -64,9 +64,11 @@ test("keeps annotation targets valid and active violations off resolved current 
     if (target.kind === "text") {
       const occurrenceCount = previous.text.split(target.quote).length - 1;
       expect(target.quote).not.toBe("");
-      expect(occurrenceCount).toBeGreaterThanOrEqual(target.occurrence);
-    } else {
+      expect(occurrenceCount).toBeGreaterThanOrEqual(target.occurrence ?? 1);
+    } else if (target.kind === "url") {
       expect(previous.urls[target.targetIndex]).toBeDefined();
+    } else {
+      expect(previous.mediaKinds[target.mediaIndex]).toBeDefined();
     }
   }
 

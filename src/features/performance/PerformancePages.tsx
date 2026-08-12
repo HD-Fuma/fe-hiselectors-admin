@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import {
   ArrowUpRight,
   ChartNoAxesCombined,
@@ -12,13 +12,17 @@ import {
   UsersRound,
 } from "lucide-react";
 import { PageHeader } from "../../components/shell/PageHeader";
-import { Button, Select, TextInput } from "../../components/ui/Controls";
+import { PlatformIcon } from "../../components/social/PlatformIcon";
+import { Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
+import { FilterField } from "../../components/ui/FilterField";
 import { Pagination } from "../../components/ui/Pagination";
+import { ResultToolbar } from "../../components/ui/ResultToolbar";
+import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { paginate } from "../../lib/pagination";
 import "../../styles/performance-dashboard.css";
-import { PlatformIcon } from "../creators/PlatformIcon";
 import {
   PerformanceBarChart,
   PerformanceKpiGrid,
@@ -34,6 +38,7 @@ import {
   creatorNameById,
   formatCount,
   formatRate,
+  selectorCohortById,
   type CampaignPerformance,
   type ContentInfluence,
   type CreatorInfluence,
@@ -44,16 +49,74 @@ import {
 
 const COHORT_OPTIONS = [
   { label: "전체", value: "" },
-  { label: "3기", value: "3기" },
-  { label: "2기", value: "2기" },
+  ...Array.from(new Set(SELECTOR_PERFORMANCE.map((selector) => selector.cohort))).map((cohort) => ({
+    label: cohort,
+    value: cohort,
+  })),
 ];
 
 const CAMPAIGN_OPTIONS = [
   { label: "전체", value: "" },
-  { label: "2026 가을 골프웨어 셀렉션", value: "cp-001" },
-  { label: "여름 바캉스 스타일링", value: "cp-002" },
-  { label: "초여름 패션 리뷰", value: "cp-003" },
+  ...CAMPAIGN_PERFORMANCE.map((campaign) => ({
+    label: campaign.name,
+    value: campaign.id,
+  })),
 ];
+
+interface PerformanceFilterValues {
+  campaign: string;
+  cohort: string;
+  keyword: string;
+  periodEnd: string;
+  periodStart: string;
+}
+
+const EMPTY_PERFORMANCE_FILTERS: PerformanceFilterValues = {
+  campaign: "",
+  cohort: "",
+  keyword: "",
+  periodEnd: "",
+  periodStart: "",
+};
+
+const DASHBOARD_INITIAL_FILTERS: PerformanceFilterValues = {
+  ...EMPTY_PERFORMANCE_FILTERS,
+  periodEnd: PERFORMANCE_TREND.at(-1)?.date ?? "",
+  periodStart: PERFORMANCE_TREND[0]?.date ?? "",
+};
+
+const PERFORMANCE_PAGE_SIZE = 20;
+const TOP_SELECTOR_INITIAL_COUNT = 10;
+
+function usePerformanceFilterState(initialValues = EMPTY_PERFORMANCE_FILTERS) {
+  const [draftFilters, setDraftFilters] = useState<PerformanceFilterValues>(() => ({
+    ...initialValues,
+  }));
+  const [appliedFilters, setAppliedFilters] = useState<PerformanceFilterValues>(() => ({
+    ...initialValues,
+  }));
+
+  const updateDraftFilter = <Key extends keyof PerformanceFilterValues>(
+    key: Key,
+    value: PerformanceFilterValues[Key],
+  ) => {
+    setDraftFilters((current) => ({ ...current, [key]: value }));
+  };
+
+  const applyFilters = () => setAppliedFilters({ ...draftFilters });
+  const resetFilters = () => {
+    setDraftFilters({ ...EMPTY_PERFORMANCE_FILTERS });
+    setAppliedFilters({ ...EMPTY_PERFORMANCE_FILTERS });
+  };
+
+  return {
+    appliedFilters,
+    applyFilters,
+    draftFilters,
+    resetFilters,
+    updateDraftFilter,
+  };
+}
 
 function selectorProfilePath(selectorId: string) {
   const selectorNumber = Number(selectorId.replace(/\D/g, "")) || 1;
@@ -62,76 +125,81 @@ function selectorProfilePath(selectorId: string) {
   return `creator-media/kr-cr-${String(mediaIndex).padStart(3, "0")}-profile.jpg`;
 }
 
-interface FilterFieldProps {
-  children: ReactNode;
-  htmlFor: string;
-  label: string;
-}
-
-function FilterField({ children, htmlFor, label }: FilterFieldProps) {
-  return (
-    <label className="fuma-filter-field" htmlFor={htmlFor}>
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
-
 interface KeywordFilter {
   id: string;
   label: string;
   placeholder: string;
 }
 
-function PerformanceFilters({ keyword }: { keyword?: KeywordFilter }) {
+function PerformanceFilters({
+  keyword,
+  onChange,
+  onReset,
+  onSearch,
+  values,
+}: {
+  keyword?: KeywordFilter;
+  onChange: <Key extends keyof PerformanceFilterValues>(
+    key: Key,
+    value: PerformanceFilterValues[Key],
+  ) => void;
+  onReset: () => void;
+  onSearch: () => void;
+  values: PerformanceFilterValues;
+}) {
   return (
-    <div className="fuma-performance-search">
-      <SearchPanel
-        actions={
-          <>
-            <Button variant="primary">조회</Button>
-            <Button>초기화</Button>
-          </>
-        }
-      >
+    <div className="fuma-performance-search fuma-operations-search fuma-settlement-search">
+      <SearchPanel actions={<SearchActions onReset={onReset} onSearch={onSearch} />}>
         {keyword ? (
           <FilterField htmlFor={keyword.id} label={keyword.label}>
             <TextInput
               aria-label={keyword.label}
               id={keyword.id}
+              onChange={(event) => onChange("keyword", event.target.value)}
               placeholder={keyword.placeholder}
+              value={values.keyword}
             />
           </FilterField>
         ) : null}
         <FilterField htmlFor="performance-cohort" label="기수">
           <Select
             aria-label="기수"
-            defaultValue=""
             id="performance-cohort"
+            onChange={(event) => onChange("cohort", event.target.value)}
             options={COHORT_OPTIONS}
+            value={values.cohort}
           />
         </FilterField>
         <FilterField htmlFor="performance-campaign" label="캠페인">
           <Select
             aria-label="캠페인"
-            defaultValue=""
             id="performance-campaign"
+            onChange={(event) => onChange("campaign", event.target.value)}
             options={CAMPAIGN_OPTIONS}
+            value={values.campaign}
           />
         </FilterField>
-        <div className="fuma-performance-period-filter">
-          <span>집계 기간</span>
+        <div aria-label="집계 기간" className="fuma-performance-period-filter" role="group">
+          <span>기간</span>
           <div>
             <TextInput
               aria-label="집계 시작일"
-              defaultValue="2026-08-01"
+              id="performance-period-start"
+              max={values.periodEnd || undefined}
+              name="periodStart"
+              onChange={(event) => onChange("periodStart", event.target.value)}
               type="date"
+              value={values.periodStart}
             />
             <span aria-hidden="true">~</span>
             <TextInput
               aria-label="집계 종료일"
-              defaultValue="2026-08-03"
+              id="performance-period-end"
+              min={values.periodStart || undefined}
+              name="periodEnd"
+              onChange={(event) => onChange("periodEnd", event.target.value)}
               type="date"
+              value={values.periodEnd}
             />
           </div>
         </div>
@@ -151,7 +219,9 @@ function PerformancePeriodSummary({
   points: readonly number[];
   value: string;
 }) {
-  const safePoints = points.map((point) => Math.max(0, Number.isFinite(point) ? point : 0));
+  const safePoints = points.length > 0
+    ? points.map((point) => Math.max(0, Number.isFinite(point) ? point : 0))
+    : [0];
   const maximum = Math.max(1, ...safePoints);
   const minimum = Math.min(...safePoints);
   const range = Math.max(1, maximum - minimum);
@@ -222,6 +292,14 @@ function PerformanceResultTable<T extends object>({
   rowKey,
   title,
 }: PerformanceResultTableProps<T>) {
+  const [page, setPage] = useState(1);
+  const pageSize = PERFORMANCE_PAGE_SIZE;
+  const {
+    currentPage,
+    pagedItems: pagedRows,
+    totalPages,
+  } = paginate(rows, page, pageSize);
+
   return (
     <section aria-label={title} className="fuma-performance-results">
       <div className="fuma-result-toolbar">
@@ -229,9 +307,14 @@ function PerformanceResultTable<T extends object>({
         <span>총 {rows.length}건</span>
       </div>
       <div className={`fuma-wide-table ${className}`}>
-        <DenseTable columns={columns} rowKey={rowKey} rows={rows} />
+        <DenseTable columns={columns} rowKey={rowKey} rows={pagedRows} />
       </div>
-      <Pagination page={1} pageSize={20} totalPages={1} />
+      <Pagination
+        onPageChange={setPage}
+        page={currentPage}
+        pageSize={pageSize}
+        totalPages={totalPages}
+      />
     </section>
   );
 }
@@ -375,10 +458,19 @@ const CAMPAIGN_CONTENT_CARDS: readonly CampaignContentCardData[] = [
   { id: "cpc-015", campaignId: "cp-003", title: "한여름 전까지 입기 좋은 가벼운 레이어드", creator: "오하늘", creatorImage: "creator-media/kr-cr-004-profile.jpg", thumbnail: "creator-media/kr-cr-004-02.jpg", views: 14_800, likes: 736, comments: 52, publishedAt: "2026.06.18" },
 ];
 
-function CampaignContentGallery() {
-  const [selectedCampaignId, setSelectedCampaignId] = useState(CAMPAIGN_PERFORMANCE[0]?.id ?? "");
-  const selectedCampaign = CAMPAIGN_PERFORMANCE.find((campaign) => campaign.id === selectedCampaignId);
-  const cards = CAMPAIGN_CONTENT_CARDS.filter((card) => card.campaignId === selectedCampaignId);
+function CampaignContentGallery({
+  campaigns = CAMPAIGN_PERFORMANCE,
+  contentCards = CAMPAIGN_CONTENT_CARDS,
+}: {
+  campaigns?: readonly CampaignPerformance[];
+  contentCards?: readonly CampaignContentCardData[];
+}) {
+  const [selectedCampaignId, setSelectedCampaignId] = useState(campaigns[0]?.id ?? "");
+  const activeCampaignId = campaigns.some((campaign) => campaign.id === selectedCampaignId)
+    ? selectedCampaignId
+    : campaigns[0]?.id ?? "";
+  const selectedCampaign = campaigns.find((campaign) => campaign.id === activeCampaignId);
+  const cards = contentCards.filter((card) => card.campaignId === activeCampaignId);
 
   return (
     <section aria-label="캠페인 내 콘텐츠" className="fuma-campaign-content-gallery">
@@ -390,9 +482,9 @@ function CampaignContentGallery() {
         <p>{selectedCampaign?.name} · 콘텐츠 {cards.length}건</p>
       </header>
       <div aria-label="캠페인 선택" className="fuma-campaign-content-gallery__tabs" role="tablist">
-        {CAMPAIGN_PERFORMANCE.map((campaign) => (
+        {campaigns.map((campaign) => (
           <button
-            aria-selected={campaign.id === selectedCampaignId}
+            aria-selected={campaign.id === activeCampaignId}
             key={campaign.id}
             onClick={() => setSelectedCampaignId(campaign.id)}
             role="tab"
@@ -430,7 +522,12 @@ function CampaignContentGallery() {
   );
 }
 
-function SelectorPerformanceReport({ selectors }: { selectors: readonly SelectorPerformance[] }) {
+function SelectorPerformanceReport({
+  selectors,
+}: {
+  selectors: readonly SelectorPerformance[];
+}) {
+  const [showAllSelectors, setShowAllSelectors] = useState(false);
   const rankedSelectors = [...selectors].sort(
     (left, right) => right.conversions - left.conversions || right.clicks - left.clicks,
   );
@@ -454,6 +551,13 @@ function SelectorPerformanceReport({ selectors }: { selectors: readonly Selector
     share: totalConversions === 0 ? 0 : (group.conversions / totalConversions) * 100,
   }));
   const maxDistributionShare = Math.max(1, ...conversionDistribution.map((group) => group.share));
+  const visibleSelectors = showAllSelectors
+    ? rankedSelectors
+    : rankedSelectors.slice(0, TOP_SELECTOR_INITIAL_COUNT);
+  const hiddenSelectorCount = Math.max(
+    0,
+    rankedSelectors.length - TOP_SELECTOR_INITIAL_COUNT,
+  );
 
   return (
     <section aria-label="셀렉터스 성과" className="fuma-selector-performance-report">
@@ -511,13 +615,14 @@ function SelectorPerformanceReport({ selectors }: { selectors: readonly Selector
           <span>전환 성과 순</span>
         </header>
         <div className="fuma-selector-performance-report__list">
-          {rankedSelectors.map((selector, index) => {
+          {visibleSelectors.length > 0 ? visibleSelectors.map((selector, index) => {
             const contribution = totalConversions === 0 ? 0 : (selector.conversions / totalConversions) * 100;
             const profilePath = selectorProfilePath(selector.id);
+            const rank = index + 1;
 
             return (
               <article className="fuma-selector-performance-report__entry" key={selector.id}>
-                <span className="fuma-selector-performance-report__rank">{String(index + 1).padStart(2, "0")}</span>
+                <span className="fuma-selector-performance-report__rank">{String(rank).padStart(2, "0")}</span>
                 <img
                   alt={`${selector.name} 프로필`}
                   className="fuma-selector-performance-report__profile"
@@ -545,8 +650,18 @@ function SelectorPerformanceReport({ selectors }: { selectors: readonly Selector
                 </div>
               </article>
             );
-          })}
+          }) : <p className="fuma-selector-detail-empty">조회 결과가 없습니다.</p>}
         </div>
+        {hiddenSelectorCount > 0 ? (
+          <button
+            aria-expanded={showAllSelectors}
+            className="fuma-selector-performance-report__more"
+            onClick={() => setShowAllSelectors((current) => !current)}
+            type="button"
+          >
+            {showAllSelectors ? "접기" : `더보기 (${hiddenSelectorCount}명)`}
+          </button>
+        ) : null}
       </section>
     </section>
   );
@@ -615,8 +730,21 @@ function ContentTrendGraph({
   );
 }
 
-function ContentPerformanceReport({ contents }: { contents: readonly ContentInfluence[] }) {
+function ContentPerformanceReport({
+  contents,
+  onPageChange,
+  page,
+}: {
+  contents: readonly ContentInfluence[];
+  onPageChange: (page: number) => void;
+  page: number;
+}) {
   const orderById = new Map(contents.map((content, index) => [content.id, index + 1]));
+  const {
+    currentPage,
+    pagedItems: pagedContents,
+    totalPages,
+  } = paginate(contents, page, PERFORMANCE_PAGE_SIZE);
   const columns: DenseTableColumn<ContentInfluence>[] = [
     {
       id: "rank",
@@ -646,6 +774,7 @@ function ContentPerformanceReport({ contents }: { contents: readonly ContentInfl
     {
       key: "platform",
       header: "플랫폼",
+      align: "center",
       width: 112,
       render: (content) => (
         <span className="fuma-content-reaction-table__platform">
@@ -721,11 +850,25 @@ function ContentPerformanceReport({ contents }: { contents: readonly ContentInfl
   ];
 
   return (
-    <section aria-label="콘텐츠별 반응" className="fuma-content-reaction-table">
-      <header className="fuma-content-reaction-table__toolbar">총 {contents.length}개</header>
-      <div className="fuma-wide-table">
-        <DenseTable columns={columns} rowKey={(content) => content.id} rows={[...contents]} />
+    <section aria-label="콘텐츠별 반응" className="fuma-content-performance-results">
+      <ResultToolbar
+        className="fuma-simple-result-toolbar fuma-campaign-result-toolbar"
+        meta={<span>총 {contents.length}건</span>}
+        title="콘텐츠 성과"
+      />
+      <div
+        aria-label="콘텐츠 성과 목록"
+        className="fuma-wide-table fuma-settlement-table fuma-campaign-list-table"
+        role="region"
+      >
+        <DenseTable columns={columns} rowKey={(content) => content.id} rows={pagedContents} />
       </div>
+      <Pagination
+        onPageChange={onPageChange}
+        page={currentPage}
+        pageSize={PERFORMANCE_PAGE_SIZE}
+        totalPages={totalPages}
+      />
     </section>
   );
 }
@@ -902,7 +1045,6 @@ export function buildContentVisualData(
   };
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 function buildCampaignBundles(
   campaigns: readonly CampaignPerformance[],
   products: typeof PRODUCT_INFLUENCE,
@@ -1026,17 +1168,39 @@ function CampaignProductList({ campaigns }: { campaigns: readonly CampaignBundle
 }
 
 export function PerformanceDashboardPage() {
+  const {
+    appliedFilters,
+    applyFilters,
+    draftFilters,
+    resetFilters,
+    updateDraftFilter,
+  } = usePerformanceFilterState(DASHBOARD_INITIAL_FILTERS);
+  const filteredData = dashboardDataForFilters(appliedFilters);
   const visualData = buildDashboardVisualData(
-    CAMPAIGN_PERFORMANCE,
-    SELECTOR_PERFORMANCE,
-    PERFORMANCE_TREND,
+    filteredData.campaigns,
+    filteredData.selectors,
+    filteredData.trendPoints,
+  );
+  const filterKey = JSON.stringify(appliedFilters);
+  const totalConversions = filteredData.campaigns.reduce(
+    (total, campaign) => total + campaign.conversions,
+    0,
+  );
+  const totalContentViews = filteredData.contentCards.reduce(
+    (total, card) => total + card.views,
+    0,
   );
 
   return (
     <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF101" title="관리자 성과 대시보드" />
       <div className="fuma-page__body">
-        <PerformanceFilters />
+        <PerformanceFilters
+          onChange={updateDraftFilter}
+          onReset={resetFilters}
+          onSearch={applyFilters}
+          values={draftFilters}
+        />
         <div className="fuma-performance-command-layout">
           <div className="fuma-performance-command-layout__main">
             <PerformanceKpiGrid
@@ -1057,10 +1221,10 @@ export function PerformanceDashboardPage() {
           </div>
           <aside className="fuma-performance-command-layout__rail">
             <PerformancePeriodSummary
-              change="+12.4%"
+              change={filteredData.campaigns.length > 0 ? "+12.4%" : "-"}
               label="구매 전환"
-              points={[410, 463, 526]}
-              value="1,399"
+              points={filteredData.trendPoints.map((point) => point.conversions)}
+              value={filteredData.campaigns.length > 0 ? formatCount(totalConversions) : "-"}
             />
             <PerformanceRanking
               items={visualData.selectorItems}
@@ -1068,26 +1232,32 @@ export function PerformanceDashboardPage() {
             />
             <PerformanceLiftCards
               items={[
-                { label: "콘텐츠 조회 증가", value: "309,300" },
-                { label: "구매 전환 증가", value: "1,399" },
-                { label: "참여 셀렉터스", value: "4명" },
+                { label: "콘텐츠 조회 증가", value: filteredData.contentCards.length > 0 ? formatCount(totalContentViews) : "-" },
+                { label: "구매 전환 증가", value: filteredData.campaigns.length > 0 ? formatCount(totalConversions) : "-" },
+                { label: "참여 셀렉터스", value: filteredData.selectors.length > 0 ? `${filteredData.selectors.length}명` : "-" },
               ]}
             />
           </aside>
         </div>
         <PerformanceResultTable
+          key={`campaign-${filterKey}`}
           className="fuma-performance-campaign-table"
           columns={CAMPAIGN_COLUMNS}
           rowKey={(campaign) => campaign.id}
-          rows={[...CAMPAIGN_PERFORMANCE]}
+          rows={filteredData.campaigns}
           title="캠페인별 성과"
         />
-        <CampaignContentGallery />
+        <CampaignContentGallery
+          key={`gallery-${filterKey}`}
+          campaigns={filteredData.campaigns}
+          contentCards={filteredData.contentCards}
+        />
         <PerformanceResultTable
+          key={`selector-${filterKey}`}
           className="fuma-performance-selector-table"
           columns={SELECTOR_COLUMNS}
           rowKey={(selector) => selector.id}
-          rows={[...SELECTOR_PERFORMANCE]}
+          rows={filteredData.selectors}
           title="셀렉터스별 성과"
         />
       </div>
@@ -1096,22 +1266,261 @@ export function PerformanceDashboardPage() {
 }
 
 export function SelectorPerformancePage() {
+  const {
+    appliedFilters,
+    applyFilters,
+    draftFilters,
+    resetFilters,
+    updateDraftFilter,
+  } = usePerformanceFilterState();
+  const selectors = selectorPerformanceForFilters(appliedFilters);
+
   return (
     <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF201" title="셀렉터스 성과" />
       <div className="fuma-page__body">
-        <SelectorPerformanceReport selectors={SELECTOR_PERFORMANCE} />
+        <PerformanceFilters
+          keyword={{
+            id: "performance-selector-name",
+            label: "셀렉터스명",
+            placeholder: "이름 또는 ID 검색",
+          }}
+          onChange={updateDraftFilter}
+          onReset={resetFilters}
+          onSearch={applyFilters}
+          values={draftFilters}
+        />
+        <SelectorPerformanceReport
+          key={JSON.stringify(appliedFilters)}
+          selectors={selectors}
+        />
       </div>
     </section>
   );
 }
 
+function includesKeyword(values: readonly string[], keyword: string) {
+  const normalizedKeyword = keyword.trim().toLowerCase();
+
+  return !normalizedKeyword || values.some((value) => (
+    value.toLowerCase().includes(normalizedKeyword)
+  ));
+}
+
+function isWithinPeriod(date: string, periodStart: string, periodEnd: string) {
+  return (!periodStart || date >= periodStart) && (!periodEnd || date <= periodEnd);
+}
+
+function sumContentValues(
+  contents: readonly ContentInfluence[],
+  metric: "clicks" | "conversions",
+) {
+  return contents.reduce((total, content) => total + content[metric], 0);
+}
+
+function scaledMetric(value: number, ratio: number) {
+  return ratio === 1 ? value : Math.round(value * ratio);
+}
+
+function dashboardDataForFilters(filters: PerformanceFilterValues) {
+  const cohortSelectors = SELECTOR_PERFORMANCE.filter((selector) => (
+    !filters.cohort || selector.cohort === filters.cohort
+  ));
+  const cohortSelectorIds = new Set(cohortSelectors.map((selector) => selector.id));
+  const scopedContents = CONTENT_INFLUENCE.filter((content) => (
+    cohortSelectorIds.has(content.selectorId)
+    && (!filters.campaign || content.campaignId === filters.campaign)
+  ));
+  const scopedCampaigns = CAMPAIGN_PERFORMANCE
+    .filter((campaign) => (
+      (!filters.campaign || campaign.id === filters.campaign)
+      && scopedContents.some((content) => content.campaignId === campaign.id)
+    ))
+    .map((campaign) => {
+      const campaignContents = scopedContents.filter((content) => (
+        content.campaignId === campaign.id
+      ));
+
+      return {
+        ...campaign,
+        clicks: sumContentValues(campaignContents, "clicks"),
+        conversions: sumContentValues(campaignContents, "conversions"),
+      };
+    });
+  const scopedSelectorIds = new Set(scopedContents.map((content) => content.selectorId));
+  const scopedSelectors = cohortSelectors
+    .filter((selector) => !filters.campaign || scopedSelectorIds.has(selector.id))
+    .map((selector) => {
+      const selectorContents = scopedContents.filter((content) => (
+        content.selectorId === selector.id
+      ));
+
+      return {
+        ...selector,
+        clicks: sumContentValues(selectorContents, "clicks"),
+        conversions: sumContentValues(selectorContents, "conversions"),
+      };
+    });
+  const hasPeriodFilter = Boolean(filters.periodStart || filters.periodEnd);
+  const periodTrend = PERFORMANCE_TREND.filter((point) => (
+    isWithinPeriod(point.date, filters.periodStart, filters.periodEnd)
+  ));
+
+  if (hasPeriodFilter && periodTrend.length === 0) {
+    return {
+      campaigns: [] as CampaignPerformance[],
+      contentCards: [] as CampaignContentCardData[],
+      scopedContents: [] as ContentInfluence[],
+      selectors: [] as SelectorPerformance[],
+      trendPoints: [] as PerformanceTrendPoint[],
+    };
+  }
+
+  const allTrendClicks = PERFORMANCE_TREND.reduce((total, point) => total + point.clicks, 0);
+  const allTrendConversions = PERFORMANCE_TREND.reduce(
+    (total, point) => total + point.conversions,
+    0,
+  );
+  const periodClickRatio = hasPeriodFilter && allTrendClicks > 0
+    ? periodTrend.reduce((total, point) => total + point.clicks, 0) / allTrendClicks
+    : 1;
+  const periodConversionRatio = hasPeriodFilter && allTrendConversions > 0
+    ? periodTrend.reduce((total, point) => total + point.conversions, 0) / allTrendConversions
+    : 1;
+  const allCampaignClicks = CAMPAIGN_PERFORMANCE.reduce(
+    (total, campaign) => total + campaign.clicks,
+    0,
+  );
+  const allCampaignConversions = CAMPAIGN_PERFORMANCE.reduce(
+    (total, campaign) => total + campaign.conversions,
+    0,
+  );
+  const scopedClicks = scopedCampaigns.reduce((total, campaign) => total + campaign.clicks, 0);
+  const scopedConversions = scopedCampaigns.reduce(
+    (total, campaign) => total + campaign.conversions,
+    0,
+  );
+  const scopeClickRatio = allCampaignClicks > 0 ? scopedClicks / allCampaignClicks : 0;
+  const scopeConversionRatio = allCampaignConversions > 0
+    ? scopedConversions / allCampaignConversions
+    : 0;
+  const selectorNames = new Set(cohortSelectors.map((selector) => selector.name));
+  const contentCards = CAMPAIGN_CONTENT_CARDS.filter((card) => {
+    const publishedAt = card.publishedAt.replaceAll(".", "-");
+
+    return (!filters.campaign || card.campaignId === filters.campaign)
+      && (!filters.cohort || selectorNames.has(card.creator))
+      && isWithinPeriod(publishedAt, filters.periodStart, filters.periodEnd);
+  });
+
+  return {
+    campaigns: scopedCampaigns.map((campaign) => ({
+      ...campaign,
+      clicks: scaledMetric(campaign.clicks, periodClickRatio),
+      conversions: scaledMetric(campaign.conversions, periodConversionRatio),
+    })),
+    contentCards,
+    scopedContents: [...scopedContents],
+    selectors: scopedSelectors.map((selector) => ({
+      ...selector,
+      clicks: scaledMetric(selector.clicks, periodClickRatio),
+      conversions: scaledMetric(selector.conversions, periodConversionRatio),
+    })),
+    trendPoints: periodTrend.map((point) => ({
+      ...point,
+      clicks: scaledMetric(point.clicks, scopeClickRatio),
+      conversions: scaledMetric(point.conversions, scopeConversionRatio),
+    })),
+  };
+}
+
+function selectorPerformanceForFilters(filters: PerformanceFilterValues) {
+  const selectors = SELECTOR_PERFORMANCE.filter((selector) => (
+    (!filters.cohort || selector.cohort === filters.cohort)
+    && includesKeyword([selector.id, selector.name], filters.keyword)
+  ));
+  const hasAttributionFilter = Boolean(
+    filters.campaign || filters.periodStart || filters.periodEnd,
+  );
+
+  if (!hasAttributionFilter) {
+    return [...selectors];
+  }
+
+  const selectorIds = new Set(selectors.map((selector) => selector.id));
+  const contents = CONTENT_INFLUENCE.filter((content) => (
+    selectorIds.has(content.selectorId)
+    && (!filters.campaign || content.campaignId === filters.campaign)
+    && isWithinPeriod(content.publishedAt, filters.periodStart, filters.periodEnd)
+  ));
+  const matchedSelectorIds = new Set(contents.map((content) => content.selectorId));
+
+  return selectors
+    .filter((selector) => matchedSelectorIds.has(selector.id))
+    .map((selector) => {
+      const selectorContents = contents.filter((content) => content.selectorId === selector.id);
+
+      return {
+        ...selector,
+        clicks: sumContentValues(selectorContents, "clicks"),
+        conversions: sumContentValues(selectorContents, "conversions"),
+      };
+    });
+}
+
+function contentPerformanceForFilters(filters: PerformanceFilterValues) {
+  return CONTENT_INFLUENCE.filter((content) => (
+    (!filters.campaign || content.campaignId === filters.campaign)
+    && (!filters.cohort || selectorCohortById(content.selectorId) === filters.cohort)
+    && isWithinPeriod(content.publishedAt, filters.periodStart, filters.periodEnd)
+    && includesKeyword(
+      [content.id, content.title, creatorNameById(content.creatorId)],
+      filters.keyword,
+    )
+  ));
+}
+
 export function ContentPerformancePage() {
+  const [page, setPage] = useState(1);
+  const {
+    appliedFilters,
+    applyFilters,
+    draftFilters,
+    resetFilters,
+    updateDraftFilter,
+  } = usePerformanceFilterState();
+  const contents = contentPerformanceForFilters(appliedFilters);
+
+  const applyAndResetPage = () => {
+    applyFilters();
+    setPage(1);
+  };
+
+  const resetAndResetPage = () => {
+    resetFilters();
+    setPage(1);
+  };
+
   return (
     <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF202" title="콘텐츠 성과" />
       <div className="fuma-page__body">
-        <ContentPerformanceReport contents={CONTENT_INFLUENCE} />
+        <PerformanceFilters
+          keyword={{
+            id: "performance-content-keyword",
+            label: "콘텐츠/작성자",
+            placeholder: "콘텐츠 ID, 제목 또는 작성자 검색",
+          }}
+          onChange={updateDraftFilter}
+          onReset={resetAndResetPage}
+          onSearch={applyAndResetPage}
+          values={draftFilters}
+        />
+        <ContentPerformanceReport
+          contents={contents}
+          onPageChange={setPage}
+          page={page}
+        />
       </div>
     </section>
   );
@@ -1119,12 +1528,68 @@ export function ContentPerformancePage() {
 
 export function ProductPerformancePage() {
   const campaigns = buildCampaignBundles(CAMPAIGN_PERFORMANCE, PRODUCT_INFLUENCE);
+  const {
+    appliedFilters,
+    applyFilters,
+    draftFilters,
+    resetFilters,
+    updateDraftFilter,
+  } = usePerformanceFilterState();
+  const filteredCampaigns = campaigns.flatMap((campaign) => {
+    const campaignContents = CONTENT_INFLUENCE.filter((content) => (
+      content.campaignId === campaign.id
+    ));
+    const scopedContents = campaignContents.filter((content) => (
+      (!appliedFilters.cohort
+        || selectorCohortById(content.selectorId) === appliedFilters.cohort)
+      && isWithinPeriod(
+        content.publishedAt,
+        appliedFilters.periodStart,
+        appliedFilters.periodEnd,
+      )
+    ));
+    const matchesIdentity = (!appliedFilters.campaign
+      || campaign.id === appliedFilters.campaign)
+      && includesKeyword(
+        [campaign.id, campaign.name, campaign.productBundle],
+        appliedFilters.keyword,
+      );
+    const hasAttributionFilter = Boolean(
+      appliedFilters.cohort || appliedFilters.periodStart || appliedFilters.periodEnd,
+    );
+
+    if (!matchesIdentity || (hasAttributionFilter && scopedContents.length === 0)) {
+      return [];
+    }
+
+    return [{
+      ...campaign,
+      clicks: hasAttributionFilter
+        ? sumContentValues(scopedContents, "clicks")
+        : campaign.clicks,
+      contentCount: hasAttributionFilter ? scopedContents.length : campaign.contentCount,
+      conversions: hasAttributionFilter
+        ? sumContentValues(scopedContents, "conversions")
+        : campaign.conversions,
+    }];
+  });
 
   return (
     <section className="fuma-page fuma-performance-page">
       <PageHeader screenCode="PF203" title="캠페인 성과" />
       <div className="fuma-page__body">
-        <CampaignProductList campaigns={campaigns} />
+        <PerformanceFilters
+          keyword={{
+            id: "performance-campaign-keyword",
+            label: "캠페인/상품",
+            placeholder: "캠페인 또는 상품 검색",
+          }}
+          onChange={updateDraftFilter}
+          onReset={resetFilters}
+          onSearch={applyFilters}
+          values={draftFilters}
+        />
+        <CampaignProductList campaigns={filteredCampaigns} />
       </div>
     </section>
   );
