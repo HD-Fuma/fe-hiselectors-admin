@@ -264,7 +264,7 @@ export function CohortManagementPage() {
             </FilterField>
           </SearchPanel>
         </div>
-        <nav aria-label="기수 상태" className="fuma-creator-category-filter fuma-cohort-status-filter">
+        <nav aria-label="기수 상태" className="fuma-creator-category-filter fuma-list-action-toolbar">
           <div>
             <button
               aria-pressed={selectedStatus === null}
@@ -384,7 +384,18 @@ const SELECTOR_COLUMNS: DenseTableColumn<SelectorFixture>[] = [
   { key: "name", header: "이름", width: 88, align: "center" },
   { key: "shopNickname", header: "닉네임", width: 120, align: "center" },
   { key: "cohort", header: "기수", width: 60, align: "center" },
-  { key: "sns", header: "SNS", width: 110, align: "center" },
+  {
+    key: "sns",
+    header: "플랫폼",
+    width: 110,
+    align: "center",
+    render: (selector) => (
+      <span className="fuma-platform-label">
+        <PlatformIcon platform={selector.sns} />
+        <span aria-hidden="true">{selector.sns}</span>
+      </span>
+    ),
+  },
   {
     key: "status",
     header: "활동 상태",

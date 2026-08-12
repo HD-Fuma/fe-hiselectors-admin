@@ -139,22 +139,13 @@ test("login visual checkpoint", async ({ page }, testInfo) => {
   await expect(contract).toBeVisible();
   const cardBox = await card.boundingBox();
   expect(cardBox).not.toBeNull();
-  expectApprox(cardBox!.width, 460, 12);
-  expectApprox(cardBox!.height, 570, 16);
+  expectApprox(cardBox!.width, 400, 12);
+  expectApprox(cardBox!.height, 369, 20);
   await expectKeyTextBounds(card, [
-    "더현대Hi",
-    "Partners",
-    "더현대Hi 협력사 업무지원시스템",
-    "아이디 저장",
+    "Hi-Selectors",
+    "아이디",
+    "비밀번호",
     "로그인",
-    "아이디 찾기",
-    "비밀번호 초기화",
-    "시스템 담당자 문의",
-  ]);
-  await expectKeyTextBounds(page.locator('[data-login-part="quick-links"]'), [
-    "신규입점문의",
-    "광고신청/안내",
-    /파트너스 APP\s*다운로드/,
   ]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1870);
   await page.screenshot({ path: "test-results/visual/login.png" });

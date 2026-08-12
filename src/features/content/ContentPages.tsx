@@ -678,7 +678,7 @@ function ContentReviewCategoryTabs({
   onSelect: (category: ContentReviewCategory) => void;
 }) {
   return (
-    <nav aria-label="콘텐츠 처리 구분" className="fuma-creator-category-filter fuma-cohort-status-filter">
+    <nav aria-label="콘텐츠 처리 구분" className="fuma-creator-category-filter fuma-list-action-toolbar">
       <div>
         {CONTENT_REVIEW_CATEGORIES.map((category) => (
           <button

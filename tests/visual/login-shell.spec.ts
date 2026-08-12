@@ -11,50 +11,43 @@ async function waitForStablePage(page: Page) {
   );
 }
 
-test("matches the Partners login geometry", async ({ page }) => {
+test("matches the administrator login geometry", async ({ page }) => {
   await page.setViewportSize({ width: 1869, height: 942 });
   await page.goto("/login");
   await waitForStablePage(page);
 
   const card = page.locator('[data-login-part="card"]');
-  const quickLinks = page.locator('[data-login-part="quick-links"]');
-  const qr = page.locator('[data-login-part="qr"]');
 
   await expect(card).toBeVisible();
-  await expect(quickLinks).toBeVisible();
-  await expect(qr).toBeVisible();
+  await expect(page.locator('[data-login-part="quick-links"]')).toHaveCount(0);
+  await expect(page.locator('[data-login-part="qr"]')).toHaveCount(0);
   await expect(page.locator('[data-shell-part="root"]')).toHaveCount(0);
   await page.screenshot({ path: "test-results/visual/login-reference.png" });
 
   const cardBox = await card.boundingBox();
-  const quickLinksBox = await quickLinks.boundingBox();
   expect(cardBox).not.toBeNull();
-  expect(quickLinksBox).not.toBeNull();
-  expect(cardBox!.width).toBeGreaterThanOrEqual(448);
-  expect(cardBox!.width).toBeLessThanOrEqual(472);
-  expect(cardBox!.height).toBeGreaterThanOrEqual(554);
-  expect(cardBox!.height).toBeLessThanOrEqual(586);
+  expect(cardBox!.width).toBeGreaterThanOrEqual(388);
+  expect(cardBox!.width).toBeLessThanOrEqual(412);
+  expect(cardBox!.height).toBeGreaterThanOrEqual(350);
+  expect(cardBox!.height).toBeLessThanOrEqual(390);
   expect(Math.abs(cardBox!.x + cardBox!.width / 2 - 1869 / 2)).toBeLessThanOrEqual(30);
   expect(Math.abs(cardBox!.y + cardBox!.height / 2 - 942 / 2)).toBeLessThanOrEqual(30);
-  expect(quickLinksBox!.x).toBeGreaterThan(cardBox!.x + cardBox!.width);
 });
 
-test("keeps static login credentials out of browser history", async ({ page }) => {
+test("opens the administrator workspace after login", async ({ page }) => {
   await page.setViewportSize({ width: 1869, height: 942 });
   await page.goto("/login");
   await waitForStablePage(page);
-  const loginUrl = page.url();
-
-  await page.getByPlaceholder("ID를 입력하세요.").fill("review-user");
-  await page.getByPlaceholder("비밀번호를 입력하세요.").fill("review-secret");
+  await page.getByPlaceholder("아이디 입력").fill("review-user");
+  await page.getByPlaceholder("비밀번호 입력").fill("review-secret");
   await page.getByRole("button", { name: "로그인" }).click();
 
-  expect(page.url()).toBe(loginUrl);
-  await expect(page.getByText("Partners")).toBeVisible();
+  await expect(page).toHaveURL(/\/creators$/);
+  await expect(page.getByRole("navigation", { name: "관리자 메뉴" })).toBeVisible();
 });
 
 test("keeps the login card inside a narrow viewport", async ({ page }) => {
-  await page.setViewportSize({ width: 460, height: 760 });
+  await page.setViewportSize({ width: 390, height: 760 });
   await page.goto("/login");
   await waitForStablePage(page);
 

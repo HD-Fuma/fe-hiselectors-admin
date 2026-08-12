@@ -6,13 +6,12 @@ import {
   FileSearch,
   LogOut,
   Megaphone,
-  Settings,
   UsersRound,
   WalletCards,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { Link, matchPath } from "react-router-dom";
+import { Link, matchPath, useNavigate } from "react-router-dom";
 import {
   NAV_GROUPS,
   getGroupMenuItems,
@@ -38,6 +37,7 @@ interface AdminSidebarProps {
 }
 
 export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
+  const navigate = useNavigate();
   const [expandedGroups, setExpandedGroups] = useState<Set<NavGroup>>(
     () => new Set(NAV_GROUPS.map(({ id }) => id)),
   );
@@ -156,14 +156,8 @@ export function AdminSidebar({ activeRoute, currentPath }: AdminSidebarProps) {
           <button
             type="button"
             className="hsas-admin-sidebar__account-action"
-            aria-label="설정"
-          >
-            <Settings aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="hsas-admin-sidebar__account-action"
             aria-label="로그아웃"
+            onClick={() => navigate("/login", { replace: true })}
           >
             <LogOut aria-hidden="true" />
           </button>

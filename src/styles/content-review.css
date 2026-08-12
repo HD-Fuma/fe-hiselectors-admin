@@ -5,6 +5,8 @@ body:has(.fuma-content-review-detail) .hsas-admin-shell__content {
 }
 
 .fuma-content-review-detail {
+  --review-sticky-gap: var(--hsas-space-12);
+  --review-sticky-toolbar-height: calc(var(--hsas-control-height) + var(--hsas-space-16));
   --review-bg: #f7f7f8;
   --review-surface: var(--hsas-color-white);
   --review-border: #d9dce1;
@@ -3010,7 +3012,7 @@ body:has(.fuma-content-review-detail) .hsas-admin-shell__content {
   align-items: center;
   justify-content: space-between;
   gap: var(--hsas-space-16);
-  padding: var(--hsas-space-6) 0;
+  padding: var(--hsas-space-10) 0 var(--hsas-space-6);
   border-bottom: 0;
   background: var(--review-bg);
 }
@@ -3058,8 +3060,12 @@ body:has(.fuma-content-review-detail) .hsas-admin-shell__content {
 
 .fuma-minimal-review-sidebar {
   position: sticky;
-  top: 12px;
+  top: calc(var(--review-sticky-toolbar-height) + var(--review-sticky-gap));
   min-width: 0;
+  max-height: calc(100dvh - var(--review-sticky-toolbar-height) - var(--review-sticky-gap) - var(--review-sticky-gap));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 
 .fuma-minimal-review-overview,
@@ -4399,6 +4405,8 @@ body:has(.fuma-content-review-detail) .hsas-admin-shell__content {
 
   .fuma-minimal-review-sidebar {
     position: static;
+    max-height: none;
+    overflow: visible;
   }
 }
 

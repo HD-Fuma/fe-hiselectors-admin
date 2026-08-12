@@ -215,7 +215,7 @@ export function CampaignListPage() {
             </div>
           </SearchPanel>
         </div>
-        <nav aria-label="캠페인 상태" className="fuma-creator-category-filter fuma-campaign-status-tabs">
+        <nav aria-label="캠페인 상태" className="fuma-creator-category-filter fuma-campaign-status-tabs fuma-list-action-toolbar">
           <div>
             <button
               aria-pressed={selectedStatus === null}
@@ -237,6 +237,12 @@ export function CampaignListPage() {
               </button>
             ))}
           </div>
+          <Link
+            className={buttonClassNames("primary", "fuma-result-toolbar__link")}
+            to="/campaigns/new"
+          >
+            캠페인 생성
+          </Link>
         </nav>
         <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-result-toolbar">
           <strong>캠페인 목록</strong>
@@ -244,12 +250,6 @@ export function CampaignListPage() {
             <span>{selectedStatus ?? "전체"}</span>
             <span>총 {filteredCampaigns.length}건</span>
           </div>
-          <Link
-            className={buttonClassNames("primary", "fuma-result-toolbar__link")}
-            to="/campaigns/new"
-          >
-            캠페인 생성
-          </Link>
         </div>
         <div
           aria-label="캠페인 목록"

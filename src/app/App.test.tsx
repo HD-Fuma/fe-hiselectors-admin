@@ -25,7 +25,7 @@ test("renders browser routes beneath a GitHub Pages repository base path", () =>
     render(<RouterProvider router={router} />);
 
     expect(screen.getByRole("main")).toBeInTheDocument();
-    expect(screen.getByText("Partners")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hi-Selectors" })).toBeInTheDocument();
   } finally {
     window.history.replaceState({}, "", previousPath || "/");
   }

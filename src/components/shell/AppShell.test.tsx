@@ -18,10 +18,10 @@ const expectedSidebarLinks = [
   ["정산 관리", "/settlements"],
 ] as const;
 
-test("renderRoute renders the Partners login route", () => {
+test("renderRoute renders the administrator login route", () => {
   renderRoute("/login");
 
-  expect(screen.getByRole("main")).toHaveTextContent("더현대Hi 협력사 업무지원시스템");
+  expect(screen.getByRole("main")).toHaveTextContent("Hi-Selectors");
 });
 
 test("renders the complete administrator navigation in one sidebar", () => {
@@ -142,8 +142,18 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
   const shell = screen.getByTestId("admin-shell");
   expect(within(shell).getByText("관리자")).toBeInTheDocument();
   expect(within(shell).getByText("관리자 계정")).toBeInTheDocument();
-  expect(within(shell).getAllByRole("button", { name: "설정" })).toHaveLength(1);
+  expect(within(shell).queryByRole("button", { name: "설정" })).not.toBeInTheDocument();
   expect(within(shell).getAllByRole("button", { name: "로그아웃" })).toHaveLength(1);
+});
+
+test("logs out to the login screen", async () => {
+  const user = userEvent.setup();
+  renderRoute("/creators");
+
+  await user.click(screen.getByRole("button", { name: "로그아웃" }));
+
+  expect(screen.getByRole("heading", { name: "Hi-Selectors" })).toBeInTheDocument();
+  expect(screen.queryByTestId("admin-shell")).not.toBeInTheDocument();
 });
 
 test("does not render icon-rail navigation controls", () => {
