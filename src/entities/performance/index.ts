@@ -1,6 +1,7 @@
 export {
   CAMPAIGN_PERFORMANCE,
   CONTENT_INFLUENCE,
+  CONTENT_UPLOAD_ACTIVITY,
   PRODUCT_INFLUENCE,
   SELECTOR_PERFORMANCE,
   campaignNameById,
@@ -13,7 +14,9 @@ export type {
   CampaignPerformance,
   CampaignPerformanceStatus,
   ContentInfluence,
+  ContentPerformanceFormat,
   ContentReactionPoint,
+  ContentUploadActivity,
   ContentViewPoint,
   ProductInfluence,
   SelectorActivityStatus,

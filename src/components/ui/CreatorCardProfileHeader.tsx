@@ -1,6 +1,6 @@
-import type { SocialPlatform } from "../../../components/social/PlatformIcon";
-import { PlatformIcon } from "../../../components/social/PlatformIcon";
-import { CreatorProfilePhoto } from "./CreatorArtwork";
+import type { SocialPlatform } from "../social/PlatformIcon";
+import { PlatformIcon } from "../social/PlatformIcon";
+import { CreatorProfilePhoto } from "./CreatorProfilePhoto";
 
 export interface CreatorCardProfileHeaderProps {
   badgeLabel: string;

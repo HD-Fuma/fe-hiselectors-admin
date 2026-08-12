@@ -14,6 +14,12 @@ export function formatRate(conversions: number, clicks: number) {
 
 export type CampaignPerformanceStatus = "시작 전" | "진행 중" | "종료";
 export type SelectorActivityStatus = "활동 중" | "경고" | "박탈" | "수료";
+export type ContentPerformanceFormat =
+  | "유튜브 롱폼"
+  | "유튜브 쇼츠"
+  | "인스타 릴스"
+  | "인스타 피드"
+  | "인스타 이미지";
 
 interface CampaignMetadata {
   id: string;
@@ -65,6 +71,8 @@ export interface SelectorPerformance {
 export interface ContentInfluence {
   id: string;
   title: string;
+  caption: string;
+  contentFormat: ContentPerformanceFormat;
   creatorId: string;
   selectorId: string;
   campaignId: string;
@@ -78,6 +86,12 @@ export interface ContentInfluence {
   comments: number;
   viewsTrend: readonly ContentViewPoint[];
   reactionTrend: readonly ContentReactionPoint[];
+}
+
+export interface ContentUploadActivity {
+  activityDate: string;
+  editedUploads: number;
+  newUploads: number;
 }
 
 export interface ContentViewPoint {
@@ -182,6 +196,8 @@ const BASE_CONTENT_INFLUENCE: readonly ContentInfluence[] = [
   {
     id: "ct-001",
     title: "가을 라운딩 패딩 팬츠 소개",
+    caption: "가볍고 따뜻한 라운딩 팬츠를 직접 입어 본 포인트를 정리했습니다. #셀렉터스 #광고",
+    contentFormat: "인스타 피드",
     creatorId: "cr-001",
     selectorId: "sl-001",
     campaignId: "cp-001",
@@ -199,6 +215,8 @@ const BASE_CONTENT_INFLUENCE: readonly ContentInfluence[] = [
   {
     id: "ct-002",
     title: "세인트앤드류스 패딩 팬츠 후기",
+    caption: "필드에서 확인한 착용감과 보온성을 영상으로 자세히 소개합니다. #셀렉터스 #광고",
+    contentFormat: "유튜브 롱폼",
     creatorId: "cr-002",
     selectorId: "sl-002",
     campaignId: "cp-001",
@@ -216,6 +234,8 @@ const BASE_CONTENT_INFLUENCE: readonly ContentInfluence[] = [
   {
     id: "ct-003",
     title: "여름 바캉스 컬러 스타일링",
+    caption: "휴양지에서 활용하기 좋은 컬러 조합을 짧은 영상으로 담았습니다. #셀렉터스 #광고",
+    contentFormat: "인스타 릴스",
     creatorId: "cr-001",
     selectorId: "sl-001",
     campaignId: "cp-002",
@@ -233,6 +253,8 @@ const BASE_CONTENT_INFLUENCE: readonly ContentInfluence[] = [
   {
     id: "ct-004",
     title: "초여름 패션 스타일링 릴스",
+    caption: "초여름 데일리 룩 세 가지를 릴스로 빠르게 비교해 보세요. #셀렉터스 #광고",
+    contentFormat: "인스타 릴스",
     creatorId: "cr-003",
     selectorId: "sl-003",
     campaignId: "cp-003",
@@ -250,6 +272,8 @@ const BASE_CONTENT_INFLUENCE: readonly ContentInfluence[] = [
   {
     id: "ct-005",
     title: "바캉스 푸드 스타일링",
+    caption: "여름 식탁을 산뜻하게 만드는 플레이팅 아이디어를 공유합니다. #셀렉터스 #광고",
+    contentFormat: "인스타 이미지",
     creatorId: "cr-004",
     selectorId: "sl-004",
     campaignId: "cp-002",
@@ -284,6 +308,9 @@ const GENERATED_CONTENT_INFLUENCE: readonly ContentInfluence[] = SELECTOR_METADA
   .map((selector, index) => {
     const viewMultiplier = 0.54 + (index % 4) * 0.12;
     const platform = selector.platforms[index % selector.platforms.length];
+    const contentFormat: ContentPerformanceFormat = platform === "YouTube"
+      ? index % 2 === 0 ? "유튜브 쇼츠" : "유튜브 롱폼"
+      : index % 3 === 0 ? "인스타 릴스" : index % 3 === 1 ? "인스타 피드" : "인스타 이미지";
     const views = platform === "Instagram" && index % 4 === 0
       ? 0
       : Math.round(selector.followers * viewMultiplier);
@@ -295,6 +322,8 @@ const GENERATED_CONTENT_INFLUENCE: readonly ContentInfluence[] = SELECTOR_METADA
     return {
       id: `ct-${String(index + 6).padStart(3, "0")}`,
       title: CATEGORY_CONTENT_TOPICS[selector.category] ?? "셀렉터스 추천 콘텐츠",
+      caption: `${CATEGORY_CONTENT_TOPICS[selector.category] ?? "셀렉터스 추천 아이템"}의 사용 포인트를 직접 정리했습니다. #셀렉터스 #광고`,
+      contentFormat,
       creatorId: selector.id.replace(/^sl-/, "cr-"),
       selectorId: selector.id,
       campaignId: ["cp-001", "cp-002", "cp-003"][index % 3],
@@ -314,6 +343,27 @@ const GENERATED_CONTENT_INFLUENCE: readonly ContentInfluence[] = SELECTOR_METADA
 export const CONTENT_INFLUENCE: readonly ContentInfluence[] = [
   ...BASE_CONTENT_INFLUENCE,
   ...GENERATED_CONTENT_INFLUENCE,
+];
+
+export const CONTENT_UPLOAD_ACTIVITY: readonly ContentUploadActivity[] = [
+  { activityDate: "2026-07-10", newUploads: 3, editedUploads: 1 },
+  { activityDate: "2026-07-11", newUploads: 2, editedUploads: 0 },
+  { activityDate: "2026-07-12", newUploads: 4, editedUploads: 2 },
+  { activityDate: "2026-07-13", newUploads: 2, editedUploads: 1 },
+  { activityDate: "2026-07-14", newUploads: 3, editedUploads: 2 },
+  { activityDate: "2026-07-15", newUploads: 5, editedUploads: 1 },
+  { activityDate: "2026-07-16", newUploads: 2, editedUploads: 3 },
+  { activityDate: "2026-07-17", newUploads: 4, editedUploads: 1 },
+  { activityDate: "2026-07-18", newUploads: 3, editedUploads: 2 },
+  { activityDate: "2026-07-19", newUploads: 2, editedUploads: 1 },
+  { activityDate: "2026-07-20", newUploads: 4, editedUploads: 2 },
+  { activityDate: "2026-07-21", newUploads: 3, editedUploads: 3 },
+  { activityDate: "2026-07-22", newUploads: 5, editedUploads: 2 },
+  { activityDate: "2026-07-23", newUploads: 4, editedUploads: 1 },
+  { activityDate: "2026-07-24", newUploads: 6, editedUploads: 3 },
+  { activityDate: "2026-07-25", newUploads: 3, editedUploads: 2 },
+  { activityDate: "2026-07-26", newUploads: 4, editedUploads: 1 },
+  { activityDate: "2026-07-27", newUploads: 2, editedUploads: 2 },
 ];
 
 export const PRODUCT_INFLUENCE: readonly ProductInfluence[] = [

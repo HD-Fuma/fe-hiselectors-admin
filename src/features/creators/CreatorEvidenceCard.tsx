@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
-import { CreatorCardProfileHeader, type CreatorFixture } from "../../entities/creator";
+import { CreatorCardProfileHeader } from "../../components/ui/CreatorCardProfileHeader";
+import type { CreatorFixture } from "../../entities/creator";
 import { CreatorMediaMosaic } from "./CreatorMediaMosaic";
 import { CreatorKeywordTags } from "./CreatorKeywordTags";
 

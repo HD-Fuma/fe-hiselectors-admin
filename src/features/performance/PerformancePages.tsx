@@ -3,17 +3,15 @@ import { ArrowUpRight } from "lucide-react";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { Select, TextInput } from "../../components/ui/Controls";
-import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { FilterField } from "../../components/ui/FilterField";
-import { Pagination } from "../../components/ui/Pagination";
-import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
-import { paginate } from "../../lib/pagination";
+import "../../styles/content-inspection.css";
 import "../../styles/performance-dashboard.css";
 import {
   CAMPAIGN_PERFORMANCE,
   CONTENT_INFLUENCE,
+  CONTENT_UPLOAD_ACTIVITY,
   PRODUCT_INFLUENCE,
   SELECTOR_PERFORMANCE,
   creatorNameById,
@@ -24,6 +22,7 @@ import {
   type ContentInfluence,
   type SelectorPerformance,
 } from "../../entities/performance";
+import { ContentPerformanceDashboard } from "./ContentPerformanceDashboard";
 
 const COHORT_OPTIONS = [
   { label: "전체", value: "" },
@@ -57,7 +56,6 @@ const EMPTY_PERFORMANCE_FILTERS: PerformanceFilterValues = {
   periodStart: "",
 };
 
-const PERFORMANCE_PAGE_SIZE = 20;
 const TOP_SELECTOR_INITIAL_COUNT = 10;
 
 function usePerformanceFilterState(initialValues = EMPTY_PERFORMANCE_FILTERS) {
@@ -178,32 +176,6 @@ function PerformanceFilters({
       </SearchPanel>
     </div>
   );
-}
-
-const CONTENT_MEDIA: Record<string, { creatorImage: string; thumbnail: string }> = {
-  "ct-001": { thumbnail: "creator-media/kr-cr-001-01.jpg", creatorImage: "creator-media/kr-cr-001-profile.jpg" },
-  "ct-002": { thumbnail: "creator-media/kr-cr-002-02.jpg", creatorImage: "creator-media/kr-cr-002-profile.jpg" },
-  "ct-003": { thumbnail: "creator-media/kr-cr-001-02.jpg", creatorImage: "creator-media/kr-cr-001-profile.jpg" },
-  "ct-004": { thumbnail: "creator-media/kr-cr-003-01.jpg", creatorImage: "creator-media/kr-cr-003-profile.jpg" },
-  "ct-005": { thumbnail: "creator-media/kr-cr-004-01.jpg", creatorImage: "creator-media/kr-cr-004-profile.jpg" },
-};
-
-function contentMediaFor(content: ContentInfluence) {
-  const savedMedia = CONTENT_MEDIA[content.id];
-
-  if (savedMedia) {
-    return savedMedia;
-  }
-
-  const selectorNumber = Number(content.selectorId.replace(/\D/g, "")) || 1;
-  const creatorNumber = ((selectorNumber - 1) % 4) + 1;
-  const imageNumber = ((selectorNumber - 1) % 3) + 1;
-  const creatorId = String(creatorNumber).padStart(3, "0");
-
-  return {
-    thumbnail: `creator-media/kr-cr-${creatorId}-${String(imageNumber).padStart(2, "0")}.jpg`,
-    creatorImage: `creator-media/kr-cr-${creatorId}-profile.jpg`,
-  };
 }
 
 function SelectorPerformanceReport({
@@ -347,212 +319,6 @@ function SelectorPerformanceReport({
           </button>
         ) : null}
       </section>
-    </section>
-  );
-}
-
-function trendDateLabel(recordedAt: string | undefined) {
-  if (!recordedAt) {
-    return "";
-  }
-
-  const [, month, day] = recordedAt.split("-");
-  return month && day ? `${month}.${day}` : recordedAt;
-}
-
-function ContentTrendGraph({
-  label,
-  recordedAt,
-  tone,
-  values,
-}: {
-  label: string;
-  recordedAt: readonly string[];
-  tone: "views" | "likes";
-  values: readonly number[];
-}) {
-  if (values.length === 0) {
-    return (
-      <div aria-label={`${label} 추이 데이터 없음`} className="fuma-content-trend-graph is-empty">
-        데이터 없음
-      </div>
-    );
-  }
-
-  const chartWidth = 144;
-  const baseline = 29;
-  const chartPadding = 4;
-  const barGap = 3;
-  const maximum = Math.max(1, ...values);
-  const barWidth = (chartWidth - chartPadding * 2 - barGap * (values.length - 1)) / values.length;
-
-  return (
-    <div aria-label={`날짜별 ${label} 추이`} className={`fuma-content-trend-graph is-${tone}`}>
-      <svg aria-hidden="true" viewBox="0 0 144 34">
-        <line x1="4" x2="140" y1="29" y2="29" />
-        {values.map((value, index) => {
-          const height = Math.max(2, (value / maximum) * 23);
-          const x = chartPadding + index * (barWidth + barGap);
-
-          return (
-            <rect
-              height={height}
-              key={`${recordedAt[index]}-${value}`}
-              rx="1.5"
-              width={barWidth}
-              x={x}
-              y={baseline - height}
-            />
-          );
-        })}
-      </svg>
-      <div className="fuma-content-trend-graph__dates">
-        <span>{trendDateLabel(recordedAt[0])}</span>
-        <span>{trendDateLabel(recordedAt.at(-1))}</span>
-      </div>
-    </div>
-  );
-}
-
-function ContentPerformanceReport({
-  contents,
-  onPageChange,
-  page,
-}: {
-  contents: readonly ContentInfluence[];
-  onPageChange: (page: number) => void;
-  page: number;
-}) {
-  const orderById = new Map(contents.map((content, index) => [content.id, index + 1]));
-  const {
-    currentPage,
-    pagedItems: pagedContents,
-    totalPages,
-  } = paginate(contents, page, PERFORMANCE_PAGE_SIZE);
-  const columns: DenseTableColumn<ContentInfluence>[] = [
-    {
-      id: "rank",
-      header: "순위",
-      width: 64,
-      align: "center",
-      render: (content) => orderById.get(content.id) ?? "-",
-    },
-    {
-      id: "content",
-      header: "콘텐츠",
-      width: 300,
-      render: (content) => {
-        const media = contentMediaFor(content);
-
-        return (
-          <div className="fuma-content-reaction-table__content">
-            <img alt="" src={`${import.meta.env.BASE_URL}${media.thumbnail}`} />
-            <div>
-              <strong>{content.title}</strong>
-              <span>{content.publishedAt}</span>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      key: "platform",
-      header: "플랫폼",
-      align: "center",
-      width: 112,
-      render: (content) => (
-        <span className="fuma-content-reaction-table__platform">
-          <PlatformIcon decorative platform={content.platform as "Instagram" | "YouTube"} />
-          {content.platform}
-        </span>
-      ),
-    },
-    {
-      id: "selector",
-      header: "셀렉터스",
-      width: 160,
-      render: (content) => {
-        const media = contentMediaFor(content);
-
-        return (
-          <div className="fuma-content-reaction-table__channel">
-            <img alt="" src={`${import.meta.env.BASE_URL}${media.creatorImage}`} />
-            <span>
-              <strong>{creatorNameById(content.creatorId)}</strong>
-            </span>
-          </div>
-        );
-      },
-    },
-    {
-      key: "followers",
-      header: "팔로워 수",
-      width: 112,
-      align: "right",
-      render: (content) => formatCount(content.followers),
-    },
-    {
-      key: "views",
-      header: "누적 조회 수",
-      width: 108,
-      align: "right",
-      render: (content) => (content.views > 0 ? formatCount(content.views) : "-"),
-    },
-    {
-      key: "likes",
-      header: "누적 좋아요 수",
-      width: 108,
-      align: "right",
-      render: (content) => <span className="fuma-content-reaction-table__count">{formatCount(content.likes)}</span>,
-    },
-    {
-      id: "viewTrend",
-      header: "조회수 추이",
-      width: 176,
-      render: (content) => (
-        <ContentTrendGraph
-          label="조회수"
-          recordedAt={content.viewsTrend.map((point) => point.recordedAt)}
-          tone="views"
-          values={content.viewsTrend.map((point) => point.views)}
-        />
-      ),
-    },
-    {
-      id: "likeTrend",
-      header: "좋아요 수 추이",
-      width: 176,
-      render: (content) => (
-        <ContentTrendGraph
-          label="좋아요 수"
-          recordedAt={content.reactionTrend.map((point) => point.recordedAt)}
-          tone="likes"
-          values={content.reactionTrend.map((point) => point.likes)}
-        />
-      ),
-    },
-  ];
-
-  return (
-    <section aria-label="콘텐츠별 반응" className="fuma-content-performance-results">
-      <ResultToolbar
-        className="fuma-simple-result-toolbar fuma-campaign-result-toolbar"
-        meta={<span>총 {contents.length}건</span>}
-        title="콘텐츠 성과"
-      />
-      <div
-        aria-label="콘텐츠 성과 목록"
-        className="fuma-wide-table fuma-settlement-table fuma-campaign-list-table"
-        role="region"
-      >
-        <DenseTable columns={columns} rowKey={(content) => content.id} rows={pagedContents} />
-      </div>
-      <Pagination
-        onPageChange={onPageChange}
-        page={currentPage}
-        pageSize={PERFORMANCE_PAGE_SIZE}
-        totalPages={totalPages}
-      />
     </section>
   );
 }
@@ -794,6 +560,13 @@ export function ContentPerformancePage() {
     updateDraftFilter,
   } = usePerformanceFilterState();
   const contents = contentPerformanceForFilters(appliedFilters);
+  const cohortContents = contentPerformanceForFilters({ ...appliedFilters, cohort: "" });
+  const activities = CONTENT_UPLOAD_ACTIVITY.filter((activity) => isWithinPeriod(
+    activity.activityDate,
+    appliedFilters.periodStart,
+    appliedFilters.periodEnd,
+  ));
+  const highlightedCohort = appliedFilters.cohort || SELECTOR_PERFORMANCE[0]?.cohort || "";
 
   const applyAndResetPage = () => {
     applyFilters();
@@ -820,8 +593,12 @@ export function ContentPerformancePage() {
           onSearch={applyAndResetPage}
           values={draftFilters}
         />
-        <ContentPerformanceReport
+        <ContentPerformanceDashboard
+          activities={activities}
+          cohortContents={cohortContents}
           contents={contents}
+          highlightedCohort={highlightedCohort}
+          key={JSON.stringify(appliedFilters)}
           onPageChange={setPage}
           page={page}
         />

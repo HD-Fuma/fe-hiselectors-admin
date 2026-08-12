@@ -19,4 +19,4 @@ export {
   engagementResultForCreator,
 } from "./model/analysis";
 export { CreatorContentPhoto, CreatorProfilePhoto } from "./ui/CreatorArtwork";
-export { CreatorCardProfileHeader } from "./ui/CreatorCardProfileHeader";
+export { CreatorCardProfileHeader } from "../../components/ui/CreatorCardProfileHeader";

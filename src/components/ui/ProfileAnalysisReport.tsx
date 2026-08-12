@@ -1,9 +1,6 @@
 import { Siren } from "lucide-react";
-import {
-  AnalysisFormatDonut,
-  type AnalysisFormatSegment,
-} from "../charts/AnalysisFormatDonut";
-import { formatNumber } from "../../lib/formatters";
+import type { AnalysisFormatSegment } from "../charts/AnalysisFormatDonut";
+import { AnalysisFormatBreakdown } from "../charts/AnalysisFormatBreakdown";
 
 export interface ProfileAnalysisMetric {
   label: string;
@@ -114,18 +111,7 @@ export function ProfileAnalysisReport({
                 ))}
                 <article className="fuma-analysis-content__card fuma-analysis-content__card--formats">
                   <span>콘텐츠 형식</span>
-                  <div className="fuma-analysis-format-breakdown">
-                    <AnalysisFormatDonut segments={formatSegments} total={formatTotal} />
-                    <ul className="fuma-analysis-format-breakdown__legend">
-                      {formatSegments.map((format) => (
-                        <li key={format.label}>
-                          <i aria-hidden="true" style={{ backgroundColor: format.color }} />
-                          <span>{format.label}</span>
-                          <strong>{format.percentage.toFixed(0)}% <small>{formatNumber(format.count)}건</small></strong>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <AnalysisFormatBreakdown segments={formatSegments} total={formatTotal} />
                 </article>
               </div>
             </section>

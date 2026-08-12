@@ -365,7 +365,6 @@
 .hsas-dense-table-wrap {
   width: 100%;
   overflow-x: auto;
-  border-top: 1px solid #8c969b;
 }
 
 .hsas-dense-table {
@@ -396,6 +395,7 @@
 
 .hsas-dense-table th {
   height: 30px;
+  border-top: 1px solid #d9dde0;
   background: #e8ecee;
   color: var(--hsas-color-neutral-800);
   font-weight: 700;

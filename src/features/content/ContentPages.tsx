@@ -25,6 +25,8 @@ import {
 import "../../styles/content-inspection.css";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, SegmentedControl, Select, TextInput } from "../../components/ui/Controls";
+import { ContentCollectionCard } from "../../components/ui/ContentCollectionCard";
+import { contentCollectionFormatKey } from "../../components/ui/contentCollectionFormat";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -34,7 +36,6 @@ import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { paginate } from "../../lib/pagination";
-import { CreatorCardProfileHeader } from "../../entities/creator";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
 import {
@@ -85,14 +86,6 @@ function inspectionStatusTone(status: InspectionStatus): NonNullable<StatusPillP
 
 function contentPlatform(platform: string) {
   return platform === "YouTube" ? "YouTube" : "Instagram";
-}
-
-function contentFormatKey(format: ContentFormat) {
-  if (format === "유튜브 롱폼") return "youtube-long";
-  if (format === "유튜브 쇼츠") return "youtube-shorts";
-  if (format === "인스타 릴스") return "instagram-reels";
-  if (format === "인스타 피드") return "instagram-feed";
-  return "instagram-image";
 }
 
 function QueueFilters({
@@ -553,46 +546,41 @@ function CollectionCard({
     <button
       aria-label={`${content.author} ${content.contentTitle} 검수 상세 보기`}
       className="fuma-content-collection__card fuma-creator-card"
-      data-content-format={contentFormatKey(content.contentFormat)}
+      data-content-format={contentCollectionFormatKey(content.contentFormat)}
       onClick={() => onSelect(content)}
       type="button"
     >
-      <CreatorCardProfileHeader
+      <ContentCollectionCard
+        author={content.author}
         badgeLabel={content.cohort}
-        displayName={content.author}
+        caption={snapshot.text}
+        duration={content.duration}
+        footerEnd={(
+          <span
+            className="fuma-content-collection__violation-count"
+            data-has-violation={issueCount > 0}
+          >
+            {issueCount ? `위반 항목 ${issueCount}개` : "위반 항목 없음"}
+          </span>
+        )}
+        footerStart={content.submittedAt.slice(0, 10)}
+        mediaAlt={`${content.contentTitle} 썸네일`}
+        mediaCount={snapshot.mediaCount}
+        mediaUrl={mainMedia}
         platform={contentPlatform(content.sourcePlatform)}
         profileImageUrl={contentAuthorProfileImage(content.id)}
+        showPlay={hasVideo}
         snsId={contentAuthorSnsId(content.id)}
-      />
-      <StatusPill
-        className="fuma-content-collection__inspection-status"
-        tone={inspectionStatusTone(content.inspectionStatus)}
-      >
-        {content.inspectionStatus}
-      </StatusPill>
-      <div className="fuma-content-collection__media">
-        {mainMedia ? (
-          <img alt={`${content.contentTitle} 썸네일`} src={mainMedia} />
-        ) : (
-          <span className="fuma-content-collection__media-empty"><Images aria-hidden="true" size={24} /></span>
+        status={(
+          <StatusPill
+            className="fuma-content-collection__inspection-status"
+            tone={inspectionStatusTone(content.inspectionStatus)}
+          >
+            {content.inspectionStatus}
+          </StatusPill>
         )}
-        {hasVideo ? <span className="fuma-content-collection__play"><Play aria-hidden="true" size={15} /></span> : null}
-        {content.duration ? <span className="fuma-content-collection__duration">{content.duration}</span> : null}
-        {snapshot.mediaCount > 1 ? <span className="fuma-content-collection__media-count">1 / {snapshot.mediaCount}</span> : null}
-      </div>
-      <div className="fuma-content-collection__copy">
-        <strong>{content.contentTitle}</strong>
-        <p className="fuma-content-collection__caption">{snapshot.text}</p>
-      </div>
-      <footer className="fuma-content-collection__meta">
-        <span>{content.submittedAt.slice(0, 10)}</span>
-        <span
-          className="fuma-content-collection__violation-count"
-          data-has-violation={issueCount > 0}
-        >
-          {issueCount ? `위반 항목 ${issueCount}개` : "위반 항목 없음"}
-        </span>
-      </footer>
+        title={content.contentTitle}
+      />
     </button>
   );
 }
@@ -1165,7 +1153,7 @@ function MinimalVersionCard({
   return (
     <article
       className="fuma-minimal-version-card"
-      data-content-format={contentFormatKey(content.contentFormat)}
+      data-content-format={contentCollectionFormatKey(content.contentFormat)}
       data-platform={platform.toLowerCase()}
       ref={cardRef}
     >

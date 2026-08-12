@@ -53,3 +53,13 @@ describe("CSS design tokens", () => {
     expect([...new Set(sharedTokenReferences)].filter((token) => !definedTokens.has(token))).toEqual([]);
   });
 });
+
+describe("shared component visual contracts", () => {
+  test("draws the dense table top edge with the same border as its grid cells", () => {
+    const headerRule = adminStyles.match(/\.hsas-dense-table th\s*\{([^}]*)\}/)?.[1];
+    const wrapperRule = adminStyles.match(/\.hsas-dense-table-wrap\s*\{([^}]*)\}/)?.[1];
+
+    expect(headerRule).toMatch(/border-top:\s*1px solid #d9dde0;/);
+    expect(wrapperRule).not.toMatch(/border-top\s*:/);
+  });
+});
