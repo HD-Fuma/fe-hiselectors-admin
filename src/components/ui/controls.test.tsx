@@ -96,6 +96,15 @@ test("renders the approved status treatment", () => {
   );
 });
 
+test("renders the danger status treatment", () => {
+  render(<StatusPill tone="danger">Danger</StatusPill>);
+
+  expect(screen.getByText("Danger")).toHaveClass(
+    "hsas-status-pill",
+    "hsas-status-pill--danger",
+  );
+});
+
 test("supports the documented compact option props and utility classes", () => {
   render(
     <>

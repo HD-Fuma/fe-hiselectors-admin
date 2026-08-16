@@ -1,78 +1,147 @@
-import type { Key } from "react";
+import type { Key, ReactNode } from "react";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
-import { formatWon } from "../../lib/formatters";
-import type { SettlementPaymentStatus, SettlementTableRow } from "./model";
+import { formatNumber, formatWon } from "../../lib/formatters";
+import type { SettlementStatus, SettlementTableRow } from "./model";
 
-export interface SettlementTableProps<T extends SettlementTableRow> {
+export interface SettlementTableProps {
   ariaLabel?: string;
   className?: string;
-  emptyMessage?: string;
-  onRowClick?: (settlement: T) => void;
-  rows: T[];
+  emptyMessage?: ReactNode;
+  onRowClick?: (settlement: SettlementTableRow) => void;
+  rows: SettlementTableRow[];
   selectedRowKeys?: readonly Key[];
 }
 
-function paymentTone(status: SettlementPaymentStatus): NonNullable<StatusPillProps["tone"]> {
-  if (status === "지급 완료") return "approved";
-  if (status === "확정") return "pending";
-  return "neutral";
+const STATUS_LABELS: Record<SettlementStatus, string> = {
+  CALCULATING: "계산 중",
+  PAYMENT_HOLD: "지급 보류",
+  PAYMENT_PENDING: "지급 대기",
+  SETTLED: "지급 완료",
+};
+
+const STATUS_TONES: Record<
+  SettlementStatus,
+  NonNullable<StatusPillProps["tone"]>
+> = {
+  CALCULATING: "neutral",
+  PAYMENT_HOLD: "danger",
+  PAYMENT_PENDING: "pending",
+  SETTLED: "approved",
+};
+
+function displayText(value: string | number | null | undefined) {
+  return value == null || value === "" ? "-" : String(value);
+}
+
+function displayNumber(value: number | null | undefined) {
+  return value == null ? "-" : formatNumber(value);
+}
+
+function displayWon(value: number | null | undefined) {
+  return value == null ? "-" : formatWon(value);
+}
+
+function displayRate(value: number | null | undefined) {
+  return value == null ? "-" : `${formatNumber(value)}%`;
 }
 
 const SETTLEMENT_TABLE_COLUMNS: DenseTableColumn<SettlementTableRow>[] = [
-  { key: "attributionMonth", header: "정산월", width: 92, align: "center" },
-  { key: "selectorId", header: "셀렉터스 ID", width: 104, align: "center" },
   {
-    id: "selector",
-    header: "셀렉터스",
-    width: 118,
+    key: "ordinal",
+    header: "순번",
+    width: 60,
     align: "center",
-    render: (settlement) => (
-      <div className="fuma-operation-person">
-        <span className="hsas-visually-hidden">{settlement.id}</span>
-        <strong>{settlement.selectorName}</strong>
-      </div>
-    ),
+    render: (settlement) => displayNumber(settlement.ordinal),
   },
   {
-    key: "expectedAmount",
-    header: "정산 금액",
-    width: 122,
+    key: "settlementMonth",
+    header: "정산 대상월",
+    width: 90,
     align: "center",
-    render: (settlement) => formatWon(settlement.expectedAmount),
+    render: (settlement) => displayText(settlement.settlementMonth),
   },
   {
-    key: "paymentStatus",
-    header: "지급 상태",
+    key: "selectorsCode",
+    header: "셀렉터스코드",
+    width: 120,
+    align: "center",
+    render: (settlement) => displayText(settlement.selectorsCode),
+  },
+  {
+    key: "selectorsNickname",
+    header: "셀렉터스명",
+    width: 120,
+    align: "center",
+    render: (settlement) => displayText(settlement.selectorsNickname),
+  },
+  {
+    key: "confirmedPurchaseCount",
+    header: "정산 건수",
+    width: 110,
+    align: "center",
+    render: (settlement) => displayNumber(settlement.confirmedPurchaseCount),
+  },
+  {
+    key: "totalSales",
+    header: "정산 대상 매출",
+    width: 130,
+    align: "center",
+    render: (settlement) => displayWon(settlement.totalSales),
+  },
+  {
+    key: "commissionRate",
+    header: "수수료율",
+    width: 80,
+    align: "center",
+    render: (settlement) => displayRate(settlement.commissionRate),
+  },
+  {
+    key: "estimatedCommission",
+    header: "정산 수수료",
+    width: 120,
+    align: "center",
+    render: (settlement) => displayWon(settlement.estimatedCommission),
+  },
+  {
+    key: "status",
+    header: "정산 상태",
     width: 90,
     align: "center",
     render: (settlement) => (
-      <StatusPill tone={paymentTone(settlement.paymentStatus)}>
-        {settlement.paymentStatus}
-      </StatusPill>
+      settlement.status ? (
+        <StatusPill tone={STATUS_TONES[settlement.status]}>
+          {STATUS_LABELS[settlement.status]}
+        </StatusPill>
+      ) : "-"
     ),
   },
 ];
 
-export function SettlementTable<T extends SettlementTableRow>({
+export function SettlementTable({
   ariaLabel = "정산 지급 목록",
   className,
   emptyMessage,
   onRowClick,
   rows,
   selectedRowKeys,
-}: SettlementTableProps<T>) {
+}: SettlementTableProps) {
   return (
     <div
       aria-label={ariaLabel}
-      className={["fuma-wide-table", "fuma-settlement-table", className].filter(Boolean).join(" ")}
+      className={[
+        "fuma-wide-table",
+        "fuma-settlement-table",
+        "fuma-settlement-estimates-table",
+        className,
+      ].filter(Boolean).join(" ")}
       role="region"
     >
       <DenseTable
-        columns={SETTLEMENT_TABLE_COLUMNS as DenseTableColumn<T>[]}
+        columns={SETTLEMENT_TABLE_COLUMNS}
         emptyMessage={emptyMessage}
         onRowClick={onRowClick}
-        rowKey={(settlement) => settlement.id}
+        rowKey={(settlement) => settlement.settlementId}
         rows={rows}
         selectedRowKeys={selectedRowKeys}
       />

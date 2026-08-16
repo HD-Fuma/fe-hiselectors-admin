@@ -1,8 +1,40 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { loginAdministrator, persistAdministratorSession } from "./api";
 import "../../styles/login.css";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [loginId, setLoginId] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const submitLogin = async () => {
+    const normalizedLoginId = loginId.trim();
+    if (!normalizedLoginId || !password.trim()) {
+      setErrorMessage("아이디와 비밀번호를 입력해 주세요.");
+      return;
+    }
+
+    setErrorMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const session = await loginAdministrator({
+        loginId: normalizedLoginId,
+        password,
+      });
+      persistAdministratorSession(session);
+      navigate("/creators", { replace: true });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "관리자 로그인에 실패했습니다.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <main className="partners-login" data-visual-contract="login">
@@ -25,10 +57,11 @@ export function LoginPage() {
 
         <form
           aria-label="관리자 로그인"
+          aria-busy={isSubmitting}
           className="partners-login__form"
           onSubmit={(event) => {
             event.preventDefault();
-            navigate("/creators", { replace: true });
+            void submitLogin();
           }}
         >
           <label className="partners-login__field">
@@ -37,9 +70,12 @@ export function LoginPage() {
               autoComplete="username"
               autoFocus
               className="partners-login__field-input"
+              disabled={isSubmitting}
               name="loginId"
+              onChange={(event) => setLoginId(event.target.value)}
               placeholder="아이디 입력"
               type="text"
+              value={loginId}
             />
           </label>
           <label className="partners-login__field">
@@ -47,13 +83,19 @@ export function LoginPage() {
             <input
               autoComplete="current-password"
               className="partners-login__field-input"
+              disabled={isSubmitting}
               name="password"
+              onChange={(event) => setPassword(event.target.value)}
               placeholder="비밀번호 입력"
               type="password"
+              value={password}
             />
           </label>
-          <button className="partners-login__submit" type="submit">
-            로그인
+          {errorMessage ? (
+            <p className="partners-login__error" role="alert">{errorMessage}</p>
+          ) : null}
+          <button className="partners-login__submit" disabled={isSubmitting} type="submit">
+            {isSubmitting ? "로그인 중..." : "로그인"}
           </button>
         </form>
       </section>

@@ -1,72 +1,102 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "../../components/shell/PageHeader";
-import { TextInput } from "../../components/ui/Controls";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
+import { TextInput } from "../../components/ui/Controls";
 import { FilterField } from "../../components/ui/FilterField";
 import { Pagination } from "../../components/ui/Pagination";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import {
-  SETTLEMENTS,
-  SETTLEMENT_PAYMENT_STATUSES,
+  getSettlementEstimates,
+  getSettlementSelectorDetail,
+  SETTLEMENT_STATUSES,
   SettlementTable,
-  type Settlement,
-  type SettlementPaymentStatus,
+  type SettlementEstimate,
+  type SettlementSelectorDetail,
+  type SettlementStatus,
+  type SettlementTableRow,
+  type SpringPage,
 } from "../../entities/settlement";
 import {
   SELECTORS,
   SelectorDetailPanel,
   type SelectorFixture,
 } from "../../entities/selectors";
-import { formatWon } from "../../lib/formatters";
-import { paginate } from "../../lib/pagination";
 
 const SETTLEMENT_PAGE_SIZE = 20;
 
-function selectorDetailForSettlement(settlement: Settlement): SelectorFixture {
-  const selector = SELECTORS.find((item) => item.id === settlement.selectorId);
+function previousSettlementMonth(date = new Date()) {
+  const previousMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+  return [
+    previousMonth.getFullYear(),
+    String(previousMonth.getMonth() + 1).padStart(2, "0"),
+  ].join("-");
+}
 
-  if (selector) {
-    return selector;
-  }
-
-  const sequence = Number.parseInt(settlement.selectorId.replace(/\D/g, ""), 10) || 1;
-  const channels = ["Instagram", "YouTube"] as const;
-
+function emptySettlementPage(): SpringPage<SettlementEstimate> {
   return {
-    id: settlement.selectorId,
-    selectorCode: `SEL-${String(sequence).padStart(4, "0")}`,
-    name: settlement.selectorName,
-    shopNickname: `${settlement.selectorName}샵`,
-    cohort: sequence % 5 === 0 ? "테스트기수53" : "테스트기수56",
-    sns: channels[sequence % channels.length],
-    status: sequence % 11 === 0 ? "경고" : "활동 중",
-    contentCount: 8 + (sequence % 19),
-    violationCount: sequence % 11 === 0 ? 1 : 0,
-    clicks: 4200 + sequence * 317,
-    conversions: 86 + sequence * 9,
-    recentActivity: `2026-08-${String((sequence % 10) + 1).padStart(2, "0")}`,
+    content: [],
+    number: 0,
+    size: SETTLEMENT_PAGE_SIZE,
+    totalElements: 0,
+    totalPages: 0,
   };
 }
 
+function settlementMonthLabel(month: string) {
+  const [year, monthNumber] = month.split("-");
+  return `${year}년 ${Number(monthNumber)}월`;
+}
+
+function selectorDetailForSettlement(settlement: SettlementTableRow): SelectorFixture {
+  const fixtureId = `sl-${String(settlement.selectorsId).padStart(3, "0")}`;
+  const selector = SELECTORS.find((item) => (
+    item.selectorCode === settlement.selectorsCode
+    || item.name === settlement.selectorsNickname
+    || item.id === fixtureId
+  ));
+
+  if (selector) return selector;
+
+  const sequence = settlement.selectorsId || 1;
+  const selectorName = settlement.selectorsNickname || "셀렉터스";
+
+  return {
+    clicks: 0,
+    cohort: "-",
+    contentCount: 0,
+    conversions: 0,
+    id: fixtureId,
+    name: selectorName,
+    recentActivity: settlement.updatedAt?.slice(0, 10) || "-",
+    selectorCode: settlement.selectorsCode || `SEL-${String(sequence).padStart(4, "0")}`,
+    shopNickname: selectorName,
+    sns: sequence % 2 === 0 ? "YouTube" : "Instagram",
+    status: "활동 중",
+    violationCount: 0,
+  };
+}
+
+interface SettlementDetailState {
+  detail: SettlementSelectorDetail | null;
+  error: boolean;
+  loading: boolean;
+}
+
 function SettlementFilters({
-  keyword,
-  onKeywordChange,
   onMonthChange,
   onReset,
   onSearch,
   selectedMonth,
 }: {
-  keyword: string;
-  onKeywordChange: (keyword: string) => void;
   onMonthChange: (month: string) => void;
   onReset: () => void;
   onSearch: () => void;
   selectedMonth: string;
 }) {
   return (
-    <div className="fuma-operations-search fuma-settlement-search">
+    <div className="fuma-operations-search fuma-settlement-search fuma-settlement-search--month-only">
       <SearchPanel actions={<SearchActions onReset={onReset} onSearch={onSearch} />}>
         <FilterField htmlFor="settlement-month" label="정산월">
           <TextInput
@@ -77,121 +107,196 @@ function SettlementFilters({
             value={selectedMonth}
           />
         </FilterField>
-        <FilterField htmlFor="settlement-selector" label="ID 또는 이름">
-          <TextInput
-            aria-label="ID 또는 이름"
-            id="settlement-selector"
-            onChange={(event) => onKeywordChange(event.target.value)}
-            placeholder="ID 또는 이름 검색"
-            value={keyword}
-          />
-        </FilterField>
       </SearchPanel>
     </div>
   );
 }
 
 export function SettlementManagementPage() {
+  const [defaultMonth] = useState(previousSettlementMonth);
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
+  const [appliedMonth, setAppliedMonth] = useState(defaultMonth);
+  const [selectedStatus, setSelectedStatus] = useState<SettlementStatus | null>(null);
   const [page, setPage] = useState(1);
-  const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState("2026-08");
-  const [keyword, setKeyword] = useState("");
-  const [appliedMonth, setAppliedMonth] = useState("2026-08");
-  const [appliedKeyword, setAppliedKeyword] = useState("");
-  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<SettlementPaymentStatus | null>(null);
-  const normalizedKeyword = appliedKeyword.trim().toLowerCase();
-  const monthlySettlements = appliedMonth
-    ? SETTLEMENTS.filter((settlement) => settlement.attributionMonth === appliedMonth)
-    : [...SETTLEMENTS];
-  const settlements = monthlySettlements.filter((settlement) => (
-    (!normalizedKeyword || [settlement.selectorId, settlement.selectorName].some((value) => (
-      value.toLowerCase().includes(normalizedKeyword)
-    )))
-    && (!selectedPaymentStatus || settlement.paymentStatus === selectedPaymentStatus)
-  ));
-  const {
-    currentPage,
-    pagedItems: pagedSettlements,
-    totalPages,
-  } = paginate(settlements, page, SETTLEMENT_PAGE_SIZE);
-  const settlementTotal = settlements.reduce(
-    (total, settlement) => total + settlement.expectedAmount,
-    0,
-  );
-  const [year, month] = appliedMonth.split("-");
-  const monthLabel = appliedMonth ? `${year}년 ${Number(month)}월` : "전체 정산월";
+  const [requestVersion, setRequestVersion] = useState(0);
+  const [settlementPage, setSettlementPage] = useState(emptySettlementPage);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [selectedSettlement, setSelectedSettlement] = useState<SettlementTableRow | null>(null);
+  const [settlementDetailState, setSettlementDetailState] = useState<SettlementDetailState | null>(null);
+  const latestRequestId = useRef(0);
+  const detailAbortController = useRef<AbortController | null>(null);
+  const detailRequestId = useRef(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const requestId = latestRequestId.current + 1;
+    latestRequestId.current = requestId;
+
+    getSettlementEstimates({
+      month: appliedMonth,
+      page: page - 1,
+      size: SETTLEMENT_PAGE_SIZE,
+      status: selectedStatus ?? undefined,
+    }, controller.signal)
+      .then((result) => {
+        if (latestRequestId.current !== requestId) return;
+        setSettlementPage(result);
+        setHasError(false);
+      })
+      .catch((error: unknown) => {
+        if (
+          latestRequestId.current !== requestId
+          || (error instanceof Error && error.name === "AbortError")
+        ) {
+          return;
+        }
+
+        setSettlementPage(emptySettlementPage());
+        setHasError(true);
+      })
+      .finally(() => {
+        if (latestRequestId.current === requestId) setIsLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [appliedMonth, page, requestVersion, selectedStatus]);
+
+  useEffect(() => () => detailAbortController.current?.abort(), []);
+
+  const closeSettlementDetail = () => {
+    detailAbortController.current?.abort();
+    detailAbortController.current = null;
+    detailRequestId.current += 1;
+    setSelectedSettlement(null);
+    setSettlementDetailState(null);
+  };
+
+  const openSettlementDetail = (settlement: SettlementTableRow) => {
+    detailAbortController.current?.abort();
+    const controller = new AbortController();
+    const requestId = detailRequestId.current + 1;
+    detailRequestId.current = requestId;
+    detailAbortController.current = controller;
+    setSelectedSettlement(settlement);
+    setSettlementDetailState({ detail: null, error: false, loading: true });
+
+    getSettlementSelectorDetail(settlement.selectorsId, controller.signal)
+      .then((result) => {
+        if (detailRequestId.current !== requestId) return;
+        setSettlementDetailState({ detail: result, error: false, loading: false });
+      })
+      .catch((error: unknown) => {
+        if (
+          detailRequestId.current !== requestId
+          || (error instanceof Error && error.name === "AbortError")
+        ) {
+          return;
+        }
+
+        setSettlementDetailState({ detail: null, error: true, loading: false });
+      });
+  };
+
+  const prepareRequest = () => {
+    latestRequestId.current += 1;
+    closeSettlementDetail();
+    setSettlementPage(emptySettlementPage());
+    setHasError(false);
+    setIsLoading(true);
+    setRequestVersion((version) => version + 1);
+  };
 
   const applyFilters = () => {
-    setAppliedMonth(selectedMonth);
-    setAppliedKeyword(keyword);
+    const nextMonth = selectedMonth || defaultMonth;
+    setSelectedMonth(nextMonth);
+    setAppliedMonth(nextMonth);
     setPage(1);
+    prepareRequest();
   };
 
   const resetFilters = () => {
-    setSelectedMonth("");
-    setKeyword("");
-    setAppliedMonth("");
-    setAppliedKeyword("");
-    setSelectedPaymentStatus(null);
+    setSelectedMonth(defaultMonth);
+    setAppliedMonth(defaultMonth);
+    setSelectedStatus(null);
     setPage(1);
+    prepareRequest();
   };
+
+  const changeStatus = (status: SettlementStatus | null) => {
+    setSelectedStatus(status);
+    setPage(1);
+    prepareRequest();
+  };
+
+  const changePage = (nextPage: number) => {
+    setPage(nextPage);
+    prepareRequest();
+  };
+
+  const rows = settlementPage.content.map((settlement, rowIndex) => ({
+    ...settlement,
+    ordinal: settlementPage.number * settlementPage.size + rowIndex + 1,
+  }));
+  const emptyMessage = isLoading ? (
+    <span aria-live="polite" role="status">정산 내역을 불러오는 중입니다.</span>
+  ) : hasError ? (
+    <span role="alert">정산 내역 조회에 실패했습니다.</span>
+  ) : "조회된 정산 내역이 없습니다.";
 
   return (
     <section className="fuma-page">
       <PageHeader title="정산 지급 관리" />
       <div className="fuma-page__body">
         <SettlementFilters
-          keyword={keyword}
-          onKeywordChange={setKeyword}
           onMonthChange={setSelectedMonth}
           onReset={resetFilters}
           onSearch={applyFilters}
           selectedMonth={selectedMonth}
         />
         <ChoiceTabs
-          ariaLabel="지급 상태"
+          ariaLabel="정산 상태"
           className="fuma-settlement-status-filter"
           emptyOption={{
             label: "전체",
-            onSelect: () => {
-              setSelectedPaymentStatus(null);
-              setPage(1);
-            },
+            onSelect: () => changeStatus(null),
           }}
-          onChange={(status) => {
-            setSelectedPaymentStatus(status);
-            setPage(1);
-          }}
-          options={SETTLEMENT_PAYMENT_STATUSES}
-          value={selectedPaymentStatus}
+          onChange={(status) => changeStatus(status)}
+          options={SETTLEMENT_STATUSES}
+          value={selectedStatus}
         />
         <ResultToolbar
           className="fuma-simple-result-toolbar"
           meta={
             <>
-              <span>{monthLabel}</span>
-              <span>정산 총합 {formatWon(settlementTotal)}</span>
-              <span>총 {settlements.length}건</span>
+              <span>{settlementMonthLabel(appliedMonth)}</span>
+              <span>총 {settlementPage.totalElements.toLocaleString("ko-KR")}건</span>
             </>
           }
           title="정산 지급 목록"
         />
         <SettlementTable
-          onRowClick={setSelectedSettlement}
-          rows={pagedSettlements}
-          selectedRowKeys={selectedSettlement ? [selectedSettlement.id] : []}
+          emptyMessage={emptyMessage}
+          onRowClick={openSettlementDetail}
+          rows={rows}
+          selectedRowKeys={selectedSettlement ? [selectedSettlement.settlementId] : []}
         />
-        <Pagination
-          onPageChange={setPage}
-          page={currentPage}
-          pageSize={SETTLEMENT_PAGE_SIZE}
-          totalPages={totalPages}
-        />
+        {!isLoading && !hasError && settlementPage.totalPages > 0 ? (
+          <Pagination
+            onPageChange={changePage}
+            page={settlementPage.number + 1}
+            pageSize={settlementPage.size}
+            totalPages={settlementPage.totalPages}
+          />
+        ) : null}
       </div>
       {selectedSettlement ? (
         <SelectorDetailPanel
-          onClose={() => setSelectedSettlement(null)}
+          onClose={closeSettlementDetail}
           selector={selectorDetailForSettlement(selectedSettlement)}
+          settlementDetail={settlementDetailState?.detail ?? null}
+          settlementDetailError={settlementDetailState?.error ?? false}
+          settlementDetailLoading={settlementDetailState?.loading ?? false}
         />
       ) : null}
     </section>
