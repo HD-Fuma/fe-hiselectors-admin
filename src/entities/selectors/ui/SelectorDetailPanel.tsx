@@ -120,7 +120,7 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SelectorSettlementTableRow>[] = [
   },
   {
     key: "settlementMonth",
-    header: "정산 대상월",
+    header: "정산 기준월",
     width: 85,
     align: "center",
     render: (settlement) => displayText(settlement.settlementMonth),
@@ -134,7 +134,7 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SelectorSettlementTableRow>[] = [
   },
   {
     key: "totalSales",
-    header: "정산 대상 매출",
+    header: "매출 실적",
     width: 125,
     align: "center",
     render: (settlement) => displayWon(settlement.totalSales),
@@ -155,7 +155,7 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SelectorSettlementTableRow>[] = [
   },
   {
     key: "status",
-    header: "정산 상태",
+    header: "지급 상태",
     width: 90,
     align: "center",
     render: (settlement) => (
@@ -278,14 +278,7 @@ export function SelectorDetailPanel({
                     <div><dt>누적 구매 전환</dt><dd>{displayCount(settlementSummary?.cumulativePurchaseConversionCount)}</dd></div>
                     <div><dt>이번달 구매 전환</dt><dd>{displayCount(settlementSummary?.currentMonthPurchaseConversionCount)}</dd></div>
                     <div><dt>누적 지급 수수료</dt><dd>{displayWon(settlementSummary?.cumulativePaidCommission)}</dd></div>
-                    <div>
-                      <dt>다음달 지급 예정 수수료</dt>
-                      <dd>
-                        {displayWon(settlementSummary?.nextMonthScheduledCommission)}
-                        {settlementSummary?.nextPaymentSettlementStatus
-                          ? ` (${settlementStatusLabel(settlementSummary.nextPaymentSettlementStatus)})`
-                          : ""}
-                      </dd>
+                    <div><dt>이번달 지급 예정 수수료</dt><dd>{displayWon(settlementSummary?.nextMonthScheduledCommission)}</dd>
                     </div>
                   </>
                 ) : (

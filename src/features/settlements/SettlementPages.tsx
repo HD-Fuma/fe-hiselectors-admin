@@ -255,7 +255,7 @@ export function SettlementManagementPage() {
           selectedMonth={selectedMonth}
         />
         <ChoiceTabs
-          ariaLabel="정산 상태"
+          ariaLabel="지급 상태"
           className="fuma-settlement-status-filter"
           emptyOption={{
             label: "전체",

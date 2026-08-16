@@ -169,7 +169,7 @@ test("requests and renders the previous-month settlement page", async () => {
   expect(within(search).getByLabelText("정산월")).toHaveValue(previousMonth());
   expect(within(search).queryByRole("textbox", { name: "ID 또는 이름" })).not.toBeInTheDocument();
 
-  const statusFilter = screen.getByRole("navigation", { name: "정산 상태" });
+  const statusFilter = screen.getByRole("navigation", { name: "지급 상태" });
   for (const status of ["전체", "계산 중", "지급 대기", "지급 보류", "지급 완료"]) {
     expect(within(statusFilter).getByRole("button", { name: status })).toHaveAttribute(
       "type",
@@ -183,10 +183,10 @@ test("requests and renders the previous-month settlement page", async () => {
     "셀렉터스코드",
     "셀렉터스명",
     "정산 대상 건수",
-    "정산 대상 매출",
+    "매출 실적",
     "수수료율",
     "예상 수수료",
-    "정산 상태",
+    "지급 상태",
   ]);
   expect(within(results).getByText("1,234")).toBeInTheDocument();
   expect(within(results).getByText("2,500,000원")).toBeInTheDocument();
@@ -233,10 +233,10 @@ test("requests and renders the previous-month settlement page", async () => {
     "순번",
     "정산월",
     "정산 대상 건수",
-    "정산 대상 매출",
+    "매출 실적",
     "수수료율",
     "예상 수수료",
-    "정산 상태",
+    "지급 상태",
   ]);
   expect(within(historyTable).getByText("1,234")).toBeInTheDocument();
   expect(within(historyTable).getByText("2,500,000원")).toBeInTheDocument();

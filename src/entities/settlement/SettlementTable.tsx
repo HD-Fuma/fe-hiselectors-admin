@@ -56,7 +56,7 @@ const SETTLEMENT_TABLE_COLUMNS: DenseTableColumn<SettlementTableRow>[] = [
   },
   {
     key: "settlementMonth",
-    header: "정산 대상월",
+    header: "정산 기준월",
     width: 90,
     align: "center",
     render: (settlement) => displayText(settlement.settlementMonth),
@@ -84,7 +84,7 @@ const SETTLEMENT_TABLE_COLUMNS: DenseTableColumn<SettlementTableRow>[] = [
   },
   {
     key: "totalSales",
-    header: "정산 대상 매출",
+    header: "매출 실적",
     width: 130,
     align: "center",
     render: (settlement) => displayWon(settlement.totalSales),
@@ -105,7 +105,7 @@ const SETTLEMENT_TABLE_COLUMNS: DenseTableColumn<SettlementTableRow>[] = [
   },
   {
     key: "status",
-    header: "정산 상태",
+    header: "지급 상태",
     width: 90,
     align: "center",
     render: (settlement) => (
