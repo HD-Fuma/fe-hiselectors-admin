@@ -1,5 +1,7 @@
 import type { Settlement, SettlementPaymentStatus } from "./model";
 
+// 셀렉터스 상세 화면의 기존 정산 이력 표시에서만 사용합니다.
+
 const ADDITIONAL_SETTLEMENT_SEEDS = [
   ["김하린", 328000],
   ["윤서준", 415000],

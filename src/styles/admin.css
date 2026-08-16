@@ -169,6 +169,12 @@
   color: var(--hsas-status-rejected);
 }
 
+.hsas-status-pill--danger {
+  border-color: #dcadad;
+  background: #faeeee;
+  color: var(--hsas-color-danger);
+}
+
 .hsas-visually-hidden {
   position: absolute;
   width: 1px;
@@ -3049,6 +3055,10 @@
   align-items: center;
 }
 
+.fuma-settlement-search.fuma-settlement-search--month-only .hsas-search-panel__fields {
+  grid-template-columns: minmax(170px, 260px);
+}
+
 .fuma-settlement-search .fuma-filter-field {
   grid-template-columns: 52px minmax(0, 1fr);
   min-height: 34px;
@@ -3515,6 +3525,10 @@
 
 .fuma-settlement-table .hsas-dense-table {
   min-width: 680px;
+}
+
+.fuma-settlement-estimates-table .hsas-dense-table {
+  min-width: 920px;
 }
 
 .fuma-settlement-table .hsas-dense-table td {
@@ -5101,7 +5115,7 @@
 
 .fuma-creator-detail-hero__metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--hsas-space-8);
   margin: var(--hsas-space-22) 0 0;
 }
@@ -6190,7 +6204,7 @@
 
 .fuma-creator-detail-hero__metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0;
   margin-top: var(--hsas-space-15);
 }

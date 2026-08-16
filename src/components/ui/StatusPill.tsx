@@ -1,7 +1,7 @@
 import type { HTMLAttributes } from "react";
 
 export interface StatusPillProps extends HTMLAttributes<HTMLSpanElement> {
-  tone?: "approved" | "pending" | "rejected" | "neutral";
+  tone?: "approved" | "danger" | "pending" | "rejected" | "neutral";
 }
 
 export function StatusPill({ className, tone = "neutral", ...props }: StatusPillProps) {
