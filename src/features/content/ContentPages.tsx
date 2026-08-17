@@ -43,6 +43,7 @@ import {
   INSPECTION_TYPE_LABELS,
   collectContentBatch,
   findContentInspectionFixture,
+  sortContentInspectionsNewestFirst,
   type ContentAnnotation,
   type ContentAnnotationTarget,
   type ContentCollectionBatchResponse,
@@ -512,6 +513,10 @@ const CONTENT_INSPECTION_LIST_ITEMS: readonly ContentInspectionFixture[] = Array
   };
 });
 
+const CONTENT_INSPECTION_LIST_ITEMS_NEWEST_FIRST = sortContentInspectionsNewestFirst(
+  CONTENT_INSPECTION_LIST_ITEMS,
+);
+
 function contentAuthorProfileImage(contentId: string) {
   const sequence = Number.parseInt(contentId.replace(/\D/g, ""), 10) || 1;
   const profileIndex = ((sequence - 1) % 4) + 1;
@@ -789,7 +794,7 @@ export function ContentInspectionListPage() {
       : "",
   };
   const normalizedKeyword = appliedFilters.keyword.trim().toLocaleLowerCase("ko-KR");
-  const filteredContents = CONTENT_INSPECTION_LIST_ITEMS.filter((content) => {
+  const filteredContents = CONTENT_INSPECTION_LIST_ITEMS_NEWEST_FIRST.filter((content) => {
     const matchesCategory = contentInspectionCategory(content) === selectedCategory;
     const hasViolation = content.report.signals.some((signal) => signal.tone !== "pass");
     const matchesKeyword = !normalizedKeyword || [

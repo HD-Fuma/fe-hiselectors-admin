@@ -5,6 +5,7 @@ export {
   INSPECTION_TYPE_LABELS,
   findContentInspectionFixture,
 } from "./model/fixtures";
+export { sortContentInspectionsNewestFirst } from "./model/sorting";
 export type {
   ContentAnnotation,
   ContentAnnotationTarget,
