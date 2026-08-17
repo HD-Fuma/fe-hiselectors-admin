@@ -5,62 +5,70 @@ import { renderRoute } from "../../test/renderRoute";
 const SETTLEMENTS = [
   {
     calculatedAt: "2026-08-01T03:00:00",
-    commissionRate: 3,
+    settlementRate: 3,
     confirmedPurchaseCount: 1_234,
-    estimatedCommission: 75_000,
+    settlementAmount: 75_000,
+    confirmedSalesAmount: 2_500_000,
     selectorsCode: "SEL-0007",
     selectorsId: 42,
     selectorsNickname: "여름셀렉터",
     settlementId: 101,
-    settlementMonth: "2026-07",
+    activityMonth: "2026-07",
+    settlementMonth: "2026-08",
+    paymentMonth: "2026-09",
     settlementSourceCode: "DAILY_BATCH",
     status: "CALCULATING",
-    totalSales: 2_500_000,
     updatedAt: "2026-08-01T03:00:00",
   },
   {
     calculatedAt: "2026-08-01T03:00:00",
-    commissionRate: 5,
+    settlementRate: 5,
     confirmedPurchaseCount: 80,
-    estimatedCommission: 40_000,
+    settlementAmount: 40_000,
+    confirmedSalesAmount: 800_000,
     selectorsCode: "SEL-0008",
     selectorsId: 43,
     selectorsNickname: "가을셀렉터",
     settlementId: 102,
-    settlementMonth: "2026-07",
+    activityMonth: "2026-07",
+    settlementMonth: "2026-08",
+    paymentMonth: "2026-09",
     settlementSourceCode: "USER_REFRESH",
     status: "PAYMENT_PENDING",
-    totalSales: 800_000,
     updatedAt: "2026-08-01T03:00:00",
   },
   {
     calculatedAt: "2026-08-01T03:00:00",
-    commissionRate: 7,
+    settlementRate: 7,
     confirmedPurchaseCount: 40,
-    estimatedCommission: 35_000,
+    settlementAmount: 35_000,
+    confirmedSalesAmount: 500_000,
     selectorsCode: "SEL-0009",
     selectorsId: 44,
     selectorsNickname: "겨울셀렉터",
     settlementId: 103,
-    settlementMonth: "2026-07",
+    activityMonth: "2026-07",
+    settlementMonth: "2026-08",
+    paymentMonth: "2026-09",
     settlementSourceCode: "DAILY_BATCH",
     status: "PAYMENT_HOLD",
-    totalSales: 500_000,
     updatedAt: "2026-08-01T03:00:00",
   },
   {
     calculatedAt: "2026-08-01T03:00:00",
-    commissionRate: 10,
+    settlementRate: 10,
     confirmedPurchaseCount: 20,
-    estimatedCommission: 30_000,
+    settlementAmount: 30_000,
+    confirmedSalesAmount: 300_000,
     selectorsCode: "SEL-0010",
     selectorsId: 45,
     selectorsNickname: "봄셀렉터",
     settlementId: 104,
-    settlementMonth: "2026-07",
+    activityMonth: "2026-07",
+    settlementMonth: "2026-08",
+    paymentMonth: "2026-09",
     settlementSourceCode: "DAILY_BATCH",
     status: "SETTLED",
-    totalSales: 300_000,
     updatedAt: "2026-08-01T03:00:00",
   },
 ] as const;
@@ -166,7 +174,7 @@ test("requests and renders the previous-month settlement page", async () => {
   expect(within(results).getByText("SEL-0007")).toBeInTheDocument();
 
   const search = screen.getByRole("search", { name: "검색 조건" });
-  expect(within(search).getByLabelText("정산월")).toHaveValue(previousMonth());
+  expect(within(search).getByLabelText("활동월")).toHaveValue(previousMonth());
   expect(within(search).queryByRole("textbox", { name: "ID 또는 이름" })).not.toBeInTheDocument();
 
   const statusFilter = screen.getByRole("navigation", { name: "지급 상태" });
@@ -179,7 +187,7 @@ test("requests and renders the previous-month settlement page", async () => {
 
   expect(within(results).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
     "순번",
-    "정산월",
+    "활동월",
     "셀렉터스코드",
     "셀렉터스명",
     "정산 대상 건수",
@@ -202,7 +210,7 @@ test("requests and renders the previous-month settlement page", async () => {
   const [input, init] = fetchMock.mock.calls[0];
   const url = new URL(String(input));
   expect(url.pathname).toBe("/api/admin/settlements/estimates");
-  expect(url.searchParams.get("month")).toBe(previousMonth());
+  expect(url.searchParams.get("activityMonth")).toBe(previousMonth());
   expect(url.searchParams.get("page")).toBe("0");
   expect(url.searchParams.get("size")).toBe("20");
   expect(url.searchParams.has("status")).toBe(false);
@@ -231,7 +239,7 @@ test("requests and renders the previous-month settlement page", async () => {
   const historyTable = within(detail).getByRole("region", { name: "셀렉터스 정산 내역" });
   expect(within(historyTable).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
     "순번",
-    "정산월",
+    "활동월",
     "정산 대상 건수",
     "매출 실적",
     "수수료율",
@@ -259,14 +267,14 @@ test("applies the month on search and requests status and pages immediately", as
   await screen.findByText("SEL-0007");
 
   const search = screen.getByRole("search", { name: "검색 조건" });
-  fireEvent.change(within(search).getByLabelText("정산월"), {
+  fireEvent.change(within(search).getByLabelText("활동월"), {
     target: { value: "2026-06" },
   });
   expect(fetchMock).toHaveBeenCalledTimes(1);
 
   fireEvent.click(within(search).getByRole("button", { name: "조회" }));
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-  expect(requestedUrl(fetchMock.mock.calls[1]).searchParams.get("month")).toBe("2026-06");
+  expect(requestedUrl(fetchMock.mock.calls[1]).searchParams.get("activityMonth")).toBe("2026-06");
 
   fireEvent.click(screen.getByRole("button", { name: "지급 보류" }));
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
@@ -322,13 +330,13 @@ test("ignores a stale response after a newer filter request", async () => {
   await screen.findByText("SEL-0007");
 
   const search = screen.getByRole("search", { name: "검색 조건" });
-  fireEvent.change(within(search).getByLabelText("정산월"), {
+  fireEvent.change(within(search).getByLabelText("활동월"), {
     target: { value: "2026-06" },
   });
   fireEvent.click(within(search).getByRole("button", { name: "조회" }));
   await waitFor(() => expect(pendingResponses).toHaveLength(2));
 
-  fireEvent.change(within(search).getByLabelText("정산월"), {
+  fireEvent.change(within(search).getByLabelText("활동월"), {
     target: { value: "2026-05" },
   });
   fireEvent.click(within(search).getByRole("button", { name: "조회" }));

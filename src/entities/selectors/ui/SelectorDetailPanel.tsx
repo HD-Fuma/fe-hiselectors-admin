@@ -27,13 +27,13 @@ function selectorStatusTone(
 }
 
 interface SelectorSettlementTableRow {
+  activityMonth: string | null | undefined;
+  confirmedPurchaseCount: number | null | undefined;
+  confirmedSalesAmount: number | null | undefined;
   id: string;
   ordinal: number;
-  settlementMonth: string | null | undefined;
-  confirmedPurchaseCount: number | null | undefined;
-  totalSales: number | null | undefined;
-  commissionRate: number | null | undefined;
-  estimatedCommission: number | null | undefined;
+  settlementAmount: number | null | undefined;
+  settlementRate: number | null | undefined;
   status: SelectorSettlementStatus | "-";
 }
 
@@ -119,11 +119,11 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SelectorSettlementTableRow>[] = [
     render: (settlement) => displayNumber(settlement.ordinal),
   },
   {
-    key: "settlementMonth",
-    header: "정산 기준월",
+    key: "activityMonth",
+    header: "활동월",
     width: 85,
     align: "center",
-    render: (settlement) => displayText(settlement.settlementMonth),
+    render: (settlement) => displayText(settlement.activityMonth),
   },
   {
     key: "confirmedPurchaseCount",
@@ -133,25 +133,25 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SelectorSettlementTableRow>[] = [
     render: (settlement) => displayNumber(settlement.confirmedPurchaseCount),
   },
   {
-    key: "totalSales",
+    key: "confirmedSalesAmount",
     header: "매출 실적",
     width: 125,
     align: "center",
-    render: (settlement) => displayWon(settlement.totalSales),
+    render: (settlement) => displayWon(settlement.confirmedSalesAmount),
   },
   {
-    key: "commissionRate",
+    key: "settlementRate",
     header: "수수료율",
     width: 75,
     align: "center",
-    render: (settlement) => displayRate(settlement.commissionRate),
+    render: (settlement) => displayRate(settlement.settlementRate),
   },
   {
-    key: "estimatedCommission",
+    key: "settlementAmount",
     header: "정산 수수료",
     width: 115,
     align: "center",
-    render: (settlement) => displayWon(settlement.estimatedCommission),
+    render: (settlement) => displayWon(settlement.settlementAmount),
   },
   {
     key: "status",
@@ -192,22 +192,22 @@ export function SelectorDetailPanel({
     ? (settlementHistory?.content ?? []).map((settlement, index) => ({
       id: String(settlement.settlementId),
       ordinal: (settlementHistory?.number ?? 0) * (settlementHistory?.size ?? 12) + index + 1,
-      settlementMonth: settlement.settlementMonth,
+      activityMonth: settlement.activityMonth,
       confirmedPurchaseCount: settlement.confirmedPurchaseCount,
-      totalSales: settlement.totalSales,
-      commissionRate: settlement.commissionRate,
-      estimatedCommission: settlement.estimatedCommission,
+      confirmedSalesAmount: settlement.confirmedSalesAmount,
+      settlementAmount: settlement.settlementAmount,
+      settlementRate: settlement.settlementRate,
       status: settlementStatusLabel(settlement.status),
     }))
     : selector && fixtureDetail
     ? fixtureDetail.settlements.map((settlement, index) => ({
       id: settlement.id,
       ordinal: index + 1,
-      settlementMonth: settlement.month,
+      activityMonth: settlement.month,
       confirmedPurchaseCount: undefined,
-      totalSales: undefined,
-      commissionRate: undefined,
-      estimatedCommission: settlement.amount,
+      confirmedSalesAmount: undefined,
+      settlementAmount: settlement.amount,
+      settlementRate: undefined,
       status: settlement.status,
     }))
     : [];
@@ -269,7 +269,7 @@ export function SelectorDetailPanel({
               </div>
               <p className="fuma-unified-detail-hero__summary">
                 {selector.cohort} · {selector.status} · 마지막 수집 {displayDateTime(apiProfile?.lastCollectedAt ?? selector.recentActivity)}
-                {settlementDetail ? ` · 정산 기준 ${displayText(settlementSummary?.currentMonth)} · 다음 지급 ${displayText(settlementSummary?.nextPaymentMonth)}` : null}
+                {settlementDetail ? ` · 활동월 ${displayText(settlementSummary?.currentMonth)} · 지급월 ${displayText(settlementSummary?.nextPaymentMonth)}` : null}
               </p>
               <dl className="fuma-creator-detail-hero__metrics">
                 {settlementDetail ? (
