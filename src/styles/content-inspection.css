@@ -2606,6 +2606,24 @@ body:has(.fuma-content-inspection-detail) .hsas-admin-shell__content {
   content: "";
 }
 
+.fuma-content-collection-run-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--hsas-space-8);
+  margin-block: var(--hsas-space-4);
+}
+
+.fuma-content-inspection-collection-feedback {
+  margin: calc(-1 * var(--hsas-space-10)) var(--hsas-space-2) var(--hsas-space-14);
+  color: var(--hsas-color-ink-700);
+  font-size: var(--hsas-font-11);
+  font-weight: 700;
+}
+
+.fuma-content-inspection-collection-feedback--error {
+  color: var(--hsas-color-danger);
+}
+
 .fuma-content-collection__view-switch {
   display: flex;
   align-items: center;

@@ -41,9 +41,11 @@ import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platform
 import {
   CONTENT_INSPECTIONS,
   INSPECTION_TYPE_LABELS,
+  collectContentBatch,
   findContentInspectionFixture,
   type ContentAnnotation,
   type ContentAnnotationTarget,
+  type ContentCollectionBatchResponse,
   type ContentFormat,
   type ContentInspectionFixture,
   type ContentSnapshot,
@@ -663,24 +665,67 @@ function ContentInspectionCategoryTabs({
   selectedCategory: ContentInspectionCategory;
   onSelect: (category: ContentInspectionCategory) => void;
 }) {
+  const [isCollecting, setIsCollecting] = useState(false);
+  const [collectionResult, setCollectionResult] = useState<ContentCollectionBatchResponse | null>(
+    null,
+  );
+  const [collectionError, setCollectionError] = useState<string | null>(null);
+
+  const runContentCollection = async () => {
+    setIsCollecting(true);
+    setCollectionResult(null);
+    setCollectionError(null);
+    try {
+      setCollectionResult(await collectContentBatch());
+    } catch (error) {
+      setCollectionError(
+        error instanceof Error ? error.message : "콘텐츠 수집에 실패했습니다.",
+      );
+    } finally {
+      setIsCollecting(false);
+    }
+  };
+
   return (
-    <ChoiceTabs
-      actions={(
-        <Button
-          className="fuma-content-inspection-start-button"
-          disabled={pendingCount === 0}
-          onClick={onStartInspection}
-          variant="primary"
+    <>
+      <ChoiceTabs
+        actions={(
+          <span className="fuma-content-collection-run-actions">
+            <Button disabled={isCollecting} onClick={() => void runContentCollection()}>
+              {isCollecting ? "수집 중..." : "새로고침"}
+            </Button>
+            <Button
+              className="fuma-content-inspection-start-button"
+              disabled={pendingCount === 0}
+              onClick={onStartInspection}
+              variant="primary"
+            >
+              검수 시작
+            </Button>
+          </span>
+        )}
+        ariaLabel="콘텐츠 처리 구분"
+        className="fuma-list-action-toolbar"
+        onChange={onSelect}
+        options={CONTENT_INSPECTION_CATEGORIES}
+        value={selectedCategory}
+      />
+      {collectionResult ? (
+        <p className="fuma-content-inspection-collection-feedback" role="status">
+          수집 완료 · 대상 {collectionResult.targetAccountCount}건 · 성공{" "}
+          {collectionResult.succeededAccountCount}건 · 실패{" "}
+          {collectionResult.failedAccountCount}건 · 신규 저장{" "}
+          {collectionResult.savedContentCount}건
+        </p>
+      ) : collectionError ? (
+        <p
+          className="fuma-content-inspection-collection-feedback fuma-content-inspection-collection-feedback--error"
+          role="alert"
         >
-          검수 시작
-        </Button>
-      )}
-      ariaLabel="콘텐츠 처리 구분"
-      className="fuma-list-action-toolbar"
-      onChange={onSelect}
-      options={CONTENT_INSPECTION_CATEGORIES}
-      value={selectedCategory}
-    />
+          {collectionError}
+        </p>
+      ) : null}
+    </>
   );
 }
 

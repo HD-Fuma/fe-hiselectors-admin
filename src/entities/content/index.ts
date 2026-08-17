@@ -1,3 +1,5 @@
+export { collectContentBatch } from "./api";
+export type { ContentCollectionBatchResponse } from "./api";
 export {
   CONTENT_INSPECTIONS,
   INSPECTION_TYPE_LABELS,
