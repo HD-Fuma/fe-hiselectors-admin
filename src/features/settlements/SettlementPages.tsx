@@ -44,8 +44,8 @@ function emptySettlementPage(): SpringPage<SettlementEstimate> {
   };
 }
 
-function settlementMonthLabel(month: string) {
-  const [year, monthNumber] = month.split("-");
+function activityMonthLabel(activityMonth: string) {
+  const [year, monthNumber] = activityMonth.split("-");
   return `${year}년 ${Number(monthNumber)}월`;
 }
 
@@ -98,9 +98,9 @@ function SettlementFilters({
   return (
     <div className="fuma-operations-search fuma-settlement-search fuma-settlement-search--month-only">
       <SearchPanel actions={<SearchActions onReset={onReset} onSearch={onSearch} />}>
-        <FilterField htmlFor="settlement-month" label="정산월">
+        <FilterField htmlFor="settlement-month" label="활동월">
           <TextInput
-            aria-label="정산월"
+            aria-label="활동월"
             id="settlement-month"
             onChange={(event) => onMonthChange(event.target.value)}
             type="month"
@@ -134,7 +134,7 @@ export function SettlementManagementPage() {
     latestRequestId.current = requestId;
 
     getSettlementEstimates({
-      month: appliedMonth,
+      activityMonth: appliedMonth,
       page: page - 1,
       size: SETTLEMENT_PAGE_SIZE,
       status: selectedStatus ?? undefined,
@@ -269,7 +269,7 @@ export function SettlementManagementPage() {
           className="fuma-simple-result-toolbar"
           meta={
             <>
-              <span>{settlementMonthLabel(appliedMonth)}</span>
+              <span>{activityMonthLabel(appliedMonth)}</span>
               <span>총 {settlementPage.totalElements.toLocaleString("ko-KR")}건</span>
             </>
           }

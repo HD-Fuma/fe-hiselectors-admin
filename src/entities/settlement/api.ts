@@ -52,7 +52,7 @@ export async function getSettlementEstimates(
     size: String(request.size),
   });
 
-  if (request.month) searchParams.set("month", request.month);
+  if (request.activityMonth) searchParams.set("activityMonth", request.activityMonth);
   if (request.status) searchParams.set("status", request.status);
 
   const headers = new Headers();

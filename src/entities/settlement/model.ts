@@ -12,18 +12,20 @@ export type SettlementSourceCode = "DAILY_BATCH" | "USER_REFRESH";
 export type SettlementSnsCode = "YOUTUBE" | "INSTAGRAM";
 
 export interface SettlementEstimate {
+  activityMonth: string;
   calculatedAt: string;
-  commissionRate: number;
   confirmedPurchaseCount: number;
-  estimatedCommission: number;
+  confirmedSalesAmount: number;
+  paymentMonth: string;
   selectorsCode: string;
   selectorsId: number;
   selectorsNickname: string;
+  settlementAmount: number;
   settlementId: number;
+  settlementRate: number;
   settlementMonth: string;
   settlementSourceCode: SettlementSourceCode;
   status: SettlementStatus;
-  totalSales: number;
   updatedAt: string;
 }
 
@@ -47,7 +49,7 @@ export interface ApiResult<T> {
 }
 
 export interface SettlementEstimateRequest {
-  month?: string;
+  activityMonth?: string;
   page: number;
   size: number;
   status?: SettlementStatus;
