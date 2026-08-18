@@ -1,5 +1,12 @@
-export { collectContentBatch } from "./api";
-export type { ContentCollectionBatchResponse } from "./api";
+export { collectContentBatch, getCurrentGenerationContents } from "./api";
+export type {
+  CollectedContent,
+  CollectedContentMedia,
+  CollectedContentType,
+  ContentCollectionBatchResponse,
+  ContentInspectionSnsCode,
+} from "./api";
+export { adaptContentInspection } from "./model/adapter";
 export {
   CONTENT_INSPECTIONS,
   INSPECTION_TYPE_LABELS,
