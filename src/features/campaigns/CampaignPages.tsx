@@ -1,7 +1,8 @@
 import {
   useId,
+  useEffect,
+  useMemo,
   useState,
-  type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
 } from "react";
@@ -24,52 +25,60 @@ import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
-import { paginate } from "../../lib/pagination";
 import { assetUrl } from "../../lib/assetUrl";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
-import { CREATORS, type CreatorFixture } from "../../entities/creator";
-import { CONTENT_INFLUENCE } from "../../entities/performance";
 import {
-  CAMPAIGNS,
-  CAMPAIGN_PRODUCTS,
-  findCampaignFixture,
-  type CampaignFixture,
+  CAMPAIGN_STATUS_OPTIONS,
+  campaignStatusLabel,
+  createCampaign,
+  deleteCampaign,
+  getCampaign,
+  getCampaignParticipants,
+  getCampaigns,
+  getProducts,
+  productStatusLabel,
+  updateCampaign,
+  type Campaign,
+  type CampaignParticipant,
   type CampaignProduct,
-  type CampaignStatus,
-} from "./fixtures";
+  type CampaignSaveRequest,
+  type CampaignStatusCode,
+  type SpringPage,
+} from "../../entities/campaign";
 
-const CAMPAIGN_STATUS_CATEGORIES: CampaignStatus[] = ["시작 전", "진행 중", "종료"];
+const CAMPAIGN_STATUS_CATEGORIES = CAMPAIGN_STATUS_OPTIONS;
 const CAMPAIGN_PAGE_SIZE = 20;
 
-function statusTone(status: CampaignStatus): NonNullable<StatusPillProps["tone"]> {
-  if (status === "시작 전") {
+function statusTone(status: CampaignStatusCode): NonNullable<StatusPillProps["tone"]> {
+  if (status === "SCHEDULED") {
     return "pending";
   }
-  if (status === "진행 중") {
+  if (status === "ACTIVE") {
     return "approved";
   }
   return "neutral";
 }
 
 function saleStatusTone(
-  status: CampaignProduct["saleStatus"],
+  status: CampaignProduct["status"],
 ): NonNullable<StatusPillProps["tone"]> {
-  if (status === "판매중") return "approved";
-  if (status === "품절") return "rejected";
+  if (status === "ON_SALE") return "approved";
+  if (status === "SOLD_OUT") return "rejected";
   return "neutral";
 }
 
-function CampaignThumbnail({ campaign }: { campaign: CampaignFixture }) {
+function CampaignThumbnail({ campaign }: { campaign: Campaign }) {
   return (
     <img
-      alt={`${campaign.name} 썸네일`}
+      alt={`${campaign.title} 썸네일`}
       className="fuma-campaign-thumbnail"
-      src={assetUrl(campaign.thumbnailUrl)}
+      onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = assetUrl("/brand/thehyundai-hi.svg"); }}
+      src={campaign.thumbnailUrl || assetUrl("/brand/thehyundai-hi.svg")}
     />
   );
 }
 
-const CAMPAIGN_COLUMNS: DenseTableColumn<CampaignFixture>[] = [
+const CAMPAIGN_COLUMNS: DenseTableColumn<Campaign>[] = [
   {
     id: "campaign",
     header: "캠페인",
@@ -78,7 +87,7 @@ const CAMPAIGN_COLUMNS: DenseTableColumn<CampaignFixture>[] = [
       <div className="fuma-campaign-list-identity">
         <CampaignThumbnail campaign={campaign} />
         <div>
-          <strong>{campaign.name}</strong>
+          <strong>{campaign.title}</strong>
           <span>{campaign.id}</span>
         </div>
       </div>
@@ -102,7 +111,7 @@ const CAMPAIGN_COLUMNS: DenseTableColumn<CampaignFixture>[] = [
     header: "해당 상품",
     width: 92,
     align: "center",
-    render: (campaign) => `${campaign.products.length}개`,
+    render: (campaign) => `${campaign.productIds.length}개`,
   },
   {
     key: "status",
@@ -110,7 +119,7 @@ const CAMPAIGN_COLUMNS: DenseTableColumn<CampaignFixture>[] = [
     width: 88,
     align: "center",
     render: (campaign) => (
-      <StatusPill tone={statusTone(campaign.status)}>{campaign.status}</StatusPill>
+      <StatusPill tone={statusTone(campaign.status)}>{campaignStatusLabel(campaign.status)}</StatusPill>
     ),
   },
 ];
@@ -121,24 +130,26 @@ export function CampaignListPage() {
   const [keyword, setKeyword] = useState("");
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
-  const [appliedKeyword, setAppliedKeyword] = useState("");
-  const [appliedPeriodStart, setAppliedPeriodStart] = useState("");
-  const [appliedPeriodEnd, setAppliedPeriodEnd] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | null>(null);
-  const filteredCampaigns = CAMPAIGNS.filter((campaign) => (
-    (!appliedKeyword || [campaign.name, campaign.id].some((value) => (
-      value.toLowerCase().includes(appliedKeyword.toLowerCase())
-    )))
-    && (!appliedPeriodStart || campaign.endDate >= appliedPeriodStart)
-    && (!appliedPeriodEnd || campaign.startDate <= appliedPeriodEnd)
-    && (!selectedStatus || campaign.status === selectedStatus)
-  ));
-  const requestedPage = Number.parseInt(searchParams.get("page") ?? "1", 10);
-  const { currentPage, pagedItems: campaigns, totalPages } = paginate(
-    filteredCampaigns,
-    requestedPage,
-    CAMPAIGN_PAGE_SIZE,
-  );
+  const [appliedFilters, setAppliedFilters] = useState({ keyword: "", startDate: "", endDate: "" });
+  const [selectedStatus, setSelectedStatus] = useState<CampaignStatusCode | null>(null);
+  const [pageData, setPageData] = useState<SpringPage<Campaign> | null>(null);
+  const [listError, setListError] = useState("");
+  const currentPage = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getCampaigns({
+      keyword: appliedFilters.keyword || undefined,
+      startDate: appliedFilters.startDate || undefined,
+      endDate: appliedFilters.endDate || undefined,
+      status: selectedStatus || undefined,
+      page: currentPage - 1,
+      size: CAMPAIGN_PAGE_SIZE,
+    }, controller.signal).then(setPageData).catch((reason: unknown) => {
+      if (!controller.signal.aborted) setListError(reason instanceof Error ? reason.message : "캠페인 목록 조회에 실패했습니다.");
+    });
+    return () => controller.abort();
+  }, [appliedFilters, currentPage, selectedStatus]);
 
   const resetPage = () => {
     if (!searchParams.has("page")) return;
@@ -148,9 +159,7 @@ export function CampaignListPage() {
   };
 
   const applySearch = () => {
-    setAppliedKeyword(keyword);
-    setAppliedPeriodStart(periodStart);
-    setAppliedPeriodEnd(periodEnd);
+    setAppliedFilters({ keyword: keyword.trim(), startDate: periodStart, endDate: periodEnd });
     resetPage();
   };
 
@@ -165,21 +174,19 @@ export function CampaignListPage() {
     setKeyword("");
     setPeriodStart("");
     setPeriodEnd("");
-    setAppliedKeyword("");
-    setAppliedPeriodStart("");
-    setAppliedPeriodEnd("");
+    setAppliedFilters({ keyword: "", startDate: "", endDate: "" });
     setSelectedStatus(null);
     resetPage();
   };
 
-  const selectStatus = (status: CampaignStatus | null) => {
+  const selectStatus = (status: CampaignStatusCode | null) => {
     setSelectedStatus(status);
     resetPage();
   };
 
-  const openDetail = (campaignId: string) => {
+  const openDetail = (campaignId: number) => {
     const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("detail", campaignId);
+    nextParams.set("detail", String(campaignId));
     setSearchParams(nextParams);
   };
 
@@ -235,8 +242,8 @@ export function CampaignListPage() {
         <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-result-toolbar">
           <strong>캠페인 목록</strong>
           <div className="fuma-settlement-result-meta">
-            <span>{selectedStatus ?? "전체"}</span>
-            <span>총 {filteredCampaigns.length}건</span>
+            <span>{selectedStatus ? campaignStatusLabel(selectedStatus) : "전체"}</span>
+            <span>총 {pageData?.totalElements ?? 0}건</span>
           </div>
         </div>
         <div
@@ -244,12 +251,13 @@ export function CampaignListPage() {
           className="fuma-wide-table fuma-settlement-table fuma-campaign-list-table"
           role="region"
         >
-          <DenseTable
+          {listError ? <EmptyState description={listError} title="목록을 불러오지 못했습니다" /> : <DenseTable
             columns={CAMPAIGN_COLUMNS}
+            emptyMessage={pageData ? "캠페인이 없습니다." : "캠페인을 불러오는 중입니다."}
             onRowClick={(campaign) => openDetail(campaign.id)}
             rowKey={(campaign) => campaign.id}
-            rows={campaigns}
-          />
+            rows={pageData?.content ?? []}
+          />}
         </div>
         <Pagination
           onPageChange={(page) => {
@@ -260,7 +268,7 @@ export function CampaignListPage() {
           }}
           page={currentPage}
           pageSize={CAMPAIGN_PAGE_SIZE}
-          totalPages={totalPages}
+          totalPages={Math.max(1, pageData?.totalPages ?? 1)}
         />
       </div>
     </section>
@@ -276,37 +284,38 @@ export function CampaignListPage() {
 }
 
 interface CampaignFormProps {
-  campaign?: CampaignFixture;
+  campaign?: Campaign;
   formId: string;
   mode: "create" | "edit";
-  onSubmit: () => void;
+  onSubmit: (body: CampaignSaveRequest) => void;
 }
 
 function selectedProductColumns(
-  onRemove: (productId: string) => void,
+  onRemove?: (productId: number) => void,
 ): DenseTableColumn<CampaignProduct>[] {
-  return [
-    { key: "id", header: "상품코드", width: 118 },
-    { key: "name", header: "상품명" },
+  const columns: DenseTableColumn<CampaignProduct>[] = [
+    { key: "code", header: "상품코드", width: 118 },
+    { id: "name", header: "상품명", render: (product) => product.productName || "-" },
     {
       id: "saleStatus",
       header: "판매 상태",
       width: 88,
       align: "center",
       render: (product) => (
-        <StatusPill tone={saleStatusTone(product.saleStatus)}>
-          {product.saleStatus}
+        <StatusPill tone={saleStatusTone(product.status)}>
+          {productStatusLabel(product.status)}
         </StatusPill>
       ),
     },
-    {
+  ];
+  if (onRemove) columns.push({
       id: "delete",
       header: "관리",
       width: 70,
       align: "center",
       render: (product) => (
         <Button
-          aria-label={`${product.name} 삭제`}
+          aria-label={`${product.productName || product.code || product.id} 삭제`}
           className="fuma-table-action"
           onClick={() => onRemove(product.id)}
           variant="danger"
@@ -314,53 +323,49 @@ function selectedProductColumns(
           제거
         </Button>
       ),
-    },
-  ];
+    });
+  return columns;
 }
 
 function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
-  const [searchParams] = useSearchParams();
-  const [isProductModalOpen, setProductModalOpen] = useState(
-    mode === "create" && searchParams.get("fixture") === "product-modal",
-  );
+  const [isProductModalOpen, setProductModalOpen] = useState(false);
   const [products, setProducts] = useState<CampaignProduct[]>(
     campaign ? [...campaign.products] : [],
   );
-  const [thumbnailPreview, setThumbnailPreview] = useState(
-    campaign ? assetUrl(campaign.thumbnailUrl) : "",
-  );
-
-  function handleThumbnailChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      if (typeof reader.result === "string") {
-        setThumbnailPreview(reader.result);
-      }
-    });
-    reader.readAsDataURL(file);
-  }
+  const [title, setTitle] = useState(campaign?.title ?? "");
+  const [description, setDescription] = useState(campaign?.description ?? "");
+  const [startDate, setStartDate] = useState(campaign?.startDate ?? "");
+  const [endDate, setEndDate] = useState(campaign?.endDate ?? "");
+  const [thumbnailUrl, setThumbnailUrl] = useState(campaign?.thumbnailUrl ?? "");
+  const [validationError, setValidationError] = useState("");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onSubmit();
+    const normalizedTitle = title.trim();
+    const normalizedDescription = description.trim();
+    const normalizedThumbnailUrl = thumbnailUrl.trim();
+    if (!normalizedTitle || !normalizedDescription || !startDate || !endDate) {
+      setValidationError("필수 항목을 모두 입력해주세요."); return;
+    }
+    if (startDate > endDate) { setValidationError("종료일은 시작일보다 빠를 수 없습니다."); return; }
+    if (normalizedThumbnailUrl && !/^https?:\/\//i.test(normalizedThumbnailUrl)) {
+      setValidationError("썸네일은 http 또는 https URL을 입력해주세요."); return;
+    }
+    setValidationError("");
+    onSubmit({ title: normalizedTitle, description: normalizedDescription, startDate, endDate, thumbnailUrl: normalizedThumbnailUrl || null, productIds: products.map((product) => product.id) });
   }
 
   return (
     <form className="fuma-campaign-editor" id={formId} onSubmit={handleSubmit}>
       <header className="fuma-campaign-editor__intro">
         <div>
-          <strong>{mode === "create" ? "새 캠페인 정보" : campaign?.name}</strong>
+          <strong>{mode === "create" ? "새 캠페인 정보" : campaign?.title}</strong>
           <span>캠페인명, 진행 기간, 썸네일과 해당 상품을 설정합니다.</span>
         </div>
         {campaign ? (
           <div className="fuma-campaign-editor__meta">
             <span>{campaign.id}</span>
-            <StatusPill tone={statusTone(campaign.status)}>{campaign.status}</StatusPill>
+            <StatusPill tone={statusTone(campaign.status)}>{campaignStatusLabel(campaign.status)}</StatusPill>
           </div>
         ) : null}
       </header>
@@ -369,19 +374,16 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
         <label className="fuma-campaign-thumbnail-upload">
           <span className="fuma-campaign-thumbnail-upload__label">캠페인 썸네일</span>
           <span className="fuma-campaign-thumbnail-upload__preview">
-            {thumbnailPreview ? (
-              <img alt="선택한 캠페인 썸네일 미리보기" src={thumbnailPreview} />
+            {thumbnailUrl ? (
+              <img alt="선택한 캠페인 썸네일 미리보기" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = assetUrl("/brand/thehyundai-hi.svg"); }} src={thumbnailUrl} />
             ) : (
               <span>
-                <strong>이미지 추가</strong>
+                <strong>URL 미입력</strong>
                 <small>16:9 비율 권장</small>
               </span>
             )}
           </span>
-          <input accept="image/*" onChange={handleThumbnailChange} type="file" />
-          <span className="fuma-campaign-thumbnail-upload__action">
-            {thumbnailPreview ? "이미지 변경" : "이미지 선택"}
-          </span>
+          <TextInput aria-label="썸네일 URL" maxLength={400} onChange={(event) => setThumbnailUrl(event.target.value)} placeholder="https://..." type="url" value={thumbnailUrl} />
         </label>
 
         <section className="fuma-campaign-form-section">
@@ -393,31 +395,39 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
               <TextInput
                 aria-label="캠페인명"
                 className="fuma-campaign-name-input"
-                defaultValue={campaign?.name ?? ""}
+                maxLength={100}
+                onChange={(event) => setTitle(event.target.value)}
                 placeholder="캠페인명을 입력하세요"
-                required
+                required value={title}
               />
+            </FormRow>
+            <FormRow label="설명" required>
+              <textarea aria-label="설명" className="hsas-control hsas-text-input ui-input fuma-campaign-description-input" maxLength={2000} onChange={(event) => setDescription(event.target.value)} required rows={5} value={description} />
             </FormRow>
             <FormRow label="진행 기간" required>
               <div className="fuma-campaign-date-range">
                 <TextInput
                   aria-label="시작일"
-                  defaultValue={campaign?.startDate ?? ""}
+                  max={endDate || undefined}
+                  onChange={(event) => setStartDate(event.target.value)}
                   required
-                  type="date"
+                  type="date" value={startDate}
                 />
                 <span aria-hidden="true">~</span>
                 <TextInput
                   aria-label="종료일"
-                  defaultValue={campaign?.endDate ?? ""}
+                  min={startDate || undefined}
+                  onChange={(event) => setEndDate(event.target.value)}
                   required
-                  type="date"
+                  type="date" value={endDate}
                 />
               </div>
             </FormRow>
           </div>
         </section>
       </div>
+
+      {validationError ? <p role="alert">{validationError}</p> : null}
 
       <section
         aria-labelledby="campaign-selected-products-title"
@@ -446,12 +456,12 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
 
       {isProductModalOpen ? (
         <ProductSearchModal
+          currentProducts={products}
           onClose={() => setProductModalOpen(false)}
           onConfirm={(selectedProducts) => {
             setProducts(selectedProducts);
             setProductModalOpen(false);
           }}
-          selectedProductIds={products.map((product) => product.id)}
         />
       ) : null}
     </form>
@@ -459,21 +469,34 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
 }
 
 interface CampaignEditorModalProps {
-  campaign?: CampaignFixture;
+  campaign?: Campaign;
   mode: "create" | "edit";
   onClose: () => void;
 }
 
 function CampaignEditorModal({ campaign, mode, onClose }: CampaignEditorModalProps) {
   const formId = useId();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+
+  const save = async (body: CampaignSaveRequest) => {
+    setPending(true); setError("");
+    try {
+      if (mode === "create") await createCampaign(body);
+      else await updateCampaign(campaign!.id, body);
+      onClose();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "저장에 실패했습니다.");
+    } finally { setPending(false); }
+  };
 
   return (
     <Modal
       actions={
         <>
-          <Button onClick={onClose}>취소</Button>
-          <Button form={formId} type="submit" variant="primary">
-            {mode === "create" ? "캠페인 생성" : "저장"}
+          <Button disabled={pending} onClick={onClose}>취소</Button>
+          <Button disabled={pending} form={formId} type="submit" variant="primary">
+            {pending ? "저장 중..." : mode === "create" ? "캠페인 생성" : "저장"}
           </Button>
         </>
       }
@@ -481,12 +504,12 @@ function CampaignEditorModal({ campaign, mode, onClose }: CampaignEditorModalPro
       open
       title={mode === "create" ? "새 캠페인 생성" : "캠페인 수정"}
     >
-      <CampaignForm
+      {error ? <p role="alert">{error}</p> : null}<CampaignForm
         campaign={campaign}
         formId={formId}
         key={campaign?.id ?? "new"}
         mode={mode}
-        onSubmit={onClose}
+        onSubmit={save}
       />
     </Modal>
   );
@@ -505,20 +528,23 @@ export function CampaignCreatePage() {
 
 export function CampaignEditPage() {
   const { campaignId } = useParams();
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const campaign = findCampaignFixture(campaignId);
-  const openedFromList = searchParams.get("from") === "list";
-  const closePath = openedFromList || !campaign ? "/campaigns" : `/campaigns/${campaign.id}`;
+  const [campaign, setCampaign] = useState<Campaign | null>();
+  useEffect(() => {
+    const controller = new AbortController();
+    const id = Number(campaignId);
+    getCampaign(id, controller.signal).then(setCampaign).catch(() => { if (!controller.signal.aborted) setCampaign(null); });
+    return () => controller.abort();
+  }, [campaignId]);
 
   return (
     <>
       <CampaignListPage />
-      {campaign ? (
+      {campaign === undefined ? null : campaign ? (
         <CampaignEditorModal
           campaign={campaign}
           mode="edit"
-          onClose={() => navigate(closePath)}
+          onClose={() => navigate(`/campaigns?detail=${campaign.id}`)}
         />
       ) : (
         <Modal
@@ -538,27 +564,22 @@ export function CampaignEditPage() {
 }
 
 const CAMPAIGN_DETAIL_PRODUCT_COLUMNS: DenseTableColumn<CampaignProduct>[] = [
-  { key: "id", header: "상품코드", width: 118, align: "center" },
-  { key: "name", header: "상품명" },
+  { key: "code", header: "상품코드", width: 118, align: "center" },
+  { id: "name", header: "상품명", render: (product) => product.productName || "-" },
   {
     id: "saleStatus",
     header: "판매 상태",
     width: 92,
     align: "center",
     render: (product) => (
-      <StatusPill tone={saleStatusTone(product.saleStatus)}>
-        {product.saleStatus}
+      <StatusPill tone={saleStatusTone(product.status)}>
+        {productStatusLabel(product.status)}
       </StatusPill>
     ),
   },
 ];
 
-interface CampaignParticipantRow {
-  creator: CreatorFixture;
-  selectorId: string;
-}
-
-const CAMPAIGN_PARTICIPANT_COLUMNS: DenseTableColumn<CampaignParticipantRow>[] = [
+const CAMPAIGN_PARTICIPANT_COLUMNS: DenseTableColumn<CampaignParticipant>[] = [
   {
     id: "selectorId",
     header: "셀렉터스 ID",
@@ -571,25 +592,23 @@ const CAMPAIGN_PARTICIPANT_COLUMNS: DenseTableColumn<CampaignParticipantRow>[] =
     header: "이름",
     width: 120,
     align: "center",
-    render: ({ creator }) => creator.name,
+    render: ({ nickname }) => nickname,
   },
   {
     id: "platform",
     header: "플랫폼",
     width: 140,
     align: "center",
-    render: ({ creator }) => (
-      <span className="fuma-platform-label">
-        <PlatformIcon platform={creator.profile.platform} />
-        <span>{creator.profile.platform}</span>
-      </span>
-    ),
+    render: ({ platform }) => {
+      const label = platform === "YOUTUBE" ? "YouTube" : platform === "INSTAGRAM" ? "Instagram" : null;
+      return label ? <span className="fuma-platform-label"><PlatformIcon platform={label} /><span>{label}</span></span> : "-";
+    },
   },
   {
     id: "account",
     header: "계정",
     align: "center",
-    render: ({ creator }) => creator.profile.handle,
+    render: ({ accountId }) => accountId || "-",
   },
 ];
 
@@ -607,35 +626,44 @@ export function CampaignDetailPage({
   const { hash } = useLocation();
   const { campaignId: routeCampaignId } = useParams();
   const navigate = useNavigate();
-  const campaignId = campaignIdOverride ?? routeCampaignId;
-  const campaign = findCampaignFixture(campaignId);
+  const campaignId = Number(campaignIdOverride ?? routeCampaignId);
+  const [campaign, setCampaign] = useState<Campaign | null>();
+  const [participants, setParticipants] = useState<SpringPage<CampaignParticipant> | null>(null);
+  const [participantPage, setParticipantPage] = useState(1);
+  const [error, setError] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const closePanel = onClose ?? (() => navigate("/campaigns"));
   const [activeDetailTab, setActiveDetailTab] = useState<"participants" | "products">(
     hash === "#campaign-products"
       ? "products"
       : "participants",
   );
-  const participantRows: CampaignParticipantRow[] = campaign
-    ? CONTENT_INFLUENCE.filter((content) => content.campaignId === campaign.id).reduce<CampaignParticipantRow[]>((rows, content) => {
-      const creator = CREATORS.find((item) => item.id === content.creatorId);
-      if (!creator) {
-        return rows;
-      }
-
-      const existingRow = rows.find((row) => row.creator.id === creator.id);
-      if (existingRow) {
-        return rows;
-      }
-
-      rows.push({ creator, selectorId: content.selectorId });
-      return rows;
-    }, [])
-    : [];
+  useEffect(() => {
+    const controller = new AbortController();
+    getCampaign(campaignId, controller.signal).then(setCampaign).catch((reason: unknown) => {
+      if (!controller.signal.aborted) { setCampaign(null); setError(reason instanceof Error ? reason.message : "캠페인 상세 조회에 실패했습니다."); }
+    });
+    return () => controller.abort();
+  }, [campaignId]);
+  useEffect(() => {
+    const controller = new AbortController();
+    getCampaignParticipants(campaignId, participantPage - 1, CAMPAIGN_PAGE_SIZE, controller.signal).then(setParticipants).catch((reason: unknown) => {
+      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "참여 셀렉터스 조회에 실패했습니다.");
+    });
+    return () => controller.abort();
+  }, [campaignId, participantPage]);
+  const removeCampaign = async () => {
+    setDeleting(true); setError("");
+    try { await deleteCampaign(campaignId); setDeleteOpen(false); closePanel(); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "캠페인 삭제에 실패했습니다."); }
+    finally { setDeleting(false); }
+  };
   return (
     <>
       {embedded ? null : <CampaignListPage />}
       <SidePanel
-        actions={campaign ? (
+        actions={campaign ? (<>
           <Link
             aria-label="캠페인 수정"
             className="hsas-button hsas-button--primary"
@@ -643,12 +671,14 @@ export function CampaignDetailPage({
           >
             수정
           </Link>
-        ) : null}
+          {campaign.status === "ENDED" ? <Button onClick={() => setDeleteOpen(true)} variant="danger">삭제</Button> : null}
+        </>) : null}
         onClose={closePanel}
         title="캠페인 상세"
       >
         <div className="fuma-detail-panel__content fuma-campaign-detail-panel">
-        {campaign ? (
+        {error ? <p role="alert">{error}</p> : null}
+        {campaign === undefined ? <p role="status">캠페인 정보를 불러오는 중입니다.</p> : campaign ? (
           <div className="fuma-campaign-detail fuma-campaign-detail--feed">
             <section aria-label="기본 정보" className="fuma-campaign-detail-overview">
               <figure className="fuma-campaign-detail-preview">
@@ -658,12 +688,13 @@ export function CampaignDetailPage({
                 <header>
                   <div>
                     <span>캠페인</span>
-                    <h2>{campaign.name}</h2>
+                    <h2>{campaign.title}</h2>
                   </div>
                   <div>
-                    <StatusPill tone={statusTone(campaign.status)}>{campaign.status}</StatusPill>
+                    <StatusPill tone={statusTone(campaign.status)}>{campaignStatusLabel(campaign.status)}</StatusPill>
                   </div>
                 </header>
+                <p>{campaign.description}</p>
                 <dl>
                   <div><dt>캠페인 ID</dt><dd>{campaign.id}</dd></div>
                   <div><dt>캠페인 진행 기간</dt><dd>{campaign.startDate} ~ {campaign.endDate}</dd></div>
@@ -686,11 +717,12 @@ export function CampaignDetailPage({
             <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar">
               <strong>{activeDetailTab === "participants" ? "셀렉터스 목록" : "포함 상품 목록"}</strong>
               <div className="fuma-settlement-result-meta">
-                <span>총 {activeDetailTab === "participants" ? participantRows.length : campaign.products.length}건</span>
+                <span>총 {activeDetailTab === "participants" ? participants?.totalElements ?? 0 : campaign.products.length}건</span>
               </div>
             </div>
 
             {activeDetailTab === "participants" ? (
+              <>
               <div
                 aria-label="참여 셀렉터스"
                 className="fuma-wide-table fuma-settlement-table fuma-selector-list-table fuma-campaign-participant-table"
@@ -699,11 +731,13 @@ export function CampaignDetailPage({
               >
                 <DenseTable
                   columns={CAMPAIGN_PARTICIPANT_COLUMNS}
-                    emptyMessage="참여 셀렉터스가 없습니다."
-                  rowKey={({ creator }) => creator.id}
-                  rows={participantRows}
+                  emptyMessage={participants ? "참여 셀렉터스가 없습니다." : "참여 셀렉터스를 불러오는 중입니다."}
+                  rowKey={({ selectorId }) => selectorId}
+                  rows={participants?.content ?? []}
                 />
               </div>
+              <Pagination onPageChange={setParticipantPage} page={participantPage} pageSize={CAMPAIGN_PAGE_SIZE} totalPages={Math.max(1, participants?.totalPages ?? 1)} />
+              </>
             ) : null}
 
             {activeDetailTab === "products" ? (
@@ -729,64 +763,71 @@ export function CampaignDetailPage({
         )}
         </div>
       </SidePanel>
+      {deleteOpen ? <Modal actions={<><Button disabled={deleting} onClick={() => setDeleteOpen(false)}>취소</Button><Button disabled={deleting} onClick={removeCampaign} variant="danger">{deleting ? "삭제 중..." : "삭제"}</Button></>} onClose={() => setDeleteOpen(false)} open role="alertdialog" title="캠페인 삭제"><p>종료된 캠페인을 삭제할까요? 삭제 후 목록에서 보이지 않습니다.</p></Modal> : null}
     </>
   );
 }
 
 function ProductSearchModal({
+  currentProducts,
   onClose,
   onConfirm,
-  selectedProductIds,
 }: {
+  currentProducts: CampaignProduct[];
   onClose: () => void;
   onConfirm: (products: CampaignProduct[]) => void;
-  selectedProductIds: string[];
 }) {
   const [query, setQuery] = useState("");
-  const [draftProductIds, setDraftProductIds] = useState<Set<string>>(
-    () => new Set(selectedProductIds),
-  );
-
-  const normalizedQuery = query.trim().toLowerCase();
-  const products = CAMPAIGN_PRODUCTS.filter((product) => (
-    !normalizedQuery
-      || product.id.toLowerCase().includes(normalizedQuery)
-      || product.name.toLowerCase().includes(normalizedQuery)
-  ));
+  const [appliedQuery, setAppliedQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageData, setPageData] = useState<SpringPage<CampaignProduct> | null>(null);
+  const [error, setError] = useState("");
+  const [draftProducts, setDraftProducts] = useState(() => new Map(currentProducts.map((product) => [product.id, product])));
+  useEffect(() => {
+    const controller = new AbortController();
+    getProducts({ keyword: appliedQuery || undefined, page: page - 1, size: CAMPAIGN_PAGE_SIZE }, controller.signal).then(setPageData).catch((reason: unknown) => {
+      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "상품 조회에 실패했습니다.");
+    });
+    return () => controller.abort();
+  }, [appliedQuery, page]);
+  const products = useMemo(() => pageData?.content ?? [], [pageData]);
   const columns: DenseTableColumn<CampaignProduct>[] = [
     {
       id: "selection",
       header: "선택",
       width: 52,
       align: "center",
-      render: (product) => (
-        <Checkbox
-          checked={draftProductIds.has(product.id)}
-          label={<span className="hsas-visually-hidden">{product.name} 선택</span>}
+      render: (product) => {
+        const selected = draftProducts.has(product.id);
+        const originallySelected = currentProducts.some((item) => item.id === product.id);
+        return <Checkbox
+          checked={selected}
+          disabled={product.status !== "ON_SALE" && !selected && !originallySelected}
+          label={<span className="hsas-visually-hidden">{product.productName || product.code || product.id} 선택</span>}
           onChange={() => {
-            setDraftProductIds((current) => {
-              const next = new Set(current);
+            setDraftProducts((current) => {
+              const next = new Map(current);
               if (next.has(product.id)) {
                 next.delete(product.id);
               } else {
-                next.add(product.id);
+                next.set(product.id, product);
               }
               return next;
             });
           }}
-        />
-      ),
+        />;
+      },
     },
-    { key: "id", header: "상품코드", width: 118 },
-    { key: "name", header: "상품명" },
+    { key: "code", header: "상품코드", width: 118 },
+    { id: "name", header: "상품명", render: (product) => product.productName || "-" },
     {
       id: "saleStatus",
       header: "판매 상태",
       width: 90,
       align: "center",
       render: (product) => (
-        <StatusPill tone={saleStatusTone(product.saleStatus)}>
-          {product.saleStatus}
+        <StatusPill tone={saleStatusTone(product.status)}>
+          {productStatusLabel(product.status)}
         </StatusPill>
       ),
     },
@@ -799,11 +840,11 @@ function ProductSearchModal({
           <Button onClick={onClose}>취소</Button>
           <Button
             onClick={() => {
-              onConfirm(CAMPAIGN_PRODUCTS.filter((product) => draftProductIds.has(product.id)));
+              onConfirm([...draftProducts.values()]);
             }}
             variant="primary"
           >
-            선택 완료 ({draftProductIds.size})
+            선택 완료 ({draftProducts.size})
           </Button>
         </>
       }
@@ -819,12 +860,15 @@ function ProductSearchModal({
               aria-label="상품 검색"
               id="campaign-product-query"
               onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") { setAppliedQuery(query.trim()); setPage(1); } }}
               placeholder="상품명 또는 상품코드"
               value={query}
             />
           </FilterField>
-          <span>총 {products.length}개 상품</span>
+          <Button onClick={() => { setAppliedQuery(query.trim()); setPage(1); }}>검색</Button>
+          <span>총 {pageData?.totalElements ?? 0}개 상품</span>
         </div>
+        {error ? <p role="alert">{error}</p> : null}
         <div
           aria-label="상품 목록"
           className="fuma-campaign-modal-table"
@@ -832,10 +876,12 @@ function ProductSearchModal({
         >
           <DenseTable
             columns={columns}
+            emptyMessage={pageData ? "상품이 없습니다." : "상품을 불러오는 중입니다."}
             rowKey={(row) => row.id}
             rows={products}
           />
         </div>
+        <Pagination onPageChange={setPage} page={page} pageSize={CAMPAIGN_PAGE_SIZE} totalPages={Math.max(1, pageData?.totalPages ?? 1)} />
       </div>
     </Modal>
   );
