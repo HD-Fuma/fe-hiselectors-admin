@@ -35,7 +35,7 @@ async function message(response: Response, fallback: string) {
 async function request<T>(path: string, init: RequestInit = {}, fallback = "요청에 실패했습니다."): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers: init.headers ?? headers() });
   if (!response.ok) throw new Error(await message(response, fallback));
-  return response.json() as Promise<T>;
+  return (await response.json() as { data: T }).data;
 }
 
 function query(values: Record<string, string | number | undefined>) {

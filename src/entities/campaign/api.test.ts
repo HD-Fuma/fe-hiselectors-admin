@@ -6,9 +6,10 @@ describe("campaign admin api", () => {
   });
 
   test("serializes list filters and sends the stored authorization", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ content: [], number: 0, size: 20, totalElements: 0, totalPages: 0 }), { status: 200 })));
+    const page = { content: [], number: 0, size: 20, totalElements: 0, totalPages: 0 };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, code: "OK", message: null, data: page }), { status: 200 })));
 
-    await getCampaigns({ keyword: "여름", status: "ACTIVE", startDate: "2026-08-01", endDate: "2026-08-31", page: 0, size: 20 });
+    await expect(getCampaigns({ keyword: "여름", status: "ACTIVE", startDate: "2026-08-01", endDate: "2026-08-31", page: 0, size: 20 })).resolves.toEqual(page);
 
     const [url, init] = vi.mocked(fetch).mock.calls[0];
     expect(String(url)).toContain("keyword=%EC%97%AC%EB%A6%84");
@@ -18,11 +19,12 @@ describe("campaign admin api", () => {
 
   test("posts the complete editor payload and accepts an empty delete response", async () => {
     const body = { title: "캠페인", description: "설명", startDate: "2026-08-01", endDate: "2026-08-31", thumbnailUrl: null, productIds: [1] };
+    const campaign = { id: 1, ...body, status: "ACTIVE", products: [], createdAt: "", updatedAt: "" };
     vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 1, ...body, status: "ACTIVE", products: [], createdAt: "", updatedAt: "" }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, code: "OK", message: null, data: campaign }), { status: 201 }))
       .mockResolvedValueOnce(new Response(null, { status: 204 })));
 
-    await createCampaign(body);
+    await expect(createCampaign(body)).resolves.toEqual(campaign);
     await deleteCampaign(1);
 
     expect(vi.mocked(fetch).mock.calls[0][1]).toMatchObject({ method: "POST", body: JSON.stringify(body) });

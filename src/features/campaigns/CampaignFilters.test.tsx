@@ -9,7 +9,7 @@ const campaign = {
 };
 
 function json(data: unknown, status = 200) {
-  return Promise.resolve(new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } }));
+  return Promise.resolve(new Response(JSON.stringify({ success: true, code: "OK", message: null, data }), { status, headers: { "Content-Type": "application/json" } }));
 }
 
 beforeEach(() => {
