@@ -1,4 +1,4 @@
-export { getAdminApplication, getAdminApplications } from "./api";
+export { getAdminApplication, getAdminApplications, updateAdminApplicationStatus } from "./api";
 export type {
   AdminApplicationDetail,
   AdminApplicationIdentity,

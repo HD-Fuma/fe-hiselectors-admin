@@ -1,4 +1,4 @@
-import { getAdminApplication, getAdminApplications } from "./api";
+import { getAdminApplication, getAdminApplications, updateAdminApplicationStatus } from "./api";
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify({
@@ -54,5 +54,21 @@ describe("application admin api", () => {
     await expect(getAdminApplication(7)).resolves.toEqual(detail);
     await expect(getAdminApplication(404)).rejects.toThrow("지원자를 찾을 수 없습니다.");
     expect(String(vi.mocked(fetch).mock.calls[0][0])).toMatch(/\/api\/admin\/applications\/7$/);
+  });
+
+  test("updates a pending application status", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ id: 7, status: "APPROVED" })));
+
+    await expect(updateAdminApplicationStatus(7, "APPROVED"))
+      .resolves.toEqual({ id: 7, status: "APPROVED" });
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toMatch(/\/api\/admin\/applications\/7\/status$/);
+    expect(init).toEqual(expect.objectContaining({
+      method: "PATCH",
+      body: JSON.stringify({ status: "APPROVED" }),
+    }));
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer admin.jwt");
+    expect(new Headers(init?.headers).get("Content-Type")).toBe("application/json");
   });
 });
