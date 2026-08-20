@@ -171,7 +171,7 @@ test("requests and renders the previous-month settlement page", async () => {
   renderRoute("/settlements");
 
   const results = await screen.findByRole("region", { name: "정산 지급 목록" });
-  expect(within(results).getByText("SEL-0007")).toBeInTheDocument();
+  expect(await within(results).findByText("SEL-0007")).toBeInTheDocument();
 
   const search = screen.getByRole("search", { name: "검색 조건" });
   expect(within(search).getByLabelText("활동월")).toHaveValue(previousMonth());
@@ -190,10 +190,10 @@ test("requests and renders the previous-month settlement page", async () => {
     "활동월",
     "셀렉터스코드",
     "셀렉터스명",
-    "정산 대상 건수",
+    "정산 건수",
     "매출 실적",
     "수수료율",
-    "예상 수수료",
+    "정산 수수료",
     "지급 상태",
   ]);
   expect(within(results).getByText("1,234")).toBeInTheDocument();
@@ -240,10 +240,10 @@ test("requests and renders the previous-month settlement page", async () => {
   expect(within(historyTable).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
     "순번",
     "활동월",
-    "정산 대상 건수",
+    "정산 건수",
     "매출 실적",
     "수수료율",
-    "예상 수수료",
+    "정산 수수료",
     "지급 상태",
   ]);
   expect(within(historyTable).getByText("1,234")).toBeInTheDocument();

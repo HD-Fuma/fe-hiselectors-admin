@@ -3123,15 +3123,48 @@
   grid-template-columns: 42px minmax(0, 1fr);
 }
 
-.fuma-creator-pool-search .hsas-search-panel__fields {
-  grid-template-columns: 300px 360px 190px;
-  column-gap: var(--hsas-space-20);
-  justify-content: start;
+.fuma-settlement-search.fuma-creator-pool-search .hsas-search-panel {
+  align-items: stretch;
+  gap: var(--hsas-space-20);
+  padding: var(--hsas-space-16);
+  border-color: var(--hsas-color-line-300);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px var(--hsas-color-shadow-soft);
 }
 
-.fuma-creator-pool-search .fuma-follower-range {
-  min-height: 34px;
-  grid-template-columns: 86px minmax(0, 1fr);
+.fuma-settlement-search.fuma-creator-pool-search .hsas-search-panel__fields {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--hsas-space-14) var(--hsas-space-16);
+  align-items: end;
+}
+
+.fuma-settlement-search.fuma-creator-pool-search .fuma-filter-field {
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  align-items: stretch;
+  gap: var(--hsas-space-6);
+  color: var(--hsas-color-ink-600);
+  font-size: var(--hsas-font-11);
+  font-weight: 600;
+}
+
+.fuma-creator-pool-search .fuma-filter-field:nth-child(1) {
+  grid-column: span 6;
+}
+
+.fuma-creator-pool-search .fuma-filter-field:nth-child(2),
+.fuma-creator-pool-search .fuma-filter-field:nth-child(3) {
+  grid-column: span 3;
+}
+
+.fuma-creator-pool-search .fuma-filter-field:nth-child(n + 4) {
+  grid-column: span 4;
+}
+
+.fuma-settlement-search.fuma-creator-pool-search .hsas-search-panel__actions {
+  align-items: flex-end;
+  padding-left: var(--hsas-space-20);
 }
 
 .fuma-applicant-search .hsas-search-panel__fields {

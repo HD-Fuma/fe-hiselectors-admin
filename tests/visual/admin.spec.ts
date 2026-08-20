@@ -127,7 +127,7 @@ async function expectControlAndDenseRowGeometry(page: Page) {
   expect(controlBox).not.toBeNull();
   expect(rowBox).not.toBeNull();
   expectApprox(controlBox!.height, 27, 3);
-  expectApprox(rowBox!.height, 27, 4);
+  expectApprox(rowBox!.height, 32, 4);
 }
 
 test("login visual checkpoint", async ({ page }, testInfo) => {
@@ -151,124 +151,30 @@ test("login visual checkpoint", async ({ page }, testInfo) => {
   await page.screenshot({ path: "test-results/visual/login.png" });
 });
 
-test("creators visual checkpoint at the legacy viewport", async ({ page }, testInfo) => {
+test("creators table visual checkpoint at the legacy viewport", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1310, height: 741 });
   await openCheckpoint(page, "/creators", testInfo);
 
   await expect(page.locator('[data-visual-contract="admin-shell"]')).toBeVisible();
   await expectAdminGeometry(page, 1310);
-  await expectPageHeaderTextBounds(page, "크리에이터 풀", "CR101");
-  const grid = page.locator('[data-visual-contract="creator-card-grid"]');
-  const cards = grid.locator(":scope > .fuma-creator-card");
-  await expect(grid).toBeVisible();
-  await expect(cards).toHaveCount(4);
-  expect(
-    await grid.evaluate(
-      (node) =>
-        getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length,
-    ),
-  ).toBe(3);
-  const tops = await cards.evaluateAll((nodes) =>
-    nodes.slice(0, 3).map((node) => node.getBoundingClientRect().top),
-  );
-  expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(1);
-  const boxes = await cards.evaluateAll((nodes) =>
-    nodes.map((node) => ({
-      width: node.getBoundingClientRect().width,
-      height: node.getBoundingClientRect().height,
-      scrollWidth: node.scrollWidth,
-      clientWidth: node.clientWidth,
-    })),
-  );
-  for (const box of boxes) {
-    expect(box.width).toBeGreaterThan(0);
-    expect(box.height).toBeGreaterThan(0);
-    expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth);
-  }
-  const firstCard = cards.first();
-  const tiles = firstCard.locator(".fuma-creator-media");
-  await expect(tiles).toHaveCount(3);
-  for (let index = 0; index < 3; index += 1) {
-    const box = await tiles.nth(index).boundingBox();
-    expect(box).not.toBeNull();
-    expectApprox(box!.width, box!.height, 1);
-  }
-
-  const [handleColor, metricLabelColor, keywordColor, toolbarSortColor] =
-    await Promise.all([
-      firstCard
-        .locator(".fuma-creator-card__channel")
-        .evaluate((node) => getComputedStyle(node).color),
-      firstCard
-        .locator(".fuma-creator-card__metric dt")
-        .first()
-        .evaluate((node) => getComputedStyle(node).color),
-      firstCard
-        .locator(".fuma-creator-card__keywords span")
-        .first()
-        .evaluate((node) => getComputedStyle(node).color),
-      page
-        .locator(".fuma-creator-toolbar__sort")
-        .evaluate((node) => getComputedStyle(node).color),
-    ]);
-  expect.soft(handleColor).toBe("rgb(89, 97, 102)");
-  expect.soft(metricLabelColor).toBe("rgb(120, 132, 126)");
-  expect.soft(keywordColor).toBe("rgb(93, 107, 101)");
-  expect.soft(toolbarSortColor).toBe("rgb(89, 97, 102)");
-
-  const primaryAction = firstCard.locator(".fuma-creator-card__action--primary");
-  const pressedView = page.locator(
-    '.fuma-creator-toolbar__view[aria-pressed="true"]',
-  );
-  const [primaryBackground, pressedViewBackground] = await Promise.all([
-    primaryAction.evaluate((node) => getComputedStyle(node).backgroundColor),
-    pressedView.evaluate((node) => getComputedStyle(node).backgroundColor),
-  ]);
-  expect.soft(primaryBackground).toBe("rgb(27, 128, 96)");
-  expect.soft(pressedViewBackground).toBe("rgb(15, 117, 98)");
-  await primaryAction.focus();
-  await expect(primaryAction).toBeFocused();
-  expect.soft(
-    await primaryAction.evaluate((node) => getComputedStyle(node).outlineColor),
-  ).toBe("rgb(15, 117, 98)");
-  await pressedView.focus();
-  await expect(pressedView).toBeFocused();
-  expect.soft(
-    await pressedView.evaluate((node) => getComputedStyle(node).outlineColor),
-  ).toBe("rgb(255, 255, 255)");
-  await expectKeyTextBounds(
-    page.getByRole("article", { name: "김서연 크리에이터 카드" }),
-    [
-      "김서연",
-      "@seo.yeon",
-      "#데일리룩",
-      "팔로워",
-      "ER",
-      "프로필",
-      "제안 작성",
-    ],
-  );
+  await expectKeyTextBounds(page.locator(".hsas-page-header"), ["크리에이터 풀"]);
+  const table = page.getByRole("region", { name: "크리에이터 목록" });
+  await expect(table).toBeVisible();
+  await expectKeyTextBounds(table, ["김서연", /@seo\.yeon/, "82,400", "4.25%", "14건"]);
+  await expect(page.getByRole("button", { name: "카드" })).toHaveCount(0);
+  await expectControlAndDenseRowGeometry(page);
   await page.screenshot({ path: "test-results/visual/creators.png" });
 });
 
-test("creators visual checkpoint at 1180 two-column viewport", async ({
+test("creators table remains usable at 1180", async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 1180, height: 900 });
   await openCheckpoint(page, "/creators", testInfo);
 
   await expect(page.locator('[data-visual-contract="admin-shell"]')).toBeVisible();
-  await expectPageHeaderTextBounds(page, "크리에이터 풀", "CR101");
-  const grid = page.locator('[data-visual-contract="creator-card-grid"]');
-  const cards = grid.locator(":scope > .fuma-creator-card");
-  await expect(grid).toBeVisible();
-  await expect(cards).toHaveCount(4);
-  expect(
-    await grid.evaluate(
-      (node) =>
-        getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length,
-    ),
-  ).toBe(2);
+  await expectKeyTextBounds(page.locator(".hsas-page-header"), ["크리에이터 풀"]);
+  await expect(page.getByRole("region", { name: "크리에이터 목록" })).toBeVisible();
   const viewport = page.viewportSize();
   const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(viewport).not.toBeNull();
@@ -286,12 +192,12 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
 
   await expect(page.locator('[data-visual-contract="admin-shell"]')).toBeVisible();
   await expectAdminGeometry(page, 1440);
-  await expectPageHeaderTextBounds(page, "크리에이터 풀", "CR101");
+  await expectKeyTextBounds(page.locator(".hsas-page-header"), ["크리에이터 풀"]);
   const sidebar = page.locator('[data-shell-part="sidebar"]');
   const navigation = sidebar.getByRole("navigation", { name: "관리자 메뉴" });
-  const activeLink = navigation.getByRole("link", { name: "크리에이터 목록" });
+  const activeLink = navigation.getByRole("link", { name: "크리에이터 풀" });
   const hoverLink = navigation.getByRole("link", { name: "제안 이력" });
-  await expect(activeLink).toHaveCSS("background-color", "rgb(22, 143, 120)");
+  await expect(activeLink).toHaveCSS("background-color", "rgb(30, 157, 139)");
   const activeState = await activeLink.evaluate((element) => ({
     fontWeight: Number.parseInt(getComputedStyle(element).fontWeight, 10),
     markerWidth: Number.parseFloat(getComputedStyle(element, "::before").width),
@@ -315,7 +221,7 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
   expect(activeFocusState.outlineWidth).toBeGreaterThanOrEqual(2);
   await hoverLink.focus();
   await expect(hoverLink).toBeFocused();
-  await expect(hoverLink).toHaveCSS("outline-color", "rgb(36, 159, 142)");
+  await expect(hoverLink).toHaveCSS("outline-color", "rgb(30, 157, 139)");
   const focusState = await hoverLink.evaluate((element) => {
     const styles = getComputedStyle(element);
     return {
@@ -334,7 +240,7 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
 
   await expectKeyTextBounds(sidebar, [
     "크리에이터",
-    "크리에이터 목록",
+    "크리에이터 풀",
     "제안 이력",
     "셀렉터스",
     "기수 관리",
@@ -347,53 +253,15 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
     "콘텐츠",
     "콘텐츠 검수",
     "성과",
-    "성과 대시보드",
-    "크리에이터 분석",
-    "콘텐츠 분석",
+    "셀렉터스 성과",
+    "콘텐츠 성과",
+    "캠페인 성과",
     "정산",
     "정산 관리",
   ]);
-  const grid = page.locator('[data-visual-contract="creator-card-grid"]');
-  const cards = grid.locator(":scope > .fuma-creator-card");
-  const firstCard = cards.first();
-  await expect
-    .poll(() =>
-      firstCard.evaluate((node) => Number.parseFloat(getComputedStyle(node).transitionDuration)),
-    )
-    .toBeLessThanOrEqual(0.001);
-  await firstCard.hover();
-  await expect
-    .poll(() => firstCard.evaluate((node) => getComputedStyle(node).transform))
-    .toBe("matrix(1, 0, 0, 1, 0, -4)");
-  await expect(grid).toBeVisible();
-  await expect(cards).toHaveCount(4);
-  expect(
-    await grid.evaluate(
-      (node) =>
-        getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length,
-    ),
-  ).toBe(3);
-  const tops = await cards.evaluateAll((nodes) =>
-    nodes.slice(0, 3).map((node) => node.getBoundingClientRect().top),
-  );
-  expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(4);
-  const boxes = await cards.evaluateAll((nodes) =>
-    nodes.map((node) => ({
-      width: node.getBoundingClientRect().width,
-      height: node.getBoundingClientRect().height,
-      scrollWidth: node.scrollWidth,
-      clientWidth: node.clientWidth,
-    })),
-  );
-  for (const box of boxes) {
-    expect(box.width).toBeGreaterThan(0);
-    expect(box.height).toBeGreaterThan(0);
-    expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth);
-  }
-  await expectKeyTextBounds(
-    page.getByRole("article", { name: "이지아 크리에이터 카드" }),
-    ["이지아", "@zia.trip", "Instagram", "#국내여행", "팔로워", "ER", "제안 작성"],
-  );
+  const table = page.getByRole("region", { name: "크리에이터 목록" });
+  await expect(table).toBeVisible();
+  await expectKeyTextBounds(table, ["김서연", /@seo\.yeon/, "Instagram", "뷰티", "14건"]);
   await page.screenshot({
     fullPage: true,
     path: "test-results/visual/creators-1440.png",
