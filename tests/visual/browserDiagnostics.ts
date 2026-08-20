@@ -34,7 +34,8 @@ async function installContextRoutes(
       await route.fulfill({ contentType: "text/css", body: "" });
       return;
     }
-    if (requestUrl.startsWith("http://localhost:8080/api/admin/creators?")) {
+    const url = new URL(requestUrl);
+    if (url.pathname === "/api/admin/creators") {
       await route.fulfill({
         contentType: "application/json",
         body: JSON.stringify({
@@ -60,7 +61,7 @@ async function installContextRoutes(
       });
       return;
     }
-    if (requestUrl === "http://localhost:8080/api/admin/categories") {
+    if (url.pathname === "/api/admin/categories") {
       await route.fulfill({
         contentType: "application/json",
         body: JSON.stringify({
@@ -125,7 +126,7 @@ export const test = base.extend<BrowserDiagnosticFixtures>({
       const recordRequestFailure = (request: Request) => {
         if (
           request.failure()?.errorText === "net::ERR_ABORTED" &&
-          request.url().startsWith("http://localhost:8080/api/admin/")
+          new URL(request.url()).pathname.startsWith("/api/admin/")
         ) return;
         diagnostics.requestFailures.push(
           `${request.method()} ${request.url()} ${request.failure()?.errorText ?? "unknown"}`,

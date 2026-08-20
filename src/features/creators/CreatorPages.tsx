@@ -70,8 +70,11 @@ function numericFilter(value: string) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
-function categoryLabel(code: string | null) {
-  return CREATOR_CATEGORY_OPTIONS.find((option) => option.value === code)?.label ?? code ?? "-";
+function categoryLabel(
+  code: string | null,
+  options: readonly { label: string; value: string }[],
+) {
+  return options.find((option) => option.value === code)?.label ?? code ?? "-";
 }
 
 function platformFor(code: CreatorSummary["snsCode"]): CreatorProfileFixture["platform"] {
@@ -79,9 +82,9 @@ function platformFor(code: CreatorSummary["snsCode"]): CreatorProfileFixture["pl
 }
 
 function CreatorAccountLink({ creator }: { creator: CreatorSummary }) {
-  const instagramUsername = (/^\d+$/.test(creator.accountId)
-    ? creator.creatorName
-    : creator.accountId)?.replace(/^@/, "");
+  const instagramUsername = /^\d+$/.test(creator.accountId)
+    ? null
+    : creator.accountId.replace(/^@/, "");
   const href = creator.snsCode === "YOUTUBE"
     ? `https://www.youtube.com/channel/${encodeURIComponent(creator.accountId)}`
     : instagramUsername
@@ -130,7 +133,10 @@ function proposalTone(
   return "neutral";
 }
 
-const CREATOR_COLUMNS: DenseTableColumn<CreatorSummary>[] = [
+function creatorColumns(
+  categoryOptions: readonly { label: string; value: string }[],
+): DenseTableColumn<CreatorSummary>[] {
+  return [
   { key: "id", header: "크리에이터 ID", width: 92, align: "center" },
   {
     key: "creatorName",
@@ -158,7 +164,7 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorSummary>[] = [
     header: "카테고리",
     width: 110,
     align: "center",
-    render: (creator) => categoryLabel(creator.category),
+    render: (creator) => categoryLabel(creator.category, categoryOptions),
   },
   {
     id: "followers",
@@ -192,7 +198,8 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorSummary>[] = [
     align: "center",
     render: (creator) => creator.lastContentAt?.slice(0, 10) ?? "-",
   },
-];
+  ];
+}
 
 export function CreatorListPage() {
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);
@@ -243,6 +250,13 @@ export function CreatorListPage() {
   }, [refreshCategoryOptions]);
 
   const applySearch = () => {
+    const minRecentActivity = numericFilter(filters.minRecent90DayContentCount);
+    if (filters.minRecent90DayContentCount.trim()
+      && (minRecentActivity === undefined || minRecentActivity > 25)) {
+      setError("최근 90일 최소 활동은 0~25 사이의 숫자로 입력해 주세요.");
+      return;
+    }
+    setError("");
     setAppliedFilters({ ...filters, keyword: filters.keyword.trim() });
     setPage(1);
   };
@@ -300,7 +314,7 @@ export function CreatorListPage() {
             <EmptyState description={error} title="목록을 불러오지 못했습니다" />
           ) : (
             <DenseTable
-              columns={CREATOR_COLUMNS}
+              columns={creatorColumns(categoryOptions)}
               emptyMessage={pageData ? "검색 결과가 없습니다." : "크리에이터를 불러오는 중입니다."}
               rowKey={(creator) => creator.id}
               rows={pageData?.content ?? []}

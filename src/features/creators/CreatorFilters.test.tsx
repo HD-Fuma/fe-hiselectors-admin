@@ -47,12 +47,28 @@ describe("creator filters", () => {
     followerCount: 830_000,
     engagementRate: 0.92,
     recent90DayContentCount: 25,
+    category: "SKINCARE",
+  };
+  const numericInstagramCreator = {
+    ...creator,
+    id: 115,
+    accountId: "17841400602400210",
+    creatorName: "숫자형 인스타 계정",
+    followerCount: 12_345,
+    engagementRate: 1.23,
+    recent90DayContentCount: 4,
   };
 
   function ok(totalPages = 1) {
     return new Response(JSON.stringify({
       success: true,
-      data: { content: [creator, youtubeCreator], totalElements: 2, totalPages, number: 0, size: 20 },
+      data: {
+        content: [creator, youtubeCreator, numericInstagramCreator],
+        totalElements: 3,
+        totalPages,
+        number: 0,
+        size: 20,
+      },
     }));
   }
 
@@ -87,11 +103,15 @@ describe("creator filters", () => {
     expect(within(table).getByText("4.25%")).toBeInTheDocument();
     expect(within(table).getByText("14건")).toBeInTheDocument();
     expect(within(table).getByText("25+건")).toBeInTheDocument();
+    expect(await within(table).findByText("스킨케어")).toBeInTheDocument();
     expect(within(table).getByRole("link", { name: "김서연 프로필 열기 (새 창)" }))
       .toHaveAttribute("href", "https://www.instagram.com/seo.yeon");
     expect(within(table).getByRole("link", { name: "Clevr TV 채널 열기 (새 창)" }))
       .toHaveAttribute("href", "https://www.youtube.com/channel/UCnMBn-PNx1M9TLF0s-sEDeQ");
     expect(within(table).queryByText("UCnMBn-PNx1M9TLF0s-sEDeQ")).not.toBeInTheDocument();
+    const numericInstagramRow = within(table).getByText("숫자형 인스타 계정").closest("tr");
+    expect(numericInstagramRow).not.toBeNull();
+    expect(within(numericInstagramRow!).queryByRole("link")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "카드" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "다음 페이지" }));
@@ -118,9 +138,17 @@ describe("creator filters", () => {
     await user.type(keyword, "seo");
     await user.type(followers, "100,000");
     await user.type(engagement, "2.5");
-    await user.type(activity, "3");
+    await user.type(activity, "26");
     await user.selectOptions(platform, "INSTAGRAM");
     await user.selectOptions(category, "TRAVEL");
+    await user.click(within(search).getByRole("button", { name: "조회" }));
+
+    expect(creatorRequests(fetchMock)).toHaveLength(1);
+    expect(screen.getByText("최근 90일 최소 활동은 0~25 사이의 숫자로 입력해 주세요."))
+      .toBeInTheDocument();
+
+    await user.clear(activity);
+    await user.type(activity, "3");
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
     await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(2));
