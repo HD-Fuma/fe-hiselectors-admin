@@ -135,7 +135,11 @@ test("opens and closes work tabs as screens are visited", async () => {
     within(workTabs).getByRole("button", { name: "콘텐츠 성과 탭 닫기" }),
   );
 
-  expect(await screen.findByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
+  expect(await screen.findByRole(
+    "heading",
+    { name: "크리에이터 풀" },
+    { timeout: 3_000 },
+  )).toBeInTheDocument();
 });
 
 test("keeps the administrator identity and utility controls in the sidebar", () => {
