@@ -1,6 +1,7 @@
 import {
   BadgeCheck,
   BarChart3,
+  Bell,
   ChevronDown,
   ClipboardList,
   FileSearch,
@@ -28,6 +29,7 @@ const GROUP_ICONS: Record<NavGroup, LucideIcon> = {
   content: FileSearch,
   performance: BarChart3,
   settlements: WalletCards,
+  notifications: Bell,
 };
 
 interface AdminSidebarProps {
