@@ -1,6 +1,5 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { COHORTS, QUALIFICATIONS } from "../../entities/selectors";
 import { renderRoute } from "../../test/renderRoute";
 
 function paginationSummary(page: number, count: number) {
@@ -20,6 +19,24 @@ const API_SELECTORS = Array.from({ length: 41 }, (_, index) => ({
   createdAt: "2026-08-01T00:00:00",
 }));
 
+const API_GENERATIONS = Array.from({ length: 41 }, (_, index) => ({
+  id: index + 1,
+  generationName: `${index + 1}기`,
+  startDate: `2026-01-01T00:00:00`,
+  endDate: `2026-01-31T23:59:59`,
+  status: "INACTIVE",
+}));
+
+const API_PENALTIES = Array.from({ length: 41 }, (_, index) => ({
+  selectorsId: index + 1,
+  selectorsCode: `SEL${String(index + 1).padStart(4, "0")}`,
+  selectorsNickname: `셀렉터${index + 1}`,
+  totalPenaltyCount: 3,
+  activePenaltyCount: 1,
+  blacklistTarget: true,
+  histories: [],
+}));
+
 function json(data: unknown) {
   return Promise.resolve(new Response(JSON.stringify({
     success: true,
@@ -32,7 +49,18 @@ function json(data: unknown) {
 test("selector, cohort, and qualification filters reset data and page bounds", async () => {
   vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
     const url = new URL(String(input));
-    if (url.pathname.endsWith("/generations")) return json([]);
+    if (url.pathname.endsWith("/generations")) return json(API_GENERATIONS);
+    if (url.pathname.endsWith("/penalties")) {
+      const matching = url.searchParams.has("generationId") ? API_PENALTIES.slice(0, 1) : API_PENALTIES;
+      const page = Number(url.searchParams.get("page") ?? 0);
+      return json({
+        content: matching.slice(page * 20, page * 20 + 20),
+        number: page,
+        size: 20,
+        totalElements: matching.length,
+        totalPages: Math.ceil(matching.length / 20),
+      });
+    }
     const nickname = url.searchParams.get("nickname");
     const matching = nickname
       ? API_SELECTORS.filter((selector) => selector.nickname.includes(nickname))
@@ -70,23 +98,21 @@ test("selector, cohort, and qualification filters reset data and page bounds", a
   const cohortSearch = await screen.findByRole("search", { name: "검색 조건" });
   await user.type(
     within(cohortSearch).getByRole("textbox", { name: "기수명" }),
-    COHORTS[0].name,
+    API_GENERATIONS[40].generationName,
   );
   await user.click(within(cohortSearch).getByRole("button", { name: "조회" }));
-  expect(screen.getByText("총 1건")).toBeInTheDocument();
+  expect(await screen.findByText("총 1건")).toBeInTheDocument();
   await user.click(within(cohortSearch).getByRole("button", { name: "초기화" }));
-  expect(screen.getByText(paginationSummary(1, COHORTS.length))).toBeInTheDocument();
+  expect(await screen.findByText(paginationSummary(1, API_GENERATIONS.length))).toBeInTheDocument();
   cohortView.unmount();
 
   renderRoute("/selectors/qualifications");
   const qualificationSearch = await screen.findByRole("search", { name: "검색 조건" });
-  await user.type(
-    within(qualificationSearch).getByRole("textbox", { name: "이름 / ID" }),
-    QUALIFICATIONS[0].selectorId,
-  );
+  await within(qualificationSearch).findByRole("option", { name: "1기" });
+  await user.selectOptions(within(qualificationSearch).getByRole("combobox", { name: "기수" }), "1");
   await user.click(within(qualificationSearch).getByRole("button", { name: "조회" }));
-  expect(screen.getByText("총 1건")).toBeInTheDocument();
+  expect(await screen.findByText("총 1건")).toBeInTheDocument();
   await user.click(within(qualificationSearch).getByRole("button", { name: "초기화" }));
-  expect(screen.getByText(paginationSummary(1, QUALIFICATIONS.length))).toBeInTheDocument();
+  expect(await screen.findByText(paginationSummary(1, API_PENALTIES.length))).toBeInTheDocument();
   vi.unstubAllGlobals();
 });

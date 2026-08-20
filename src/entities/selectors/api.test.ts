@@ -1,4 +1,12 @@
-import { getSelector, getSelectorFilterGenerations, getSelectors } from "./api";
+import {
+  createGeneration,
+  getSelector,
+  getSelectorFilterGenerations,
+  getSelectorPenalties,
+  getSelectors,
+  updateGeneration,
+  updateGenerationStatus,
+} from "./api";
 
 function json(data: unknown) {
   return new Response(JSON.stringify({ success: true, code: "OK", message: null, data }), {
@@ -35,7 +43,7 @@ describe("selector admin api", () => {
   });
 
   test("loads selector detail and filter generations", async () => {
-    const detail = { id: 7, nickname: "셀렉터", generations: [], snsAccounts: [] };
+    const detail = { id: 7, nickname: "셀렉터", generations: [], snsAccount: null };
     const generations = [{ id: 3, generationName: "3기" }];
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce(json(detail))
@@ -45,6 +53,47 @@ describe("selector admin api", () => {
     await expect(getSelectorFilterGenerations()).resolves.toEqual(generations);
     expect(String(vi.mocked(fetch).mock.calls[0][0])).toMatch(/\/api\/admin\/selectors\/7$/);
     expect(String(vi.mocked(fetch).mock.calls[1][0])).toMatch(/\/api\/admin\/generations$/);
+  });
+
+  test("sends generation mutations and blacklist pagination", async () => {
+    const generation = {
+      id: 3,
+      generationName: "3기",
+      startDate: "2026-07-01T00:00:00",
+      endDate: "2026-08-31T23:59:59",
+      status: "INACTIVE",
+    };
+    const saveRequest = {
+      generationName: "3기",
+      startDate: "2026-07-01T00:00:00",
+      endDate: "2026-08-31T23:59:59",
+    };
+    const penaltyPage = { content: [], number: 1, size: 20, totalElements: 0, totalPages: 2 };
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(json(generation))
+      .mockResolvedValueOnce(json(generation))
+      .mockResolvedValueOnce(json({ ...generation, status: "ACTIVE" }))
+      .mockResolvedValueOnce(json(penaltyPage)));
+
+    await createGeneration(saveRequest);
+    await updateGeneration(3, saveRequest);
+    await updateGenerationStatus(3, "ACTIVE");
+    await expect(getSelectorPenalties({ generationId: 3, page: 1, size: 20 }))
+      .resolves.toEqual(penaltyPage);
+
+    expect(vi.mocked(fetch).mock.calls[0][1]).toMatchObject({
+      method: "POST",
+      body: JSON.stringify(saveRequest),
+    });
+    expect(new Headers(vi.mocked(fetch).mock.calls[0][1]?.headers).get("Content-Type"))
+      .toBe("application/json");
+    expect(vi.mocked(fetch).mock.calls[1][1]).toMatchObject({ method: "PATCH" });
+    expect(vi.mocked(fetch).mock.calls[2][1]).toMatchObject({
+      method: "PATCH",
+      body: JSON.stringify({ status: "ACTIVE" }),
+    });
+    expect(String(vi.mocked(fetch).mock.calls[3][0]))
+      .toMatch(/generationId=3.*page=1.*size=20.*blacklistOnly=true/);
   });
 
   test("uses the backend error message", async () => {
