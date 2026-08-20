@@ -1,4 +1,5 @@
-import { SegmentedControl } from "../../components/ui/Controls";
+import { Settings2 } from "lucide-react";
+import { Button, SegmentedControl } from "../../components/ui/Controls";
 import { SelectionModeButton } from "../../components/ui/SelectionModeButton";
 
 export type CreatorPoolView = "cards" | "list";
@@ -8,6 +9,7 @@ export function CreatorResultToolbar({
   selectedCount = 0,
   selectionMode = false,
   onBatchProposal = () => undefined,
+  onOpenDiscoverySettings = () => undefined,
   onSelectionModeChange = () => undefined,
   onViewChange,
   view,
@@ -16,6 +18,7 @@ export function CreatorResultToolbar({
   selectedCount?: number;
   selectionMode?: boolean;
   onBatchProposal?: () => void;
+  onOpenDiscoverySettings?: () => void;
   onSelectionModeChange?: () => void;
   onViewChange: (view: CreatorPoolView) => void;
   view: CreatorPoolView;
@@ -27,6 +30,10 @@ export function CreatorResultToolbar({
         <span>{selectionMode ? `${selectedCount}/${count}명` : `총 ${count}건`}</span>
       </div>
       <div className="fuma-creator-toolbar__controls">
+        <Button aria-haspopup="dialog" className="fuma-creator-toolbar__settings" onClick={onOpenDiscoverySettings}>
+          <Settings2 aria-hidden="true" size={14} />
+          발굴 설정
+        </Button>
         <SelectionModeButton active={selectionMode} onClick={onSelectionModeChange} />
         {selectionMode ? (
           <button className="fuma-creator-toolbar__proposal" disabled={selectedCount === 0} onClick={onBatchProposal} type="button">
