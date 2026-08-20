@@ -12,8 +12,10 @@ import type {
 import { getSelectorDetailData, type SelectorSocialLink } from "../model/detailData";
 import type { SelectorFixture } from "../model/fixtures";
 import type {
+  SelectorContent,
   SelectorDetail,
   SelectorGeneration,
+  SelectorPerformance,
   SelectorSnsAccount,
   SelectorSnsCode,
 } from "../api";
@@ -223,8 +225,45 @@ const GENERATION_COLUMNS: DenseTableColumn<SelectorGeneration>[] = [
   { key: "joinedAt", header: "참여 등록일", width: 145, align: "center", render: (generation) => displayDateTime(generation.joinedAt) },
 ];
 
+const PERFORMANCE_COLUMNS: DenseTableColumn<SelectorPerformance>[] = [
+  { key: "contentCount", header: "콘텐츠", align: "right", render: (performance) => displayCount(performance.contentCount) },
+  { key: "totalViewCount", header: "누적 조회", align: "right", render: (performance) => displayNumber(performance.totalViewCount) },
+  { key: "totalLikeCount", header: "누적 좋아요", align: "right", render: (performance) => displayNumber(performance.totalLikeCount) },
+  { key: "totalCommentCount", header: "누적 댓글", align: "right", render: (performance) => displayNumber(performance.totalCommentCount) },
+];
+
+const CONTENT_COLUMNS: DenseTableColumn<SelectorContent>[] = [
+  {
+    key: "snsCode",
+    header: "플랫폼",
+    width: 105,
+    align: "center",
+    render: (content) => {
+      const platform = apiPlatform(content.snsCode);
+      return platform ? (
+        <span className="fuma-platform-label">
+          <PlatformIcon platform={platform} />
+          <span aria-hidden="true">{platform}</span>
+        </span>
+      ) : "-";
+    },
+  },
+  { key: "contentType", header: "유형", width: 90, align: "center", render: (content) => displayText(content.contentType) },
+  {
+    key: "contentUrl",
+    header: "콘텐츠",
+    render: (content) => content.contentUrl
+      ? <a href={content.contentUrl} rel="noreferrer" target="_blank">보기 ↗</a>
+      : "-",
+  },
+  { key: "createdAt", header: "등록일", width: 135, align: "center", render: (content) => displayDateTime(content.createdAt) },
+  { key: "viewCount", header: "조회", width: 78, align: "right", render: (content) => displayNumber(content.viewCount) },
+  { key: "likeCount", header: "좋아요", width: 78, align: "right", render: (content) => displayNumber(content.likeCount) },
+  { key: "commentCount", header: "댓글", width: 78, align: "right", render: (content) => displayNumber(content.commentCount) },
+];
+
 function SelectorApiDetailContent({ detail }: { detail: SelectorDetail }) {
-  const primaryAccount = detail.snsAccounts[0];
+  const primaryAccount = detail.snsAccount;
   const platform = apiPlatform(primaryAccount?.snsCode ?? null);
   const latestGeneration = detail.generations[0];
 
@@ -268,25 +307,61 @@ function SelectorApiDetailContent({ detail }: { detail: SelectorDetail }) {
           </p>
           <dl className="fuma-creator-detail-hero__metrics">
             <div><dt>대표 SNS 팔로워</dt><dd>{displayNumber(primaryAccount?.followerCount)}</dd></div>
-            <div><dt>SNS 계정</dt><dd>{displayCount(detail.snsAccounts.length)}</dd></div>
-            <div><dt>참여 기수</dt><dd>{displayCount(detail.generations.length)}</dd></div>
-            <div><dt>최근 수정</dt><dd>{displayDateTime(detail.updatedAt)}</dd></div>
+            <div><dt>누적 패널티</dt><dd>{displayCount(detail.totalPenaltyCount)}</dd></div>
+            <div><dt>활성 패널티</dt><dd>{displayCount(detail.activePenaltyCount)}</dd></div>
+            <div>
+              <dt>블랙리스트</dt>
+              <dd>
+                <StatusPill tone={detail.blacklistTarget ? "rejected" : "neutral"}>
+                  {detail.blacklistTarget ? "대상" : "비대상"}
+                </StatusPill>
+              </dd>
+            </div>
           </dl>
         </div>
       </section>
 
       <div className="fuma-selector-detail-columns">
+        <section aria-labelledby="selector-performance-title" className="fuma-content-section fuma-selector-detail-section">
+          <header className="fuma-content-section__header">
+            <h3 id="selector-performance-title">간략 성과</h3>
+            <span>누적 기준</span>
+          </header>
+          <div aria-label="셀렉터스 성과" className="fuma-wide-table fuma-settlement-table" role="region">
+            <DenseTable
+              columns={PERFORMANCE_COLUMNS}
+              rowKey={() => detail.id}
+              rows={[detail.performance]}
+            />
+          </div>
+        </section>
+
+        <section aria-labelledby="selector-api-contents-title" className="fuma-content-section fuma-selector-detail-section">
+          <header className="fuma-content-section__header">
+            <h3 id="selector-api-contents-title">등록 콘텐츠</h3>
+            <span>총 {detail.performance.contentCount}건</span>
+          </header>
+          <div aria-label="셀렉터스 콘텐츠" className="fuma-wide-table fuma-settlement-table" role="region">
+            <DenseTable
+              columns={CONTENT_COLUMNS}
+              emptyMessage="등록된 콘텐츠가 없습니다."
+              rowKey={(content) => content.id}
+              rows={detail.contents}
+            />
+          </div>
+        </section>
+
         <section aria-labelledby="selector-sns-accounts-title" className="fuma-content-section fuma-selector-detail-section">
           <header className="fuma-content-section__header">
             <h3 id="selector-sns-accounts-title">SNS 계정</h3>
-            <span>총 {detail.snsAccounts.length}건</span>
+            <span>총 {primaryAccount ? 1 : 0}건</span>
           </header>
           <div aria-label="셀렉터스 SNS 계정" className="fuma-wide-table fuma-settlement-table" role="region">
             <DenseTable
               columns={SNS_ACCOUNT_COLUMNS}
               emptyMessage="연결된 SNS 계정이 없습니다."
               rowKey={(account) => account.id}
-              rows={detail.snsAccounts}
+              rows={primaryAccount ? [primaryAccount] : []}
             />
           </div>
         </section>

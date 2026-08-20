@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
@@ -16,12 +16,20 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import {
+  createGeneration,
+  getGenerations,
   getSelector,
   getSelectorFilterGenerations,
+  getSelectorPenalties,
   getSelectors,
   SelectorDetailPanel,
+  updateGeneration,
+  updateGenerationStatus,
+  type Generation,
+  type GenerationStatus,
   type SelectorDetail,
   type SelectorFilterGeneration,
+  type SelectorPenalty,
   type SelectorSnsCode,
   type SelectorSummary,
   type SpringPage,
@@ -29,26 +37,17 @@ import {
 import { formatNumber, formatWon } from "../../lib/formatters";
 import { paginate } from "../../lib/pagination";
 import {
-  COHORTS,
-  QUALIFICATIONS,
   SELECTORS,
-  type CohortFixture,
-  type QualificationFixture,
-  type SelectorFixture,
 } from "../../entities/selectors";
 
-const COHORT_STATUS_CATEGORIES: CohortFixture["status"][] = ["활성", "비활성"];
+const COHORT_STATUS_CATEGORIES = [
+  { label: "활성", value: "ACTIVE" },
+  { label: "비활성", value: "INACTIVE" },
+] as const;
 const SELECTOR_SNS_OPTIONS = [
   { label: "전체", value: "" },
   { label: "Instagram", value: "INSTAGRAM" },
   { label: "YouTube", value: "YOUTUBE" },
-];
-const QUALIFICATION_COHORT_OPTIONS = [
-  { label: "전체", value: "" },
-  ...Array.from(new Set(QUALIFICATIONS.map((qualification) => qualification.cohort))).map((cohort) => ({
-    label: cohort,
-    value: cohort,
-  })),
 ];
 const SELECTOR_STATUS_CATEGORIES = [
   { label: "활동중", value: "ACTIVE" },
@@ -56,12 +55,16 @@ const SELECTOR_STATUS_CATEGORIES = [
   { label: "블랙리스트", value: "BLACKLIST" },
 ];
 function cohortStatusTone(
-  status: CohortFixture["status"],
+  status: GenerationStatus,
 ): NonNullable<StatusPillProps["tone"]> {
-  if (status === "활성") {
+  if (status === "ACTIVE") {
     return "approved";
   }
   return "neutral";
+}
+
+function cohortStatusLabel(status: GenerationStatus) {
+  return status === "ACTIVE" ? "활성" : "비활성";
 }
 
 function selectorListStatusTone(
@@ -72,74 +75,78 @@ function selectorListStatusTone(
   return "neutral";
 }
 
-function calculateCohortStatus(
-  startDate: string,
-  endDate: string,
-): CohortFixture["status"] {
-  const now = new Date();
-  const today = [
-    now.getFullYear(),
-    String(now.getMonth() + 1).padStart(2, "0"),
-    String(now.getDate()).padStart(2, "0"),
-  ].join("-");
-
-  return startDate <= today && today <= endDate ? "활성" : "비활성";
-}
-
-const COHORT_COLUMNS: DenseTableColumn<CohortFixture>[] = [
-  { key: "generationId", header: "기수 ID", width: 86, align: "center" },
-  { key: "name", header: "기수명", width: 110, align: "center" },
-  { key: "startDate", header: "기수 시작일", width: 130, align: "center" },
-  { key: "endDate", header: "기수 종료일", width: 130, align: "center" },
+const COHORT_COLUMNS: DenseTableColumn<Generation>[] = [
+  { key: "id", header: "기수 ID", width: 86, align: "center" },
+  { key: "generationName", header: "기수명", width: 110, align: "center" },
+  { key: "startDate", header: "기수 시작일", width: 130, align: "center", render: (cohort) => cohort.startDate.slice(0, 10) },
+  { key: "endDate", header: "기수 종료일", width: 130, align: "center", render: (cohort) => cohort.endDate.slice(0, 10) },
   {
     key: "status",
     header: "기수 상태",
     width: 100,
     align: "center",
     render: (cohort) => (
-      <StatusPill tone={cohortStatusTone(cohort.status)}>{cohort.status}</StatusPill>
+      <StatusPill tone={cohortStatusTone(cohort.status)}>{cohortStatusLabel(cohort.status)}</StatusPill>
     ),
-  },
-  {
-    key: "participantCount",
-    header: "참여자 수",
-    width: 90,
-    align: "center",
-    render: (cohort) => formatNumber(cohort.participantCount),
   },
 ];
 
 const COHORT_PAGE_SIZE = 20;
 
-const COHORT_SELECTOR_COLUMNS: DenseTableColumn<SelectorFixture>[] = [
-  { key: "id", header: "셀렉터스 ID", width: 110 },
-  { key: "name", header: "이름", width: 110 },
-  { key: "sns", header: "SNS 채널", width: 220 },
-];
+function sortGenerations(generations: Generation[]) {
+  return [...generations].sort((left, right) => (
+    right.startDate.localeCompare(left.startDate) || right.id - left.id
+  ));
+}
 
 export function CohortManagementPage() {
-  const [cohorts, setCohorts] = useState<CohortFixture[]>(() => [...COHORTS]);
+  const [cohorts, setCohorts] = useState<Generation[]>([]);
   const [keyword, setKeyword] = useState("");
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
   const [appliedPeriodStart, setAppliedPeriodStart] = useState("");
   const [appliedPeriodEnd, setAppliedPeriodEnd] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<CohortFixture["status"] | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<GenerationStatus | null>(null);
   const [page, setPage] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [detailCohort, setDetailCohort] = useState<CohortFixture | null>(null);
-  const [editingCohort, setEditingCohort] = useState<CohortFixture | null>(null);
+  const [detailCohort, setDetailCohort] = useState<Generation | null>(null);
+  const [editingCohort, setEditingCohort] = useState<Generation | null>(null);
+  const [isCohortLoading, setIsCohortLoading] = useState(true);
+  const [listError, setListError] = useState("");
+  const [formError, setFormError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const cohortRevisionRef = useRef(0);
+  const overlayRevisionRef = useRef(0);
   const [newCohort, setNewCohort] = useState({
-    generationId: 61,
-    activityEnd: "2027-03-31",
-    activityStart: "2027-01-01",
-    name: "테스트기수61",
+    endDate: "",
+    generationName: "",
+    startDate: "",
   });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const revision = cohortRevisionRef.current;
+    getGenerations(controller.signal).then((result) => {
+      if (controller.signal.aborted || cohortRevisionRef.current !== revision) return;
+      setCohorts(sortGenerations(result));
+      setListError("");
+    }).catch((reason: unknown) => {
+      if (!controller.signal.aborted && cohortRevisionRef.current === revision) {
+        setListError(reason instanceof Error ? reason.message : "기수 목록 조회에 실패했습니다.");
+      }
+    }).finally(() => {
+      if (!controller.signal.aborted && cohortRevisionRef.current === revision) {
+        setIsCohortLoading(false);
+      }
+    });
+    return () => controller.abort();
+  }, []);
+
   const filteredCohorts = cohorts.filter((cohort) => (
-    (!appliedKeyword || cohort.name.toLowerCase().includes(appliedKeyword.toLowerCase()))
-    && (!appliedPeriodStart || cohort.endDate >= appliedPeriodStart)
-    && (!appliedPeriodEnd || cohort.startDate <= appliedPeriodEnd)
+    (!appliedKeyword || cohort.generationName.toLowerCase().includes(appliedKeyword.toLowerCase()))
+    && (!appliedPeriodStart || cohort.endDate.slice(0, 10) >= appliedPeriodStart)
+    && (!appliedPeriodEnd || cohort.startDate.slice(0, 10) <= appliedPeriodEnd)
     && (!selectedStatus || cohort.status === selectedStatus)
   ));
   const {
@@ -147,10 +154,6 @@ export function CohortManagementPage() {
     pagedItems: pagedCohorts,
     totalPages,
   } = paginate(filteredCohorts, page, COHORT_PAGE_SIZE);
-  const cohortSelectors = detailCohort
-    ? SELECTORS.filter((selector) => selector.cohort === detailCohort.name)
-    : [];
-
   const resetFilters = () => {
     setKeyword("");
     setPeriodStart("");
@@ -170,51 +173,123 @@ export function CohortManagementPage() {
   };
 
   const openCreateModal = () => {
-    const nextGenerationId = Math.max(...cohorts.map((cohort) => cohort.generationId)) + 1;
-    setNewCohort((current) => ({
-      ...current,
-      generationId: nextGenerationId,
-      name: `테스트기수${nextGenerationId}`,
-    }));
+    overlayRevisionRef.current += 1;
+    setNewCohort({ endDate: "", generationName: "", startDate: "" });
+    setFormError("");
     setIsCreateOpen(true);
   };
 
-  const createCohort = () => {
-    const name = newCohort.name.trim();
-    if (!name) return;
-
-    setCohorts((current) => [
-      {
-        endDate: newCohort.activityEnd,
-        generationId: newCohort.generationId,
-        id: `cohort-${String(newCohort.generationId).padStart(3, "0")}`,
-        name,
-        participantCount: 0,
-        startDate: newCohort.activityStart,
-        status: calculateCohortStatus(newCohort.activityStart, newCohort.activityEnd),
-      },
-      ...current,
-    ]);
-    setPage(1);
-    resetFilters();
+  const closeCreateModal = () => {
+    overlayRevisionRef.current += 1;
     setIsCreateOpen(false);
+    setFormError("");
   };
 
-  const saveCohort = () => {
-    if (!editingCohort || !editingCohort.name.trim()) return;
-
-    const updatedCohort: CohortFixture = {
-      ...editingCohort,
-      name: editingCohort.name.trim(),
-      status: calculateCohortStatus(editingCohort.startDate, editingCohort.endDate),
-    };
-    setCohorts((current) => current.map((cohort) => (
-      cohort.id === editingCohort.id
-        ? updatedCohort
-        : cohort
-    )));
-    setDetailCohort(updatedCohort);
+  const closeCohortDetail = () => {
+    overlayRevisionRef.current += 1;
     setEditingCohort(null);
+    setDetailCohort(null);
+    setFormError("");
+  };
+
+  const createCohort = async () => {
+    const generationName = newCohort.generationName.trim();
+    if (!generationName || !newCohort.startDate || !newCohort.endDate) {
+      setFormError("기수명과 기간을 모두 입력해 주세요.");
+      return;
+    }
+    if (newCohort.startDate > newCohort.endDate) {
+      setFormError("종료일은 시작일보다 빠를 수 없습니다.");
+      return;
+    }
+
+    const overlayRevision = overlayRevisionRef.current;
+    cohortRevisionRef.current += 1;
+    setIsCohortLoading(false);
+    setIsSaving(true);
+    setFormError("");
+    try {
+      const created = await createGeneration({
+        generationName,
+        startDate: `${newCohort.startDate}T00:00:00`,
+        endDate: `${newCohort.endDate}T23:59:59`,
+      });
+      setCohorts((current) => sortGenerations([...current, created]));
+      if (overlayRevisionRef.current === overlayRevision) {
+        resetFilters();
+        setIsCreateOpen(false);
+      }
+    } catch (reason: unknown) {
+      if (overlayRevisionRef.current === overlayRevision) {
+        setFormError(reason instanceof Error ? reason.message : "기수 생성에 실패했습니다.");
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveCohort = async () => {
+    if (!editingCohort) return;
+    const generationName = editingCohort.generationName.trim();
+    if (!generationName || !editingCohort.startDate || !editingCohort.endDate) {
+      setFormError("기수명과 기간을 모두 입력해 주세요.");
+      return;
+    }
+    if (editingCohort.startDate > editingCohort.endDate) {
+      setFormError("종료일은 시작일보다 빠를 수 없습니다.");
+      return;
+    }
+
+    const overlayRevision = overlayRevisionRef.current;
+    cohortRevisionRef.current += 1;
+    setIsSaving(true);
+    setFormError("");
+    try {
+      const updated = await updateGeneration(editingCohort.id, {
+        generationName,
+        startDate: `${editingCohort.startDate.slice(0, 10)}T00:00:00`,
+        endDate: `${editingCohort.endDate.slice(0, 10)}T23:59:59`,
+      });
+      setCohorts((current) => sortGenerations(current.map((cohort) => (
+        cohort.id === updated.id ? updated : cohort
+      ))));
+      if (overlayRevisionRef.current === overlayRevision) {
+        setDetailCohort(updated);
+        setEditingCohort(null);
+      }
+    } catch (reason: unknown) {
+      if (overlayRevisionRef.current === overlayRevision) {
+        setFormError(reason instanceof Error ? reason.message : "기수 수정에 실패했습니다.");
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const toggleCohortStatus = async () => {
+    if (!detailCohort) return;
+    const overlayRevision = overlayRevisionRef.current;
+    cohortRevisionRef.current += 1;
+    setIsSaving(true);
+    setFormError("");
+    try {
+      const updated = await updateGenerationStatus(
+        detailCohort.id,
+        detailCohort.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+      );
+      setCohorts((current) => sortGenerations(current.map((cohort) => (
+        cohort.id === updated.id ? updated : cohort
+      ))));
+      if (overlayRevisionRef.current === overlayRevision) {
+        setDetailCohort(updated);
+      }
+    } catch (reason: unknown) {
+      if (overlayRevisionRef.current === overlayRevision) {
+        setFormError(reason instanceof Error ? reason.message : "기수 상태 변경에 실패했습니다.");
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -250,7 +325,7 @@ export function CohortManagementPage() {
           </SearchPanel>
         </div>
         <ChoiceTabs
-          actions={<Button onClick={openCreateModal} variant="primary">기수 생성</Button>}
+          actions={<Button disabled={isCohortLoading || isSaving} onClick={openCreateModal} variant="primary">기수 생성</Button>}
           ariaLabel="기수 상태"
           className="fuma-list-action-toolbar"
           emptyOption={{
@@ -273,76 +348,94 @@ export function CohortManagementPage() {
           title="기수 목록"
         />
         <div aria-label="기수 목록" className="fuma-wide-table" role="region">
-          <DenseTable
-            columns={COHORT_COLUMNS}
-            onRowClick={setDetailCohort}
-            rowKey={(cohort) => cohort.id}
-            rows={pagedCohorts}
-          />
+          {listError ? (
+            <div role="alert"><EmptyState description={listError} title="목록을 불러오지 못했습니다" /></div>
+          ) : (
+            <DenseTable
+              columns={COHORT_COLUMNS}
+              emptyMessage={isCohortLoading
+                ? <span aria-live="polite" role="status">기수를 불러오는 중입니다.</span>
+                : "조회된 기수가 없습니다."}
+              onRowClick={(cohort) => {
+                overlayRevisionRef.current += 1;
+                setDetailCohort(cohort);
+                setFormError("");
+              }}
+              rowKey={(cohort) => cohort.id}
+              rows={pagedCohorts}
+            />
+          )}
         </div>
         <Pagination
-          onPageChange={setPage}
+          onPageChange={!isCohortLoading && !listError ? setPage : undefined}
           page={currentPage}
           pageSize={COHORT_PAGE_SIZE}
           totalPages={totalPages}
         />
       </div>
       <Modal
-        actions={<><Button onClick={() => setIsCreateOpen(false)}>취소</Button><Button onClick={createCohort} variant="primary">생성</Button></>}
+        actions={<><Button disabled={isSaving} onClick={closeCreateModal}>취소</Button><Button disabled={isSaving} onClick={createCohort} variant="primary">생성</Button></>}
+        onClose={closeCreateModal}
         open={isCreateOpen}
         title="새 기수 생성"
       >
         <div className="fuma-cohort-create-form">
-          <FormRow label="기수 ID"><TextInput aria-label="기수 ID" readOnly value={newCohort.generationId} /></FormRow>
-          <FormRow label="기수명" required><TextInput aria-label="기수명" onChange={(event) => setNewCohort((current) => ({ ...current, name: event.target.value }))} value={newCohort.name} /></FormRow>
-          <FormRow label="기수 시작일" required><TextInput aria-label="기수 시작일" onChange={(event) => setNewCohort((current) => ({ ...current, activityStart: event.target.value }))} type="date" value={newCohort.activityStart} /></FormRow>
-          <FormRow label="기수 종료일" required><TextInput aria-label="기수 종료일" onChange={(event) => setNewCohort((current) => ({ ...current, activityEnd: event.target.value }))} type="date" value={newCohort.activityEnd} /></FormRow>
+          <FormRow label="기수명" required><TextInput aria-label="기수명" maxLength={30} onChange={(event) => setNewCohort((current) => ({ ...current, generationName: event.target.value }))} required value={newCohort.generationName} /></FormRow>
+          <FormRow label="기수 시작일" required><TextInput aria-label="기수 시작일" max={newCohort.endDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, startDate: event.target.value }))} required type="date" value={newCohort.startDate} /></FormRow>
+          <FormRow label="기수 종료일" required><TextInput aria-label="기수 종료일" min={newCohort.startDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, endDate: event.target.value }))} required type="date" value={newCohort.endDate} /></FormRow>
         </div>
+        {formError ? <p role="alert">{formError}</p> : null}
       </Modal>
       {detailCohort ? (
         <SidePanel
           actions={editingCohort ? (
             <>
-              <Button onClick={() => setEditingCohort(null)}>취소</Button>
-              <Button onClick={saveCohort} variant="primary">저장</Button>
+              <Button disabled={isSaving} onClick={() => {
+                overlayRevisionRef.current += 1;
+                setEditingCohort(null);
+                setFormError("");
+              }}>취소</Button>
+              <Button disabled={isSaving} onClick={saveCohort} variant="primary">저장</Button>
             </>
           ) : (
-            <Button onClick={() => setEditingCohort({ ...detailCohort })} variant="primary">
-              수정
-            </Button>
+            <>
+              <Button disabled={isSaving} onClick={toggleCohortStatus}>
+                {detailCohort.status === "ACTIVE" ? "비활성화" : "활성화"}
+              </Button>
+              <Button disabled={isSaving} onClick={() => {
+                overlayRevisionRef.current += 1;
+                setEditingCohort({
+                  ...detailCohort,
+                  startDate: detailCohort.startDate.slice(0, 10),
+                  endDate: detailCohort.endDate.slice(0, 10),
+                });
+                setFormError("");
+              }} variant="primary">
+                수정
+              </Button>
+            </>
           )}
-          onClose={() => {
-            setEditingCohort(null);
-            setDetailCohort(null);
-          }}
-          title={editingCohort ? `${detailCohort.name} 수정` : `${detailCohort.name} 상세`}
+          onClose={closeCohortDetail}
+          title={editingCohort ? `${detailCohort.generationName} 수정` : `${detailCohort.generationName} 상세`}
         >
           <div className="fuma-detail-panel__content fuma-cohort-detail-panel">
             <div className="fuma-cohort-detail">
               {editingCohort ? (
                 <section aria-label="기수 정보 수정" className="fuma-cohort-detail__edit">
-                  <FormRow label="기수 ID"><TextInput aria-label="기수 ID" readOnly value={editingCohort.generationId} /></FormRow>
-                  <FormRow label="기수명" required><TextInput aria-label="기수명" onChange={(event) => setEditingCohort((current) => current ? { ...current, name: event.target.value } : current)} value={editingCohort.name} /></FormRow>
+                  <FormRow label="기수 ID"><TextInput aria-label="기수 ID" readOnly value={editingCohort.id} /></FormRow>
+                  <FormRow label="기수명" required><TextInput aria-label="기수명" maxLength={30} onChange={(event) => setEditingCohort((current) => current ? { ...current, generationName: event.target.value } : current)} required value={editingCohort.generationName} /></FormRow>
                   <FormRow label="기수 시작일" required><TextInput aria-label="기수 시작일" onChange={(event) => setEditingCohort((current) => current ? { ...current, startDate: event.target.value } : current)} type="date" value={editingCohort.startDate} /></FormRow>
                   <FormRow label="기수 종료일" required><TextInput aria-label="기수 종료일" onChange={(event) => setEditingCohort((current) => current ? { ...current, endDate: event.target.value } : current)} type="date" value={editingCohort.endDate} /></FormRow>
                 </section>
               ) : (
                 <dl className="fuma-cohort-detail__summary">
-                  <div><dt>기수 ID</dt><dd>{detailCohort.generationId}</dd></div>
-                  <div><dt>기수 기간</dt><dd>{detailCohort.startDate} ~ {detailCohort.endDate}</dd></div>
-                  <div><dt>기수 상태</dt><dd><StatusPill tone={cohortStatusTone(detailCohort.status)}>{detailCohort.status}</StatusPill></dd></div>
-                  <div><dt>참여 셀렉터스</dt><dd>{formatNumber(detailCohort.participantCount)}명</dd></div>
+                  <div><dt>기수 ID</dt><dd>{detailCohort.id}</dd></div>
+                  <div><dt>기수명</dt><dd>{detailCohort.generationName}</dd></div>
+                  <div><dt>기수 기간</dt><dd>{detailCohort.startDate.slice(0, 10)} ~ {detailCohort.endDate.slice(0, 10)}</dd></div>
+                  <div><dt>기수 상태</dt><dd><StatusPill tone={cohortStatusTone(detailCohort.status)}>{cohortStatusLabel(detailCohort.status)}</StatusPill></dd></div>
                 </dl>
               )}
-              <section className="fuma-cohort-detail__selectors" aria-labelledby="cohort-selectors-title">
-                <header>
-                  <div>
-                    <h3 id="cohort-selectors-title">참여 셀렉터스</h3>
-                    <span>이 기수에 참여한 셀렉터스 {cohortSelectors.length}명</span>
-                  </div>
-                </header>
-                <DenseTable columns={COHORT_SELECTOR_COLUMNS} rowKey={(selector) => selector.id} rows={cohortSelectors} />
-              </section>
+              {formError ? <p role="alert">{formError}</p> : null}
             </div>
           </div>
         </SidePanel>
@@ -563,7 +656,13 @@ export function SelectorDetailPage() {
     error: string;
   } | null>(null);
   const fromQualifications = searchParams.get("from") === "qualifications";
-  const listPath = fromQualifications ? "/selectors/qualifications" : "/selectors";
+  const qualificationReturnQuery = qualificationQuery(
+    searchParams.get("generationId"),
+    positiveInteger(searchParams.get("page")) ?? 1,
+  ).toString();
+  const listPath = fromQualifications
+    ? `/selectors/qualifications${qualificationReturnQuery ? `?${qualificationReturnQuery}` : ""}`
+    : "/selectors";
   const numericSelectorId = Number(selectorId);
   const invalidSelectorId = !Number.isSafeInteger(numericSelectorId) || numericSelectorId <= 0;
   const currentDetailState = detailState?.id === numericSelectorId ? detailState : null;
@@ -602,92 +701,150 @@ export function SelectorDetailPage() {
   );
 }
 
-const QUALIFICATION_COLUMNS: DenseTableColumn<QualificationFixture>[] = [
-  { key: "selectorId", header: "셀렉터스 ID", width: 110, align: "center" },
-  { key: "name", header: "이름", width: 110, align: "center" },
-  { key: "cohort", header: "기수", width: 60, align: "center" },
+const QUALIFICATION_COLUMNS: DenseTableColumn<SelectorPenalty>[] = [
+  { key: "selectorsId", header: "셀렉터스 ID", width: 110, align: "center" },
+  { key: "selectorsCode", header: "셀렉터스 코드", width: 130, align: "center" },
+  { key: "selectorsNickname", header: "닉네임", width: 130, align: "center" },
   {
-    key: "penaltyCount",
+    key: "totalPenaltyCount",
     header: "누적 패널티",
-    width: 86,
+    width: 100,
     align: "center",
-    render: (qualification) => `${qualification.penaltyCount}회`,
+    render: (qualification) => `${qualification.totalPenaltyCount}회`,
   },
-  { key: "revocationReason", header: "박탈 사유", width: 250 },
-  { key: "blacklistedAt", header: "블랙리스트 지정일", width: 130, align: "center" },
+  {
+    key: "activePenaltyCount",
+    header: "활성 패널티",
+    width: 100,
+    align: "center",
+    render: (qualification) => `${qualification.activePenaltyCount}회`,
+  },
+  {
+    key: "blacklistTarget",
+    header: "블랙리스트",
+    width: 110,
+    align: "center",
+    render: (qualification) => (
+      <StatusPill tone={qualification.blacklistTarget ? "rejected" : "neutral"}>
+        {qualification.blacklistTarget ? "대상" : "비대상"}
+      </StatusPill>
+    ),
+  },
 ];
 
 const BLACKLIST_PAGE_SIZE = 20;
 
+function positiveInteger(value: string | null) {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function qualificationQuery(generationId: string | null, page: number, detail = false) {
+  const params = new URLSearchParams();
+  const validGenerationId = positiveInteger(generationId);
+  if (detail) params.set("from", "qualifications");
+  if (validGenerationId) params.set("generationId", String(validGenerationId));
+  if (Number.isSafeInteger(page) && page > 1) params.set("page", String(page));
+  return params;
+}
+
 export function QualificationManagementPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [keyword, setKeyword] = useState("");
-  const [cohort, setCohort] = useState("");
-  const [appliedKeyword, setAppliedKeyword] = useState("");
-  const [appliedCohort, setAppliedCohort] = useState("");
-  const [page, setPage] = useState(1);
-  const qualifications = QUALIFICATIONS.filter((qualification) => (
-    (!appliedKeyword || [qualification.name, qualification.selectorId].some((value) => (
-      value.toLowerCase().includes(appliedKeyword.toLowerCase())
-    )))
-    && (!appliedCohort || qualification.cohort === appliedCohort)
+  const initialGenerationId = positiveInteger(searchParams.get("generationId"));
+  const initialPage = positiveInteger(searchParams.get("page")) ?? 1;
+  const [generationId, setGenerationId] = useState(initialGenerationId ? String(initialGenerationId) : "");
+  const [appliedGenerationId, setAppliedGenerationId] = useState(initialGenerationId ? String(initialGenerationId) : "");
+  const [page, setPage] = useState(initialPage);
+  const [knownTotalPages, setKnownTotalPages] = useState(initialPage);
+  const [requestVersion, setRequestVersion] = useState(0);
+  const [pageData, setPageData] = useState<SpringPage<SelectorPenalty> | null>(null);
+  const [listError, setListError] = useState("");
+  const [generations, setGenerations] = useState<SelectorFilterGeneration[]>([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getSelectorFilterGenerations(controller.signal)
+      .then((result) => {
+        if (!controller.signal.aborted) setGenerations(result);
+      })
+      .catch(() => { /* the list remains usable without generation options */ });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getSelectorPenalties({
+      generationId: appliedGenerationId ? Number(appliedGenerationId) : undefined,
+      page: page - 1,
+      size: BLACKLIST_PAGE_SIZE,
+    }, controller.signal).then((result) => {
+      if (controller.signal.aborted) return;
+      setPageData(result);
+      setKnownTotalPages(Math.max(1, result.totalPages));
+      setListError("");
+    }).catch((reason: unknown) => {
+      if (!controller.signal.aborted) {
+        setListError(reason instanceof Error ? reason.message : "블랙리스트 목록 조회에 실패했습니다.");
+      }
+    });
+    return () => controller.abort();
+  }, [appliedGenerationId, page, requestVersion]);
+
+  const appliedGeneration = generations.find((generation) => (
+    String(generation.id) === appliedGenerationId
   ));
-  const {
-    currentPage,
-    pagedItems: pagedQualifications,
-    totalPages,
-  } = paginate(qualifications, page, BLACKLIST_PAGE_SIZE);
-  const detailSelectorId = searchParams.get("detail");
-  const detailSelector = SELECTORS.find((selector) => selector.id === detailSelectorId);
 
   const applyFilters = () => {
-    setAppliedKeyword(keyword);
-    setAppliedCohort(cohort);
+    setPageData(null);
+    setListError("");
+    setAppliedGenerationId(generationId);
     setPage(1);
+    setRequestVersion((current) => current + 1);
+    setSearchParams(qualificationQuery(generationId, 1));
   };
 
   const resetFilters = () => {
-    setKeyword("");
-    setCohort("");
-    setAppliedKeyword("");
-    setAppliedCohort("");
+    setPageData(null);
+    setListError("");
+    setGenerationId("");
+    setAppliedGenerationId("");
     setPage(1);
+    setRequestVersion((current) => current + 1);
+    setSearchParams(qualificationQuery("", 1));
   };
 
-  const openDetail = (selectorId: string) => {
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("detail", selectorId);
-    setSearchParams(nextParams);
+  const changePage = (nextPage: number) => {
+    setPageData(null);
+    setListError("");
+    setPage(nextPage);
+    setSearchParams(qualificationQuery(appliedGenerationId, nextPage));
   };
 
-  const closeDetail = () => {
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("detail");
-    setSearchParams(nextParams);
+  const openDetail = (selectorId: number) => {
+    const query = qualificationQuery(appliedGenerationId, page, true);
+    navigate(`/selectors/${selectorId}?${query.toString()}`);
   };
 
   return (
     <section className="fuma-page">
       <PageHeader title="블랙리스트 관리" />
       <div className="fuma-page__body">
-        <div className="fuma-operations-search fuma-settlement-search fuma-qualification-search">
+        <div className="fuma-operations-search fuma-settlement-search fuma-settlement-search--month-only fuma-qualification-search">
           <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
-            <FilterField htmlFor="qualification-name" label="이름 / ID">
-              <TextInput
-                id="qualification-name"
-                name="selectorName"
-                onChange={(event) => setKeyword(event.target.value)}
-                placeholder="이름 / ID 검색"
-                value={keyword}
-              />
-            </FilterField>
             <FilterField htmlFor="qualification-cohort" label="기수">
               <Select
                 id="qualification-cohort"
-                name="cohort"
-                onChange={(event) => setCohort(event.target.value)}
-                options={QUALIFICATION_COHORT_OPTIONS}
-                value={cohort}
+                name="generationId"
+                onChange={(event) => setGenerationId(event.target.value)}
+                options={[
+                  { label: "전체", value: "" },
+                  ...generations.map((generation) => ({
+                    label: generation.generationName,
+                    value: String(generation.id),
+                  })),
+                ]}
+                value={generationId}
               />
             </FilterField>
           </SearchPanel>
@@ -697,28 +854,34 @@ export function QualificationManagementPage() {
           description="블랙리스트는 향후 셀렉터스 지원 및 활동이 불가합니다."
           meta={
             <>
-              <span>{appliedCohort || "전체"}</span>
-              <span>총 {qualifications.length}건</span>
+              <span>{appliedGeneration?.generationName || "전체"}</span>
+              <span>총 {pageData?.totalElements ?? 0}건</span>
             </>
           }
           title="블랙리스트 목록"
         />
         <div aria-label="블랙리스트 목록" className="fuma-wide-table fuma-settlement-table" role="region">
-          <DenseTable
-            columns={QUALIFICATION_COLUMNS}
-            onRowClick={(qualification) => openDetail(qualification.selectorId)}
-            rowKey={(qualification) => qualification.selectorId}
-            rows={pagedQualifications}
-          />
+          {listError ? (
+            <div role="alert"><EmptyState description={listError} title="목록을 불러오지 못했습니다" /></div>
+          ) : (
+            <DenseTable
+              columns={QUALIFICATION_COLUMNS}
+              emptyMessage={pageData
+                ? "블랙리스트 대상이 없습니다."
+                : <span aria-live="polite" role="status">블랙리스트를 불러오는 중입니다.</span>}
+              onRowClick={(qualification) => openDetail(qualification.selectorsId)}
+              rowKey={(qualification) => qualification.selectorsId}
+              rows={pageData?.content ?? []}
+            />
+          )}
         </div>
         <Pagination
-          onPageChange={setPage}
-          page={currentPage}
+          onPageChange={pageData && !listError ? changePage : undefined}
+          page={page}
           pageSize={BLACKLIST_PAGE_SIZE}
-          totalPages={totalPages}
+          totalPages={Math.max(page, knownTotalPages)}
         />
       </div>
-      {detailSelector ? <SelectorDetailPanel onClose={closeDetail} selector={detailSelector} /> : null}
     </section>
   );
 }
