@@ -30,6 +30,8 @@ import {
 } from "./CreatorResultToolbar";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
+import { DiscoverySettingsPanel } from "./DiscoverySettingsPanel";
+import "../../styles/creator-discovery-settings.css";
 import {
   CREATORS,
   CREATOR_CATEGORIES,
@@ -173,6 +175,7 @@ export function CreatorListPage() {
   const [listPage, setListPage] = useState(1);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [discoverySettingsOpen, setDiscoverySettingsOpen] = useState(false);
   const {
     currentPage: currentListPage,
     pagedItems: pagedCreators,
@@ -295,6 +298,7 @@ export function CreatorListPage() {
         <CreatorResultToolbar
           count={creators.length}
           onBatchProposal={sendBatchProposal}
+          onOpenDiscoverySettings={() => setDiscoverySettingsOpen(true)}
           onSelectionModeChange={toggleSelectionMode}
           onViewChange={(nextView) => {
             setView(nextView);
@@ -345,6 +349,7 @@ export function CreatorListPage() {
         onClose={() => navigate(creatorPoolPath)}
       />
     ) : null}
+    {discoverySettingsOpen ? <DiscoverySettingsPanel onClose={() => setDiscoverySettingsOpen(false)} /> : null}
     </>
   );
 }
