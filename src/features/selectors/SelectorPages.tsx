@@ -756,6 +756,7 @@ export function QualificationManagementPage() {
   const [generationId, setGenerationId] = useState(initialGenerationId ? String(initialGenerationId) : "");
   const [appliedGenerationId, setAppliedGenerationId] = useState(initialGenerationId ? String(initialGenerationId) : "");
   const [page, setPage] = useState(initialPage);
+  const [knownTotalPages, setKnownTotalPages] = useState(initialPage);
   const [requestVersion, setRequestVersion] = useState(0);
   const [pageData, setPageData] = useState<SpringPage<SelectorPenalty> | null>(null);
   const [listError, setListError] = useState("");
@@ -780,6 +781,7 @@ export function QualificationManagementPage() {
     }, controller.signal).then((result) => {
       if (controller.signal.aborted) return;
       setPageData(result);
+      setKnownTotalPages(Math.max(1, result.totalPages));
       setListError("");
     }).catch((reason: unknown) => {
       if (!controller.signal.aborted) {
@@ -875,9 +877,9 @@ export function QualificationManagementPage() {
         </div>
         <Pagination
           onPageChange={pageData && !listError ? changePage : undefined}
-          page={pageData ? page : 1}
+          page={page}
           pageSize={BLACKLIST_PAGE_SIZE}
-          totalPages={Math.max(1, pageData?.totalPages ?? 1)}
+          totalPages={Math.max(page, knownTotalPages)}
         />
       </div>
     </section>

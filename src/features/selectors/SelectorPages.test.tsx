@@ -281,6 +281,7 @@ describe("selector api pages", () => {
     expect(screen.getByText("블랙리스트를 불러오는 중입니다.")).toHaveAttribute("role", "status");
     expect(screen.getByRole("button", { name: "이전 페이지" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "다음 페이지" })).toBeDisabled();
+    expect(screen.getByText("2 / 2 페이지")).toBeInTheDocument();
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
       expect.stringMatching(/\/penalties\?.*generationId=3.*page=1/),
       expect.anything(),
