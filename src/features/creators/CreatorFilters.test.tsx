@@ -46,7 +46,7 @@ describe("creator filters", () => {
     creatorName: "Clevr TV",
     followerCount: 830_000,
     engagementRate: 0.92,
-    recent90DayContentCount: 201,
+    recent90DayContentCount: 25,
   };
 
   function ok(totalPages = 1) {
@@ -86,7 +86,7 @@ describe("creator filters", () => {
     expect(within(table).getByText("82,400")).toBeInTheDocument();
     expect(within(table).getByText("4.25%")).toBeInTheDocument();
     expect(within(table).getByText("14건")).toBeInTheDocument();
-    expect(within(table).getByText("200+건")).toBeInTheDocument();
+    expect(within(table).getByText("25+건")).toBeInTheDocument();
     expect(within(table).getByRole("link", { name: "김서연 프로필 열기 (새 창)" }))
       .toHaveAttribute("href", "https://www.instagram.com/seo.yeon");
     expect(within(table).getByRole("link", { name: "Clevr TV 채널 열기 (새 창)" }))
@@ -110,7 +110,7 @@ describe("creator filters", () => {
     const followers = within(search).getByRole("textbox", { name: "최소 팔로워·구독자" });
     const engagement = within(search).getByRole("textbox", { name: "최소 ER" });
     const activity = within(search).getByRole("textbox", { name: "최근 90일 최소 활동" });
-    expect(activity).toHaveAttribute("max", "200");
+    expect(activity).toHaveAttribute("max", "25");
     const platform = within(search).getByRole("combobox", { name: "플랫폼" });
     const category = within(search).getByRole("combobox", { name: "카테고리" });
     expect(await within(category).findByRole("option", { name: "스킨케어" })).toBeInTheDocument();
