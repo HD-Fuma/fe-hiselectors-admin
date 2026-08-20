@@ -1,4 +1,5 @@
 import { PlatformIcon } from "../../../components/social/PlatformIcon";
+import { CreatorProfilePhoto } from "../../../components/ui/CreatorProfilePhoto";
 import { DenseTable, type DenseTableColumn } from "../../../components/ui/DenseTable";
 import { SidePanel } from "../../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../../components/ui/StatusPill";
@@ -10,6 +11,12 @@ import type {
 } from "../../settlement";
 import { getSelectorDetailData, type SelectorSocialLink } from "../model/detailData";
 import type { SelectorFixture } from "../model/fixtures";
+import type {
+  SelectorDetail,
+  SelectorGeneration,
+  SelectorSnsAccount,
+  SelectorSnsCode,
+} from "../api";
 
 function selectorStatusTone(
   status: SelectorFixture["status"],
@@ -166,15 +173,158 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SelectorSettlementTableRow>[] = [
   },
 ];
 
+function apiSelectorStatusTone(roleId: string): NonNullable<StatusPillProps["tone"]> {
+  if (roleId === "ACTIVE") return "approved";
+  if (roleId === "BLACKLIST") return "rejected";
+  return "neutral";
+}
+
+function apiPlatform(snsCode: SelectorSnsCode | null) {
+  if (snsCode === "INSTAGRAM") return "Instagram";
+  if (snsCode === "YOUTUBE") return "YouTube";
+  return null;
+}
+
+const SNS_ACCOUNT_COLUMNS: DenseTableColumn<SelectorSnsAccount>[] = [
+  {
+    key: "snsCode",
+    header: "플랫폼",
+    width: 110,
+    align: "center",
+    render: (account) => {
+      const platform = apiPlatform(account.snsCode);
+      return platform ? (
+        <span className="fuma-platform-label">
+          <PlatformIcon platform={platform} />
+          <span aria-hidden="true">{platform}</span>
+        </span>
+      ) : "-";
+    },
+  },
+  { key: "accountId", header: "계정 ID", render: (account) => displayText(account.accountId) },
+  { key: "followerCount", header: "팔로워", width: 100, align: "right", render: (account) => displayNumber(account.followerCount) },
+  { key: "lastCollectedAt", header: "마지막 수집", width: 145, align: "center", render: (account) => displayDateTime(account.lastCollectedAt) },
+];
+
+const GENERATION_COLUMNS: DenseTableColumn<SelectorGeneration>[] = [
+  { key: "generationName", header: "기수", width: 90, align: "center" },
+  { id: "period", header: "모집 기간", render: (generation) => `${generation.startDate.slice(0, 10)} ~ ${generation.endDate.slice(0, 10)}` },
+  {
+    key: "status",
+    header: "상태",
+    width: 90,
+    align: "center",
+    render: (generation) => (
+      <StatusPill tone={generation.status === "ACTIVE" ? "approved" : "neutral"}>
+        {generation.status === "ACTIVE" ? "활성" : "비활성"}
+      </StatusPill>
+    ),
+  },
+  { key: "joinedAt", header: "참여 등록일", width: 145, align: "center", render: (generation) => displayDateTime(generation.joinedAt) },
+];
+
+function SelectorApiDetailContent({ detail }: { detail: SelectorDetail }) {
+  const primaryAccount = detail.snsAccounts[0];
+  const platform = apiPlatform(primaryAccount?.snsCode ?? null);
+  const latestGeneration = detail.generations[0];
+
+  return (
+    <div className="fuma-detail-panel__content fuma-selector-detail-panel">
+      <section
+        aria-label="셀렉터스 프로필"
+        className="fuma-creator-detail-hero fuma-selector-detail-hero fuma-unified-detail-hero"
+      >
+        <div className="fuma-creator-detail-hero__portrait">
+          <CreatorProfilePhoto creatorName={detail.nickname} src={primaryAccount?.profileImageUrl ?? ""} />
+          {platform ? (
+            <span className="fuma-creator-detail-hero__platform">
+              <PlatformIcon platform={platform} />
+            </span>
+          ) : null}
+        </div>
+        <div className="fuma-creator-detail-hero__content">
+          <div className="fuma-creator-detail-hero__identity">
+            <div className="fuma-creator-detail-hero__title-row">
+              <h2>{detail.nickname}</h2>
+              <StatusPill tone={apiSelectorStatusTone(detail.roleId)}>
+                {detail.roleName || detail.roleId}
+              </StatusPill>
+            </div>
+            {platform && primaryAccount ? (
+              <div className="fuma-creator-detail-hero__channel">
+                <PlatformIcon decorative platform={platform} />
+                <span>{platform}</span>
+                <span>{displayText(primaryAccount.accountId)}</span>
+              </div>
+            ) : null}
+            <div aria-label="셀렉터스 정보" className="fuma-creator-detail-hero__categories">
+              <strong>셀렉터스</strong>
+              <span aria-hidden="true">/</span>
+              <span>{detail.id} · {detail.selectorsCode} · {detail.nickname}</span>
+            </div>
+          </div>
+          <p className="fuma-unified-detail-hero__summary">
+            {latestGeneration?.generationName ?? "참여 기수 없음"} · {detail.roleName || detail.roleId} · 등록 {displayDateTime(detail.createdAt)}
+          </p>
+          <dl className="fuma-creator-detail-hero__metrics">
+            <div><dt>대표 SNS 팔로워</dt><dd>{displayNumber(primaryAccount?.followerCount)}</dd></div>
+            <div><dt>SNS 계정</dt><dd>{displayCount(detail.snsAccounts.length)}</dd></div>
+            <div><dt>참여 기수</dt><dd>{displayCount(detail.generations.length)}</dd></div>
+            <div><dt>최근 수정</dt><dd>{displayDateTime(detail.updatedAt)}</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <div className="fuma-selector-detail-columns">
+        <section aria-labelledby="selector-sns-accounts-title" className="fuma-content-section fuma-selector-detail-section">
+          <header className="fuma-content-section__header">
+            <h3 id="selector-sns-accounts-title">SNS 계정</h3>
+            <span>총 {detail.snsAccounts.length}건</span>
+          </header>
+          <div aria-label="셀렉터스 SNS 계정" className="fuma-wide-table fuma-settlement-table" role="region">
+            <DenseTable
+              columns={SNS_ACCOUNT_COLUMNS}
+              emptyMessage="연결된 SNS 계정이 없습니다."
+              rowKey={(account) => account.id}
+              rows={detail.snsAccounts}
+            />
+          </div>
+        </section>
+
+        <section aria-labelledby="selector-generation-history-title" className="fuma-content-section fuma-selector-detail-section">
+          <header className="fuma-content-section__header">
+            <h3 id="selector-generation-history-title">참여 기수 이력</h3>
+            <span>총 {detail.generations.length}건</span>
+          </header>
+          <div aria-label="셀렉터스 참여 기수 이력" className="fuma-wide-table fuma-settlement-table" role="region">
+            <DenseTable
+              columns={GENERATION_COLUMNS}
+              emptyMessage="참여 기수 이력이 없습니다."
+              rowKey={(generation) => generation.generationId}
+              rows={detail.generations}
+            />
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
 export function SelectorDetailPanel({
   onClose,
   selector,
+  selectorDetail,
+  selectorDetailError = "",
+  selectorDetailLoading = false,
   settlementDetail,
   settlementDetailError = false,
   settlementDetailLoading = false,
 }: {
   onClose: () => void;
   selector?: SelectorFixture;
+  selectorDetail?: SelectorDetail | null;
+  selectorDetailError?: string;
+  selectorDetailLoading?: boolean;
   settlementDetail?: SettlementSelectorDetail | null;
   settlementDetailError?: boolean;
   settlementDetailLoading?: boolean;
@@ -224,7 +374,22 @@ export function SelectorDetailPanel({
 
   return (
     <SidePanel onClose={onClose} title="셀렉터스 상세">
-      {selector && fixtureDetail ? (
+      {selectorDetailLoading ? (
+        <div className="fuma-detail-panel__content">
+          <section aria-live="polite" className="fuma-empty-state" role="status">
+            <h2>셀렉터스 정보를 불러오는 중입니다</h2>
+          </section>
+        </div>
+      ) : selectorDetailError ? (
+        <div className="fuma-detail-panel__content">
+          <section className="fuma-empty-state" role="alert">
+            <h2>상세 정보를 불러오지 못했습니다</h2>
+            <p>{selectorDetailError}</p>
+          </section>
+        </div>
+      ) : selectorDetail ? (
+        <SelectorApiDetailContent detail={selectorDetail} />
+      ) : selector && fixtureDetail ? (
         <div className="fuma-detail-panel__content fuma-selector-detail-panel">
           <section
             aria-label="셀렉터스 프로필"
