@@ -67,7 +67,7 @@ export interface SelectorFilterGeneration {
   generationName: string;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080").replace(/\/$/, "");
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop").replace(/\/$/, "");
 
 function headers() {
   const result = new Headers();

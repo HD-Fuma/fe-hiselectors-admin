@@ -56,7 +56,7 @@ describe("administrator login", () => {
     expect(await screen.findByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
     expect(screen.getByTestId("admin-shell")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/api/auth/admin/login",
+      "https://api.hiselectors.shop/api/auth/admin/login",
       expect.objectContaining({
         body: JSON.stringify({ loginId: "admin1", password: "password" }),
         method: "POST",
