@@ -6,16 +6,18 @@ import {
 
 interface AnalysisFormatBreakdownProps {
   segments: readonly AnalysisFormatSegment[];
-  total: number;
+  total: number | null;
+  totalLabel?: string;
 }
 
 export function AnalysisFormatBreakdown({
   segments,
   total,
+  totalLabel,
 }: AnalysisFormatBreakdownProps) {
   return (
     <div className="fuma-analysis-format-breakdown">
-      <AnalysisFormatDonut segments={segments} total={total} />
+      <AnalysisFormatDonut segments={segments} total={total} totalLabel={totalLabel} />
       <ul className="fuma-analysis-format-breakdown__legend">
         {segments.map((format) => (
           <li key={format.label}>

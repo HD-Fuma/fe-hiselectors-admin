@@ -1,58 +1,101 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CircleHelp } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
-import { Button, Select, TextInput } from "../../components/ui/Controls";
-import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
+import { PlatformIcon } from "../../components/social/PlatformIcon";
+import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
+import { Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
 import { Pagination } from "../../components/ui/Pagination";
 import { ProfileDetailShell, type ProfileDetailProfile } from "../../components/ui/ProfileDetailShell";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
-import { SelectionModeButton } from "../../components/ui/SelectionModeButton";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
-import { formatNumber } from "../../lib/formatters";
-import { paginate } from "../../lib/pagination";
-import { ApplicantAnalysisReport } from "./ApplicantAnalysisReport";
-import { PlatformIcon } from "../../components/social/PlatformIcon";
-import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
 import {
-  APPLICANTS,
-  APPLICANT_CATEGORIES,
-  applicantAnalysisFor,
-  applicantFeaturedContentFor,
-  applicantProfileImageUrl,
-  applicantProfileUrl,
-  findApplicantFixture,
-  type ApplicantCategory,
-  type ApplicantFixture,
-  type ReviewStatus,
-} from "./fixtures";
+  getAdminApplication,
+  getAdminApplications,
+  type AdminApplicationDetail,
+  type AdminApplicationIdentity,
+  type AdminApplicationSummary,
+  type ApplicationSnsCode,
+  type ApplicationStatus,
+  type SpringPage,
+} from "../../entities/application";
+import {
+  getSelectorFilterGenerations,
+  type SelectorFilterGeneration,
+} from "../../entities/selectors";
+import { formatNumber } from "../../lib/formatters";
+import { ApplicantAnalysisReport } from "./ApplicantAnalysisReport";
+
+type ReviewStatus = "검토 대기" | "승인" | "반려" | "자동 반려";
+type ApplicantPlatform = "Instagram" | "YouTube";
 
 const REVIEW_STATUS_OPTIONS = ["전체", "검토 대기", "승인", "반려", "자동 반려"].map(
   (label) => ({ label, value: label === "전체" ? "" : label }),
 );
 const APPLICANT_PAGE_SIZE = 20;
 
-interface ApplicantReviewDecision {
-  applicantId: string;
-  note: string;
-  reason: string;
-  status: "승인" | "반려";
-}
-
 function reviewStatusTone(status: ReviewStatus): NonNullable<StatusPillProps["tone"]> {
-  if (status === "승인") {
-    return "approved";
-  }
-  if (status === "검토 대기") {
-    return "pending";
-  }
+  if (status === "승인") return "approved";
+  if (status === "검토 대기") return "pending";
   return "rejected";
 }
 
-function PlatformLabel({ platform }: { platform: ApplicantFixture["platform"] }) {
+function platformFor(snsCode: ApplicationSnsCode): ApplicantPlatform {
+  return snsCode === "INSTAGRAM" ? "Instagram" : "YouTube";
+}
+
+function apiSnsCodeFor(platform: string): ApplicationSnsCode | undefined {
+  if (platform === "Instagram") return "INSTAGRAM";
+  if (platform === "YouTube") return "YOUTUBE";
+  return undefined;
+}
+
+function meetsMinimumCriteria(applicant: AdminApplicationSummary | AdminApplicationDetail) {
+  const recent90DayContentCount = "metrics" in applicant
+    ? applicant.metrics.recent90DayContentCount
+    : applicant.recent90DayContentCount;
+  return (applicant.followerCount !== null && applicant.followerCount <= 500)
+    || (applicant.mediaCollectedAt !== null
+      && recent90DayContentCount !== null
+      && recent90DayContentCount <= 3);
+}
+
+function reviewStatusFor(
+  applicant: AdminApplicationSummary | AdminApplicationDetail,
+): ReviewStatus {
+  if (applicant.status === "APPROVED") return "승인";
+  if (applicant.status === "REJECTED") return "반려";
+  if (meetsMinimumCriteria(applicant)) return "자동 반려";
+  return "검토 대기";
+}
+
+function apiStatusFor(status: string): ApplicationStatus | undefined {
+  if (status === "검토 대기") return "PENDING";
+  if (status === "자동 반려") return "PENDING";
+  if (status === "승인") return "APPROVED";
+  if (status === "반려") return "REJECTED";
+  return undefined;
+}
+
+function dateTime(value: string | null) {
+  return value ? value.replace("T", " ").slice(0, 16).replaceAll("-", ".") : "-";
+}
+
+function profileUrl(applicant: AdminApplicationIdentity) {
+  if (applicant.snsCode === "INSTAGRAM") {
+    return `https://www.instagram.com/${encodeURIComponent(applicant.snsAccountId.replace(/^@/, ""))}/`;
+  }
+  if (applicant.snsAccountId.startsWith("UC")) {
+    return `https://www.youtube.com/channel/${encodeURIComponent(applicant.snsAccountId)}`;
+  }
+  return `https://www.youtube.com/@${encodeURIComponent(applicant.snsAccountId.replace(/^@/, ""))}`;
+}
+
+function PlatformLabel({ platform }: { platform: ApplicantPlatform }) {
   return (
     <span className="fuma-platform-label">
       <PlatformIcon platform={platform} />
@@ -61,49 +104,46 @@ function PlatformLabel({ platform }: { platform: ApplicantFixture["platform"] })
   );
 }
 
-function ApplicantKeywordTags({ keywords }: { keywords: readonly string[] }) {
-  return (
-    <span className="fuma-creator-keyword-tags">
-      {keywords.slice(0, 3).map((keyword) => <span key={keyword}>{keyword}</span>)}
-    </span>
-  );
+interface ApplicantListRow {
+  id: number;
+  theHyundaiHiMemberNumber: string;
+  name: string;
+  platform: ApplicantPlatform;
+  channelName: string;
+  generationName: string;
+  recent90DayContentCount: number | null;
+  followerCount: number | null;
+  engagementRate: number | null;
+  appliedAt: string;
+  reviewStatus: ReviewStatus;
 }
 
-type ApplicantListRow = ApplicantFixture & {
-  category: ApplicantCategory;
-  engagementRate: number;
-  keywords: readonly string[];
-};
-
-function applicantToListRow(applicant: ApplicantFixture): ApplicantListRow {
-  const analysis = applicantAnalysisFor(applicant);
-
+function applicantToListRow(
+  applicant: AdminApplicationSummary,
+): ApplicantListRow {
   return {
-    ...applicant,
-    category: analysis.category,
-    engagementRate: analysis.engagementRate,
-    keywords: analysis.keywords.slice(0, 3).map((keyword) => `#${keyword.label}`),
+    id: applicant.id,
+    theHyundaiHiMemberNumber: applicant.hiId,
+    name: applicant.applicantName,
+    platform: platformFor(applicant.snsCode),
+    channelName: applicant.snsAccountId,
+    generationName: applicant.generationName,
+    recent90DayContentCount: applicant.recent90DayContentCount,
+    followerCount: applicant.followerCount,
+    engagementRate: applicant.engagementRate,
+    appliedAt: dateTime(applicant.appliedAt),
+    reviewStatus: reviewStatusFor(applicant),
   };
 }
 
 function ApplicantApprovalToolbar({
   count,
   minimumCriteriaOnly,
-  onApprove,
   onMinimumCriteriaOnlyChange,
-  onReject,
-  onSelectionModeChange,
-  selectedCount,
-  selectionMode,
 }: {
   count: number;
   minimumCriteriaOnly: boolean;
-  onApprove: () => void;
   onMinimumCriteriaOnlyChange: (checked: boolean) => void;
-  onReject: () => void;
-  onSelectionModeChange: () => void;
-  selectedCount: number;
-  selectionMode: boolean;
 }) {
   return (
     <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-applicant-result-toolbar">
@@ -131,449 +171,401 @@ function ApplicantApprovalToolbar({
         </span>
       </div>
       <div className="fuma-settlement-result-meta">
-        <span>{selectionMode ? `${selectedCount}/${count}명` : `총 ${count}건`}</span>
-      </div>
-      <div className="fuma-creator-toolbar__controls">
-        <SelectionModeButton active={selectionMode} onClick={onSelectionModeChange} />
-        {selectionMode ? (
-          <div className="fuma-applicant-batch-actions">
-            <button
-              className="fuma-creator-toolbar__proposal fuma-applicant-batch-reject"
-              disabled={selectedCount === 0}
-              onClick={onReject}
-              type="button"
-            >
-              일괄 반려
-            </button>
-            <button
-              className="fuma-creator-toolbar__proposal"
-              disabled={selectedCount === 0}
-              onClick={onApprove}
-              type="button"
-            >
-              일괄 승인
-            </button>
-          </div>
-        ) : null}
+        <span>총 {count}건</span>
       </div>
     </div>
   );
 }
 
-function applicantListColumns({
-  allSelected,
-  onToggleAll,
-  onToggleSelected,
-  selectedIds,
-  selectionMode,
-}: {
-  allSelected: boolean;
-  onToggleAll: () => void;
-  onToggleSelected: (applicantId: string) => void;
-  selectedIds: ReadonlySet<string>;
-  selectionMode: boolean;
-}): DenseTableColumn<ApplicantListRow>[] {
-  const columns: DenseTableColumn<ApplicantListRow>[] = [
-  {
-    key: "theHyundaiHiMemberNumber",
-    header: "회원번호",
-    width: 126,
-    align: "center",
-  },
-  { key: "name", header: "이름", width: 70, align: "center" },
-  {
-    id: "platform",
-    header: "플랫폼",
-    width: 115,
-    align: "center",
-    render: (applicant) => <PlatformLabel platform={applicant.platform} />,
-  },
-  {
-    id: "account",
-    header: "SNS ID",
-    width: 130,
-    align: "center",
-    render: (applicant) => applicant.channelName,
-  },
-  {
-    id: "categories",
-    header: "카테고리",
-    width: 110,
-    align: "center",
-    render: (applicant) => applicant.category,
-  },
-  {
-    id: "keywords",
-    header: "키워드",
-    width: 165,
-    align: "center",
-    render: (applicant) => <ApplicantKeywordTags keywords={applicant.keywords} />,
-  },
-  {
-    id: "followers",
-    header: "팔로워/구독자",
-    width: 105,
-    align: "right",
-    render: (applicant) => formatNumber(applicant.followerCount),
-  },
-  {
-    id: "engagementRate",
-    header: "ER",
-    width: 72,
-    align: "right",
-    render: (applicant) => `${applicant.engagementRate.toFixed(1)}%`,
-  },
-  {
-    key: "appliedAt",
-    header: "신청일",
-    width: 96,
-    align: "center",
-  },
-  {
-    key: "reviewStatus",
-    header: "심사 상태",
-    width: 88,
-    align: "center",
-    render: (applicant) => (
-      <StatusPill tone={reviewStatusTone(applicant.reviewStatus)}>
-        {applicant.reviewStatus}
-      </StatusPill>
-    ),
-  },
-  ];
-
-  if (!selectionMode) {
-    return columns;
-  }
-
+function applicantListColumns(): DenseTableColumn<ApplicantListRow>[] {
   return [
     {
-      id: "select",
-      header: (
-        <input
-          aria-label="전체 선택"
-          checked={allSelected}
-          onChange={onToggleAll}
-          type="checkbox"
-        />
-      ),
-      width: 40,
+      key: "theHyundaiHiMemberNumber",
+      header: "회원번호",
+      width: 126,
+      align: "center",
+    },
+    { key: "name", header: "이름", width: 70, align: "center" },
+    {
+      id: "platform",
+      header: "플랫폼",
+      width: 115,
+      align: "center",
+      render: (applicant) => <PlatformLabel platform={applicant.platform} />,
+    },
+    {
+      id: "account",
+      header: "SNS ID",
+      width: 130,
+      align: "center",
+      render: (applicant) => applicant.channelName,
+    },
+    {
+      key: "generationName",
+      header: "기수",
+      width: 110,
+      align: "center",
+    },
+    {
+      key: "recent90DayContentCount",
+      header: "최근 90일 활동",
+      width: 165,
+      align: "right",
+      render: (applicant) => applicant.recent90DayContentCount === null
+        ? "-"
+        : `${formatNumber(applicant.recent90DayContentCount)}건`,
+    },
+    {
+      key: "followerCount",
+      header: "팔로워/구독자",
+      width: 105,
+      align: "right",
+      render: (applicant) => applicant.followerCount === null
+        ? "-"
+        : formatNumber(applicant.followerCount),
+    },
+    {
+      key: "engagementRate",
+      header: "ER",
+      width: 72,
+      align: "right",
+      render: (applicant) => applicant.engagementRate === null
+        ? "-"
+        : `${applicant.engagementRate.toFixed(2)}%`,
+    },
+    {
+      key: "appliedAt",
+      header: "신청일",
+      width: 96,
+      align: "center",
+    },
+    {
+      key: "reviewStatus",
+      header: "심사 상태",
+      width: 88,
       align: "center",
       render: (applicant) => (
-        <input
-          aria-label={`${applicant.name} 선택`}
-          checked={selectedIds.has(applicant.id)}
-          onChange={() => onToggleSelected(applicant.id)}
-          type="checkbox"
-        />
+        <StatusPill tone={reviewStatusTone(applicant.reviewStatus)}>
+          {applicant.reviewStatus}
+        </StatusPill>
       ),
     },
-    ...columns,
   ];
 }
 
 export function ApplicantListPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const selectedCategory = APPLICANT_CATEGORIES.find((category) => category === searchParams.get("category")) ?? "";
-  const applicantPoolPath = selectedCategory ? `/applicants?category=${encodeURIComponent(selectedCategory)}` : "/applicants";
   const detailApplicantId = searchParams.get("detail");
   const [keyword, setKeyword] = useState("");
   const [platform, setPlatform] = useState("");
+  const [generationId, setGenerationId] = useState("");
   const [reviewStatus, setReviewStatus] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
   const [appliedPlatform, setAppliedPlatform] = useState("");
+  const [appliedGenerationId, setAppliedGenerationId] = useState("");
   const [appliedReviewStatus, setAppliedReviewStatus] = useState("");
   const [minimumCriteriaOnly, setMinimumCriteriaOnly] = useState(false);
-  const [reviewOverrides, setReviewOverrides] = useState<Partial<Record<string, ReviewStatus>>>({});
   const [page, setPage] = useState(1);
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const applicants = APPLICANTS
-    .filter((applicant) => !selectedCategory || applicantAnalysisFor(applicant).category === selectedCategory)
-    .filter((applicant) => !minimumCriteriaOnly || applicant.autoRejected)
-    .filter((applicant) => {
-      const normalizedKeyword = appliedKeyword.trim().toLowerCase();
-      const effectiveReviewStatus = reviewOverrides[applicant.id] ?? applicant.reviewStatus;
-      const matchesKeyword = !normalizedKeyword || [
-        applicant.name,
-        applicant.theHyundaiHiMemberNumber,
-        applicant.channelName,
-      ].some((value) => value.toLowerCase().includes(normalizedKeyword));
-
-      return matchesKeyword
-        && (!appliedPlatform || applicant.platform === appliedPlatform)
-        && (!appliedReviewStatus || effectiveReviewStatus === appliedReviewStatus);
-    })
-    .map((applicant) => (
-      applicantToListRow({
-        ...applicant,
-        reviewStatus: reviewOverrides[applicant.id] ?? applicant.reviewStatus,
-      })
-    ));
-  const { currentPage, pagedItems: pagedApplicants, totalPages } = paginate(
-    applicants,
+  const listRequestKey = [
+    appliedKeyword,
+    appliedPlatform,
+    appliedGenerationId,
+    appliedReviewStatus,
+    minimumCriteriaOnly ? "minimum" : "all",
     page,
-    APPLICANT_PAGE_SIZE,
-  );
-  const detailApplicant = applicants.find((applicant) => applicant.id === detailApplicantId);
-  const openApplicant = (applicant: ApplicantListRow) => navigate(
-    `${applicantPoolPath}${selectedCategory ? "&" : "?"}detail=${applicant.id}`,
-  );
-  const openCategory = (category?: ApplicantCategory) => {
-    setPage(1);
-    setSelectedIds(new Set());
-    const nextParams = new URLSearchParams(searchParams);
-    if (category) nextParams.set("category", category);
-    else nextParams.delete("category");
-    nextParams.delete("detail");
-    setSearchParams(nextParams);
-  };
+  ].join("|");
+  const [listState, setListState] = useState<{
+    key: string;
+    pageData: SpringPage<AdminApplicationSummary> | null;
+    error: string;
+  } | null>(null);
+  const [generations, setGenerations] = useState<SelectorFilterGeneration[]>([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getSelectorFilterGenerations(controller.signal)
+      .then((result) => {
+        if (!controller.signal.aborted) setGenerations(result);
+      })
+      .catch(() => { /* the applicant list remains usable without generation options */ });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getAdminApplications({
+      keyword: appliedKeyword || undefined,
+      snsCode: apiSnsCodeFor(appliedPlatform),
+      status: apiStatusFor(appliedReviewStatus),
+      generationId: appliedGenerationId ? Number(appliedGenerationId) : undefined,
+      minimumCriteriaOnly: minimumCriteriaOnly || appliedReviewStatus === "자동 반려"
+        ? true
+        : undefined,
+      page: page - 1,
+      size: APPLICANT_PAGE_SIZE,
+    }, controller.signal).then((result) => {
+      if (!controller.signal.aborted) {
+        setListState({ key: listRequestKey, pageData: result, error: "" });
+      }
+    }).catch((reason: unknown) => {
+      if (!controller.signal.aborted) {
+        setListState({
+          key: listRequestKey,
+          pageData: null,
+          error: reason instanceof Error ? reason.message : "지원자 목록 조회에 실패했습니다.",
+        });
+      }
+    });
+    return () => controller.abort();
+  }, [
+    appliedKeyword,
+    appliedPlatform,
+    appliedGenerationId,
+    appliedReviewStatus,
+    listRequestKey,
+    minimumCriteriaOnly,
+    page,
+  ]);
+
+  const currentListState = listState?.key === listRequestKey ? listState : null;
+  const pageData = currentListState?.pageData ?? null;
+  const listError = currentListState?.error ?? "";
+  const applicants = (pageData?.content ?? []).map(applicantToListRow);
+  const openApplicant = (applicant: ApplicantListRow) => navigate(`/applicants?detail=${applicant.id}`);
   const applySearch = () => {
-    setAppliedKeyword(keyword);
+    setAppliedKeyword(keyword.trim());
     setAppliedPlatform(platform);
+    setAppliedGenerationId(generationId);
     setAppliedReviewStatus(reviewStatus);
-    setSelectedIds(new Set());
     setPage(1);
   };
   const resetSearch = () => {
     setKeyword("");
     setPlatform("");
+    setGenerationId("");
     setReviewStatus("");
     setAppliedKeyword("");
     setAppliedPlatform("");
+    setAppliedGenerationId("");
     setAppliedReviewStatus("");
     setMinimumCriteriaOnly(false);
-    setSelectedIds(new Set());
     setPage(1);
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("category");
-    nextParams.delete("detail");
-    setSearchParams(nextParams);
+    navigate("/applicants");
   };
-  const toggleSelected = (applicantId: string) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (next.has(applicantId)) {
-        next.delete(applicantId);
-      } else {
-        next.add(applicantId);
-      }
-      return next;
-    });
-  };
-  const toggleSelectionMode = () => {
-    if (selectionMode) {
-      setSelectedIds(new Set());
-    }
-    setSelectionMode((current) => !current);
-  };
-  const toggleAll = () => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      const shouldClearPage = pagedApplicants.every((applicant) => next.has(applicant.id));
-      pagedApplicants.forEach((applicant) => {
-        if (shouldClearPage) next.delete(applicant.id);
-        else next.add(applicant.id);
-      });
-      return next;
-    });
-  };
-  const applyBatchStatus = (status: ReviewStatus) => {
-    setReviewOverrides((current) => {
-      const next = { ...current };
-      selectedIds.forEach((applicantId) => {
-        next[applicantId] = status;
-      });
-      return next;
-    });
-    setSelectedIds(new Set());
-    setPage(1);
-  };
-  const applySingleStatus = (applicantId: string, status: ReviewStatus) => {
-    setReviewOverrides((current) => ({ ...current, [applicantId]: status }));
-  };
-  const columns = applicantListColumns({
-    allSelected: pagedApplicants.length > 0
-      && pagedApplicants.every((applicant) => selectedIds.has(applicant.id)),
-    onToggleAll: toggleAll,
-    onToggleSelected: toggleSelected,
-    selectedIds,
-    selectionMode,
-  });
+  const columns = applicantListColumns();
+  const loading = pageData === null && !listError;
 
   return (
     <>
-    <section className="fuma-page">
-      <PageHeader title="지원자 심사" />
-      <div className="fuma-page__body">
-        <div className="fuma-operations-search fuma-settlement-search fuma-applicant-search">
-          <SearchPanel actions={<SearchActions onReset={resetSearch} onSearch={applySearch} />}>
-            <FilterField htmlFor="applicant-keyword" label="검색어">
-              <TextInput
-                id="applicant-keyword"
-                name="keyword"
-                onChange={(event) => setKeyword(event.target.value)}
-                placeholder="이름, 회원번호 또는 계정 검색"
-                value={keyword}
-              />
-            </FilterField>
-            <FilterField htmlFor="applicant-platform" label="SNS 채널">
-              <Select
-                id="applicant-platform"
-                name="platform"
-                onChange={(event) => setPlatform(event.target.value)}
-                options={SOCIAL_PLATFORM_FILTER_OPTIONS}
-                value={platform}
-              />
-            </FilterField>
-            <FilterField htmlFor="applicant-review-status" label="심사 상태">
-              <Select
-                id="applicant-review-status"
-                name="reviewStatus"
-                onChange={(event) => setReviewStatus(event.target.value)}
-                options={REVIEW_STATUS_OPTIONS}
-                value={reviewStatus}
-              />
-            </FilterField>
-          </SearchPanel>
-        </div>
-        <ChoiceTabs
-          ariaLabel="지원자 카테고리"
-          emptyOption={{ label: "전체", onSelect: () => openCategory() }}
-          onChange={openCategory}
-          options={APPLICANT_CATEGORIES}
-          value={selectedCategory || null}
-        />
-        <ApplicantApprovalToolbar
-          count={applicants.length}
-          minimumCriteriaOnly={minimumCriteriaOnly}
-          onApprove={() => applyBatchStatus("승인")}
-          onMinimumCriteriaOnlyChange={(checked) => {
-            setMinimumCriteriaOnly(checked);
-            setSelectedIds(new Set());
-            setPage(1);
-          }}
-          onReject={() => applyBatchStatus("반려")}
-          onSelectionModeChange={toggleSelectionMode}
-          selectedCount={selectedIds.size}
-          selectionMode={selectionMode}
-        />
-        <div aria-label="지원자 승인" className="fuma-wide-table fuma-settlement-table fuma-applicant-list-table" role="region">
-          <DenseTable
-            columns={columns}
-            onRowClick={(applicant) => (
-              selectionMode ? toggleSelected(applicant.id) : openApplicant(applicant)
-            )}
-            rowKey={(applicant) => applicant.id}
-            rows={pagedApplicants}
-            selectedRowKeys={selectionMode ? [...selectedIds] : undefined}
+      <section className="fuma-page">
+        <PageHeader title="지원자 심사" />
+        <div className="fuma-page__body">
+          <div className="fuma-operations-search fuma-settlement-search fuma-applicant-search">
+            <SearchPanel actions={<SearchActions onReset={resetSearch} onSearch={applySearch} />}>
+              <FilterField htmlFor="applicant-keyword" label="검색어">
+                <TextInput
+                  id="applicant-keyword"
+                  name="keyword"
+                  onChange={(event) => setKeyword(event.target.value)}
+                  placeholder="이름, 회원번호 또는 계정 검색"
+                  value={keyword}
+                />
+              </FilterField>
+              <FilterField htmlFor="applicant-platform" label="SNS 채널">
+                <Select
+                  id="applicant-platform"
+                  name="platform"
+                  onChange={(event) => setPlatform(event.target.value)}
+                  options={SOCIAL_PLATFORM_FILTER_OPTIONS}
+                  value={platform}
+                />
+              </FilterField>
+              <FilterField htmlFor="applicant-review-status" label="심사 상태">
+                <Select
+                  id="applicant-review-status"
+                  name="reviewStatus"
+                  onChange={(event) => setReviewStatus(event.target.value)}
+                  options={REVIEW_STATUS_OPTIONS}
+                  value={reviewStatus}
+                />
+              </FilterField>
+              <FilterField htmlFor="applicant-generation" label="기수">
+                <Select
+                  id="applicant-generation"
+                  name="generationId"
+                  onChange={(event) => setGenerationId(event.target.value)}
+                  options={[
+                    { label: "전체", value: "" },
+                    ...generations.map((generation) => ({
+                      label: generation.generationName,
+                      value: String(generation.id),
+                    })),
+                  ]}
+                  value={generationId}
+                />
+              </FilterField>
+            </SearchPanel>
+          </div>
+          <ApplicantApprovalToolbar
+            count={pageData?.totalElements ?? 0}
+            minimumCriteriaOnly={minimumCriteriaOnly}
+            onMinimumCriteriaOnlyChange={(checked) => {
+              setMinimumCriteriaOnly(checked);
+              setPage(1);
+            }}
           />
+          <div
+            aria-label="지원자 목록"
+            className="fuma-wide-table fuma-settlement-table fuma-applicant-list-table"
+            role="region"
+          >
+            {listError ? (
+              <div role="alert">
+                <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
+              </div>
+            ) : (
+              <DenseTable
+                columns={columns}
+                emptyMessage={loading
+                  ? <span aria-live="polite" role="status">지원자를 불러오는 중입니다.</span>
+                  : "검색 결과가 없습니다."}
+                onRowClick={openApplicant}
+                rowKey={(applicant) => applicant.id}
+                rows={applicants}
+              />
+            )}
+          </div>
+          {!loading && !listError ? (
+            <Pagination
+              onPageChange={setPage}
+              page={page}
+              pageSize={APPLICANT_PAGE_SIZE}
+              totalPages={Math.max(1, pageData?.totalPages ?? 1)}
+            />
+          ) : null}
         </div>
-        <Pagination
-          onPageChange={setPage}
-          page={currentPage}
-          pageSize={APPLICANT_PAGE_SIZE}
-          totalPages={totalPages}
+      </section>
+      {detailApplicantId ? (
+        <ApplicantDetailPage
+          applicantIdOverride={detailApplicantId}
+          embedded
+          onClose={() => navigate("/applicants")}
         />
-      </div>
-    </section>
-    {detailApplicantId ? (
-      <ApplicantDetailPage
-        applicantIdOverride={detailApplicantId}
-        applicantOverride={detailApplicant}
-        embedded
-        onClose={() => navigate(applicantPoolPath)}
-        onDecision={(decision) => applySingleStatus(decision.applicantId, decision.status)}
-      />
-    ) : null}
+      ) : null}
     </>
   );
 }
 
 interface ApplicantDetailPageProps {
   applicantIdOverride?: string;
-  applicantOverride?: ApplicantFixture;
   embedded?: boolean;
   onClose?: () => void;
-  onDecision?: (decision: ApplicantReviewDecision) => void;
 }
 
 export function ApplicantDetailPage({
   applicantIdOverride,
-  applicantOverride,
   embedded = false,
   onClose,
-  onDecision,
 }: ApplicantDetailPageProps = {}) {
   const { applicantId: routeApplicantId } = useParams();
   const navigate = useNavigate();
   const applicantId = applicantIdOverride ?? routeApplicantId;
-  const applicant = applicantOverride ?? findApplicantFixture(applicantId);
-  const [reviewDecision, setReviewDecision] = useState<ApplicantReviewDecision | null>(null);
-  const currentDecision = reviewDecision?.applicantId === applicant?.id ? reviewDecision : null;
-  const effectiveReviewStatus = currentDecision?.status ?? applicant?.reviewStatus;
-  const analysis = applicant ? applicantAnalysisFor(applicant) : null;
-  const audienceLabel = applicant?.platform === "Instagram" ? "팔로워" : "구독자";
-  const handleDecision = (decision: ApplicantReviewDecision) => {
-    setReviewDecision(decision);
-    onDecision?.(decision);
-  };
-  const decide = (status: ApplicantReviewDecision["status"]) => {
-    if (!applicant) return;
-    handleDecision({
-      applicantId: applicant.id,
-      note: applicant.reviewNote,
-      reason: status === "반려" ? applicant.internalReason : "",
-      status,
+  const numericApplicantId = Number(applicantId);
+  const invalidApplicantId = !Number.isSafeInteger(numericApplicantId) || numericApplicantId <= 0;
+  const [detailState, setDetailState] = useState<{
+    id: number;
+    applicant: AdminApplicationDetail | null;
+    error: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (invalidApplicantId) return;
+    const controller = new AbortController();
+    getAdminApplication(numericApplicantId, controller.signal).then((applicant) => {
+      if (!controller.signal.aborted) {
+        setDetailState({ id: numericApplicantId, applicant, error: "" });
+      }
+    }).catch((reason: unknown) => {
+      if (!controller.signal.aborted) {
+        setDetailState({
+          id: numericApplicantId,
+          applicant: null,
+          error: reason instanceof Error ? reason.message : "지원자 상세 조회에 실패했습니다.",
+        });
+      }
     });
-  };
-  const detailProfile: ProfileDetailProfile | undefined = applicant && analysis && effectiveReviewStatus ? {
+    return () => controller.abort();
+  }, [invalidApplicantId, numericApplicantId]);
+
+  const currentDetailState = detailState?.id === numericApplicantId ? detailState : null;
+  const applicant = currentDetailState?.applicant ?? null;
+  const effectiveReviewStatus = applicant ? reviewStatusFor(applicant) : undefined;
+  const audienceLabel = applicant?.snsCode === "INSTAGRAM" ? "팔로워" : "구독자";
+  const detailProfile: ProfileDetailProfile | undefined = applicant && effectiveReviewStatus ? {
     audienceLabel,
-    audienceValue: formatNumber(applicant.followerCount),
-    contentCount: applicant.contentCount,
-    engagementValue: "-",
-    gallery: applicantFeaturedContentFor(applicant).map((content) => ({
-      id: content.id,
-      imageUrl: content.thumbnailUrl,
-      title: content.title,
+    audienceValue: applicant.followerCount === null ? "-" : formatNumber(applicant.followerCount),
+    contentCount: applicant.metrics.totalContentCount === null
+      ? "-"
+      : formatNumber(applicant.metrics.totalContentCount),
+    engagementValue: applicant.metrics.engagementRate.value === null
+      ? "-"
+      : `${applicant.metrics.engagementRate.value.toFixed(2)}%`,
+    gallery: applicant.contents.slice(0, 3).map((content) => ({
+      id: String(content.id),
+      imageUrl: content.mediaUrl ?? "",
+      title: content.snsContentId,
     })),
-    handle: applicant.channelName,
+    handle: applicant.snsAccountId,
     infoFields: [
       { label: "지원자 ID", value: applicant.id },
-      { label: "계정 ID", value: applicant.channelName },
+      { label: "계정 ID", value: applicant.snsAccountId },
       { label: "이메일", value: applicant.email },
-      { label: "카테고리", value: analysis.category },
-      { label: audienceLabel, value: formatNumber(applicant.followerCount) },
-      { label: "콘텐츠 수", value: `${formatNumber(applicant.contentCount)}건` },
-      { label: "최근 활동", value: applicant.recentActivity },
-      { label: "ER", value: "집계 불가" },
+      { label: "기수", value: applicant.generationName },
+      { label: "최종 업데이트", value: dateTime(applicant.updatedAt) },
+      {
+        label: audienceLabel,
+        value: applicant.followerCount === null ? "-" : formatNumber(applicant.followerCount),
+      },
+      {
+        label: "최근 90일 콘텐츠",
+        value: applicant.metrics.recent90DayContentCount === null
+          ? "-"
+          : `${formatNumber(applicant.metrics.recent90DayContentCount)}건`,
+      },
+      { label: "최근 활동", value: dateTime(applicant.metrics.lastPublishedAt).slice(0, 10) },
+      {
+        label: "ER",
+        value: applicant.metrics.engagementRate.value === null
+          ? "-"
+          : `${applicant.metrics.engagementRate.value.toFixed(2)}%`,
+      },
     ],
-    name: applicant.name,
-    platform: applicant.platform,
-    profileImageUrl: applicantProfileImageUrl(applicant),
-    profileUrl: applicantProfileUrl(applicant),
-    status: <StatusPill tone={reviewStatusTone(effectiveReviewStatus)}>{effectiveReviewStatus}</StatusPill>,
+    name: applicant.applicantName,
+    platform: platformFor(applicant.snsCode),
+    profileImageUrl: "",
+    profileUrl: profileUrl(applicant),
+    status: (
+      <StatusPill tone={reviewStatusTone(effectiveReviewStatus)}>
+        {effectiveReviewStatus}
+      </StatusPill>
+    ),
   } : undefined;
-  const actionSection = applicant && effectiveReviewStatus ? (
-    <section className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions">
-      <div className="fuma-applicant-detail-actions__heading">
-        <span>심사 처리</span>
-        <StatusPill tone={reviewStatusTone(effectiveReviewStatus)}>{effectiveReviewStatus}</StatusPill>
-      </div>
-      <div className="fuma-applicant-detail-actions__buttons">
-        <Button onClick={() => decide("승인")} variant="primary">승인</Button>
-        <Button onClick={() => decide("반려")} variant="danger">반려</Button>
-      </div>
-    </section>
-  ) : null;
+  const loading = !invalidApplicantId && !currentDetailState;
+  const detailError = invalidApplicantId
+    ? "요청한 지원자 ID가 올바르지 않습니다."
+    : currentDetailState?.error;
 
   return (
     <>
       {embedded ? null : <ApplicantListPage />}
       <ProfileDetailShell
-        actionSection={actionSection}
-        emptyDescription="요청한 지원자 정보를 확인할 수 없습니다."
+        actionSection={null}
+        emptyDescription={loading
+          ? "지원자 정보를 불러오는 중입니다."
+          : detailError || "요청한 지원자 정보를 확인할 수 없습니다."}
+        emptyRole={loading ? "status" : "alert"}
+        emptyTitle={loading ? "지원자 정보를 불러오는 중입니다" : "지원자를 찾을 수 없습니다"}
         onClose={onClose ?? (() => navigate("/applicants"))}
         profile={detailProfile}
         title="지원자 상세"

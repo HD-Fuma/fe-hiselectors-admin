@@ -1,115 +1,141 @@
-import { formatNumber } from "../../lib/formatters";
 import { ProfileAnalysisReport } from "../../components/ui/ProfileAnalysisReport";
-import {
-  APPLICANTS,
-  applicantAnalysisFor,
-  applicantFeaturedContentFor,
-  type ApplicantFixture,
-} from "./fixtures";
+import type {
+  AdminApplicationDetail,
+  ApplicationContentFormat,
+  ApplicationMetricValue,
+} from "../../entities/application";
+import { formatNumber } from "../../lib/formatters";
 
-function topPercentile(value: number, pool: readonly number[]) {
-  if (pool.length === 0) return null;
-  const rank = pool.filter((candidate) => candidate > value).length + 1;
-  return Math.max(1, Math.ceil((rank / pool.length) * 100));
+const FORMAT_COLORS = ["#de76ce", "#667085", "#a0a8b0", "#c8cdd2"];
+
+function dateTime(value: string | null) {
+  return value ? value.replace("T", " ").slice(0, 16).replaceAll("-", ".") : "-";
 }
 
-function fallbackCadence(recentActivity: string, sampleCount: number) {
-  const updatedAt = Date.parse("2026-08-05T00:00:00Z") / 86_400_000;
-  const firstDay = updatedAt - 90 + 1;
-  const sortedDays = Array.from({ length: sampleCount }, (_, index) => (
-    (Date.parse(`${recentActivity}T00:00:00Z`) - index * 3 * 86_400_000) / 86_400_000
-  ))
-    .filter((day) => day >= firstDay && day <= updatedAt)
-    .sort((left, right) => right - left);
-
-  return {
-    collectedContentCount: sortedDays.length,
-    weeklyAverage: Number(((sortedDays.length / 90) * 7).toFixed(1)),
-  };
+function metricValue(metric: ApplicationMetricValue, suffix = "") {
+  const value = metric.value === null ? "-" : `${formatNumber(metric.value)}${suffix}`;
+  return `${value} · 표본 ${formatNumber(metric.sampleCount)}건`;
 }
 
-export function ApplicantAnalysisReport({ applicant }: { applicant: ApplicantFixture }) {
-  const analysis = applicantAnalysisFor(applicant);
-  const poolAnalyses = APPLICANTS.map((candidate) => applicantAnalysisFor(candidate));
-  const featuredContents = applicantFeaturedContentFor(applicant);
-  const cadence = fallbackCadence(applicant.recentActivity, featuredContents.length);
-  const fallbackFormats = applicant.platform === "YouTube"
-    ? [
-      { label: "숏폼", count: Math.max(1, Math.round(featuredContents.length * 0.7)) },
-      { label: "롱폼", count: Math.max(1, Math.floor(featuredContents.length * 0.3)) },
-    ]
-    : [
-      { label: "릴스", count: Math.max(1, Math.round(featuredContents.length * 0.5)) },
-      { label: "이미지", count: Math.max(1, Math.round(featuredContents.length * 0.3)) },
-      { label: "영상", count: Math.max(1, Math.floor(featuredContents.length * 0.2)) },
-    ];
-  const formatTotal = fallbackFormats.reduce((total, format) => total + format.count, 0);
-  const formatColors = ["#de76ce", "#667085", "#a0a8b0", "#c8cdd2"];
-  const formatSegments = fallbackFormats.map((format, index) => {
-    const previousCount = fallbackFormats
+function formatLabel(format: ApplicationContentFormat) {
+  if (format === "SHORT_FORM") return "릴스";
+  if (format === "LONG_FORM") return "롱폼";
+  if (format === "SHORTS") return "Shorts";
+  if (format === "FEED") return "피드";
+  return "미분류";
+}
+
+function reportSummary(applicant: AdminApplicationDetail) {
+  if (applicant.mediaCollectionStatus === "PENDING") {
+    return "SNS 정량 지표 수집을 기다리고 있습니다.";
+  }
+  if (applicant.mediaCollectionStatus === "FAILED") {
+    return "SNS 정량 지표를 수집하지 못했습니다.";
+  }
+  if (applicant.metrics.recent90DayContentCount === null) {
+    return "SNS 정량 지표를 확인할 수 없습니다.";
+  }
+  if (applicant.metrics.recent90DayContentCount === 0) {
+    return `최근 ${applicant.metrics.analysisWindowDays}일에 수집된 콘텐츠가 없습니다.`;
+  }
+  return `최근 ${applicant.metrics.analysisWindowDays}일 콘텐츠 ${formatNumber(applicant.metrics.recent90DayContentCount)}건의 공개 정량 지표입니다.`;
+}
+
+export function ApplicantAnalysisReport({ applicant }: { applicant: AdminApplicationDetail }) {
+  const formatTotal = applicant.metrics.contentFormats.reduce((total, format) => (
+    total + format.count
+  ), 0);
+  const formatSegments = applicant.metrics.contentFormats.map((format, index) => {
+    const previousCount = applicant.metrics.contentFormats
       .slice(0, index)
       .reduce((total, previous) => total + previous.count, 0);
-    const percentage = formatTotal === 0 ? 0 : (format.count / formatTotal) * 100;
     return {
-      ...format,
-      color: formatColors[index % formatColors.length],
-      percentage,
+      color: FORMAT_COLORS[index % FORMAT_COLORS.length],
+      count: format.count,
+      label: formatLabel(format.contentType),
+      percentage: formatTotal === 0 ? 0 : (format.count / formatTotal) * 100,
       start: formatTotal === 0 ? 0 : (previousCount / formatTotal) * 100,
     };
   });
+  const unavailableNarrative = "정성 분석 데이터가 제공되지 않았습니다.";
 
   return (
     <ProfileAnalysisReport
-      collectedAt="2026.08.05 10:00"
-      collectionDays={90}
+      collectedAt={dateTime(applicant.mediaCollectedAt)}
+      collectionDays={applicant.metrics.analysisWindowDays}
       comparisonLabel="지원자 중"
       contentMetrics={[
-        { label: "콘텐츠 수", value: `${formatNumber(applicant.contentCount)}건` },
-        { label: "최근 90일 콘텐츠", value: `${formatNumber(cadence.collectedContentCount)}건` },
-        { label: "업로드 주기", value: `주 ${cadence.weeklyAverage.toFixed(1)}회` },
-        { label: "마지막 게시일", value: applicant.recentActivity },
+        {
+          label: "전체 공개 콘텐츠",
+          value: applicant.metrics.totalContentCount === null
+            ? "-"
+            : `${formatNumber(applicant.metrics.totalContentCount)}건`,
+        },
+        {
+          label: `최근 ${applicant.metrics.analysisWindowDays}일 콘텐츠`,
+          value: applicant.metrics.recent90DayContentCount === null
+            ? "-"
+            : `${formatNumber(applicant.metrics.recent90DayContentCount)}건`,
+        },
+        {
+          label: "업로드 주기",
+          value: `${applicant.metrics.uploadCadence.weeklyAverage === null
+            ? "-"
+            : `주 ${applicant.metrics.uploadCadence.weeklyAverage.toFixed(1)}회`} · 표본 ${formatNumber(applicant.metrics.uploadCadence.sampleCount)}건`,
+        },
+        {
+          label: "최장 게시 공백",
+          value: applicant.metrics.uploadCadence.maximumGapDays === null
+            ? "-"
+            : `${formatNumber(applicant.metrics.uploadCadence.maximumGapDays)}일`,
+        },
+        { label: "마지막 게시일", value: dateTime(applicant.metrics.lastPublishedAt).slice(0, 10) },
       ]}
       engagementMetrics={[
         {
           label: "팔로워/구독자",
-          value: `${formatNumber(applicant.followerCount)}명`,
-          percentile: topPercentile(applicant.followerCount, APPLICANTS.map((candidate) => candidate.followerCount)),
+          value: applicant.followerCount === null ? "-" : `${formatNumber(applicant.followerCount)}명`,
+          percentile: null,
         },
         {
           label: "평균 조회",
-          value: formatNumber(applicant.averageViews),
-          percentile: topPercentile(applicant.averageViews, APPLICANTS.map((candidate) => candidate.averageViews)),
+          value: metricValue(applicant.metrics.averageViewCount),
+          percentile: null,
         },
         {
           label: "평균 좋아요",
-          value: formatNumber(applicant.averageReactions),
-          percentile: topPercentile(applicant.averageReactions, poolAnalyses.map((candidate) => candidate.averageLikes)),
+          value: metricValue(applicant.metrics.averageLikeCount),
+          percentile: null,
         },
         {
           label: "평균 댓글",
-          value: formatNumber(analysis.averageComments),
-          percentile: topPercentile(analysis.averageComments, poolAnalyses.map((candidate) => candidate.averageComments)),
+          value: metricValue(applicant.metrics.averageCommentCount),
+          percentile: null,
         },
         {
           label: "ER",
-          value: `${analysis.engagementRate.toFixed(1)}%`,
-          percentile: topPercentile(analysis.engagementRate, poolAnalyses.map((candidate) => candidate.engagementRate)),
+          value: metricValue(applicant.metrics.engagementRate, "%"),
+          percentile: null,
         },
       ]}
       eyebrow="APPLICANT REPORT"
       formatSegments={formatSegments}
-      formatTotal={formatTotal}
+      formatTotal={applicant.mediaCollectionStatus === "DONE"
+        && applicant.metrics.recent90DayContentCount !== null
+        ? formatTotal
+        : null}
+      formatTotalLabel="수집 콘텐츠"
       narratives={[
-        { label: "위험 요소", value: "최근 수집 콘텐츠에서 특이 위험 요소 미확인" },
-        { label: "강점", value: applicant.aiReport.summary || `${analysis.category} 콘텐츠의 반응이 안정적입니다.` },
-        { label: "유의점", value: "협업 전 최근 콘텐츠의 광고 고지 방식과 업로드 일정을 확인해야 합니다." },
+        { label: "위험 요소", value: `미확인 (${unavailableNarrative})` },
+        { label: "강점", value: unavailableNarrative },
+        { label: "유의점", value: unavailableNarrative },
       ]}
-      summary={applicant.aiReport.summary || "분석 리포트 생성 대기"}
+      summary={reportSummary(applicant)}
       tagGroups={[
-        { label: "카테고리", values: [analysis.category] },
-        { label: "키워드", values: analysis.keywords.map((keyword) => `#${keyword.label}`) },
+        { label: "카테고리", values: [] },
+        { label: "키워드", values: [] },
         { label: "협업 이력", values: [] },
-        { label: "콘텐츠 유형", values: ["리뷰", "브이로그", "하울"] },
+        { label: "콘텐츠 유형", values: formatSegments.map((format) => format.label) },
         { label: "톤앤매너", values: [] },
       ]}
       title="지원자 분석 리포트"

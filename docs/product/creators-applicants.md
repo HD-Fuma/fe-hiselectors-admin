@@ -12,21 +12,21 @@
 
 지원자는 `ProfileDetailShell`과 `ProfileAnalysisReport`를 사용합니다.
 
-- 왼쪽: profile, gallery, 상태, action
+- 왼쪽: profile, gallery, 상태
 - 오른쪽: 동일한 CREATOR REPORT 정보 구조
-- 지원자 고유 승인·반려 상태와 action은 slot/data로 주입
+- 승인·반려 action은 실제 mutation API가 연결된 경우에만 제공
 - list drawer와 route 상세가 같은 데이터·컴포넌트 계약을 사용
 
 새로운 지원자 전용 상세 골격이나 크리에이터 상세 복사본을 만들지 않습니다.
 
 ## 분석 지표
 
-- 기준일 `updatedAt` 이전 90일을 기본 분석 window로 사용
+- 기준일 `mediaCollectedAt` 이전 90일을 기본 분석 window로 사용하고 `updatedAt`은 별도 표시
 - follower/subscriber는 기준일 snapshot
 - cadence는 수집 게시물 수, 일/주 평균, 최장 게시 공백을 구분
 - 전체 공개 content 수와 90일 수집 게시물 수를 혼용하지 않음
 - 평균 조회·좋아요·댓글은 측정 가능한 media만 포함하고 불가값을 0으로 바꾸지 않음
-- format mix는 Instagram feed/Reels, YouTube Shorts/long-form처럼 platform native 유형 사용
+- format mix는 플랫폼이 확인 가능한 native 유형을 사용하고 판별할 수 없는 유형은 미분류로 표시
 - 기본 ER은 eligible post별 `(likes + comments) / followerOrSubscriberSnapshot × 100`의 평균
 - audience가 0인 표본은 ER에서 제외하고 sample size를 표시
 - share/save는 platform 공통 ER에 섞지 않고 보조 지표로 표시
