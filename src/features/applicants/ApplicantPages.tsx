@@ -81,6 +81,12 @@ function apiStatusFor(status: string): ApplicationStatus | undefined {
   return undefined;
 }
 
+function apiMinimumCriteriaOnly(status: string, minimumCriteriaOnly: boolean) {
+  if (minimumCriteriaOnly || status === "자동 반려") return true;
+  if (status === "검토 대기") return false;
+  return undefined;
+}
+
 function dateTime(value: string | null) {
   return value ? value.replace("T", " ").slice(0, 16).replaceAll("-", ".") : "-";
 }
@@ -299,9 +305,7 @@ export function ApplicantListPage() {
       snsCode: apiSnsCodeFor(appliedPlatform),
       status: apiStatusFor(appliedReviewStatus),
       generationId: appliedGenerationId ? Number(appliedGenerationId) : undefined,
-      minimumCriteriaOnly: minimumCriteriaOnly || appliedReviewStatus === "자동 반려"
-        ? true
-        : undefined,
+      minimumCriteriaOnly: apiMinimumCriteriaOnly(appliedReviewStatus, minimumCriteriaOnly),
       page: page - 1,
       size: APPLICANT_PAGE_SIZE,
     }, controller.signal).then((result) => {

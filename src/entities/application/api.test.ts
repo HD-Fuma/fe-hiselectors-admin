@@ -17,6 +17,11 @@ describe("application admin api", () => {
     }));
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
   test("serializes list filters and sends the stored authorization", async () => {
     const page = { content: [], number: 0, size: 20, totalElements: 0, totalPages: 0 };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(page)));

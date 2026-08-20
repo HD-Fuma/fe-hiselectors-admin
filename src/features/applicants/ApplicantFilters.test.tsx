@@ -244,6 +244,34 @@ describe("applicant api pages", () => {
     });
   });
 
+  test("requests pending applications outside the minimum criteria unless the toolbar overrides it", async () => {
+    mockApi();
+    const user = userEvent.setup();
+    renderApplicantPage();
+    await screen.findByText("김민지");
+    const search = screen.getByRole("search", { name: "검색 조건" });
+
+    await user.selectOptions(
+      within(search).getByRole("combobox", { name: "심사 상태" }),
+      "검토 대기",
+    );
+    await user.click(within(search).getByRole("button", { name: "조회" }));
+
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls
+      .map(([input]) => new URL(String(input)))
+      .some((url) => url.searchParams.get("status") === "PENDING"
+        && url.searchParams.get("minimumCriteriaOnly") === "false"))
+      .toBe(true));
+
+    await user.click(screen.getByRole("checkbox", { name: "최저 기준 필터링" }));
+
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls
+      .map(([input]) => new URL(String(input)))
+      .some((url) => url.searchParams.get("status") === "PENDING"
+        && url.searchParams.get("minimumCriteriaOnly") === "true"))
+      .toBe(true));
+  });
+
   test("keeps confirmed review statuses ahead of automatic-rejection criteria", async () => {
     const confirmedApplicants = [
       { ...applicants[1], followerCount: 400, recent90DayContentCount: 2 },
@@ -357,9 +385,10 @@ describe("applicant api pages", () => {
   });
 
   test("announces list errors", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(await json(null, 500)));
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => json(null, 500)));
     renderApplicantPage();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("조회에 실패했습니다.");
+    expect(within(await screen.findByRole("alert")).getByText("조회에 실패했습니다."))
+      .toBeInTheDocument();
   });
 });
