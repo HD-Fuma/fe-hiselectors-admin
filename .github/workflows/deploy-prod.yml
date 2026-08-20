@@ -49,7 +49,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "$EC2_INSTANCE_ID" \
             --document-name AWS-RunShellScript \
-            --parameters 'commands=["aws s3 sync s3://hiselectors-deploy/admin/ /srv/admin/ --delete"],executionTimeout=["600"]' \
+            --parameters 'commands=["aws s3 sync s3://hiselectors-deploy/admin/ /srv/admin/ --delete","aws s3 cp s3://hiselectors-deploy/admin/index.html /srv/admin/index.html"],executionTimeout=["600"]' \
             --query 'Command.CommandId' \
             --output text)
           STATUS=
