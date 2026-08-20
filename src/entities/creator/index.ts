@@ -20,3 +20,5 @@ export {
 } from "./model/analysis";
 export { CreatorContentPhoto, CreatorProfilePhoto } from "./ui/CreatorArtwork";
 export { CreatorCardProfileHeader } from "../../components/ui/CreatorCardProfileHeader";
+export { getCreators } from "./api";
+export type { CreatorPage, CreatorSearchRequest, CreatorSummary } from "./api";

@@ -1,22 +1,16 @@
 # 크리에이터·지원자 계약
 
-## 크리에이터 풀 카드
+## 크리에이터 풀 목록
 
-카드 한 장은 Instagram 또는 YouTube profile 하나를 나타냅니다.
+크리에이터 풀은 정보 제공에 동의하지 않은 Instagram 또는 YouTube 공개 계정을 조회하는 읽기 전용 표입니다.
 
-- 상단에 대표 게시물 3개와 이미지/영상 cue
-- profile 이미지, platform badge, 이름, account ID/channel name
-- category와 keyword chip
-- 비교 지표는 팔로워/구독자와 ER
-- tier와 AI 적합도는 pool card에 표시하지 않음
-- 일반 모드에서 카드 전체 클릭은 상세 열기
-- 선택 모드에서 카드 전체 클릭은 선택/해제
-- 별도 `상세보기` button 없음
-- 일반 모드 action 문구는 `제안하기`
+- 조회 항목: 계정명, SNS 계정, 플랫폼, 탐색 카테고리, 팔로워/구독자, ER, 최근 90일 활동 수, 최근 활동일
+- 필터: 계정 키워드, 플랫폼, 카테고리, 최소 팔로워/구독자, 최소 ER, 최근 90일 최소 활동 수
+- 카드, 대표 미디어, 정성 분석, AI 리포트, 상세 route는 제공하지 않음
 
-## 상세 구조
+## 지원자 상세 구조
 
-크리에이터와 지원자는 모두 `ProfileDetailShell`과 `ProfileAnalysisReport`를 사용합니다.
+지원자는 `ProfileDetailShell`과 `ProfileAnalysisReport`를 사용합니다.
 
 - 왼쪽: profile, gallery, 상태, action
 - 오른쪽: 동일한 CREATOR REPORT 정보 구조
@@ -37,6 +31,6 @@
 - audience가 0인 표본은 ER에서 제외하고 sample size를 표시
 - share/save는 platform 공통 ER에 섞지 않고 보조 지표로 표시
 
-## AI 분석
+## 정성 분석 범위
 
-요약, category, keyword, 협업, style, tone, risk, 강점/주의 claim은 가능한 경우 근거 content URL과 연결합니다. OCR, STT, 본문, 영상 frame 등 근거 종류를 구분하며, 분모가 정의되지 않은 keyword 비율은 임의로 표시하지 않습니다.
+크리에이터 풀에서는 동의 전 계정의 게시물·이미지·영상을 정성 분석하지 않습니다. 팔로워/구독자, ER, 최근 90일 활동 수, 탐색 카테고리만 저장·노출합니다.

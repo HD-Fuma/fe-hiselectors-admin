@@ -12,6 +12,8 @@ const fashion = {
   keywords: [{ id: 10, keyword: "데일리룩", enabled: true, priority: 5, lastRunAt: null }],
 };
 
+const creatorPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 };
+
 function ok(data: unknown, status = 200) {
   return new Response(JSON.stringify({ success: true, code: "OK", message: null, data }), { status });
 }
@@ -20,6 +22,8 @@ test("opens discovery settings and creates a category through the real API contr
   const user = userEvent.setup();
   const beauty = { ...fashion, id: 2, code: "BEAUTY", name: "뷰티", displayOrder: 2, keywords: [] };
   vi.stubGlobal("fetch", vi.fn()
+    .mockResolvedValueOnce(ok(creatorPage))
+    .mockResolvedValueOnce(ok([fashion]))
     .mockResolvedValueOnce(ok([fashion]))
     .mockResolvedValueOnce(ok(beauty, 201))
     .mockResolvedValueOnce(ok([fashion, beauty])));
@@ -44,7 +48,7 @@ test("opens discovery settings and creates a category through the real API contr
 
   expect(await within(panel).findByText("카테고리를 추가했습니다.")).toBeInTheDocument();
   expect(within(panel).getByRole("button", { name: /뷰티BEAUTY/ })).toBeInTheDocument();
-  expect(vi.mocked(fetch).mock.calls[1][1]).toMatchObject({
+  expect(vi.mocked(fetch).mock.calls.find(([, init]) => init?.method === "POST")?.[1]).toMatchObject({
     method: "POST",
     body: JSON.stringify({ code: "BEAUTY", name: "뷰티", displayOrder: 2 }),
   });
@@ -54,6 +58,8 @@ test("closes a successful create form even when the following reload fails", asy
   const user = userEvent.setup();
   const beauty = { ...fashion, id: 2, code: "BEAUTY", name: "뷰티", displayOrder: 2, keywords: [] };
   vi.stubGlobal("fetch", vi.fn()
+    .mockResolvedValueOnce(ok(creatorPage))
+    .mockResolvedValueOnce(ok([fashion]))
     .mockResolvedValueOnce(ok([fashion]))
     .mockResolvedValueOnce(ok(beauty, 201))
     .mockResolvedValueOnce(new Response(JSON.stringify({ message: "목록 조회 실패" }), { status: 503 })));

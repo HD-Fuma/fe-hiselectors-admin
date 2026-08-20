@@ -185,14 +185,6 @@ const routeCases = [
     routeIsExact: true,
   },
   {
-    path: "/creators/cr-001",
-    group: "creators",
-    menuLabel: "크리에이터 풀",
-    title: "크리에이터 상세",
-    screenCode: "CR102",
-    routeIsExact: false,
-  },
-  {
     path: "/proposals",
     group: "creators",
     menuLabel: "제안 이력",
