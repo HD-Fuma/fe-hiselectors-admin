@@ -24,6 +24,8 @@ const API_GENERATIONS = Array.from({ length: 41 }, (_, index) => ({
   generationName: `${index + 1}기`,
   startDate: `2026-01-01T00:00:00`,
   endDate: `2026-01-31T23:59:59`,
+  activityStartDate: `2026-02-01T00:00:00`,
+  activityEndDate: `2026-04-30T23:59:59`,
   status: "INACTIVE",
 }));
 

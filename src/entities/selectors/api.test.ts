@@ -61,12 +61,16 @@ describe("selector admin api", () => {
       generationName: "3기",
       startDate: "2026-07-01T00:00:00",
       endDate: "2026-08-31T23:59:59",
+      activityStartDate: "2026-09-01T00:00:00",
+      activityEndDate: "2026-11-30T23:59:59",
       status: "INACTIVE",
     };
     const saveRequest = {
       generationName: "3기",
       startDate: "2026-07-01T00:00:00",
       endDate: "2026-08-31T23:59:59",
+      activityStartDate: "2026-09-01T00:00:00",
+      activityEndDate: "2026-11-30T23:59:59",
     };
     const penaltyPage = { content: [], number: 1, size: 20, totalElements: 0, totalPages: 2 };
     vi.stubGlobal("fetch", vi.fn()
