@@ -41,6 +41,8 @@ function emptyKeywordDraft(): KeywordDraft {
   return { id: null, keyword: "", priority: "0", enabled: true };
 }
 
+const RELOAD_ERROR = "변경사항은 저장됐지만 목록을 새로고침하지 못했습니다. 패널을 닫았다 다시 열어 주세요.";
+
 export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
   const [categories, setCategories] = useState<DiscoveryCategory[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -79,14 +81,22 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
     return () => controller.abort();
   }, []);
 
+  async function finishMutation(preferredId: number | undefined, success: string) {
+    setNotice(success);
+    try {
+      await reload(preferredId);
+    } catch {
+      setError(RELOAD_ERROR);
+    }
+  }
+
   async function mutate(task: () => Promise<unknown>, preferredId: number | undefined, success: string) {
     setSaving(true);
     setError("");
     setNotice("");
     try {
       await task();
-      await reload(preferredId);
-      setNotice(success);
+      await finishMutation(preferredId, success);
       return true;
     } catch (reason) {
       setError(reasonMessage(reason, "요청에 실패했습니다."));
@@ -110,9 +120,8 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
           name: categoryDraft.name.trim(),
           displayOrder,
         });
-        await reload(created.id);
         setCategoryDraft(null);
-        setNotice("카테고리를 추가했습니다.");
+        await finishMutation(created.id, "카테고리를 추가했습니다.");
       } catch (reason) {
         setError(reasonMessage(reason, "카테고리 생성에 실패했습니다."));
       } finally {
@@ -157,9 +166,11 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
           keyword: keywordDraft.keyword.trim(),
           priority,
         });
-        await reload(categoryId);
         setKeywordDraft(null);
-        setNotice(result.warnings.length > 0 ? result.warnings.join(" ") : "키워드를 추가했습니다.");
+        await finishMutation(
+          categoryId,
+          result.warnings.length > 0 ? result.warnings.join(" ") : "키워드를 추가했습니다.",
+        );
       } catch (reason) {
         setError(reasonMessage(reason, "키워드 생성에 실패했습니다."));
       } finally {
