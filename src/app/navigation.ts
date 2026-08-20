@@ -93,6 +93,11 @@ const NotificationHistoryPage = lazyPage(() =>
     (module) => module.NotificationHistoryPage,
   ),
 );
+const KakaoRecipientStatusPage = lazyPage(() =>
+  import("../features/notifications/KakaoRecipientPages").then(
+    (module) => module.KakaoRecipientStatusPage,
+  ),
+);
 
 const NAV_GROUPS: readonly NavGroupMeta[] = [
   { id: "creators", label: "크리에이터" },
@@ -315,6 +320,15 @@ export const ADMIN_ROUTE_MANIFEST = [
     title: "알림 및 메시지",
     screenCode: "NT101",
     workTabLabel: "발송 내역",
+  },
+  {
+    path: "/notifications/kakao-recipients",
+    Component: KakaoRecipientStatusPage,
+    group: "notifications",
+    menuLabel: "카카오 수신 현황",
+    title: "카카오 수신 현황",
+    screenCode: "NT102",
+    workTabLabel: "카카오 수신 현황",
   },
 ] as const satisfies readonly AdminRouteManifestEntry[];
 

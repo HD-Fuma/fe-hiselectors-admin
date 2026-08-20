@@ -34,6 +34,7 @@
 - 선택 모드에서는 카드 클릭이 선택/해제를 수행합니다.
 - 크리에이터 카드의 제안 action 문구는 `제안하기`입니다.
 - 지원자 상세는 크리에이터 상세와 같은 `ProfileDetailShell`·`ProfileAnalysisReport` 구조를 사용합니다.
+- 카카오 수신 현황은 `/notifications/kakao-recipients`입니다. 수신 가능·미연결·수신 불가만 보여 주고, 친구 목록·테스트 발송·발신 OAuth는 이 화면에 넣지 않습니다.
 
 ## 구조와 의존성
 
