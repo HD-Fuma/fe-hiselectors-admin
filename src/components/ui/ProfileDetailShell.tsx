@@ -34,6 +34,8 @@ interface ProfileDetailShellProps {
   actionSection: ReactNode;
   children: ReactNode;
   emptyDescription: string;
+  emptyRole?: "alert" | "status";
+  emptyTitle?: string;
   onClose: () => void;
   profile?: ProfileDetailProfile;
   title: string;
@@ -120,6 +122,8 @@ export function ProfileDetailShell({
   actionSection,
   children,
   emptyDescription,
+  emptyRole,
+  emptyTitle = "대상을 찾을 수 없습니다",
   onClose,
   profile,
   title,
@@ -133,7 +137,9 @@ export function ProfileDetailShell({
             <main className="fuma-creator-detail-main">{children}</main>
           </div>
         ) : (
-          <EmptyState description={emptyDescription} title="대상을 찾을 수 없습니다" />
+          <div aria-live={emptyRole === "status" ? "polite" : undefined} role={emptyRole}>
+            <EmptyState description={emptyDescription} title={emptyTitle} />
+          </div>
         )}
       </div>
     </SidePanel>

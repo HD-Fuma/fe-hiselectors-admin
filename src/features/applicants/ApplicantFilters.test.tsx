@@ -1,8 +1,161 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { ApplicantListPage } from "./ApplicantPages";
-import { APPLICANTS } from "./fixtures";
+
+const applicants = [
+  {
+    id: 1,
+    userId: 101,
+    hiId: "HI-0001",
+    applicantName: "김민지",
+    email: "minji@example.com",
+    phone: "010-0000-0001",
+    generationId: 3,
+    generationName: "3기",
+    snsCode: "INSTAGRAM",
+    snsAccountId: "minji.daily",
+    followerCount: 58_420,
+    engagementRate: 2.55,
+    totalContentCount: 126,
+    recent90DayContentCount: 29,
+    status: "PENDING",
+    mediaCollectionStatus: "DONE",
+    appliedAt: "2026-08-03T09:12:00",
+    mediaCollectedAt: "2026-08-05T10:00:00",
+    updatedAt: "2026-08-05T10:00:00",
+  },
+  {
+    id: 2,
+    userId: 102,
+    hiId: "HI-0002",
+    applicantName: "정하린",
+    email: "harin@example.com",
+    phone: "010-0000-0002",
+    generationId: 3,
+    generationName: "3기",
+    snsCode: "YOUTUBE",
+    snsAccountId: "harin-lab",
+    followerCount: 83_100,
+    engagementRate: 3.1,
+    totalContentCount: 94,
+    recent90DayContentCount: 23,
+    status: "APPROVED",
+    mediaCollectionStatus: "DONE",
+    appliedAt: "2026-08-02T16:40:00",
+    mediaCollectedAt: "2026-08-05T10:00:00",
+    updatedAt: "2026-08-05T10:00:00",
+  },
+  {
+    id: 3,
+    userId: 103,
+    hiId: "HI-0003",
+    applicantName: "윤소라",
+    email: "sora@example.com",
+    phone: "010-0000-0003",
+    generationId: 3,
+    generationName: "3기",
+    snsCode: "INSTAGRAM",
+    snsAccountId: "sora.daily",
+    followerCount: 400,
+    engagementRate: null,
+    totalContentCount: null,
+    recent90DayContentCount: 2,
+    status: "PENDING",
+    mediaCollectionStatus: "DONE",
+    appliedAt: "2026-08-03T10:46:00",
+    mediaCollectedAt: "2026-08-05T10:00:00",
+    updatedAt: "2026-08-05T10:00:00",
+  },
+] as const;
+
+const applicantDetail = {
+  ...applicants[0],
+  metrics: {
+    analysisWindowDays: 90,
+    totalContentCount: 126,
+    recent90DayContentCount: 3,
+    lastPublishedAt: "2026-08-02T12:00:00",
+    uploadCadence: {
+      sampleCount: 3,
+      dailyAverage: 0.03,
+      weeklyAverage: 0.2,
+      maximumGapDays: 4,
+    },
+    averageViewCount: { value: null, sampleCount: 0 },
+    averageLikeCount: { value: 120.5, sampleCount: 2 },
+    averageCommentCount: { value: 8, sampleCount: 3 },
+    engagementRate: { value: 2.55, sampleCount: 2 },
+    contentFormats: [
+      { contentType: "FEED", count: 2 },
+      { contentType: "UNKNOWN", count: 1 },
+    ],
+  },
+  contents: [{
+    id: 11,
+    applicationId: 1,
+    snsCode: "INSTAGRAM",
+    snsContentId: "post-11",
+    contentUrl: "https://www.instagram.com/p/post-11",
+    mediaUrl: null,
+    contentType: "FEED",
+    sequenceNo: 0,
+    publishedAt: "2026-08-02T12:00:00",
+    viewCount: null,
+    likeCount: 120,
+    commentCount: 8,
+    collectedAt: "2026-08-05T10:00:00",
+  }],
+};
+
+const pendingApplicantDetail = {
+  ...applicantDetail,
+  mediaCollectionStatus: "PENDING",
+  mediaCollectedAt: null,
+  metrics: {
+    ...applicantDetail.metrics,
+    totalContentCount: null,
+    recent90DayContentCount: null,
+    lastPublishedAt: null,
+    uploadCadence: {
+      sampleCount: 0,
+      dailyAverage: null,
+      weeklyAverage: null,
+      maximumGapDays: null,
+    },
+    averageViewCount: { value: null, sampleCount: 0 },
+    averageLikeCount: { value: null, sampleCount: 0 },
+    averageCommentCount: { value: null, sampleCount: 0 },
+    engagementRate: { value: null, sampleCount: 0 },
+    contentFormats: [],
+  },
+  contents: [],
+};
+
+function json(data: unknown, status = 200) {
+  return Promise.resolve(new Response(JSON.stringify({
+    success: status < 400,
+    code: status < 400 ? "OK" : "ERROR",
+    message: status < 400 ? null : "조회에 실패했습니다.",
+    data: status < 400 ? data : null,
+  }), { status, headers: { "Content-Type": "application/json" } }));
+}
+
+function page(content: readonly unknown[]) {
+  return {
+    content,
+    number: 0,
+    size: 20,
+    totalElements: content.length,
+    totalPages: content.length === 0 ? 0 : 1,
+  };
+}
+
+function deferredResponse() {
+  let resolve!: (response: Response) => void;
+  const promise = new Promise<Response>((done) => { resolve = done; });
+  return { promise, resolve };
+}
 
 function renderApplicantPage(path = "/applicants") {
   return render(
@@ -12,59 +165,230 @@ function renderApplicantPage(path = "/applicants") {
   );
 }
 
-function resultCount(count: number) {
-  return screen.getByText(`총 ${count}건`);
+function mockApi() {
+  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/api/admin/generations")) {
+      return json([{ id: 3, generationName: "3기" }]);
+    }
+    if (/\/api\/admin\/applications\/1$/.test(url.pathname)) return json(applicantDetail);
+    if (url.searchParams.get("minimumCriteriaOnly") === "true") return json(page([applicants[2]]));
+    if (url.searchParams.get("keyword") === "하린") return json(page([applicants[1]]));
+    return json(page(applicants));
+  }));
 }
 
-describe("applicant filters", () => {
-  test("combines keyword, platform, and effective review-status filters", async () => {
+describe("applicant api pages", () => {
+  test("requests combined filters and renders server results", async () => {
+    mockApi();
     const user = userEvent.setup();
     renderApplicantPage();
+    expect(await screen.findByText("김민지")).toBeInTheDocument();
     const search = screen.getByRole("search", { name: "검색 조건" });
 
     await user.type(within(search).getByRole("textbox", { name: "검색어" }), "하린");
     await user.selectOptions(within(search).getByRole("combobox", { name: "SNS 채널" }), "YouTube");
     await user.selectOptions(within(search).getByRole("combobox", { name: "심사 상태" }), "승인");
+    await user.selectOptions(within(search).getByRole("combobox", { name: "기수" }), "3");
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
-    expect(resultCount(1)).toBeInTheDocument();
-    const results = screen.getByRole("region", { name: "지원자 승인" });
-    expect(within(results).getByText("정하린")).toBeInTheDocument();
-    expect(within(results).queryByText("김민지")).not.toBeInTheDocument();
+    expect(await screen.findByText("정하린")).toBeInTheDocument();
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/keyword=.*snsCode=YOUTUBE.*status=APPROVED.*generationId=3.*page=0.*size=20/),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    ));
+    expect(screen.getByText("총 1건")).toBeInTheDocument();
     expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
   });
 
-  test("category and minimum-criteria toggle change rows and reset restores every filter", async () => {
+  test("uses the server minimum-criteria query and derives automatic rejection", async () => {
+    mockApi();
     const user = userEvent.setup();
     renderApplicantPage();
-    const search = screen.getByRole("search", { name: "검색 조건" });
-    const minimumCriteria = screen.getByRole("checkbox", { name: "최저 기준 필터링" });
+    await screen.findByText("김민지");
 
-    await user.click(screen.getByRole("button", { name: "패션" }));
-    const fashionApplicants = APPLICANTS.filter((applicant) => (
-      applicant.id === "ap-003" || applicant.id === "ap-004"
+    await user.click(screen.getByRole("checkbox", { name: "최저 기준 필터링" }));
+
+    expect(await screen.findByText("윤소라")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "지원자 목록" }))
+      .getByText("자동 반려")).toBeInTheDocument();
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("minimumCriteriaOnly=true"),
+      expect.anything(),
     ));
-    expect(resultCount(fashionApplicants.length)).toBeInTheDocument();
+    const minimumCriteriaRequest = vi.mocked(fetch).mock.calls
+      .map(([input]) => new URL(String(input)))
+      .find((url) => url.searchParams.get("minimumCriteriaOnly") === "true");
+    expect(minimumCriteriaRequest?.searchParams.get("status")).toBeNull();
+  });
 
-    await user.click(minimumCriteria);
-    expect(resultCount(fashionApplicants.filter((applicant) => applicant.autoRejected).length)).toBeInTheDocument();
-    const results = screen.getByRole("region", { name: "지원자 승인" });
-    expect(within(results).getByText("윤소라")).toBeInTheDocument();
-    expect(within(results).queryByText("권예나")).not.toBeInTheDocument();
+  test("limits the automatic-rejection status filter to pending minimum-criteria applications", async () => {
+    mockApi();
+    const user = userEvent.setup();
+    renderApplicantPage();
+    await screen.findByText("김민지");
+    const search = screen.getByRole("search", { name: "검색 조건" });
 
-    await user.type(within(search).getByRole("textbox", { name: "검색어" }), "윤소라");
-    await user.selectOptions(within(search).getByRole("combobox", { name: "SNS 채널" }), "Instagram");
-    await user.selectOptions(within(search).getByRole("combobox", { name: "심사 상태" }), "자동 반려");
+    await user.selectOptions(
+      within(search).getByRole("combobox", { name: "심사 상태" }),
+      "자동 반려",
+    );
     await user.click(within(search).getByRole("button", { name: "조회" }));
-    await user.click(within(search).getByRole("button", { name: "초기화" }));
 
-    expect(resultCount(APPLICANTS.length)).toBeInTheDocument();
-    expect(minimumCriteria).not.toBeChecked();
-    expect(within(search).getByRole("textbox", { name: "검색어" })).toHaveValue("");
-    expect(within(search).getByRole("combobox", { name: "SNS 채널" })).toHaveValue("");
-    expect(within(search).getByRole("combobox", { name: "심사 상태" })).toHaveValue("");
-    expect(screen.getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
-    expect(within(results).getAllByRole("row")).toHaveLength(APPLICANTS.length + 1);
+    expect(await screen.findByText("윤소라")).toBeInTheDocument();
+    await waitFor(() => {
+      const automaticRejectionRequest = vi.mocked(fetch).mock.calls
+        .map(([input]) => new URL(String(input)))
+        .find((url) => url.searchParams.get("minimumCriteriaOnly") === "true");
+      expect(automaticRejectionRequest?.searchParams.get("status")).toBe("PENDING");
+    });
+  });
+
+  test("requests pending applications outside the minimum criteria unless the toolbar overrides it", async () => {
+    mockApi();
+    const user = userEvent.setup();
+    renderApplicantPage();
+    await screen.findByText("김민지");
+    const search = screen.getByRole("search", { name: "검색 조건" });
+
+    await user.selectOptions(
+      within(search).getByRole("combobox", { name: "심사 상태" }),
+      "검토 대기",
+    );
+    await user.click(within(search).getByRole("button", { name: "조회" }));
+
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls
+      .map(([input]) => new URL(String(input)))
+      .some((url) => url.searchParams.get("status") === "PENDING"
+        && url.searchParams.get("minimumCriteriaOnly") === "false"))
+      .toBe(true));
+
+    await user.click(screen.getByRole("checkbox", { name: "최저 기준 필터링" }));
+
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls
+      .map(([input]) => new URL(String(input)))
+      .some((url) => url.searchParams.get("status") === "PENDING"
+        && url.searchParams.get("minimumCriteriaOnly") === "true"))
+      .toBe(true));
+  });
+
+  test("keeps confirmed review statuses ahead of automatic-rejection criteria", async () => {
+    const confirmedApplicants = [
+      { ...applicants[1], followerCount: 400, recent90DayContentCount: 2 },
+      { ...applicants[2], status: "REJECTED" },
+    ];
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => (
+      new URL(String(input)).pathname.endsWith("/api/admin/generations")
+        ? json([])
+        : json(page(confirmedApplicants))
+    )));
+    renderApplicantPage();
+    const region = screen.getByRole("region", { name: "지원자 목록" });
+    await within(region).findByText("정하린");
+    const rows = within(region).getAllByRole("row");
+
+    expect(within(rows[1]).getByText("승인")).toBeInTheDocument();
+    expect(within(rows[2]).getByText("반려")).toBeInTheDocument();
+    expect(within(region).queryByText("자동 반려")).not.toBeInTheDocument();
+  });
+
+  test("ignores an aborted stale list response", async () => {
+    const initial = deferredResponse();
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/api/admin/generations")) {
+        return json([{ id: 3, generationName: "3기" }]);
+      }
+      return url.searchParams.get("keyword") === "하린"
+        ? json(page([applicants[1]]))
+        : initial.promise;
+    }));
+    const user = userEvent.setup();
+    renderApplicantPage();
+    expect(screen.getByText("지원자를 불러오는 중입니다.")).toHaveAttribute("role", "status");
+    const search = screen.getByRole("search", { name: "검색 조건" });
+
+    await user.type(within(search).getByRole("textbox", { name: "검색어" }), "하린");
+    await user.click(within(search).getByRole("button", { name: "조회" }));
+    expect(await screen.findByText("정하린")).toBeInTheDocument();
+    await act(async () => initial.resolve(await json(page([applicants[0]]))));
+
+    expect(screen.getByText("정하린")).toBeInTheDocument();
+    expect(screen.queryByText("김민지")).not.toBeInTheDocument();
+  });
+
+  test("loads real detail metrics and keeps unavailable values distinct from zero", async () => {
+    const pendingDetail = deferredResponse();
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => (
+      new URL(String(input)).pathname.endsWith("/api/admin/generations")
+        ? json([{ id: 3, generationName: "3기" }])
+        : /\/api\/admin\/applications\/1$/.test(new URL(String(input)).pathname)
+          ? pendingDetail.promise
+          : json(page(applicants))
+    )));
+    renderApplicantPage("/applicants?detail=1");
+    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
+    expect(within(panel).getByRole("status")).toHaveTextContent("지원자 정보를 불러오는 중입니다.");
+
+    await act(async () => pendingDetail.resolve(await json(applicantDetail)));
+    expect(await within(panel).findByRole("heading", { name: "김민지" })).toBeInTheDocument();
+    const report = within(panel).getByRole("region", { name: "지원자 분석 리포트" });
+    expect(within(report).getByText("- · 표본 0건")).toBeInTheDocument();
+    expect(within(report).getAllByText("미분류")).not.toHaveLength(0);
+    expect(within(report).getByText("전체 공개 콘텐츠").parentElement).toHaveTextContent("126건");
+    expect(within(panel).getByText("최종 업데이트").parentElement)
+      .toHaveTextContent("2026.08.05 10:00");
+  });
+
+  test("renders an uncollected detail without coercing nullable cadence to zero", async () => {
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith("/api/admin/generations")) return json([]);
+      if (/\/api\/admin\/applications\/1$/.test(path)) return json(pendingApplicantDetail);
+      return json(page(applicants));
+    }));
+    renderApplicantPage("/applicants?detail=1");
+    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
+    const report = await within(panel).findByRole("region", { name: "지원자 분석 리포트" });
+
+    expect(within(report).getByText("SNS 정량 지표 수집을 기다리고 있습니다."))
+      .toBeInTheDocument();
+    expect(within(report).getByText("업로드 주기").parentElement)
+      .toHaveTextContent("- · 표본 0건");
+    expect(within(report).getByText("최장 게시 공백").parentElement).toHaveTextContent("-");
+    const formats = within(report).getByRole("group", { name: "콘텐츠 형식 합계 미수집" });
+    expect(within(formats).getByText("-")).toBeInTheDocument();
+  });
+
+  test("renders a collected zero format total as zero rather than unavailable", async () => {
+    const emptyCollectedDetail = {
+      ...applicantDetail,
+      metrics: {
+        ...applicantDetail.metrics,
+        recent90DayContentCount: 0,
+        contentFormats: [],
+      },
+      contents: [],
+    };
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith("/api/admin/generations")) return json([]);
+      if (/\/api\/admin\/applications\/1$/.test(path)) return json(emptyCollectedDetail);
+      return json(page(applicants));
+    }));
+    renderApplicantPage("/applicants?detail=1");
+    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
+    const report = await within(panel).findByRole("region", { name: "지원자 분석 리포트" });
+    const formats = within(report).getByRole("group", { name: "콘텐츠 형식 총 0건" });
+
+    expect(within(formats).getByText("0건")).toBeInTheDocument();
+  });
+
+  test("announces list errors", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => json(null, 500)));
+    renderApplicantPage();
+
+    expect(within(await screen.findByRole("alert")).getByText("조회에 실패했습니다."))
+      .toBeInTheDocument();
   });
 });

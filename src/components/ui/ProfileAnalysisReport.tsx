@@ -31,7 +31,8 @@ interface ProfileAnalysisReportProps {
   engagementMetrics: readonly ProfileAnalysisMetric[];
   eyebrow: string;
   formatSegments: readonly AnalysisFormatSegment[];
-  formatTotal: number;
+  formatTotal: number | null;
+  formatTotalLabel?: string;
   narratives: readonly ProfileAnalysisNarrative[];
   summary: string;
   tagGroups: readonly ProfileAnalysisTagGroup[];
@@ -51,6 +52,7 @@ export function ProfileAnalysisReport({
   eyebrow,
   formatSegments,
   formatTotal,
+  formatTotalLabel,
   narratives,
   summary,
   tagGroups,
@@ -111,7 +113,11 @@ export function ProfileAnalysisReport({
                 ))}
                 <article className="fuma-analysis-content__card fuma-analysis-content__card--formats">
                   <span>콘텐츠 형식</span>
-                  <AnalysisFormatBreakdown segments={formatSegments} total={formatTotal} />
+                  <AnalysisFormatBreakdown
+                    segments={formatSegments}
+                    total={formatTotal}
+                    totalLabel={formatTotalLabel}
+                  />
                 </article>
               </div>
             </section>

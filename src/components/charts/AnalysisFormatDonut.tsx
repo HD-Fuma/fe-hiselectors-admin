@@ -10,10 +10,15 @@ export interface AnalysisFormatSegment {
 
 export interface AnalysisFormatDonutProps {
   segments: readonly AnalysisFormatSegment[];
-  total: number;
+  total: number | null;
+  totalLabel?: string;
 }
 
-export function AnalysisFormatDonut({ segments, total }: AnalysisFormatDonutProps) {
+export function AnalysisFormatDonut({
+  segments,
+  total,
+  totalLabel = "전체 콘텐츠",
+}: AnalysisFormatDonutProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
@@ -21,7 +26,9 @@ export function AnalysisFormatDonut({ segments, total }: AnalysisFormatDonutProp
 
   return (
     <div
-      aria-label={`콘텐츠 형식 총 ${total.toLocaleString("ko-KR")}건`}
+      aria-label={total === null
+        ? "콘텐츠 형식 합계 미수집"
+        : `콘텐츠 형식 총 ${total.toLocaleString("ko-KR")}건`}
       className="fuma-analysis-format-breakdown__donut"
       role="group"
     >
@@ -53,8 +60,8 @@ export function AnalysisFormatDonut({ segments, total }: AnalysisFormatDonutProp
         })}
       </svg>
       <div>
-        <strong>{total.toLocaleString("ko-KR")}건</strong>
-        <span>전체 콘텐츠</span>
+        <strong>{total === null ? "-" : `${total.toLocaleString("ko-KR")}건`}</strong>
+        <span>{totalLabel}</span>
       </div>
       {activeSegment ? (
         <span className="fuma-analysis-format-breakdown__tooltip" role="tooltip">
