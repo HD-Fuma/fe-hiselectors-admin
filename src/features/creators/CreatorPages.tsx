@@ -181,7 +181,9 @@ const CREATOR_COLUMNS: DenseTableColumn<CreatorSummary>[] = [
     align: "right",
     render: (creator) => creator.recent90DayContentCount === null
       ? "-"
-      : `${formatNumber(creator.recent90DayContentCount)}건`,
+      : creator.recent90DayContentCount > 200
+        ? "200+건"
+        : `${formatNumber(creator.recent90DayContentCount)}건`,
   },
   {
     key: "lastContentAt",
@@ -279,7 +281,7 @@ export function CreatorListPage() {
               <TextInput id="creator-min-er" inputMode="decimal" min="0" onChange={(event) => setFilters((current) => ({ ...current, minEngagementRate: event.target.value }))} placeholder="0" value={filters.minEngagementRate} />
             </FilterField>
             <FilterField htmlFor="creator-min-activity" label="최근 90일 최소 활동">
-              <TextInput id="creator-min-activity" inputMode="numeric" min="0" onChange={(event) => setFilters((current) => ({ ...current, minRecent90DayContentCount: event.target.value }))} placeholder="0" value={filters.minRecent90DayContentCount} />
+              <TextInput id="creator-min-activity" inputMode="numeric" max="200" min="0" onChange={(event) => setFilters((current) => ({ ...current, minRecent90DayContentCount: event.target.value }))} placeholder="0~200" value={filters.minRecent90DayContentCount} />
             </FilterField>
           </SearchPanel>
         </div>
