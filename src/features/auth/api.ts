@@ -1,4 +1,4 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080")
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop")
   .replace(/\/$/, "");
 const AUTH_STORAGE_KEY = "selectors-auth";
 

@@ -40,13 +40,13 @@ describe("discovery category admin api", () => {
 
     const calls = vi.mocked(fetch).mock.calls;
     expect(calls.map(([url]) => String(url))).toEqual([
-      "http://localhost:8080/api/admin/categories",
-      "http://localhost:8080/api/admin/categories",
-      "http://localhost:8080/api/admin/categories/1",
-      "http://localhost:8080/api/admin/categories/1/keywords",
-      "http://localhost:8080/api/admin/categories/1/keywords/10",
-      "http://localhost:8080/api/admin/categories/1/keywords/10",
-      "http://localhost:8080/api/admin/categories/1",
+      "https://api.hiselectors.shop/api/admin/categories",
+      "https://api.hiselectors.shop/api/admin/categories",
+      "https://api.hiselectors.shop/api/admin/categories/1",
+      "https://api.hiselectors.shop/api/admin/categories/1/keywords",
+      "https://api.hiselectors.shop/api/admin/categories/1/keywords/10",
+      "https://api.hiselectors.shop/api/admin/categories/1/keywords/10",
+      "https://api.hiselectors.shop/api/admin/categories/1",
     ]);
     expect(calls.map(([, init]) => init?.method ?? "GET")).toEqual([
       "GET", "POST", "PATCH", "POST", "PATCH", "DELETE", "DELETE",
