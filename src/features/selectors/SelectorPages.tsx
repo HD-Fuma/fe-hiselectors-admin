@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
 import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
@@ -14,7 +15,17 @@ import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
-import { SelectorDetailPanel } from "../../entities/selectors";
+import {
+  getSelector,
+  getSelectorFilterGenerations,
+  getSelectors,
+  SelectorDetailPanel,
+  type SelectorDetail,
+  type SelectorFilterGeneration,
+  type SelectorSnsCode,
+  type SelectorSummary,
+  type SpringPage,
+} from "../../entities/selectors";
 import { formatNumber, formatWon } from "../../lib/formatters";
 import { paginate } from "../../lib/pagination";
 import {
@@ -27,14 +38,11 @@ import {
 } from "../../entities/selectors";
 
 const COHORT_STATUS_CATEGORIES: CohortFixture["status"][] = ["활성", "비활성"];
-const SELECTOR_COHORT_OPTIONS = [
+const SELECTOR_SNS_OPTIONS = [
   { label: "전체", value: "" },
-  ...COHORTS.map((cohort) => ({ label: cohort.name, value: cohort.name })),
+  { label: "Instagram", value: "INSTAGRAM" },
+  { label: "YouTube", value: "YOUTUBE" },
 ];
-const SELECTOR_SNS_OPTIONS = ["전체", "Instagram", "YouTube"].map((label) => ({
-  label,
-  value: label === "전체" ? "" : label,
-}));
 const QUALIFICATION_COHORT_OPTIONS = [
   { label: "전체", value: "" },
   ...Array.from(new Set(QUALIFICATIONS.map((qualification) => qualification.cohort))).map((cohort) => ({
@@ -42,12 +50,10 @@ const QUALIFICATION_COHORT_OPTIONS = [
     value: cohort,
   })),
 ];
-type SelectorListStatus = "활동중" | "활동정지" | "블랙리스트";
-
-const SELECTOR_STATUS_CATEGORIES: SelectorListStatus[] = [
-  "활동중",
-  "활동정지",
-  "블랙리스트",
+const SELECTOR_STATUS_CATEGORIES = [
+  { label: "활동중", value: "ACTIVE" },
+  { label: "활동정지", value: "INACTIVE" },
+  { label: "블랙리스트", value: "BLACKLIST" },
 ];
 function cohortStatusTone(
   status: CohortFixture["status"],
@@ -58,17 +64,11 @@ function cohortStatusTone(
   return "neutral";
 }
 
-function selectorListStatus(selector: SelectorFixture): SelectorListStatus {
-  if (selector.status === "활동 중") return "활동중";
-  if (selector.status === "박탈") return "블랙리스트";
-  return "활동정지";
-}
-
 function selectorListStatusTone(
-  status: SelectorListStatus,
+  roleId: string,
 ): NonNullable<StatusPillProps["tone"]> {
-  if (status === "활동중") return "approved";
-  if (status === "블랙리스트") return "rejected";
+  if (roleId === "ACTIVE") return "approved";
+  if (roleId === "BLACKLIST") return "rejected";
   return "neutral";
 }
 
@@ -351,36 +351,41 @@ export function CohortManagementPage() {
   );
 }
 
-const SELECTOR_COLUMNS: DenseTableColumn<SelectorFixture>[] = [
+function selectorPlatform(snsCode: SelectorSnsCode | null) {
+  if (snsCode === "INSTAGRAM") return "Instagram";
+  if (snsCode === "YOUTUBE") return "YouTube";
+  return null;
+}
+
+const SELECTOR_COLUMNS: DenseTableColumn<SelectorSummary>[] = [
   { key: "id", header: "셀렉터스 ID", width: 110, align: "center" },
-  { key: "selectorCode", header: "셀렉터스 코드", width: 120, align: "center" },
-  { key: "name", header: "이름", width: 88, align: "center" },
-  { key: "shopNickname", header: "닉네임", width: 120, align: "center" },
-  { key: "cohort", header: "기수", width: 60, align: "center" },
+  { key: "selectorsCode", header: "셀렉터스 코드", width: 120, align: "center" },
+  { key: "nickname", header: "닉네임", width: 120, align: "center" },
+  { key: "snsAccountId", header: "SNS 계정", width: 150, align: "center", render: (selector) => selector.snsAccountId || "-" },
   {
-    key: "sns",
+    key: "snsCode",
     header: "플랫폼",
     width: 110,
     align: "center",
-    render: (selector) => (
-      <span className="fuma-platform-label">
-        <PlatformIcon platform={selector.sns} />
-        <span aria-hidden="true">{selector.sns}</span>
-      </span>
-    ),
+    render: (selector) => {
+      const platform = selectorPlatform(selector.snsCode);
+      return platform ? (
+        <span className="fuma-platform-label">
+          <PlatformIcon platform={platform} />
+          <span aria-hidden="true">{platform}</span>
+        </span>
+      ) : "-";
+    },
   },
+  { key: "followerCount", header: "팔로워", width: 90, align: "right", render: (selector) => selector.followerCount == null ? "-" : formatNumber(selector.followerCount) },
   {
-    key: "status",
+    key: "roleName",
     header: "활동 상태",
     width: 88,
     align: "center",
-    render: (selector) => {
-      const status = selectorListStatus(selector);
-      return <StatusPill tone={selectorListStatusTone(status)}>{status}</StatusPill>;
-    },
+    render: (selector) => <StatusPill tone={selectorListStatusTone(selector.roleId)}>{selector.roleName || selector.roleId}</StatusPill>,
   },
-  { key: "contentCount", header: "콘텐츠 수", width: 78, align: "right" },
-  { key: "recentActivity", header: "최근 활동일", width: 104, align: "center" },
+  { key: "createdAt", header: "등록일", width: 104, align: "center", render: (selector) => selector.createdAt?.slice(0, 10) || "-" },
 ];
 
 const SELECTOR_PAGE_SIZE = 20;
@@ -388,51 +393,74 @@ const SELECTOR_PAGE_SIZE = 20;
 export function SelectorOverviewPage() {
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState("");
-  const [cohort, setCohort] = useState("");
+  const [generationId, setGenerationId] = useState("");
   const [sns, setSns] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
-  const [appliedCohort, setAppliedCohort] = useState("");
+  const [appliedGenerationId, setAppliedGenerationId] = useState("");
   const [appliedSns, setAppliedSns] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<SelectorListStatus | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const selectors = SELECTORS.filter((selector) => (
-    (!appliedKeyword || [selector.name, selector.id, selector.selectorCode].some((value) => (
-      value.toLowerCase().includes(appliedKeyword.toLowerCase())
-    )))
-    && (!appliedCohort || selector.cohort === appliedCohort)
-    && (!appliedSns || selector.sns.includes(appliedSns))
-    && (!selectedStatus || selectorListStatus(selector) === selectedStatus)
-  ));
-  const {
-    currentPage,
-    pagedItems: pagedSelectors,
-    totalPages,
-  } = paginate(selectors, page, SELECTOR_PAGE_SIZE);
-  const selectorListTitle = selectedStatus === "활동중"
+  const [pageData, setPageData] = useState<SpringPage<SelectorSummary> | null>(null);
+  const [listError, setListError] = useState("");
+  const [generations, setGenerations] = useState<SelectorFilterGeneration[]>([]);
+  const selectorListTitle = selectedStatus === "ACTIVE"
     ? "활동 중인 셀렉터스 목록"
-    : selectedStatus === "활동정지"
+    : selectedStatus === "INACTIVE"
       ? "활동 정지 셀렉터스 목록"
-      : selectedStatus === "블랙리스트"
+      : selectedStatus === "BLACKLIST"
         ? "블랙리스트 목록"
         : "셀렉터스 목록";
 
+  useEffect(() => {
+    const controller = new AbortController();
+    getSelectorFilterGenerations(controller.signal)
+      .then(setGenerations)
+      .catch(() => { /* the list remains usable without generation options */ });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getSelectors({
+      roleId: selectedStatus || undefined,
+      generationId: appliedGenerationId ? Number(appliedGenerationId) : undefined,
+      nickname: appliedKeyword || undefined,
+      snsCode: (appliedSns || undefined) as SelectorSnsCode | undefined,
+      page: page - 1,
+      size: SELECTOR_PAGE_SIZE,
+    }, controller.signal).then((result) => {
+      setPageData(result);
+      setListError("");
+    }).catch((reason: unknown) => {
+      if (!controller.signal.aborted) {
+        setListError(reason instanceof Error ? reason.message : "셀렉터스 목록 조회에 실패했습니다.");
+      }
+    });
+    return () => controller.abort();
+  }, [appliedGenerationId, appliedKeyword, appliedSns, page, selectedStatus]);
+
   const applyFilters = () => {
-    setAppliedKeyword(keyword);
-    setAppliedCohort(cohort);
+    setAppliedKeyword(keyword.trim());
+    setAppliedGenerationId(generationId);
     setAppliedSns(sns);
     setPage(1);
   };
 
   const resetFilters = () => {
     setKeyword("");
-    setCohort("");
+    setGenerationId("");
     setSns("");
     setAppliedKeyword("");
-    setAppliedCohort("");
+    setAppliedGenerationId("");
     setAppliedSns("");
     setSelectedStatus(null);
     setPage(1);
   };
+
+  const appliedGeneration = generations.find((generation) => (
+    String(generation.id) === appliedGenerationId
+  ));
+  const appliedPlatform = SELECTOR_SNS_OPTIONS.find((option) => option.value === appliedSns);
 
   return (
     <section className="fuma-page">
@@ -440,8 +468,8 @@ export function SelectorOverviewPage() {
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-selector-search">
           <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
-            <FilterField htmlFor="selector-name" label="이름 / ID">
-              <TextInput id="selector-name" name="selectorName" onChange={(event) => setKeyword(event.target.value)} placeholder="이름 / ID 검색" value={keyword} />
+            <FilterField htmlFor="selector-name" label="닉네임">
+              <TextInput id="selector-name" name="selectorName" onChange={(event) => setKeyword(event.target.value)} placeholder="닉네임 검색" value={keyword} />
             </FilterField>
             <FilterField htmlFor="selector-sns" label="SNS">
               <Select
@@ -456,9 +484,15 @@ export function SelectorOverviewPage() {
               <Select
                 id="selector-cohort"
                 name="cohort"
-                onChange={(event) => setCohort(event.target.value)}
-                options={SELECTOR_COHORT_OPTIONS}
-                value={cohort}
+                onChange={(event) => setGenerationId(event.target.value)}
+                options={[
+                  { label: "전체", value: "" },
+                  ...generations.map((generation) => ({
+                    label: generation.generationName,
+                    value: String(generation.id),
+                  })),
+                ]}
+                value={generationId}
               />
             </FilterField>
           </SearchPanel>
@@ -484,8 +518,8 @@ export function SelectorOverviewPage() {
           className="fuma-simple-result-toolbar"
           meta={
             <>
-              <span>{[appliedCohort, appliedSns].filter(Boolean).join(" · ") || "전체"}</span>
-              <span>총 {selectors.length}건</span>
+              <span>{[appliedGeneration?.generationName, appliedPlatform?.label].filter(Boolean).join(" · ") || "전체"}</span>
+              <span>총 {pageData?.totalElements ?? 0}건</span>
             </>
           }
           title={selectorListTitle}
@@ -495,18 +529,23 @@ export function SelectorOverviewPage() {
           className="fuma-wide-table fuma-settlement-table fuma-selector-list-table"
           role="region"
         >
-          <DenseTable
-            columns={SELECTOR_COLUMNS}
-            onRowClick={(selector) => navigate(`/selectors/${selector.id}`)}
-            rowKey={(selector) => selector.id}
-            rows={pagedSelectors}
-          />
+          {listError ? (
+            <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
+          ) : (
+            <DenseTable
+              columns={SELECTOR_COLUMNS}
+              emptyMessage={pageData ? "셀렉터스가 없습니다." : "셀렉터스를 불러오는 중입니다."}
+              onRowClick={(selector) => navigate(`/selectors/${selector.id}`)}
+              rowKey={(selector) => selector.id}
+              rows={pageData?.content ?? []}
+            />
+          )}
         </div>
         <Pagination
           onPageChange={setPage}
-          page={currentPage}
+          page={page}
           pageSize={SELECTOR_PAGE_SIZE}
-          totalPages={totalPages}
+          totalPages={Math.max(1, pageData?.totalPages ?? 1)}
         />
       </div>
     </section>
@@ -516,16 +555,49 @@ export function SelectorOverviewPage() {
 
 export function SelectorDetailPage() {
   const { selectorId } = useParams();
-  const selector = SELECTORS.find((item) => item.id === selectorId);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [detailState, setDetailState] = useState<{
+    id: number;
+    selector: SelectorDetail | null;
+    error: string;
+  } | null>(null);
   const fromQualifications = searchParams.get("from") === "qualifications";
   const listPath = fromQualifications ? "/selectors/qualifications" : "/selectors";
+  const numericSelectorId = Number(selectorId);
+  const invalidSelectorId = !Number.isSafeInteger(numericSelectorId) || numericSelectorId <= 0;
+  const currentDetailState = detailState?.id === numericSelectorId ? detailState : null;
+
+  useEffect(() => {
+    const id = Number(selectorId);
+    if (!Number.isSafeInteger(id) || id <= 0) return;
+
+    const controller = new AbortController();
+    getSelector(id, controller.signal)
+      .then((selector) => setDetailState({ id, selector, error: "" }))
+      .catch((reason: unknown) => {
+        if (!controller.signal.aborted) {
+          setDetailState({
+            id,
+            selector: null,
+            error: reason instanceof Error ? reason.message : "셀렉터스 상세 조회에 실패했습니다.",
+          });
+        }
+      });
+    return () => controller.abort();
+  }, [selectorId]);
 
   return (
     <>
       {fromQualifications ? <QualificationManagementPage /> : <SelectorOverviewPage />}
-      <SelectorDetailPanel onClose={() => navigate(listPath)} selector={selector} />
+      <SelectorDetailPanel
+        onClose={() => navigate(listPath)}
+        selectorDetail={currentDetailState?.selector}
+        selectorDetailError={invalidSelectorId
+          ? "요청한 셀렉터스 ID가 올바르지 않습니다."
+          : currentDetailState?.error}
+        selectorDetailLoading={!invalidSelectorId && !currentDetailState}
+      />
     </>
   );
 }

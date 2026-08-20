@@ -85,6 +85,11 @@ const SettlementManagementPage = lazyPage(() =>
     (module) => module.SettlementManagementPage,
   ),
 );
+const NotificationHistoryPage = lazyPage(() =>
+  import("../features/notifications/NotificationPages").then(
+    (module) => module.NotificationHistoryPage,
+  ),
+);
 
 const NAV_GROUPS: readonly NavGroupMeta[] = [
   { id: "creators", label: "크리에이터" },
@@ -94,6 +99,7 @@ const NAV_GROUPS: readonly NavGroupMeta[] = [
   { id: "content", label: "콘텐츠" },
   { id: "performance", label: "성과" },
   { id: "settlements", label: "정산" },
+  { id: "notifications", label: "알림 및 메시지" },
 ];
 
 export const ADMIN_ROUTE_MANIFEST = [
@@ -287,6 +293,15 @@ export const ADMIN_ROUTE_MANIFEST = [
     title: "정산 관리",
     screenCode: "ST101",
     workTabLabel: "정산 관리",
+  },
+  {
+    path: "/notifications",
+    Component: NotificationHistoryPage,
+    group: "notifications",
+    menuLabel: "발송 내역",
+    title: "알림 및 메시지",
+    screenCode: "NT101",
+    workTabLabel: "발송 내역",
   },
 ] as const satisfies readonly AdminRouteManifestEntry[];
 

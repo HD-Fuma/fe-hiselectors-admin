@@ -16,6 +16,7 @@ const expectedSidebarLinks = [
   ["콘텐츠 성과", "/performance/contents"],
   ["캠페인 성과", "/performance/products"],
   ["정산 관리", "/settlements"],
+  ["발송 내역", "/notifications"],
 ] as const;
 
 test("renderRoute renders the administrator login route", () => {
@@ -35,7 +36,7 @@ test("renders the complete administrator navigation in one sidebar", () => {
 
   expect(sidebarQueries.getByRole("img", { name: "더현대Hi" })).toBeInTheDocument();
   expect(screen.getAllByRole("navigation", { name: "관리자 메뉴" })).toHaveLength(1);
-  expect(within(navigation).getAllByRole("link")).toHaveLength(13);
+  expect(within(navigation).getAllByRole("link")).toHaveLength(14);
   for (const [label, href] of expectedSidebarLinks) {
     expect(within(navigation).getByRole("link", { name: label })).toHaveAttribute(
       "href",
@@ -52,6 +53,7 @@ test("renders the complete administrator navigation in one sidebar", () => {
     "콘텐츠",
     "성과",
     "정산",
+    "알림 및 메시지",
   ]) {
     expect(
       within(navigation).getByRole("heading", { name: groupLabel }),
@@ -310,6 +312,14 @@ const routeCases = [
     menuLabel: "정산 관리",
     title: "정산 지급 관리",
     screenCode: "ST101",
+    routeIsExact: true,
+  },
+  {
+    path: "/notifications",
+    group: "notifications",
+    menuLabel: "발송 내역",
+    title: "알림 및 메시지",
+    screenCode: "NT101",
     routeIsExact: true,
   },
 ] as const;
