@@ -6,6 +6,7 @@ import {
   type RouteObject,
 } from "react-router-dom";
 import { LoginPage } from "../features/auth/LoginPage";
+import { RequireAdministrator } from "../features/auth/RequireAdministrator";
 import { AdminLayout } from "./layout";
 import {
   ADMIN_NAVIGATION,
@@ -45,7 +46,11 @@ const routes: RouteObject[] = [
   },
   {
     path: "/",
-    element: <AdminLayout navigation={ADMIN_NAVIGATION} />,
+    element: (
+      <RequireAdministrator>
+        <AdminLayout navigation={ADMIN_NAVIGATION} />
+      </RequireAdministrator>
+    ),
     children: [
       {
         index: true,

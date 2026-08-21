@@ -1,10 +1,26 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { loginAdministrator, persistAdministratorSession } from "./api";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import {
+  getAdministratorSession,
+  loginAdministrator,
+  persistAdministratorSession,
+} from "./api";
 import "../../styles/login.css";
+
+export interface LoginLocationState {
+  from?: string;
+}
+
+function safeReturnPath(state: LoginLocationState | null) {
+  const from = state?.from;
+  return typeof from === "string" && from.startsWith("/") && !from.startsWith("//")
+    ? from
+    : "/creators";
+}
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,7 +42,9 @@ export function LoginPage() {
         password,
       });
       persistAdministratorSession(session);
-      navigate("/creators", { replace: true });
+      navigate(safeReturnPath(location.state as LoginLocationState | null), {
+        replace: true,
+      });
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "관리자 로그인에 실패했습니다.",
@@ -35,6 +53,15 @@ export function LoginPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (getAdministratorSession()) {
+    return (
+      <Navigate
+        replace
+        to={safeReturnPath(location.state as LoginLocationState | null)}
+      />
+    );
+  }
 
   return (
     <main className="partners-login" data-visual-contract="login">
