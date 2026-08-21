@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
@@ -14,11 +14,15 @@ import {
   PRODUCT_INFLUENCE,
   SELECTOR_PERFORMANCE,
   creatorNameById,
+  adaptContentPerformance,
   formatCount,
   formatRate,
+  getContentPerformance,
+  getContentPerformanceSummary,
   selectorCohortById,
   type CampaignPerformance,
   type ContentInfluence,
+  type ContentPerformanceSummaryApi,
   type SelectorPerformance,
 } from "../../entities/performance";
 import { ContentPerformanceDashboard } from "./ContentPerformanceDashboard";
@@ -553,8 +557,28 @@ function contentPerformanceForFilters(filters: PerformanceFilterValues) {
   ));
 }
 
+function apiContentPerformanceForFilters(
+  contents: readonly ContentInfluence[],
+  filters: PerformanceFilterValues,
+) {
+  return contents.filter((content) => (
+    !filters.campaign
+    && (!filters.cohort || content.cohort === filters.cohort)
+    && includesKeyword(
+      [content.id, content.title, content.authorName ?? ""],
+      filters.keyword,
+    )
+  ));
+}
+
 export function ContentPerformancePage() {
   const [page, setPage] = useState(1);
+  const [apiContents, setApiContents] = useState<ContentInfluence[]>([]);
+  const [apiErrorMessage, setApiErrorMessage] = useState("");
+  const [apiLoading, setApiLoading] = useState(true);
+  const [uploadSummary, setUploadSummary] = useState<ContentPerformanceSummaryApi>();
+  const [uploadSummaryError, setUploadSummaryError] = useState("");
+  const [uploadSummaryLoading, setUploadSummaryLoading] = useState(true);
   const {
     appliedFilters,
     applyFilters,
@@ -563,8 +587,35 @@ export function ContentPerformancePage() {
     updateDraftFilter,
   } = usePerformanceFilterState();
   const contents = contentPerformanceForFilters(appliedFilters);
-  const cohortContents = contentPerformanceForFilters({ ...appliedFilters, cohort: "" });
-  const highlightedCohort = appliedFilters.cohort || SELECTOR_PERFORMANCE[0]?.cohort || "";
+  const resultContents = apiContentPerformanceForFilters(apiContents, appliedFilters);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void getContentPerformance(controller.signal)
+      .then((items) => setApiContents(items.map(adaptContentPerformance)))
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setApiErrorMessage(error instanceof Error
+          ? error.message
+          : "콘텐츠 성과 목록 조회에 실패했습니다.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setApiLoading(false);
+      });
+    void getContentPerformanceSummary(controller.signal)
+      .then(setUploadSummary)
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setUploadSummaryError(error instanceof Error
+          ? error.message
+          : "콘텐츠 업로드 요약 조회에 실패했습니다.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setUploadSummaryLoading(false);
+      });
+
+    return () => controller.abort();
+  }, []);
 
   const applyAndResetPage = () => {
     applyFilters();
@@ -581,7 +632,6 @@ export function ContentPerformancePage() {
       <PageHeader title="콘텐츠 성과" />
       <div className="fuma-page__body">
         <ContentPerformanceDashboard
-          cohortContents={cohortContents}
           contents={contents}
           filters={(
             <PerformanceFilters
@@ -597,10 +647,15 @@ export function ContentPerformancePage() {
               values={draftFilters}
             />
           )}
-          highlightedCohort={highlightedCohort}
           key={JSON.stringify(appliedFilters)}
           onPageChange={setPage}
           page={page}
+          resultContents={resultContents}
+          resultErrorMessage={apiErrorMessage}
+          resultLoading={apiLoading}
+          uploadSummary={uploadSummary}
+          uploadSummaryError={uploadSummaryError}
+          uploadSummaryLoading={uploadSummaryLoading}
         />
       </div>
     </section>

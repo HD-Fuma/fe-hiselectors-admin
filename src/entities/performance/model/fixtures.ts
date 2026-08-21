@@ -69,6 +69,8 @@ export interface SelectorPerformance {
 }
 
 export interface ContentInfluence {
+  accountId?: string;
+  authorName?: string;
   id: string;
   title: string;
   caption: string;
@@ -84,8 +86,11 @@ export interface ContentInfluence {
   views: number;
   likes: number;
   comments: number;
+  cohort?: string;
   viewsTrend: readonly ContentViewPoint[];
   reactionTrend: readonly ContentReactionPoint[];
+  profileImageUrl?: string | null;
+  thumbnailUrl?: string | null;
 }
 
 export interface ContentUploadActivity {

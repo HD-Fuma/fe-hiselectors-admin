@@ -17,6 +17,7 @@ import {
   selectorCohortById,
   type ContentInfluence,
   type ContentPerformanceFormat,
+  type ContentPerformanceSummaryApi,
 } from "../../entities/performance";
 import { assetUrl } from "../../lib/assetUrl";
 import { paginate } from "../../lib/pagination";
@@ -33,13 +34,6 @@ const CONTENT_PERFORMANCE_SORT_OPTIONS: readonly {
   { label: "조회수 높은순", value: "views" },
   { label: "좋아요 높은순", value: "likes" },
   { label: "댓글 높은순", value: "comments" },
-];
-const CONTENT_FORMAT_ORDER: readonly ContentPerformanceFormat[] = [
-  "인스타 릴스",
-  "인스타 피드",
-  "인스타 이미지",
-  "유튜브 쇼츠",
-  "유튜브 롱폼",
 ];
 const CONTENT_FORMAT_COLORS = [
   "var(--fuma-content-format-1)",
@@ -58,6 +52,13 @@ const CONTENT_MEDIA: Record<string, { creatorImage: string; thumbnail: string }>
 };
 
 function contentMediaFor(content: ContentInfluence) {
+  if (content.thumbnailUrl || content.profileImageUrl) {
+    return {
+      thumbnail: content.thumbnailUrl ?? "",
+      creatorImage: content.profileImageUrl ?? "",
+    };
+  }
+
   const savedMedia = CONTENT_MEDIA[content.id];
 
   if (savedMedia) {
@@ -117,27 +118,22 @@ function ContentTableTrendChart({ content }: { content: ContentInfluence }) {
       ...item,
       points: item.values.map((value, index) => ({
         x: dates.length === 1 ? chartWidth / 2 : 16 + index * ((chartWidth - 32) / (dates.length - 1)),
-        y: 12 + (1 - value / maximum) * 44,
+        y: 8 + (1 - value / maximum) * 30,
       })),
     };
   });
 
   return (
     <div className="fuma-content-table-trend">
-      <ul aria-label="표 추이 범례" className="fuma-content-cohort-chart__legend fuma-content-table-trend__legend">
-        {chartSeries.map((item) => (
-          <li className={`is-${item.value}`} key={item.value}><i />{item.label}</li>
-        ))}
-      </ul>
       <svg
         aria-label="날짜별 조회수 및 좋아요 추이"
         className="fuma-content-cohort-chart__plot fuma-content-table-trend__plot is-all"
         role="img"
-        viewBox={`0 0 ${chartWidth} 78`}
+        viewBox={`0 0 ${chartWidth} 56`}
       >
-        <line className="fuma-content-cohort-chart__grid" x1="8" x2={chartWidth - 8} y1="12" y2="12" />
-        <line className="fuma-content-cohort-chart__grid" x1="8" x2={chartWidth - 8} y1="34" y2="34" />
-        <line className="fuma-content-cohort-chart__grid" x1="8" x2={chartWidth - 8} y1="56" y2="56" />
+        <line className="fuma-content-cohort-chart__grid" x1="8" x2={chartWidth - 8} y1="8" y2="8" />
+        <line className="fuma-content-cohort-chart__grid" x1="8" x2={chartWidth - 8} y1="23" y2="23" />
+        <line className="fuma-content-cohort-chart__grid" x1="8" x2={chartWidth - 8} y1="38" y2="38" />
         {chartSeries.map((item) => (
           <g className={`fuma-content-cohort-chart__series is-${item.value}`} data-series={item.value} key={item.value}>
             <path className="fuma-content-cohort-chart__line" d={smoothLinePath(item.points)} />
@@ -147,15 +143,15 @@ function ContentTableTrendChart({ content }: { content: ContentInfluence }) {
                 cx={point.x}
                 cy={point.y}
                 key={`${dates[index]}-${item.value}`}
-                r="3"
+                r="2.5"
               />
             ))}
           </g>
         ))}
-        <text className="fuma-content-cohort-chart__label" textAnchor="start" x="8" y="74">
+        <text className="fuma-content-cohort-chart__label" textAnchor="start" x="8" y="53">
           {trendDateLabel(dates[0])}
         </text>
-        <text className="fuma-content-cohort-chart__label" textAnchor="end" x={chartWidth - 8} y="74">
+        <text className="fuma-content-cohort-chart__label" textAnchor="end" x={chartWidth - 8} y="53">
           {trendDateLabel(dates.at(-1))}
         </text>
       </svg>
@@ -163,34 +159,46 @@ function ContentTableTrendChart({ content }: { content: ContentInfluence }) {
   );
 }
 
-function contentFormatSegments(contents: readonly ContentInfluence[]): AnalysisFormatSegment[] {
+function contentAuthor(content: ContentInfluence) {
+  return content.authorName || creatorNameById(content.creatorId);
+}
+
+function contentCohort(content: ContentInfluence) {
+  return content.cohort || selectorCohortById(content.selectorId);
+}
+
+function contentFormatTag(format: ContentPerformanceFormat) {
+  if (format === "인스타 릴스") return { className: "is-reels", label: "릴스" };
+  if (format === "유튜브 롱폼") return { className: "is-long-form", label: "롱폼" };
+  if (format === "유튜브 쇼츠") return { className: "is-short-form", label: "숏폼" };
+  return { className: "is-feed", label: "피드" };
+}
+
+function contentFormatSegments(summary: ContentPerformanceSummaryApi): AnalysisFormatSegment[] {
+  const formats = [
+    { contentType: "SHORT_FORM", label: "인스타 릴스" },
+    { contentType: "FEED", label: "인스타 피드" },
+    { contentType: "SHORTS", label: "유튜브 쇼츠" },
+    { contentType: "LONG_FORM", label: "유튜브 롱폼" },
+  ] as const;
+  const countByType = new Map(summary.formats.map((format) => [format.contentType, format.count]));
   let start = 0;
 
-  return CONTENT_FORMAT_ORDER.map((format, index) => {
-    const count = contents.filter((content) => content.contentFormat === format).length;
-    const percentage = contents.length === 0 ? 0 : (count / contents.length) * 100;
+  return formats.map((format, index) => {
+    const count = countByType.get(format.contentType) ?? 0;
+    const percentage = summary.totalContentCount === 0
+      ? 0
+      : (count / summary.totalContentCount) * 100;
     const segment = {
       color: CONTENT_FORMAT_COLORS[index],
       count,
-      label: format,
+      label: format.label,
       percentage,
       start,
     };
     start += percentage;
     return segment;
   });
-}
-
-function previousNumericCohort(cohort: string) {
-  const match = cohort.match(/^(.*?)(\d+)(\D*)$/);
-
-  if (!match) {
-    return null;
-  }
-
-  const cohortNumber = Number(match[2]);
-
-  return cohortNumber > 0 ? `${match[1]}${cohortNumber - 1}${match[3]}` : null;
 }
 
 function contentEngagementRate(content: ContentInfluence) {
@@ -269,13 +277,15 @@ function smoothLinePath(points: readonly { x: number; y: number }[]) {
 }
 
 function ContentOverview({
-  cohortContents,
   contents,
-  highlightedCohort,
+  uploadSummary,
+  uploadSummaryError,
+  uploadSummaryLoading,
 }: {
-  cohortContents: readonly ContentInfluence[];
   contents: readonly ContentInfluence[];
-  highlightedCohort: string;
+  uploadSummary?: ContentPerformanceSummaryApi;
+  uploadSummaryError?: string;
+  uploadSummaryLoading?: boolean;
 }) {
   const [cohortChartMode, setCohortChartMode] = useState<CohortChartMode>("all");
   const sortedContentDates = [...contents].map((content) => content.publishedAt).sort();
@@ -331,29 +341,6 @@ function ContentOverview({
     chartDragRef.current.pointerId = -1;
     setIsChartDragging(false);
   };
-  const cohortMetrics = new Map<string, {
-    comments: number;
-    contentCount: number;
-    likes: number;
-    views: number;
-  }>();
-
-  cohortContents.forEach((content) => {
-    const cohort = selectorCohortById(content.selectorId);
-    const current = cohortMetrics.get(cohort) ?? {
-      comments: 0,
-      contentCount: 0,
-      likes: 0,
-      views: 0,
-    };
-    cohortMetrics.set(cohort, {
-      comments: current.comments + content.comments,
-      contentCount: current.contentCount + 1,
-      likes: current.likes + content.likes,
-      views: current.views + content.views,
-    });
-  });
-
   const dailyMetrics = new Map<string, {
     comments: number;
     contentCount: number;
@@ -379,16 +366,9 @@ function ContentOverview({
         views: current.views + content.views,
       });
     });
-  const cumulative = { comments: 0, contentCount: 0, likes: 0, views: 0 };
   const periodMetrics = [...dailyMetrics]
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([date, metric]) => {
-      cumulative.comments += metric.comments;
-      cumulative.contentCount += metric.contentCount;
-      cumulative.likes += metric.likes;
-      cumulative.views += metric.views;
-      return { date, ...cumulative };
-    });
+    .map(([date, metric]) => ({ date, ...metric }));
   const periodPointGap = 96;
   const cohortChartWidth = Math.max(560, (periodMetrics.length - 1) * periodPointGap + 84);
   const visibleCohortSeries = cohortChartMode === "all"
@@ -404,16 +384,12 @@ function ContentOverview({
       })),
     };
   });
-  const formatSegments = contentFormatSegments(contents);
-  const currentCohortCount = cohortMetrics.get(highlightedCohort)?.contentCount ?? 0;
-  const priorCohort = previousNumericCohort(highlightedCohort);
-  const priorCohortCount = priorCohort
-    ? cohortMetrics.get(priorCohort)?.contentCount ?? 0
-    : 0;
-  const cohortChange = priorCohortCount === 0
+  const formatSegments = uploadSummary ? contentFormatSegments(uploadSummary) : [];
+  const cohortChange = !uploadSummary || uploadSummary.previousGenerationContentCount === 0
     ? "-"
-    : `${currentCohortCount >= priorCohortCount ? "+" : ""}${(
-      ((currentCohortCount - priorCohortCount) / priorCohortCount) * 100
+    : `${uploadSummary.currentGenerationContentCount >= uploadSummary.previousGenerationContentCount ? "+" : ""}${(
+      ((uploadSummary.currentGenerationContentCount - uploadSummary.previousGenerationContentCount)
+        / uploadSummary.previousGenerationContentCount) * 100
     ).toFixed(1)}%`;
 
   return (
@@ -424,8 +400,8 @@ function ContentOverview({
           <h2>업로드 현황</h2>
         </header>
         <dl>
-          <div><dt>전체</dt><dd>{formatCount(cohortContents.length)}건</dd></div>
-          <div><dt>이번 기수</dt><dd>{formatCount(currentCohortCount)}건</dd></div>
+          <div><dt>전체</dt><dd>{uploadSummary ? `${formatCount(uploadSummary.totalContentCount)}건` : "-"}</dd></div>
+          <div><dt>이번 기수</dt><dd>{uploadSummary ? `${formatCount(uploadSummary.currentGenerationContentCount)}건` : "-"}</dd></div>
           <div><dt>이전 대비</dt><dd>{cohortChange}</dd></div>
         </dl>
         <section aria-label="콘텐츠 유형" className="fuma-content-upload-status__formats">
@@ -433,19 +409,21 @@ function ContentOverview({
           <AnalysisFormatBreakdown
             segments={formatSegments}
             showTotal={false}
-            total={contents.length}
+            total={uploadSummary?.totalContentCount ?? 0}
           />
+          {uploadSummaryLoading ? <p>집계 데이터를 불러오는 중입니다.</p> : null}
+          {uploadSummaryError ? <p>{uploadSummaryError}</p> : null}
         </section>
       </article>
 
       <article
-        aria-label="기간별 누적 콘텐츠 성과"
+        aria-label="기간별 콘텐츠 성과"
         className="fuma-content-performance-panel fuma-content-cohort-chart"
       >
         <header>
           <div>
             <span>TREND</span>
-            <h2>기간별 누적 콘텐츠 성과</h2>
+            <h2>기간별 콘텐츠 성과</h2>
           </div>
           <form
             aria-label="콘텐츠 성과 기간 검색"
@@ -476,7 +454,7 @@ function ContentOverview({
         </header>
         <div className="fuma-content-period-chart__toolbar">
           <SegmentedControl
-            ariaLabel="기간별 누적 성과 지표"
+            ariaLabel="기간별 성과 지표"
             onChange={setCohortChartMode}
             options={COHORT_CHART_OPTIONS}
             value={cohortChartMode}
@@ -489,7 +467,7 @@ function ContentOverview({
         </div>
         {periodMetrics.length > 0 ? (
           <div
-            aria-label="기간별 누적 콘텐츠 성과 그래프 좌우 이동"
+            aria-label="기간별 콘텐츠 성과 그래프 좌우 이동"
             className={`fuma-content-cohort-chart__scroll fuma-content-cohort-chart__scroll--draggable${isChartDragging ? " is-dragging" : ""}`}
             onPointerCancel={endChartDrag}
             onPointerDown={startChartDrag}
@@ -515,7 +493,7 @@ function ContentOverview({
                     const point = series.points[index];
                     const value = metric[series.value];
                     return (
-                      <g key={metric.date}>
+                      <g data-metric-date={metric.date} data-metric-value={value} key={metric.date}>
                         <circle className="fuma-content-cohort-chart__point" cx={point.x} cy={point.y} r="3.5" />
                         {cohortChartMode !== "all" ? (
                           <text className="fuma-content-cohort-chart__value" textAnchor="middle" x={point.x} y={point.y - 11}>
@@ -554,7 +532,8 @@ function ContentPerformanceCard({
   onOpen: () => void;
 }) {
   const media = contentMediaFor(content);
-  const author = creatorNameById(content.creatorId);
+  const author = contentAuthor(content);
+  const formatTag = contentFormatTag(content.contentFormat);
   const platform = content.platform === "YouTube" ? "YouTube" : "Instagram";
   const showPlay = content.contentFormat === "유튜브 롱폼"
     || content.contentFormat === "유튜브 쇼츠"
@@ -568,7 +547,7 @@ function ContentPerformanceCard({
     >
       <ContentCollectionCard
         author={author}
-        badgeLabel={selectorCohortById(content.selectorId)}
+        badgeLabel={contentCohort(content)}
         caption={content.caption}
         footerEnd={<span className="fuma-content-performance-card__hint">상세 보기</span>}
         footerStart={content.publishedAt}
@@ -577,9 +556,13 @@ function ContentPerformanceCard({
         platform={platform}
         profileImageUrl={media.creatorImage}
         showPlay={showPlay}
+        snsId={content.accountId}
         status={(
-          <StatusPill className="fuma-content-collection__inspection-status" tone="neutral">
-            {content.contentFormat}
+          <StatusPill
+            className={`fuma-content-collection__inspection-status fuma-content-performance-format ${formatTag.className}`}
+            tone="neutral"
+          >
+            {formatTag.label}
           </StatusPill>
         )}
         title={content.title}
@@ -603,7 +586,8 @@ function ContentPerformanceDetailPanel({
 }) {
   const [trendMode, setTrendMode] = useState<ContentDetailTrendMode>("all");
   const media = contentMediaFor(content);
-  const author = creatorNameById(content.creatorId);
+  const author = contentAuthor(content);
+  const formatTag = contentFormatTag(content.contentFormat);
   const engagementRate = contentEngagementRate(content) * 100;
   const trendDates = [...new Set([
     ...content.viewsTrend.map((point) => point.recordedAt),
@@ -640,8 +624,10 @@ function ContentPerformanceDetailPanel({
           <img alt={`${content.title} 썸네일`} src={assetUrl(media.thumbnail)} />
           <div>
             <div className="fuma-content-performance-detail__badges">
-              <StatusPill tone="neutral">{selectorCohortById(content.selectorId)}</StatusPill>
-              <StatusPill tone="neutral">{content.contentFormat}</StatusPill>
+              <StatusPill tone="neutral">{contentCohort(content)}</StatusPill>
+              <StatusPill className={`fuma-content-performance-format ${formatTag.className}`} tone="neutral">
+                {formatTag.label}
+              </StatusPill>
             </div>
             <h3>{content.title}</h3>
             <p>{content.caption}</p>
@@ -769,15 +755,30 @@ function contentPerformanceColumns(
       ),
     },
     {
+      id: "contentFormat",
+      header: "콘텐츠 유형",
+      align: "center",
+      width: 96,
+      render: (content) => {
+        const formatTag = contentFormatTag(content.contentFormat);
+        return (
+          <StatusPill className={`fuma-content-performance-format ${formatTag.className}`} tone="neutral">
+            {formatTag.label}
+          </StatusPill>
+        );
+      },
+    },
+    {
       id: "selector",
       header: "셀렉터스",
+      align: "center",
       width: 160,
       render: (content) => {
         const media = contentMediaFor(content);
         return (
           <div className="fuma-content-reaction-table__channel">
             <img alt="" src={assetUrl(media.creatorImage)} />
-            <span><strong>{creatorNameById(content.creatorId)}</strong></span>
+            <span><strong>{contentAuthor(content)}</strong></span>
           </div>
         );
       },
@@ -807,8 +808,13 @@ function contentPerformanceColumns(
     },
     {
       id: "performanceTrend",
-      header: "조회수 · 좋아요 추이",
-      width: 252,
+      header: (
+        <span className="fuma-content-table-trend__header">
+          <span>조회수 · 좋아요 추이</span>
+          <small><i className="is-views" />조회수<i className="is-likes" />좋아요</small>
+        </span>
+      ),
+      width: 220,
       render: (content) => <ContentTableTrendChart content={content} />,
     },
   ];
@@ -816,12 +822,16 @@ function contentPerformanceColumns(
 
 function ContentPerformanceResults({
   contents,
+  errorMessage,
   filters,
+  loading,
   onPageChange,
   page,
 }: {
   contents: readonly ContentInfluence[];
+  errorMessage?: string;
   filters?: ReactNode;
+  loading?: boolean;
   onPageChange: (page: number) => void;
   page: number;
 }) {
@@ -877,7 +887,11 @@ function ContentPerformanceResults({
         title="콘텐츠 성과 및 추이"
       />
       {filters}
-      {pagedContents.length === 0 ? (
+      {loading ? (
+        <EmptyState description="잠시만 기다려 주세요." title="콘텐츠 성과를 불러오는 중입니다." />
+      ) : errorMessage ? (
+        <EmptyState description={errorMessage} title="콘텐츠 성과를 불러오지 못했습니다." />
+      ) : pagedContents.length === 0 ? (
         <EmptyState title="검색 결과가 없습니다." />
       ) : viewMode === "grid" ? (
         <div className="fuma-content-collection__track is-grid">
@@ -921,30 +935,41 @@ function ContentPerformanceResults({
 }
 
 export function ContentPerformanceDashboard({
-  cohortContents,
   contents,
   filters,
-  highlightedCohort,
   onPageChange,
   page,
+  resultContents = contents,
+  resultErrorMessage,
+  resultLoading = false,
+  uploadSummary,
+  uploadSummaryError,
+  uploadSummaryLoading = false,
 }: {
-  cohortContents: readonly ContentInfluence[];
   contents: readonly ContentInfluence[];
   filters?: ReactNode;
-  highlightedCohort: string;
   onPageChange: (page: number) => void;
   page: number;
+  resultContents?: readonly ContentInfluence[];
+  resultErrorMessage?: string;
+  resultLoading?: boolean;
+  uploadSummary?: ContentPerformanceSummaryApi;
+  uploadSummaryError?: string;
+  uploadSummaryLoading?: boolean;
 }) {
   return (
     <>
       <ContentOverview
-        cohortContents={cohortContents}
         contents={contents}
-        highlightedCohort={highlightedCohort}
+        uploadSummary={uploadSummary}
+        uploadSummaryError={uploadSummaryError}
+        uploadSummaryLoading={uploadSummaryLoading}
       />
       <ContentPerformanceResults
-        contents={contents}
+        contents={resultContents}
+        errorMessage={resultErrorMessage}
         filters={filters}
+        loading={resultLoading}
         onPageChange={onPageChange}
         page={page}
       />

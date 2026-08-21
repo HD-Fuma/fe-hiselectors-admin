@@ -412,6 +412,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 
 .fuma-content-upload-status__formats { margin-top: var(--hsas-space-16); padding-top: var(--hsas-space-14); border-top: 1px solid var(--fuma-performance-line); }
 .fuma-content-upload-status__formats h3 { margin: 0; color: var(--fuma-performance-ink); font-size: var(--hsas-font-12); letter-spacing: -.025em; }
+.fuma-content-upload-status__formats > p { margin: var(--hsas-space-12) 0 0; color: #8b9691; font-size: var(--hsas-font-9); text-align: center; }
 
 .fuma-content-cohort-chart__controls {
   min-width: 0;
@@ -563,6 +564,10 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 .fuma-content-performance-card__hint { color: var(--fuma-performance-teal); font-weight: 750; }
 
 .fuma-content-performance-card .fuma-content-collection__inspection-status { max-width: 105px; overflow: hidden; text-overflow: ellipsis; }
+.fuma-content-performance-format.is-feed { border-color: #9acdbf; background: #e8f4f0; color: #247464; }
+.fuma-content-performance-format.is-reels { border-color: #d7b7d1; background: #f7edf5; color: #8a477b; }
+.fuma-content-performance-format.is-long-form { border-color: #dcadad; background: #faeeee; color: #a34d4d; }
+.fuma-content-performance-format.is-short-form { border-color: #abc8de; background: #edf5fa; color: #39749b; }
 .fuma-content-performance-card .fuma-content-collection__copy { min-height: 116px; }
 .fuma-content-performance-card .fuma-content-collection__media { border-radius: 3px; }
 
@@ -688,6 +693,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 .fuma-content-reaction-table__channel {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--hsas-space-8);
   min-width: 0;
 }
@@ -731,12 +737,17 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   height: 11px;
 }
 
-.fuma-content-table-trend { display: grid; min-width: 220px; gap: var(--hsas-space-2); }
-.fuma-content-table-trend__legend { min-width: 0; gap: var(--hsas-space-10); padding: 0; }
-.fuma-content-table-trend__plot { width: 100%; min-width: 0; height: 78px; }
+.fuma-content-table-trend { display: grid; min-width: 188px; }
+.fuma-content-table-trend__header { display: inline-grid; justify-items: center; gap: 1px; line-height: 1.2; }
+.fuma-content-table-trend__header small { display: inline-flex; align-items: center; gap: var(--hsas-space-3); color: #7c8883; font-size: var(--hsas-font-8); font-weight: 600; }
+.fuma-content-table-trend__header i { width: 9px; height: 2px; margin-left: var(--hsas-space-3); border-radius: 99px; background: var(--cohort-series-color); }
+.fuma-content-table-trend__header i:first-child { margin-left: 0; }
+.fuma-content-table-trend__header .is-views { --cohort-series-color: #6ba99d; }
+.fuma-content-table-trend__header .is-likes { --cohort-series-color: #9bc6bd; }
+.fuma-content-table-trend__plot { width: 100%; min-width: 0; height: 56px; }
 .fuma-content-table-trend__plot .fuma-content-cohort-chart__line { stroke-width: 2; }
 .fuma-content-table-trend__plot .fuma-content-cohort-chart__label { font-size: var(--hsas-font-8); }
-.fuma-content-table-trend.is-empty { min-height: 78px; align-items: center; color: #a2aaa6; font-size: var(--hsas-font-10); font-weight: 700; }
+.fuma-content-table-trend.is-empty { min-height: 56px; align-items: center; color: #a2aaa6; font-size: var(--hsas-font-10); font-weight: 700; }
 
 @media (max-width: 1180px) {
 
