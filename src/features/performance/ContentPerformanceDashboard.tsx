@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from "react";
+import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AnalysisFormatBreakdown } from "../../components/charts/AnalysisFormatBreakdown";
 import type { AnalysisFormatSegment } from "../../components/charts/AnalysisFormatDonut";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
@@ -9,6 +9,7 @@ import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTabl
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Pagination } from "../../components/ui/Pagination";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
+import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill } from "../../components/ui/StatusPill";
 import {
   creatorNameById,
@@ -16,7 +17,6 @@ import {
   selectorCohortById,
   type ContentInfluence,
   type ContentPerformanceFormat,
-  type ContentUploadActivity,
 } from "../../entities/performance";
 import { assetUrl } from "../../lib/assetUrl";
 import { paginate } from "../../lib/pagination";
@@ -84,56 +84,81 @@ function trendDateLabel(recordedAt: string | undefined) {
   return month && day ? `${month}.${day}` : recordedAt;
 }
 
-function ContentTrendGraph({
-  label,
-  recordedAt,
-  tone,
-  values,
-}: {
-  label: string;
-  recordedAt: readonly string[];
-  tone: "views" | "likes";
-  values: readonly number[];
-}) {
-  if (values.length === 0) {
+function ContentTableTrendChart({ content }: { content: ContentInfluence }) {
+  const dates = [...new Set([
+    ...content.viewsTrend.map((point) => point.recordedAt),
+    ...content.reactionTrend.map((point) => point.recordedAt),
+  ])].sort();
+
+  if (dates.length === 0) {
     return (
-      <div aria-label={`${label} 추이 데이터 없음`} className="fuma-content-trend-graph is-empty">
+      <div aria-label="조회수 및 좋아요 추이 데이터 없음" className="fuma-content-table-trend is-empty">
         데이터 없음
       </div>
     );
   }
 
-  const chartWidth = 144;
-  const baseline = 29;
-  const chartPadding = 4;
-  const barGap = 3;
-  const maximum = Math.max(1, ...values);
-  const barWidth = (chartWidth - chartPadding * 2 - barGap * (values.length - 1)) / values.length;
+  const chartWidth = 220;
+  const series = [
+    {
+      label: "조회수",
+      value: "views",
+      values: dates.map((date) => content.viewsTrend.find((point) => point.recordedAt === date)?.views ?? 0),
+    },
+    {
+      label: "좋아요",
+      value: "likes",
+      values: dates.map((date) => content.reactionTrend.find((point) => point.recordedAt === date)?.likes ?? 0),
+    },
+  ] as const;
+  const chartSeries = series.map((item) => {
+    const maximum = Math.max(1, ...item.values);
+    return {
+      ...item,
+      points: item.values.map((value, index) => ({
+        x: dates.length === 1 ? chartWidth / 2 : 16 + index * ((chartWidth - 32) / (dates.length - 1)),
+        y: 12 + (1 - value / maximum) * 44,
+      })),
+    };
+  });
 
   return (
-    <div aria-label={`날짜별 ${label} 추이`} className={`fuma-content-trend-graph is-${tone}`}>
-      <svg aria-hidden="true" viewBox="0 0 144 34">
-        <line x1="4" x2="140" y1="29" y2="29" />
-        {values.map((value, index) => {
-          const height = Math.max(2, (value / maximum) * 23);
-          const x = chartPadding + index * (barWidth + barGap);
-
-          return (
-            <rect
-              height={height}
-              key={`${recordedAt[index]}-${value}`}
-              rx="1.5"
-              width={barWidth}
-              x={x}
-              y={baseline - height}
-            />
-          );
-        })}
+    <div className="fuma-content-table-trend">
+      <ul aria-label="표 추이 범례" className="fuma-content-cohort-chart__legend fuma-content-table-trend__legend">
+        {chartSeries.map((item) => (
+          <li className={`is-${item.value}`} key={item.value}><i />{item.label}</li>
+        ))}
+      </ul>
+      <svg
+        aria-label="날짜별 조회수 및 좋아요 추이"
+        className="fuma-content-cohort-chart__plot fuma-content-table-trend__plot is-all"
+        role="img"
+        viewBox={`0 0 ${chartWidth} 78`}
+      >
+        <line className="fuma-content-cohort-chart__grid" x1="8" x2={chartWidth - 8} y1="12" y2="12" />
+        <line className="fuma-content-cohort-chart__grid" x1="8" x2={chartWidth - 8} y1="34" y2="34" />
+        <line className="fuma-content-cohort-chart__grid" x1="8" x2={chartWidth - 8} y1="56" y2="56" />
+        {chartSeries.map((item) => (
+          <g className={`fuma-content-cohort-chart__series is-${item.value}`} data-series={item.value} key={item.value}>
+            <path className="fuma-content-cohort-chart__line" d={smoothLinePath(item.points)} />
+            {item.points.map((point, index) => (
+              <circle
+                className="fuma-content-cohort-chart__point"
+                cx={point.x}
+                cy={point.y}
+                key={`${dates[index]}-${item.value}`}
+                r="3"
+              />
+            ))}
+          </g>
+        ))}
+        <text className="fuma-content-cohort-chart__label" textAnchor="start" x="8" y="74">
+          {trendDateLabel(dates[0])}
+        </text>
+        <text className="fuma-content-cohort-chart__label" textAnchor="end" x={chartWidth - 8} y="74">
+          {trendDateLabel(dates.at(-1))}
+        </text>
       </svg>
-      <div className="fuma-content-trend-graph__dates">
-        <span>{trendDateLabel(recordedAt[0])}</span>
-        <span>{trendDateLabel(recordedAt.at(-1))}</span>
-      </div>
     </div>
   );
 }
@@ -191,6 +216,8 @@ function sortContentPerformance(
 
 type CohortChartMetric = "contentCount" | "views" | "likes" | "comments";
 type CohortChartMode = "all" | CohortChartMetric;
+type ContentDetailTrendMetric = Exclude<CohortChartMetric, "contentCount">;
+type ContentDetailTrendMode = "all" | ContentDetailTrendMetric;
 
 const COHORT_CHART_OPTIONS: readonly {
   label: string;
@@ -214,6 +241,16 @@ const COHORT_CHART_SERIES: readonly {
   { label: "댓글 수", unit: "개", value: "comments" },
 ];
 
+const CONTENT_DETAIL_TREND_OPTIONS: readonly {
+  label: string;
+  value: ContentDetailTrendMode;
+}[] = [
+  { label: "종합", value: "all" },
+  { label: "조회수", value: "views" },
+  { label: "좋아요", value: "likes" },
+  { label: "댓글 수", value: "comments" },
+];
+
 function smoothLinePath(points: readonly { x: number; y: number }[]) {
   if (points.length === 0) return "";
   if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
@@ -232,17 +269,68 @@ function smoothLinePath(points: readonly { x: number; y: number }[]) {
 }
 
 function ContentOverview({
-  activities,
   cohortContents,
   contents,
   highlightedCohort,
 }: {
-  activities: readonly ContentUploadActivity[];
   cohortContents: readonly ContentInfluence[];
   contents: readonly ContentInfluence[];
   highlightedCohort: string;
 }) {
   const [cohortChartMode, setCohortChartMode] = useState<CohortChartMode>("all");
+  const sortedContentDates = [...contents].map((content) => content.publishedAt).sort();
+  const defaultPeriodStart = sortedContentDates[0] ?? "";
+  const defaultPeriodEnd = sortedContentDates.at(-1) ?? "";
+  const [periodStart, setPeriodStart] = useState(defaultPeriodStart);
+  const [periodEnd, setPeriodEnd] = useState(defaultPeriodEnd);
+  const [appliedPeriod, setAppliedPeriod] = useState({
+    start: defaultPeriodStart,
+    end: defaultPeriodEnd,
+  });
+  const chartScrollRef = useRef<HTMLDivElement>(null);
+  const chartDragRef = useRef({ pointerId: -1, startScrollLeft: 0, startX: 0 });
+  const [isChartDragging, setIsChartDragging] = useState(false);
+
+  const startChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    const scrollArea = chartScrollRef.current;
+    if (!scrollArea) {
+      return;
+    }
+
+    chartDragRef.current = {
+      pointerId: event.pointerId,
+      startScrollLeft: scrollArea.scrollLeft,
+      startX: event.clientX,
+    };
+    scrollArea.setPointerCapture(event.pointerId);
+    setIsChartDragging(true);
+  };
+
+  const moveChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const scrollArea = chartScrollRef.current;
+    if (!scrollArea || chartDragRef.current.pointerId !== event.pointerId) {
+      return;
+    }
+
+    scrollArea.scrollLeft = chartDragRef.current.startScrollLeft - (event.clientX - chartDragRef.current.startX);
+  };
+
+  const endChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const scrollArea = chartScrollRef.current;
+    if (!scrollArea || chartDragRef.current.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (scrollArea.hasPointerCapture(event.pointerId)) {
+      scrollArea.releasePointerCapture(event.pointerId);
+    }
+    chartDragRef.current.pointerId = -1;
+    setIsChartDragging(false);
+  };
   const cohortMetrics = new Map<string, {
     comments: number;
     contentCount: number;
@@ -266,20 +354,53 @@ function ContentOverview({
     });
   });
 
-  const cohorts = [...cohortMetrics]
-    .map(([cohort, metric]) => ({ cohort, ...metric }))
-    .sort((left, right) => right.cohort.localeCompare(left.cohort, "ko", { numeric: true }));
-  const cohortChartWidth = Math.max(440, (cohorts.length - 1) * 104 + 84);
+  const dailyMetrics = new Map<string, {
+    comments: number;
+    contentCount: number;
+    likes: number;
+    views: number;
+  }>();
+  contents
+    .filter((content) => (
+      (!appliedPeriod.start || content.publishedAt >= appliedPeriod.start)
+      && (!appliedPeriod.end || content.publishedAt <= appliedPeriod.end)
+    ))
+    .forEach((content) => {
+      const current = dailyMetrics.get(content.publishedAt) ?? {
+        comments: 0,
+        contentCount: 0,
+        likes: 0,
+        views: 0,
+      };
+      dailyMetrics.set(content.publishedAt, {
+        comments: current.comments + content.comments,
+        contentCount: current.contentCount + 1,
+        likes: current.likes + content.likes,
+        views: current.views + content.views,
+      });
+    });
+  const cumulative = { comments: 0, contentCount: 0, likes: 0, views: 0 };
+  const periodMetrics = [...dailyMetrics]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([date, metric]) => {
+      cumulative.comments += metric.comments;
+      cumulative.contentCount += metric.contentCount;
+      cumulative.likes += metric.likes;
+      cumulative.views += metric.views;
+      return { date, ...cumulative };
+    });
+  const periodPointGap = 96;
+  const cohortChartWidth = Math.max(560, (periodMetrics.length - 1) * periodPointGap + 84);
   const visibleCohortSeries = cohortChartMode === "all"
     ? COHORT_CHART_SERIES
     : COHORT_CHART_SERIES.filter((series) => series.value === cohortChartMode);
   const cohortChartSeries = visibleCohortSeries.map((series) => {
-    const maximum = Math.max(1, ...cohorts.map((cohort) => cohort[series.value]));
+    const maximum = Math.max(1, ...periodMetrics.map((metric) => metric[series.value]));
     return {
       ...series,
-      points: cohorts.map((cohort, index) => ({
-        x: 42 + index * 104,
-        y: 25 + (1 - cohort[series.value] / maximum) * 76,
+      points: periodMetrics.map((metric, index) => ({
+        x: 42 + index * periodPointGap,
+        y: 25 + (1 - metric[series.value] / maximum) * 168,
       })),
     };
   });
@@ -307,52 +428,95 @@ function ContentOverview({
           <div><dt>이번 기수</dt><dd>{formatCount(currentCohortCount)}건</dd></div>
           <div><dt>이전 대비</dt><dd>{cohortChange}</dd></div>
         </dl>
+        <section aria-label="콘텐츠 유형" className="fuma-content-upload-status__formats">
+          <h3>콘텐츠 유형</h3>
+          <AnalysisFormatBreakdown
+            segments={formatSegments}
+            showTotal={false}
+            total={contents.length}
+          />
+        </section>
       </article>
 
       <article
-        aria-label="기수별 누적 콘텐츠 성과"
+        aria-label="기간별 누적 콘텐츠 성과"
         className="fuma-content-performance-panel fuma-content-cohort-chart"
       >
         <header>
           <div>
             <span>TREND</span>
-            <h2>기수별 누적 콘텐츠 성과</h2>
+            <h2>기간별 누적 콘텐츠 성과</h2>
           </div>
-          <div className="fuma-content-cohort-chart__controls">
-            <SegmentedControl
-              ariaLabel="기수별 누적 성과 지표"
-              onChange={setCohortChartMode}
-              options={COHORT_CHART_OPTIONS}
-              value={cohortChartMode}
+          <form
+            aria-label="콘텐츠 성과 기간 검색"
+            className="fuma-content-period-chart__period"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setAppliedPeriod({ start: periodStart, end: periodEnd });
+            }}
+          >
+            <strong>기간</strong>
+            <TextInput
+              aria-label="성과 시작일"
+              max={periodEnd || undefined}
+              onChange={(event) => setPeriodStart(event.target.value)}
+              type="date"
+              value={periodStart}
             />
-          </div>
+            <span>~</span>
+            <TextInput
+              aria-label="성과 종료일"
+              min={periodStart || undefined}
+              onChange={(event) => setPeriodEnd(event.target.value)}
+              type="date"
+              value={periodEnd}
+            />
+            <Button type="submit" variant="primary">조회</Button>
+          </form>
         </header>
-        {cohorts.length > 0 ? (
-          <div className="fuma-content-cohort-chart__scroll">
-            <ul aria-label="차트 범례" className="fuma-content-cohort-chart__legend">
-              {visibleCohortSeries.map((series) => (
-                <li className={`is-${series.value}`} key={series.value}><i />{series.label}</li>
-              ))}
-            </ul>
+        <div className="fuma-content-period-chart__toolbar">
+          <SegmentedControl
+            ariaLabel="기간별 누적 성과 지표"
+            onChange={setCohortChartMode}
+            options={COHORT_CHART_OPTIONS}
+            value={cohortChartMode}
+          />
+          <ul aria-label="차트 범례" className="fuma-content-cohort-chart__legend">
+            {visibleCohortSeries.map((series) => (
+              <li className={`is-${series.value}`} key={series.value}><i />{series.label}</li>
+            ))}
+          </ul>
+        </div>
+        {periodMetrics.length > 0 ? (
+          <div
+            aria-label="기간별 누적 콘텐츠 성과 그래프 좌우 이동"
+            className={`fuma-content-cohort-chart__scroll fuma-content-cohort-chart__scroll--draggable${isChartDragging ? " is-dragging" : ""}`}
+            onPointerCancel={endChartDrag}
+            onPointerDown={startChartDrag}
+            onPointerMove={moveChartDrag}
+            onPointerUp={endChartDrag}
+            ref={chartScrollRef}
+            role="region"
+          >
             <svg
-              aria-label={cohortChartMode === "all" ? "기수별 전체 성과 추이" : `기수별 ${cohortChartSeries[0].label} 추이`}
-              className={`fuma-content-cohort-chart__plot is-${cohortChartMode}`}
+              aria-label={cohortChartMode === "all" ? "기간별 전체 성과 추이" : `기간별 ${cohortChartSeries[0].label} 추이`}
+              className={`fuma-content-cohort-chart__plot fuma-content-period-chart__plot is-${cohortChartMode}`}
               role="img"
               style={{ width: `${cohortChartWidth}px` }}
-              viewBox={`0 0 ${cohortChartWidth} 148`}
+              viewBox={`0 0 ${cohortChartWidth} 246`}
             >
               <line className="fuma-content-cohort-chart__grid" x1="18" x2={cohortChartWidth - 18} y1="25" y2="25" />
-              <line className="fuma-content-cohort-chart__grid" x1="18" x2={cohortChartWidth - 18} y1="63" y2="63" />
-              <line className="fuma-content-cohort-chart__grid" x1="18" x2={cohortChartWidth - 18} y1="101" y2="101" />
+              <line className="fuma-content-cohort-chart__grid" x1="18" x2={cohortChartWidth - 18} y1="109" y2="109" />
+              <line className="fuma-content-cohort-chart__grid" x1="18" x2={cohortChartWidth - 18} y1="193" y2="193" />
               {cohortChartSeries.map((series) => (
                 <g className={`fuma-content-cohort-chart__series is-${series.value}`} data-series={series.value} key={series.value}>
                   <path className="fuma-content-cohort-chart__line" d={smoothLinePath(series.points)} />
-                  {cohorts.map((cohort, index) => {
+                  {periodMetrics.map((metric, index) => {
                     const point = series.points[index];
-                    const value = cohort[series.value];
+                    const value = metric[series.value];
                     return (
-                      <g key={cohort.cohort}>
-                        <circle className="fuma-content-cohort-chart__point" cx={point.x} cy={point.y} r="4" />
+                      <g key={metric.date}>
+                        <circle className="fuma-content-cohort-chart__point" cx={point.x} cy={point.y} r="3.5" />
                         {cohortChartMode !== "all" ? (
                           <text className="fuma-content-cohort-chart__value" textAnchor="middle" x={point.x} y={point.y - 11}>
                             {formatCount(value)}
@@ -363,146 +527,32 @@ function ContentOverview({
                   })}
                 </g>
               ))}
-              {cohorts.map((cohort, index) => {
-                const x = 42 + index * 104;
-                const highlighted = cohort.cohort === highlightedCohort;
+              {periodMetrics.map((metric, index) => {
+                const x = 42 + index * periodPointGap;
                 return (
-                  <g data-cohort={cohort.cohort} data-highlighted={highlighted} key={cohort.cohort}>
-                    <text className="fuma-content-cohort-chart__label" textAnchor="middle" x={x} y="126">{cohort.cohort}</text>
-                    {highlighted ? (
-                      <text className="fuma-content-cohort-chart__selected" textAnchor="middle" x={x} y="140">선택</text>
-                    ) : null}
+                  <g data-period-date={metric.date} key={metric.date}>
+                    <text className="fuma-content-cohort-chart__label" textAnchor="middle" x={x} y="228">
+                      {trendDateLabel(metric.date)}
+                    </text>
                   </g>
                 );
               })}
             </svg>
           </div>
-        ) : <p>표시할 기수별 콘텐츠가 없습니다.</p>}
+        ) : <p>조회 기간에 표시할 콘텐츠 성과가 없습니다.</p>}
       </article>
 
-      <article
-        aria-label="콘텐츠 유형"
-        className="fuma-content-performance-panel fuma-content-format-panel"
-      >
-        <header>
-          <span>FORMAT</span>
-          <h2>콘텐츠 유형</h2>
-        </header>
-        <AnalysisFormatBreakdown
-          segments={formatSegments}
-          showTotal={false}
-          total={contents.length}
-        />
-      </article>
-
-      <UploadActivityChart activities={activities} />
     </section>
   );
 }
 
-function UploadActivityChart({ activities }: { activities: readonly ContentUploadActivity[] }) {
-  const defaultPeriodStart = activities[0]?.activityDate ?? "";
-  const defaultPeriodEnd = activities.at(-1)?.activityDate ?? "";
-  const [periodStart, setPeriodStart] = useState(defaultPeriodStart);
-  const [periodEnd, setPeriodEnd] = useState(defaultPeriodEnd);
-  const [appliedPeriod, setAppliedPeriod] = useState({
-    start: defaultPeriodStart,
-    end: defaultPeriodEnd,
-  });
-  const filteredActivities = activities.filter((activity) => (
-    (!appliedPeriod.start || activity.activityDate >= appliedPeriod.start)
-    && (!appliedPeriod.end || activity.activityDate <= appliedPeriod.end)
-  ));
-  const maximum = Math.max(
-    1,
-    ...filteredActivities.flatMap((activity) => [activity.newUploads, activity.editedUploads]),
-  );
-
-  return (
-    <figure
-      aria-label="기간별 업로드 추이"
-      className="fuma-content-upload-trend fuma-content-performance-panel"
-    >
-      <figcaption>
-        <div>
-          <span>ACTIVITY</span>
-          <h2>기간별 업로드 추이</h2>
-        </div>
-        <form
-          aria-label="업로드 추이 기간 검색"
-          className="fuma-content-upload-trend__period"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setAppliedPeriod({ start: periodStart, end: periodEnd });
-          }}
-        >
-          <strong>기간</strong>
-          <TextInput
-            aria-label="업로드 시작일"
-            max={periodEnd || undefined}
-            onChange={(event) => setPeriodStart(event.target.value)}
-            type="date"
-            value={periodStart}
-          />
-          <span>~</span>
-          <TextInput
-            aria-label="업로드 종료일"
-            min={periodStart || undefined}
-            onChange={(event) => setPeriodEnd(event.target.value)}
-            type="date"
-            value={periodEnd}
-          />
-          <Button type="submit" variant="primary">조회</Button>
-        </form>
-      </figcaption>
-      <ul aria-label="차트 범례" className="fuma-content-upload-trend__legend">
-        <li><i className="is-new" />신규 콘텐츠</li>
-        <li><i className="is-edited" />수정 콘텐츠</li>
-      </ul>
-      {filteredActivities.length > 0 ? (
-        <div className="fuma-content-upload-trend__scroll">
-          <div
-            className="fuma-content-upload-trend__plot"
-            style={{ minWidth: `${Math.max(filteredActivities.length * 44, 560)}px` }}
-          >
-            <span aria-hidden="true" className="fuma-content-upload-trend__axis" />
-            {filteredActivities.map((activity) => (
-              <div
-                className="fuma-content-upload-trend__point"
-                data-activity-date={activity.activityDate}
-                key={activity.activityDate}
-              >
-                <div className="fuma-content-upload-trend__half is-new">
-                  <span
-                    aria-label={`${activity.activityDate} 신규 콘텐츠 ${activity.newUploads}건`}
-                    role="img"
-                    style={{ height: `${(activity.newUploads / maximum) * 100}%` }}
-                  >
-                    <b>{activity.newUploads}</b>
-                  </span>
-                </div>
-                <div className="fuma-content-upload-trend__half is-edited">
-                  <span
-                    aria-label={`${activity.activityDate} 수정 콘텐츠 ${activity.editedUploads}건`}
-                    role="img"
-                    style={{ height: `${(activity.editedUploads / maximum) * 100}%` }}
-                  >
-                    <b>{activity.editedUploads}</b>
-                  </span>
-                </div>
-                <time dateTime={activity.activityDate}>{trendDateLabel(activity.activityDate)}</time>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : <p>조회 기간에 업로드 활동이 없습니다.</p>}
-    </figure>
-  );
-}
-
-function ContentPerformanceCard({ content }: { content: ContentInfluence }) {
-  const [flipped, setFlipped] = useState(false);
-  const detailId = useId();
+function ContentPerformanceCard({
+  content,
+  onOpen,
+}: {
+  content: ContentInfluence;
+  onOpen: () => void;
+}) {
   const media = contentMediaFor(content);
   const author = creatorNameById(content.creatorId);
   const platform = content.platform === "YouTube" ? "YouTube" : "Instagram";
@@ -515,77 +565,164 @@ function ContentPerformanceCard({ content }: { content: ContentInfluence }) {
       aria-label={`${author} ${content.title} 성과 카드`}
       className="fuma-content-collection__card fuma-creator-card fuma-content-performance-card"
       data-content-format={contentCollectionFormatKey(content.contentFormat)}
-      data-flipped={flipped}
     >
-      <div className="fuma-content-performance-card__inner">
-        <div
-          className="fuma-content-performance-card__face fuma-content-performance-card__front"
-          hidden={flipped}
-        >
-          <ContentCollectionCard
-            author={author}
-            badgeLabel={selectorCohortById(content.selectorId)}
-            caption={content.caption}
-            footerEnd={<span className="fuma-content-performance-card__hint">성과 보기</span>}
-            footerStart={content.publishedAt}
-            mediaAlt={`${content.title} 썸네일`}
-            mediaUrl={media.thumbnail}
-            platform={platform}
-            profileImageUrl={media.creatorImage}
-            showPlay={showPlay}
-            status={(
-              <StatusPill className="fuma-content-collection__inspection-status" tone="neutral">
-                {content.contentFormat}
-              </StatusPill>
-            )}
-            title={content.title}
-          />
-        </div>
-        <div
-          className="fuma-content-performance-card__face fuma-content-performance-card__back"
-          hidden={!flipped}
-          id={detailId}
-        >
-          <header>
-            <span>{content.id}</span>
-            <strong>{author}</strong>
-          </header>
-          <h3>조회 및 반응 추이</h3>
-          <dl>
-            <div><dt>누적 조회수</dt><dd>{content.views > 0 ? formatCount(content.views) : "-"}</dd></div>
-            <div><dt>누적 좋아요</dt><dd>{formatCount(content.likes)}</dd></div>
-          </dl>
-          <section aria-label="조회수 날짜별 추이">
-            <strong>조회수 추이</strong>
-            <ContentTrendGraph
-              label="조회수"
-              recordedAt={content.viewsTrend.map((point) => point.recordedAt)}
-              tone="views"
-              values={content.viewsTrend.map((point) => point.views)}
-            />
-          </section>
-          <section aria-label="좋아요 날짜별 추이">
-            <strong>좋아요 추이</strong>
-            <ContentTrendGraph
-              label="좋아요 수"
-              recordedAt={content.reactionTrend.map((point) => point.recordedAt)}
-              tone="likes"
-              values={content.reactionTrend.map((point) => point.likes)}
-            />
-          </section>
-          <span className="fuma-content-performance-card__return">다시 클릭하면 콘텐츠로 돌아갑니다.</span>
-        </div>
-      </div>
+      <ContentCollectionCard
+        author={author}
+        badgeLabel={selectorCohortById(content.selectorId)}
+        caption={content.caption}
+        footerEnd={<span className="fuma-content-performance-card__hint">상세 보기</span>}
+        footerStart={content.publishedAt}
+        mediaAlt={`${content.title} 썸네일`}
+        mediaUrl={media.thumbnail}
+        platform={platform}
+        profileImageUrl={media.creatorImage}
+        showPlay={showPlay}
+        status={(
+          <StatusPill className="fuma-content-collection__inspection-status" tone="neutral">
+            {content.contentFormat}
+          </StatusPill>
+        )}
+        title={content.title}
+      />
       <button
-        aria-controls={detailId}
-        aria-expanded={flipped}
-        aria-label={`${author} ${content.title} 성과 상세 보기`}
-        aria-pressed={flipped}
+        aria-label={`${author} ${content.title} 콘텐츠 상세 보기`}
         className="fuma-content-performance-card__trigger"
-        onClick={() => setFlipped((current) => !current)}
+        onClick={onOpen}
         type="button"
       />
     </article>
+  );
+}
+
+function ContentPerformanceDetailPanel({
+  content,
+  onClose,
+}: {
+  content: ContentInfluence;
+  onClose: () => void;
+}) {
+  const [trendMode, setTrendMode] = useState<ContentDetailTrendMode>("all");
+  const media = contentMediaFor(content);
+  const author = creatorNameById(content.creatorId);
+  const engagementRate = contentEngagementRate(content) * 100;
+  const trendDates = [...new Set([
+    ...content.viewsTrend.map((point) => point.recordedAt),
+    ...content.reactionTrend.map((point) => point.recordedAt),
+  ])].sort();
+  const trendChartWidth = Math.max(520, (trendDates.length - 1) * 92 + 84);
+  const detailTrendSeries = COHORT_CHART_SERIES
+    .filter((series): series is typeof series & { value: ContentDetailTrendMetric } => (
+      series.value !== "contentCount" && (trendMode === "all" || series.value === trendMode)
+    ))
+    .map((series) => {
+      const values = trendDates.map((date) => {
+        if (series.value === "views") {
+          return content.viewsTrend.find((point) => point.recordedAt === date)?.views ?? 0;
+        }
+        const reaction = content.reactionTrend.find((point) => point.recordedAt === date);
+        return reaction?.[series.value] ?? 0;
+      });
+      const maximum = Math.max(1, ...values);
+      return {
+        ...series,
+        points: values.map((value, index) => ({
+          value,
+          x: 42 + index * 92,
+          y: 25 + (1 - value / maximum) * 76,
+        })),
+      };
+    });
+
+  return (
+    <SidePanel onClose={onClose} title="콘텐츠 상세">
+      <div className="fuma-detail-panel__content fuma-content-performance-detail">
+        <section aria-label="콘텐츠 기본 정보" className="fuma-content-performance-detail__overview">
+          <img alt={`${content.title} 썸네일`} src={assetUrl(media.thumbnail)} />
+          <div>
+            <div className="fuma-content-performance-detail__badges">
+              <StatusPill tone="neutral">{selectorCohortById(content.selectorId)}</StatusPill>
+              <StatusPill tone="neutral">{content.contentFormat}</StatusPill>
+            </div>
+            <h3>{content.title}</h3>
+            <p>{content.caption}</p>
+            <dl>
+              <div><dt>콘텐츠 ID</dt><dd>{content.id}</dd></div>
+              <div><dt>작성자</dt><dd>{author}</dd></div>
+              <div><dt>플랫폼</dt><dd>{content.platform}</dd></div>
+              <div><dt>게시일</dt><dd>{content.publishedAt}</dd></div>
+            </dl>
+          </div>
+        </section>
+
+        <section aria-labelledby="content-performance-detail-metrics">
+          <h3 id="content-performance-detail-metrics">콘텐츠 성과</h3>
+          <dl className="fuma-content-performance-detail__metrics">
+            <div><dt>ER</dt><dd>{content.views > 0 ? `${engagementRate.toFixed(2)}%` : "-"}</dd></div>
+            <div><dt>누적 조회수</dt><dd>{content.views > 0 ? formatCount(content.views) : "-"}</dd></div>
+            <div><dt>누적 좋아요</dt><dd>{formatCount(content.likes)}</dd></div>
+            <div><dt>누적 댓글</dt><dd>{formatCount(content.comments)}</dd></div>
+          </dl>
+        </section>
+
+        <section aria-labelledby="content-performance-detail-trends" className="fuma-content-performance-detail__trend">
+          <header>
+            <h3 id="content-performance-detail-trends">조회 및 반응 추이</h3>
+            <SegmentedControl
+              ariaLabel="콘텐츠 성과 추이 지표"
+              onChange={setTrendMode}
+              options={CONTENT_DETAIL_TREND_OPTIONS}
+              value={trendMode}
+            />
+          </header>
+          {trendDates.length > 0 ? (
+            <div className="fuma-content-cohort-chart__scroll">
+              <ul aria-label="콘텐츠 성과 추이 범례" className="fuma-content-cohort-chart__legend">
+                {detailTrendSeries.map((series) => (
+                  <li className={`is-${series.value}`} key={series.value}><i />{series.label}</li>
+                ))}
+              </ul>
+              <svg
+                aria-label="콘텐츠 조회 및 반응 추이"
+                className={`fuma-content-cohort-chart__plot is-${trendMode}`}
+                role="img"
+                style={{ width: `${trendChartWidth}px` }}
+                viewBox={`0 0 ${trendChartWidth} 148`}
+              >
+                <line className="fuma-content-cohort-chart__grid" x1="18" x2={trendChartWidth - 18} y1="25" y2="25" />
+                <line className="fuma-content-cohort-chart__grid" x1="18" x2={trendChartWidth - 18} y1="63" y2="63" />
+                <line className="fuma-content-cohort-chart__grid" x1="18" x2={trendChartWidth - 18} y1="101" y2="101" />
+                {detailTrendSeries.map((series) => (
+                  <g className={`fuma-content-cohort-chart__series is-${series.value}`} data-series={series.value} key={series.value}>
+                    <path className="fuma-content-cohort-chart__line" d={smoothLinePath(series.points)} />
+                    {series.points.map((point, index) => (
+                      <g key={trendDates[index]}>
+                        <circle className="fuma-content-cohort-chart__point" cx={point.x} cy={point.y} r="4" />
+                        {trendMode !== "all" ? (
+                          <text className="fuma-content-cohort-chart__value" textAnchor="middle" x={point.x} y={point.y - 11}>
+                            {formatCount(point.value)}
+                          </text>
+                        ) : null}
+                      </g>
+                    ))}
+                  </g>
+                ))}
+                {trendDates.map((date, index) => (
+                  <text
+                    className="fuma-content-cohort-chart__label"
+                    key={date}
+                    textAnchor="middle"
+                    x={42 + index * 92}
+                    y="126"
+                  >
+                    {trendDateLabel(date)}
+                  </text>
+                ))}
+              </svg>
+            </div>
+          ) : <p>표시할 날짜별 성과가 없습니다.</p>}
+        </section>
+      </div>
+    </SidePanel>
   );
 }
 
@@ -669,30 +806,10 @@ function contentPerformanceColumns(
       ),
     },
     {
-      id: "viewTrend",
-      header: "조회수 추이",
-      width: 176,
-      render: (content) => (
-        <ContentTrendGraph
-          label="조회수"
-          recordedAt={content.viewsTrend.map((point) => point.recordedAt)}
-          tone="views"
-          values={content.viewsTrend.map((point) => point.views)}
-        />
-      ),
-    },
-    {
-      id: "likeTrend",
-      header: "좋아요 수 추이",
-      width: 176,
-      render: (content) => (
-        <ContentTrendGraph
-          label="좋아요 수"
-          recordedAt={content.reactionTrend.map((point) => point.recordedAt)}
-          tone="likes"
-          values={content.reactionTrend.map((point) => point.likes)}
-        />
-      ),
+      id: "performanceTrend",
+      header: "조회수 · 좋아요 추이",
+      width: 252,
+      render: (content) => <ContentTableTrendChart content={content} />,
     },
   ];
 }
@@ -710,6 +827,7 @@ function ContentPerformanceResults({
 }) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<ContentPerformanceSort>("latest");
+  const [selectedContent, setSelectedContent] = useState<ContentInfluence | null>(null);
   const sortedContents = sortContentPerformance(contents, sortBy);
   const {
     currentPage,
@@ -734,7 +852,7 @@ function ContentPerformanceResults({
       <ResultToolbar
         actions={(
           <>
-            <label className="fuma-content-performance-results__sort">
+            <label className="fuma-creator-toolbar__sort fuma-content-performance-results__sort">
               <span>정렬</span>
               <Select
                 aria-label="콘텐츠 성과 정렬"
@@ -764,7 +882,11 @@ function ContentPerformanceResults({
       ) : viewMode === "grid" ? (
         <div className="fuma-content-collection__track is-grid">
           {pagedContents.map((content) => (
-            <ContentPerformanceCard content={content} key={content.id} />
+            <ContentPerformanceCard
+              content={content}
+              key={content.id}
+              onOpen={() => setSelectedContent(content)}
+            />
           ))}
         </div>
       ) : (
@@ -775,8 +897,10 @@ function ContentPerformanceResults({
         >
           <DenseTable
             columns={contentPerformanceColumns(sortedContents)}
+            onRowClick={setSelectedContent}
             rowKey={(content) => content.id}
             rows={pagedContents}
+            selectedRowKeys={selectedContent ? [selectedContent.id] : []}
           />
         </div>
       )}
@@ -786,12 +910,17 @@ function ContentPerformanceResults({
         pageSize={CONTENT_PERFORMANCE_PAGE_SIZE}
         totalPages={totalPages}
       />
+      {selectedContent ? (
+        <ContentPerformanceDetailPanel
+          content={selectedContent}
+          onClose={() => setSelectedContent(null)}
+        />
+      ) : null}
     </section>
   );
 }
 
 export function ContentPerformanceDashboard({
-  activities,
   cohortContents,
   contents,
   filters,
@@ -799,7 +928,6 @@ export function ContentPerformanceDashboard({
   onPageChange,
   page,
 }: {
-  activities: readonly ContentUploadActivity[];
   cohortContents: readonly ContentInfluence[];
   contents: readonly ContentInfluence[];
   filters?: ReactNode;
@@ -810,7 +938,6 @@ export function ContentPerformanceDashboard({
   return (
     <>
       <ContentOverview
-        activities={activities}
         cohortContents={cohortContents}
         contents={contents}
         highlightedCohort={highlightedCohort}

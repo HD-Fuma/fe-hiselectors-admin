@@ -11,7 +11,6 @@ import "../../styles/performance-dashboard.css";
 import {
   CAMPAIGN_PERFORMANCE,
   CONTENT_INFLUENCE,
-  CONTENT_UPLOAD_ACTIVITY,
   PRODUCT_INFLUENCE,
   SELECTOR_PERFORMANCE,
   creatorNameById,
@@ -565,11 +564,6 @@ export function ContentPerformancePage() {
   } = usePerformanceFilterState();
   const contents = contentPerformanceForFilters(appliedFilters);
   const cohortContents = contentPerformanceForFilters({ ...appliedFilters, cohort: "" });
-  const activities = CONTENT_UPLOAD_ACTIVITY.filter((activity) => isWithinPeriod(
-    activity.activityDate,
-    appliedFilters.periodStart,
-    appliedFilters.periodEnd,
-  ));
   const highlightedCohort = appliedFilters.cohort || SELECTOR_PERFORMANCE[0]?.cohort || "";
 
   const applyAndResetPage = () => {
@@ -587,7 +581,6 @@ export function ContentPerformancePage() {
       <PageHeader title="콘텐츠 성과" />
       <div className="fuma-page__body">
         <ContentPerformanceDashboard
-          activities={activities}
           cohortContents={cohortContents}
           contents={contents}
           filters={(
