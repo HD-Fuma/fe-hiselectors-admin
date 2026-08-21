@@ -11,6 +11,7 @@ import { Pagination } from "../../components/ui/Pagination";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill } from "../../components/ui/StatusPill";
+import { ViewModeToggle, type ViewMode } from "../../components/ui/ViewModeToggle";
 import {
   creatorNameById,
   formatCount,
@@ -835,7 +836,7 @@ function ContentPerformanceResults({
   onPageChange: (page: number) => void;
   page: number;
 }) {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortBy, setSortBy] = useState<ContentPerformanceSort>("latest");
   const [selectedContent, setSelectedContent] = useState<ContentInfluence | null>(null);
   const sortedContents = sortContentPerformance(contents, sortBy);
@@ -844,7 +845,7 @@ function ContentPerformanceResults({
     pagedItems: pagedContents,
     totalPages,
   } = paginate(sortedContents, page, CONTENT_PERFORMANCE_PAGE_SIZE);
-  const changeView = (nextView: "grid" | "list") => {
+  const changeView = (nextView: ViewMode) => {
     setViewMode(nextView);
     onPageChange(1);
   };
@@ -871,13 +872,8 @@ function ContentPerformanceResults({
                 value={sortBy}
               />
             </label>
-            <SegmentedControl
-              ariaLabel="보기 방식"
+            <ViewModeToggle
               onChange={changeView}
-              options={[
-                { label: "카드", value: "grid" },
-                { label: "목록", value: "list" },
-              ]}
               value={viewMode}
             />
           </>

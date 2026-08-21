@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import "../../styles/content-inspection.css";
 import { PageHeader } from "../../components/shell/PageHeader";
-import { Button, SegmentedControl, Select, TextInput } from "../../components/ui/Controls";
+import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { ContentCollectionCard } from "../../components/ui/ContentCollectionCard";
 import { contentCollectionFormatKey } from "../../components/ui/contentCollectionFormat";
 import { CreatorProfilePhoto } from "../../components/ui/CreatorProfilePhoto";
@@ -45,6 +45,7 @@ import { Pagination } from "../../components/ui/Pagination";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { ViewModeToggle, type ViewMode } from "../../components/ui/ViewModeToggle";
 import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
@@ -229,12 +230,12 @@ function ContentInspectionCollection({
   viewMode,
 }: {
   contents: readonly ContentInspectionFixture[];
-  onChangeView: (viewMode: "grid" | "list") => void;
+  onChangeView: (viewMode: ViewMode) => void;
   onChangeViolationOnly: (violationOnly: boolean) => void;
   onSelect: (content: ContentInspectionFixture) => void;
   totalCount: number;
   violationOnly: boolean;
-  viewMode: "grid" | "list";
+  viewMode: ViewMode;
 }) {
   return (
     <section aria-label="수집 콘텐츠 목록" className="fuma-content-collection">
@@ -255,13 +256,8 @@ function ContentInspectionCollection({
         </div>
         <div className="fuma-creator-toolbar fuma-creator-toolbar__controls">
           <span aria-hidden="true" className="fuma-creator-toolbar__divider" />
-          <SegmentedControl
-            ariaLabel="보기 방식"
+          <ViewModeToggle
             onChange={onChangeView}
-            options={[
-              { label: "카드", value: "grid" },
-              { label: "목록", value: "list" },
-            ]}
             value={viewMode}
           />
         </div>
