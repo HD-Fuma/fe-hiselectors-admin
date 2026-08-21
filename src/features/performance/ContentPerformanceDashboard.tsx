@@ -4,7 +4,7 @@ import type { AnalysisFormatSegment } from "../../components/charts/AnalysisForm
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { ContentCollectionCard } from "../../components/ui/ContentCollectionCard";
 import { contentCollectionFormatKey } from "../../components/ui/contentCollectionFormat";
-import { SegmentedControl } from "../../components/ui/Controls";
+import { Button, SegmentedControl, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Pagination } from "../../components/ui/Pagination";
@@ -360,34 +360,72 @@ function ContentOverview({
 }
 
 function UploadActivityChart({ activities }: { activities: readonly ContentUploadActivity[] }) {
+  const defaultPeriodStart = activities[0]?.activityDate ?? "";
+  const defaultPeriodEnd = activities.at(-1)?.activityDate ?? "";
+  const [periodStart, setPeriodStart] = useState(defaultPeriodStart);
+  const [periodEnd, setPeriodEnd] = useState(defaultPeriodEnd);
+  const [appliedPeriod, setAppliedPeriod] = useState({
+    start: defaultPeriodStart,
+    end: defaultPeriodEnd,
+  });
+  const filteredActivities = activities.filter((activity) => (
+    (!appliedPeriod.start || activity.activityDate >= appliedPeriod.start)
+    && (!appliedPeriod.end || activity.activityDate <= appliedPeriod.end)
+  ));
   const maximum = Math.max(
     1,
-    ...activities.flatMap((activity) => [activity.newUploads, activity.editedUploads]),
+    ...filteredActivities.flatMap((activity) => [activity.newUploads, activity.editedUploads]),
   );
 
   return (
     <figure
-      aria-label="신규/수정 콘텐츠 업로드 추이"
+      aria-label="기간별 업로드 추이"
       className="fuma-content-upload-trend fuma-content-performance-panel"
     >
       <figcaption>
         <div>
           <span>ACTIVITY</span>
-          <h2>신규/수정 콘텐츠 업로드 추이</h2>
+          <h2>기간별 업로드 추이</h2>
         </div>
-        <ul aria-label="차트 범례">
-          <li><i className="is-new" />신규 콘텐츠</li>
-          <li><i className="is-edited" />수정 콘텐츠</li>
-        </ul>
+        <form
+          aria-label="업로드 추이 기간 검색"
+          className="fuma-content-upload-trend__period"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setAppliedPeriod({ start: periodStart, end: periodEnd });
+          }}
+        >
+          <strong>기간</strong>
+          <TextInput
+            aria-label="업로드 시작일"
+            max={periodEnd || undefined}
+            onChange={(event) => setPeriodStart(event.target.value)}
+            type="date"
+            value={periodStart}
+          />
+          <span>~</span>
+          <TextInput
+            aria-label="업로드 종료일"
+            min={periodStart || undefined}
+            onChange={(event) => setPeriodEnd(event.target.value)}
+            type="date"
+            value={periodEnd}
+          />
+          <Button type="submit" variant="primary">조회</Button>
+        </form>
       </figcaption>
-      {activities.length > 0 ? (
+      <ul aria-label="차트 범례" className="fuma-content-upload-trend__legend">
+        <li><i className="is-new" />신규 콘텐츠</li>
+        <li><i className="is-edited" />수정 콘텐츠</li>
+      </ul>
+      {filteredActivities.length > 0 ? (
         <div className="fuma-content-upload-trend__scroll">
           <div
             className="fuma-content-upload-trend__plot"
-            style={{ minWidth: `${Math.max(activities.length * 44, 560)}px` }}
+            style={{ minWidth: `${Math.max(filteredActivities.length * 44, 560)}px` }}
           >
             <span aria-hidden="true" className="fuma-content-upload-trend__axis" />
-            {activities.map((activity) => (
+            {filteredActivities.map((activity) => (
               <div
                 className="fuma-content-upload-trend__point"
                 data-activity-date={activity.activityDate}

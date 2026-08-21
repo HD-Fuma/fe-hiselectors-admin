@@ -86,10 +86,20 @@ test("upload activity chart only plots canonical activity dates inside the appli
     { name: "조회" },
   ));
 
-  const chart = screen.getByRole("figure", { name: "신규/수정 콘텐츠 업로드 추이" });
+  const chart = screen.getByRole("figure", { name: "기간별 업로드 추이" });
   expect(
     [...chart.querySelectorAll<HTMLElement>("[data-activity-date]")].map(
       (point) => point.dataset.activityDate,
     ),
   ).toEqual(["2026-07-22", "2026-07-23", "2026-07-24"]);
+
+  fireEvent.change(within(chart).getByLabelText("업로드 시작일"), {
+    target: { value: "2026-07-23" },
+  });
+  await user.click(within(chart).getByRole("button", { name: "조회" }));
+  expect(
+    [...chart.querySelectorAll<HTMLElement>("[data-activity-date]")].map(
+      (point) => point.dataset.activityDate,
+    ),
+  ).toEqual(["2026-07-23", "2026-07-24"]);
 });

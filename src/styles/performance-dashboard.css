@@ -511,20 +511,39 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 .fuma-content-format-panel .fuma-analysis-format-breakdown__donut { width: 108px; }
 .fuma-content-format-panel .fuma-analysis-format-breakdown__legend { gap: var(--hsas-space-6); }
 
-.fuma-content-upload-trend figcaption ul {
+.fuma-content-upload-trend__period {
   display: flex;
+  align-items: center;
+  gap: var(--hsas-space-5);
+}
+
+.fuma-content-upload-trend__period strong {
+  margin-right: var(--hsas-space-3);
+  color: #68736e;
+  font-size: var(--hsas-font-9);
+  white-space: nowrap;
+}
+
+.fuma-content-upload-trend__period .hsas-control {
+  width: 116px;
+  min-width: 0;
+}
+
+.fuma-content-upload-trend__legend {
+  display: flex;
+  justify-content: flex-end;
   gap: var(--hsas-space-14);
-  margin: 0;
+  margin: var(--hsas-space-10) 0 0;
   padding: 0;
   color: #68736e;
   font-size: var(--hsas-font-10);
   list-style: none;
 }
 
-.fuma-content-upload-trend figcaption li { display: inline-flex; align-items: center; gap: var(--hsas-space-5); }
-.fuma-content-upload-trend figcaption li > i { width: 8px; height: 8px; border-radius: 2px; }
-.fuma-content-upload-trend figcaption li > i.is-new { background: var(--fuma-performance-teal); }
-.fuma-content-upload-trend figcaption li > i.is-edited { background: var(--fuma-performance-orange); }
+.fuma-content-upload-trend__legend li { display: inline-flex; align-items: center; gap: var(--hsas-space-5); }
+.fuma-content-upload-trend__legend li > i { width: 8px; height: 8px; border-radius: 2px; }
+.fuma-content-upload-trend__legend li > i.is-new { background: var(--fuma-performance-teal); }
+.fuma-content-upload-trend__legend li > i.is-edited { background: var(--fuma-performance-orange); }
 
 .fuma-content-upload-trend__scroll {
   min-width: 0;
@@ -563,16 +582,16 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   display: contents;
 }
 
-.fuma-content-upload-trend__half { display: flex; justify-content: center; }
+.fuma-content-upload-trend__half { display: flex; justify-self: stretch; justify-content: center; }
 .fuma-content-upload-trend__half.is-new { align-items: flex-end; }
 .fuma-content-upload-trend__half.is-edited { align-items: flex-start; }
 .fuma-content-upload-trend__half > span { position: relative; display: block; width: 14px; min-height: var(--hsas-space-2); outline: none; }
 .fuma-content-upload-trend__half.is-new > span { border-radius: 2px 2px 0 0; background: var(--fuma-performance-teal); }
 .fuma-content-upload-trend__half.is-edited > span { border-radius: 0 0 2px 2px; background: var(--fuma-performance-orange); }
-.fuma-content-upload-trend__half b { position: absolute; left: 50%; color: #65716c; font-size: var(--hsas-font-8); font-weight: 750; transform: translateX(-50%); }
+.fuma-content-upload-trend__half b { position: absolute; left: 50%; color: #65716c; font-size: var(--hsas-font-8); font-variant-numeric: tabular-nums; font-weight: 700; transform: translateX(-50%); }
 .fuma-content-upload-trend__half.is-new b { top: calc(-1 * var(--hsas-space-13)); }
 .fuma-content-upload-trend__half.is-edited b { bottom: calc(-1 * var(--hsas-space-13)); }
-.fuma-content-upload-trend__point time { align-self: end; color: #87928d; font-size: var(--hsas-font-8); font-variant-numeric: tabular-nums; }
+.fuma-content-upload-trend__point time { width: 100%; align-self: end; justify-self: stretch; color: #4b5752; font-size: var(--hsas-font-9); font-variant-numeric: tabular-nums; font-weight: 700; text-align: center; }
 .fuma-content-upload-trend > p { margin: var(--hsas-space-24) 0 var(--hsas-space-8); color: #8b9691; font-size: var(--hsas-font-11); text-align: center; }
 
 .fuma-content-performance-results .fuma-result-toolbar__actions { margin-left: var(--hsas-space-10); }
@@ -904,7 +923,9 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   .fuma-content-cohort-chart__controls { width: 100%; }
   .fuma-content-format-panel .fuma-analysis-format-breakdown { grid-template-columns: minmax(0, 1fr); justify-items: center; }
   .fuma-content-format-panel .fuma-analysis-format-breakdown__legend { width: 100%; }
-  .fuma-content-upload-trend figcaption ul { flex-wrap: wrap; }
+  .fuma-content-upload-trend__period,
+  .fuma-content-upload-trend__legend { flex-wrap: wrap; }
+  .fuma-content-upload-trend__legend { justify-content: flex-start; }
   .fuma-content-performance-card__inner { min-height: 470px; }
 
   .fuma-performance-page .fuma-page__body {
