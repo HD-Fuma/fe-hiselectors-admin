@@ -4,7 +4,7 @@ import type { AnalysisFormatSegment } from "../../components/charts/AnalysisForm
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { ContentCollectionCard } from "../../components/ui/ContentCollectionCard";
 import { contentCollectionFormatKey } from "../../components/ui/contentCollectionFormat";
-import { Button, SegmentedControl, TextInput } from "../../components/ui/Controls";
+import { Button, SegmentedControl, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Pagination } from "../../components/ui/Pagination";
@@ -22,6 +22,18 @@ import { assetUrl } from "../../lib/assetUrl";
 import { paginate } from "../../lib/pagination";
 
 const CONTENT_PERFORMANCE_PAGE_SIZE = 20;
+type ContentPerformanceSort = "latest" | "engagementRate" | "views" | "likes" | "comments";
+
+const CONTENT_PERFORMANCE_SORT_OPTIONS: readonly {
+  label: string;
+  value: ContentPerformanceSort;
+}[] = [
+  { label: "최신순", value: "latest" },
+  { label: "ER 높은순", value: "engagementRate" },
+  { label: "조회수 높은순", value: "views" },
+  { label: "좋아요 높은순", value: "likes" },
+  { label: "댓글 높은순", value: "comments" },
+];
 const CONTENT_FORMAT_ORDER: readonly ContentPerformanceFormat[] = [
   "인스타 릴스",
   "인스타 피드",
@@ -154,6 +166,27 @@ function previousNumericCohort(cohort: string) {
   const cohortNumber = Number(match[2]);
 
   return cohortNumber > 0 ? `${match[1]}${cohortNumber - 1}${match[3]}` : null;
+}
+
+function contentEngagementRate(content: ContentInfluence) {
+  return content.views > 0 ? (content.likes + content.comments) / content.views : 0;
+}
+
+function sortContentPerformance(
+  contents: readonly ContentInfluence[],
+  sortBy: ContentPerformanceSort,
+) {
+  return [...contents].sort((left, right) => {
+    const metricDifference = sortBy === "engagementRate"
+      ? contentEngagementRate(right) - contentEngagementRate(left)
+      : sortBy === "latest"
+        ? 0
+        : right[sortBy] - left[sortBy];
+
+    return metricDifference
+      || right.publishedAt.localeCompare(left.publishedAt)
+      || left.id.localeCompare(right.id, "ko", { numeric: true });
+  });
 }
 
 type CohortChartMetric = "contentCount" | "views" | "likes" | "comments";
@@ -676,13 +709,19 @@ function ContentPerformanceResults({
   page: number;
 }) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState<ContentPerformanceSort>("latest");
+  const sortedContents = sortContentPerformance(contents, sortBy);
   const {
     currentPage,
     pagedItems: pagedContents,
     totalPages,
-  } = paginate(contents, page, CONTENT_PERFORMANCE_PAGE_SIZE);
+  } = paginate(sortedContents, page, CONTENT_PERFORMANCE_PAGE_SIZE);
   const changeView = (nextView: "grid" | "list") => {
     setViewMode(nextView);
+    onPageChange(1);
+  };
+  const changeSort = (nextSort: ContentPerformanceSort) => {
+    setSortBy(nextSort);
     onPageChange(1);
   };
 
@@ -694,15 +733,26 @@ function ContentPerformanceResults({
     >
       <ResultToolbar
         actions={(
-          <SegmentedControl
-            ariaLabel="보기 방식"
-            onChange={changeView}
-            options={[
-              { label: "카드", value: "grid" },
-              { label: "목록", value: "list" },
-            ]}
-            value={viewMode}
-          />
+          <>
+            <label className="fuma-content-performance-results__sort">
+              <span>정렬</span>
+              <Select
+                aria-label="콘텐츠 성과 정렬"
+                onChange={(event) => changeSort(event.target.value as ContentPerformanceSort)}
+                options={CONTENT_PERFORMANCE_SORT_OPTIONS}
+                value={sortBy}
+              />
+            </label>
+            <SegmentedControl
+              ariaLabel="보기 방식"
+              onChange={changeView}
+              options={[
+                { label: "카드", value: "grid" },
+                { label: "목록", value: "list" },
+              ]}
+              value={viewMode}
+            />
+          </>
         )}
         className="fuma-simple-result-toolbar fuma-campaign-result-toolbar"
         meta={<span>총 {contents.length}건</span>}
@@ -724,7 +774,7 @@ function ContentPerformanceResults({
           role="region"
         >
           <DenseTable
-            columns={contentPerformanceColumns(contents)}
+            columns={contentPerformanceColumns(sortedContents)}
             rowKey={(content) => content.id}
             rows={pagedContents}
           />

@@ -608,7 +608,9 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 .fuma-content-upload-trend__point time { width: 100%; align-self: end; justify-self: stretch; color: #4b5752; font-size: var(--hsas-font-9); font-variant-numeric: tabular-nums; font-weight: 700; text-align: center; }
 .fuma-content-upload-trend > p { margin: var(--hsas-space-24) 0 var(--hsas-space-8); color: #8b9691; font-size: var(--hsas-font-11); text-align: center; }
 
-.fuma-content-performance-results .fuma-result-toolbar__actions { margin-left: var(--hsas-space-10); }
+.fuma-content-performance-results .fuma-result-toolbar__actions { gap: var(--hsas-space-8); margin-left: var(--hsas-space-10); }
+.fuma-content-performance-results__sort { display: inline-flex; align-items: center; gap: var(--hsas-space-5); color: #68736e; font-size: var(--hsas-font-10); font-weight: 700; }
+.fuma-content-performance-results__sort .hsas-control { width: 132px; min-height: 28px; }
 .fuma-content-performance-results .fuma-content-collection__track.is-grid { padding-inline: 0; }
 
 .fuma-content-performance-card {

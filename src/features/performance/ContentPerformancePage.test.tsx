@@ -1,5 +1,6 @@
 import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { CONTENT_INFLUENCE } from "../../entities/performance";
 import { renderRoute } from "../../test/renderRoute";
 
 test("content performance defaults to independently flippable cards and can switch to the list", async () => {
@@ -12,6 +13,12 @@ test("content performance defaults to independently flippable cards and can swit
     { timeout: 3_000 },
   );
   expect(within(results).getByText("콘텐츠 성과 및 추이")).toBeInTheDocument();
+  const sort = within(results).getByRole("combobox", { name: "콘텐츠 성과 정렬" });
+  expect(sort).toHaveValue("latest");
+  await user.selectOptions(sort, "views");
+  const highestViewContent = [...CONTENT_INFLUENCE].sort((left, right) => right.views - left.views)[0];
+  expect(within(results).getAllByRole("button", { name: /성과 상세 보기$/ })[0])
+    .toHaveAccessibleName(new RegExp(`${highestViewContent.title} 성과 상세 보기$`));
   const uploadStatus = screen.getByRole("heading", { name: "업로드 현황" }).closest("article");
   expect(uploadStatus).not.toBeNull();
   expect([...uploadStatus!.querySelectorAll("dt")].map((term) => term.textContent)).toEqual([
