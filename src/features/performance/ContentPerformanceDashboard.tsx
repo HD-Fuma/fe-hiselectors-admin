@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { AnalysisFormatBreakdown } from "../../components/charts/AnalysisFormatBreakdown";
 import type { AnalysisFormatSegment } from "../../components/charts/AnalysisFormatDonut";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
@@ -199,10 +199,12 @@ function smoothLinePath(points: readonly { x: number; y: number }[]) {
 }
 
 function ContentOverview({
+  activities,
   cohortContents,
   contents,
   highlightedCohort,
 }: {
+  activities: readonly ContentUploadActivity[];
   cohortContents: readonly ContentInfluence[];
   contents: readonly ContentInfluence[];
   highlightedCohort: string;
@@ -345,16 +347,22 @@ function ContentOverview({
         ) : <p>표시할 기수별 콘텐츠가 없습니다.</p>}
       </article>
 
-      <article className="fuma-content-performance-panel fuma-content-format-panel">
+      <article
+        aria-label="콘텐츠 유형"
+        className="fuma-content-performance-panel fuma-content-format-panel"
+      >
         <header>
-          <div>
-            <span>FORMAT</span>
-            <h2>콘텐츠 유형</h2>
-          </div>
-          <small>조회 결과 {formatCount(contents.length)}건</small>
+          <span>FORMAT</span>
+          <h2>콘텐츠 유형</h2>
         </header>
-        <AnalysisFormatBreakdown segments={formatSegments} total={contents.length} />
+        <AnalysisFormatBreakdown
+          segments={formatSegments}
+          showTotal={false}
+          total={contents.length}
+        />
       </article>
+
+      <UploadActivityChart activities={activities} />
     </section>
   );
 }
@@ -658,10 +666,12 @@ function contentPerformanceColumns(
 
 function ContentPerformanceResults({
   contents,
+  filters,
   onPageChange,
   page,
 }: {
   contents: readonly ContentInfluence[];
+  filters?: ReactNode;
   onPageChange: (page: number) => void;
   page: number;
 }) {
@@ -698,6 +708,7 @@ function ContentPerformanceResults({
         meta={<span>총 {contents.length}건</span>}
         title="콘텐츠 성과 및 추이"
       />
+      {filters}
       {pagedContents.length === 0 ? (
         <EmptyState title="검색 결과가 없습니다." />
       ) : viewMode === "grid" ? (
@@ -733,6 +744,7 @@ export function ContentPerformanceDashboard({
   activities,
   cohortContents,
   contents,
+  filters,
   highlightedCohort,
   onPageChange,
   page,
@@ -740,6 +752,7 @@ export function ContentPerformanceDashboard({
   activities: readonly ContentUploadActivity[];
   cohortContents: readonly ContentInfluence[];
   contents: readonly ContentInfluence[];
+  filters?: ReactNode;
   highlightedCohort: string;
   onPageChange: (page: number) => void;
   page: number;
@@ -747,12 +760,17 @@ export function ContentPerformanceDashboard({
   return (
     <>
       <ContentOverview
+        activities={activities}
         cohortContents={cohortContents}
         contents={contents}
         highlightedCohort={highlightedCohort}
       />
-      <UploadActivityChart activities={activities} />
-      <ContentPerformanceResults contents={contents} onPageChange={onPageChange} page={page} />
+      <ContentPerformanceResults
+        contents={contents}
+        filters={filters}
+        onPageChange={onPageChange}
+        page={page}
+      />
     </>
   );
 }

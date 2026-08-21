@@ -106,6 +106,7 @@ function PerformanceFilters({
   onChange,
   onReset,
   onSearch,
+  showPeriod = true,
   values,
 }: {
   keyword?: KeywordFilter;
@@ -115,6 +116,7 @@ function PerformanceFilters({
   ) => void;
   onReset: () => void;
   onSearch: () => void;
+  showPeriod?: boolean;
   values: PerformanceFilterValues;
 }) {
   return (
@@ -149,30 +151,32 @@ function PerformanceFilters({
             value={values.campaign}
           />
         </FilterField>
-        <div aria-label="집계 기간" className="fuma-performance-period-filter" role="group">
-          <span>기간</span>
-          <div>
-            <TextInput
-              aria-label="집계 시작일"
-              id="performance-period-start"
-              max={values.periodEnd || undefined}
-              name="periodStart"
-              onChange={(event) => onChange("periodStart", event.target.value)}
-              type="date"
-              value={values.periodStart}
-            />
-            <span aria-hidden="true">~</span>
-            <TextInput
-              aria-label="집계 종료일"
-              id="performance-period-end"
-              min={values.periodStart || undefined}
-              name="periodEnd"
-              onChange={(event) => onChange("periodEnd", event.target.value)}
-              type="date"
-              value={values.periodEnd}
-            />
+        {showPeriod ? (
+          <div aria-label="집계 기간" className="fuma-performance-period-filter" role="group">
+            <span>기간</span>
+            <div>
+              <TextInput
+                aria-label="집계 시작일"
+                id="performance-period-start"
+                max={values.periodEnd || undefined}
+                name="periodStart"
+                onChange={(event) => onChange("periodStart", event.target.value)}
+                type="date"
+                value={values.periodStart}
+              />
+              <span aria-hidden="true">~</span>
+              <TextInput
+                aria-label="집계 종료일"
+                id="performance-period-end"
+                min={values.periodStart || undefined}
+                name="periodEnd"
+                onChange={(event) => onChange("periodEnd", event.target.value)}
+                type="date"
+                value={values.periodEnd}
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
       </SearchPanel>
     </div>
   );
@@ -582,21 +586,24 @@ export function ContentPerformancePage() {
     <section className="fuma-page fuma-performance-page">
       <PageHeader title="콘텐츠 성과" />
       <div className="fuma-page__body">
-        <PerformanceFilters
-          keyword={{
-            id: "performance-content-keyword",
-            label: "콘텐츠/작성자",
-            placeholder: "콘텐츠 ID, 제목 또는 작성자 검색",
-          }}
-          onChange={updateDraftFilter}
-          onReset={resetAndResetPage}
-          onSearch={applyAndResetPage}
-          values={draftFilters}
-        />
         <ContentPerformanceDashboard
           activities={activities}
           cohortContents={cohortContents}
           contents={contents}
+          filters={(
+            <PerformanceFilters
+              keyword={{
+                id: "performance-content-keyword",
+                label: "콘텐츠/작성자",
+                placeholder: "콘텐츠 ID, 제목 또는 작성자 검색",
+              }}
+              onChange={updateDraftFilter}
+              onReset={resetAndResetPage}
+              onSearch={applyAndResetPage}
+              showPeriod={false}
+              values={draftFilters}
+            />
+          )}
           highlightedCohort={highlightedCohort}
           key={JSON.stringify(appliedFilters)}
           onPageChange={setPage}

@@ -10,12 +10,14 @@ export interface AnalysisFormatSegment {
 
 export interface AnalysisFormatDonutProps {
   segments: readonly AnalysisFormatSegment[];
+  showTotal?: boolean;
   total: number | null;
   totalLabel?: string;
 }
 
 export function AnalysisFormatDonut({
   segments,
+  showTotal = true,
   total,
   totalLabel = "전체 콘텐츠",
 }: AnalysisFormatDonutProps) {
@@ -59,10 +61,12 @@ export function AnalysisFormatDonut({
           );
         })}
       </svg>
-      <div>
-        <strong>{total === null ? "-" : `${total.toLocaleString("ko-KR")}건`}</strong>
-        <span>{totalLabel}</span>
-      </div>
+      {showTotal ? (
+        <div>
+          <strong>{total === null ? "-" : `${total.toLocaleString("ko-KR")}건`}</strong>
+          <span>{totalLabel}</span>
+        </div>
+      ) : null}
       {activeSegment ? (
         <span className="fuma-analysis-format-breakdown__tooltip" role="tooltip">
           <i aria-hidden="true" style={{ backgroundColor: activeSegment.color }} />

@@ -37,7 +37,10 @@ test("content performance defaults to independently flippable cards and can swit
   const selectedLegend = within(cohortChart).getByRole("list", { name: "차트 범례" });
   expect(selectedLegend.children).toHaveLength(1);
   expect(within(selectedLegend).getByText("댓글 수")).toBeInTheDocument();
-  expect(screen.getByText("콘텐츠 유형")).toBeInTheDocument();
+  const formatPanel = screen.getByRole("article", { name: "콘텐츠 유형" });
+  expect(formatPanel).toBeInTheDocument();
+  expect(within(formatPanel).queryByText("전체 콘텐츠")).not.toBeInTheDocument();
+  expect(screen.queryByText(/조회 결과 [\d,]+건/)).not.toBeInTheDocument();
 
   const flipButtons = within(results).getAllByRole("button", { name: /성과 상세 보기$/ });
   const firstTrigger = flipButtons[0];
@@ -75,18 +78,18 @@ test("upload activity chart only plots canonical activity dates inside the appli
   renderRoute("/performance/contents");
 
   await screen.findByRole("heading", { name: "콘텐츠 성과" });
-  fireEvent.change(screen.getByLabelText("집계 시작일"), {
-    target: { value: "2026-07-22" },
-  });
-  fireEvent.change(screen.getByLabelText("집계 종료일"), {
-    target: { value: "2026-07-24" },
-  });
-  await user.click(within(screen.getByRole("search", { name: "검색 조건" })).getByRole(
-    "button",
-    { name: "조회" },
-  ));
+  expect(screen.queryByLabelText("집계 시작일")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("집계 종료일")).not.toBeInTheDocument();
 
   const chart = screen.getByRole("figure", { name: "기간별 업로드 추이" });
+  fireEvent.change(within(chart).getByLabelText("업로드 시작일"), {
+    target: { value: "2026-07-22" },
+  });
+  fireEvent.change(within(chart).getByLabelText("업로드 종료일"), {
+    target: { value: "2026-07-24" },
+  });
+  await user.click(within(chart).getByRole("button", { name: "조회" }));
+
   expect(
     [...chart.querySelectorAll<HTMLElement>("[data-activity-date]")].map(
       (point) => point.dataset.activityDate,
