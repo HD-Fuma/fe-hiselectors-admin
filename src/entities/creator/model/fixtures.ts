@@ -1,5 +1,3 @@
-export type ProposalChannel = "Instagram DM" | "이메일";
-export type ProposalStatus = "발송 대기" | "발송 완료" | "발송 실패";
 export type CreatorPlatform = "Instagram" | "YouTube";
 export const CREATOR_CATEGORIES = [
   "뷰티", "패션", "푸드", "리빙/라이프", "유아동/패밀리", "컬처/서비스", "스포츠/레저", "여행", "반려생활", "아울렛",
@@ -55,7 +53,6 @@ interface CreatorBaseFixture {
   recentActivity: string;
   featuredContents: CreatorFeaturedContentFixture[];
   aiReport: AiReportFixture;
-  proposalStatus: ProposalStatus | "미제안" | "발송 전";
 }
 
 export type CreatorProposalContact = {
@@ -64,20 +61,6 @@ export type CreatorProposalContact = {
 };
 
 export type CreatorFixture = CreatorBaseFixture & CreatorProposalContact;
-
-export interface ProposalFixture {
-  id: string;
-  targetId: string;
-  targetName: string;
-  receiver: string;
-  recipientEmail: string;
-  administratorId: string;
-  administratorName: string;
-  channel: ProposalChannel;
-  sentAt: string;
-  status: ProposalStatus;
-  message: string;
-}
 
 const SEOYEON_AI_REPORT: AiReportFixture = {
   status: "ready",
@@ -144,7 +127,6 @@ const BASE_CREATORS: CreatorFixture[] = [
       },
     ],
     aiReport: SEOYEON_AI_REPORT,
-    proposalStatus: "발송 완료",
     availableProposalChannels: ["이메일"],
     email: "seoyeon@example.com",
   },
@@ -198,7 +180,6 @@ const BASE_CREATORS: CreatorFixture[] = [
       fitnessScore: 86,
       evidence: ["최근 30일 평균 조회 수 26,800회"],
     },
-    proposalStatus: "발송 완료",
     availableProposalChannels: ["이메일"],
     email: "doyoon@example.com",
   },
@@ -247,7 +228,6 @@ const BASE_CREATORS: CreatorFixture[] = [
       },
     ],
     aiReport: PENDING_AI_REPORT,
-    proposalStatus: "발송 전",
     availableProposalChannels: ["이메일"],
     email: "zia@example.com",
   },
@@ -301,7 +281,6 @@ const BASE_CREATORS: CreatorFixture[] = [
       fitnessScore: 95,
       evidence: ["최근 30일 평균 조회 수 154,200회"],
     },
-    proposalStatus: "미제안",
     availableProposalChannels: ["이메일"],
     email: "haneul@example.com",
   },
@@ -358,96 +337,4 @@ export const CREATORS: CreatorFixture[] = [
       email: `creator${String(sequence).padStart(3, "0")}@example.com`,
     };
   }),
-];
-
-const PROPOSAL_ADMINISTRATORS = [
-  ["admin-001", "김민지"],
-  ["admin-002", "이현우"],
-  ["admin-003", "박수진"],
-  ["admin-004", "최준혁"],
-] as const;
-
-const ADDITIONAL_PROPOSALS: ProposalFixture[] = Array.from({ length: 100 }, (_, index) => {
-  const sequence = index + 5;
-  const creator = CREATORS[index % CREATORS.length];
-  const [administratorId, administratorName] = PROPOSAL_ADMINISTRATORS[index % PROPOSAL_ADMINISTRATORS.length];
-  const status: ProposalStatus = index % 3 === 0
-    ? "발송 대기"
-    : index % 3 === 1
-      ? "발송 완료"
-      : "발송 실패";
-  const month = index < 72 ? "08" : index < 92 ? "07" : "06";
-  const day = String((index % 28) + 1).padStart(2, "0");
-  const hour = String(9 + (index % 9)).padStart(2, "0");
-  const minute = String((index * 7) % 60).padStart(2, "0");
-
-  return {
-    id: `pr-${String(sequence).padStart(3, "0")}`,
-    targetId: creator.id,
-    targetName: creator.name,
-    receiver: creator.profile.handle,
-    recipientEmail: creator.email,
-    administratorId,
-    administratorName,
-    channel: "이메일",
-    sentAt: `2026-${month}-${day} ${hour}:${minute}`,
-    status,
-    message: `안녕하세요, ${creator.name} 님. ${creator.category} 콘텐츠를 인상 깊게 보았습니다. 더현대Hi 셀렉터스와 함께할 활동을 제안드립니다.`,
-  };
-});
-
-export const PROPOSALS: ProposalFixture[] = [
-  {
-    id: "pr-001",
-    targetId: "cr-001",
-    targetName: "김서연",
-    receiver: "@seo.yeon",
-    recipientEmail: "seoyeon@example.com",
-    administratorId: "admin-001",
-    administratorName: "김민지",
-    channel: "이메일",
-    sentAt: "2026-08-03 10:24",
-    status: "발송 완료",
-    message: "안녕하세요, 김서연 님. 셀렉토리스와 함께할 크리에이터 파트너를 찾고 있습니다. 뷰티 콘텐츠와 브랜드의 방향성이 잘 맞아 협업을 제안드립니다.",
-  },
-  {
-    id: "pr-002",
-    targetId: "cr-002",
-    targetName: "박도윤",
-    receiver: "도윤의 집밥",
-    recipientEmail: "doyoon@example.com",
-    administratorId: "admin-001",
-    administratorName: "김민지",
-    channel: "이메일",
-    sentAt: "2026-08-02 14:10",
-    status: "발송 완료",
-    message: "안녕하세요, 도윤의 집밥 님. 따뜻하고 실용적인 콘텐츠를 인상 깊게 보고 연락드립니다. 셀렉토리스 크리에이터 파트너십 참여를 제안드리고 싶습니다.",
-  },
-  {
-    id: "pr-003",
-    targetId: "cr-003",
-    targetName: "이지아",
-    receiver: "@zia.trip",
-    recipientEmail: "zia@example.com",
-    administratorId: "admin-002",
-    administratorName: "이현우",
-    channel: "이메일",
-    sentAt: "2026-08-01 09:05",
-    status: "발송 실패",
-    message: "안녕하세요, 이지아 님. 여행 콘텐츠의 감각적인 시선이 셀렉토리스 브랜드와 잘 어울린다고 생각했습니다. 크리에이터 파트너십을 제안드립니다.",
-  },
-  {
-    id: "pr-004",
-    targetId: "cr-004",
-    targetName: "오하늘",
-    receiver: "@today_haneul",
-    recipientEmail: "haneul@example.com",
-    administratorId: "admin-002",
-    administratorName: "이현우",
-    channel: "이메일",
-    sentAt: "2026-08-03 16:00",
-    status: "발송 대기",
-    message: "안녕하세요, 오하늘 님. 일상에 자연스럽게 녹아드는 콘텐츠를 보고 셀렉토리스와의 협업 가능성을 이야기 나누고 싶어 연락드립니다.",
-  },
-  ...ADDITIONAL_PROPOSALS,
 ];

@@ -7,32 +7,28 @@ import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
-import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
-import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { formatNumber } from "../../lib/formatters";
-import { paginate } from "../../lib/pagination";
-import { assetUrl } from "../../lib/assetUrl";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { DiscoverySettingsPanel } from "./DiscoverySettingsPanel";
 import "../../styles/creator-discovery-settings.css";
 import { getDiscoveryCategories } from "../../entities/discovery-category";
 import {
-  CREATORS,
+  getAdminProposals,
+  getCreator,
   getCreators,
-  PROPOSALS,
-  type CreatorFixture,
-  type CreatorSummary,
+  postAdminProposal,
+  type CreatorDetail,
   type CreatorProfileFixture,
-  type ProposalFixture,
-  type ProposalStatus,
+  type CreatorSummary,
+  type ProposalHistoryEntry,
+  type ProposalHistoryPage as ProposalHistoryPageResult,
 } from "../../entities/creator";
 
-const PROPOSAL_HISTORY_STATUSES: ProposalStatus[] = ["발송 대기", "발송 완료", "발송 실패"];
 const PROPOSAL_PAGE_SIZE = 20;
 const CREATOR_LIST_PAGE_SIZE = 20;
 
@@ -63,6 +59,10 @@ const EMPTY_CREATOR_FILTERS = {
   minEngagementRate: "",
   minRecent90DayContentCount: "",
 };
+
+function dateTime(value: string) {
+  return value.replace("T", " ").slice(0, 16).replaceAll("-", ".");
+}
 
 function numericFilter(value: string) {
   if (!value.trim()) return undefined;
@@ -115,26 +115,9 @@ function PlatformLabel({ platform }: { platform: CreatorProfileFixture["platform
   );
 }
 
-function proposalTone(
-  status: ProposalStatus | "미제안" | "발송 전",
-): NonNullable<StatusPillProps["tone"]> {
-  if (status === "발송 완료") {
-    return "approved";
-  }
-  if (status === "발송 대기") {
-    return "pending";
-  }
-  if (status === "발송 실패") {
-    return "rejected";
-  }
-  if (status === "발송 전") {
-    return "pending";
-  }
-  return "neutral";
-}
-
 function creatorColumns(
   categoryOptions: readonly { label: string; value: string }[],
+  onPropose: (creator: CreatorSummary) => void,
 ): DenseTableColumn<CreatorSummary>[] {
   return [
   { key: "id", header: "크리에이터 ID", width: 92, align: "center" },
@@ -198,10 +181,27 @@ function creatorColumns(
     align: "center",
     render: (creator) => creator.lastContentAt?.slice(0, 10) ?? "-",
   },
+  {
+    id: "propose",
+    header: "제안",
+    width: 96,
+    align: "center",
+    render: (creator) => (
+      <Button
+        onClick={(event) => {
+          event.stopPropagation();
+          onPropose(creator);
+        }}
+      >
+        제안 보내기
+      </Button>
+    ),
+  },
   ];
 }
 
 export function CreatorListPage() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [page, setPage] = useState(1);
@@ -323,7 +323,7 @@ export function CreatorListPage() {
             <EmptyState description={error} title="목록을 불러오지 못했습니다" />
           ) : (
             <DenseTable
-              columns={creatorColumns(categoryOptions)}
+              columns={creatorColumns(categoryOptions, (creator) => navigate(`/proposals/new?creator=${creator.id}`))}
               emptyMessage={pageData ? "검색 결과가 없습니다." : "크리에이터를 불러오는 중입니다."}
               rowKey={(creator) => creator.id}
               rows={pageData?.content ?? []}
@@ -348,20 +348,16 @@ export function CreatorListPage() {
   );
 }
 
-function ProposalCreatorSummary({ creator }: { creator: CreatorFixture }) {
-  const platform = creator.profile.platform;
+function ProposalCreatorSummary({ creator }: { creator: CreatorDetail }) {
+  const platform = platformFor(creator.snsCode);
   const audienceLabel = platform === "Instagram" ? "팔로워" : "구독자";
 
   return (
     <aside aria-label="제안 대상" className="fuma-proposal-compose__creator">
       <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
       <div className="fuma-proposal-compose__creator-profile">
-        <img
-          alt={`${creator.profile.handle} 프로필 이미지`}
-          src={assetUrl(creator.profile.profileImageUrl)}
-        />
         <div>
-          <strong>{creator.profile.handle}</strong>
+          <strong>{creator.creatorName || creator.accountId}</strong>
           <span>
             <PlatformLabel platform={platform} />
           </span>
@@ -370,35 +366,114 @@ function ProposalCreatorSummary({ creator }: { creator: CreatorFixture }) {
       <dl className="fuma-proposal-compose__creator-metrics">
         <div>
           <dt>{audienceLabel}</dt>
-          <dd>{formatNumber(creator.profile.followers)}</dd>
+          <dd>{creator.followerCount === null ? "-" : formatNumber(creator.followerCount)}</dd>
         </div>
         <div>
-          <dt>카테고리</dt>
-          <dd>{creator.category}</dd>
+          <dt>이메일</dt>
+          <dd>{creator.email}</dd>
         </div>
       </dl>
       <p className="fuma-proposal-compose__creator-note">
-        공개 정량 지표를 확인한 뒤 제안 내용을 작성해 주세요.
+        발송 버튼을 누르면 크리에이터 이메일로 셀렉터스 제안 메일이 발송되고 제안 이력에 기록됩니다.
       </p>
     </aside>
   );
 }
 
-function resizeProposalMessage(textarea: HTMLTextAreaElement) {
-  textarea.style.height = "auto";
-  textarea.style.height = `${textarea.scrollHeight}px`;
+function proposalHistoryColumns(): DenseTableColumn<ProposalHistoryEntry>[] {
+  return [
+  { key: "creatorName", header: "크리에이터", width: 130, align: "center" },
+  {
+    id: "platform",
+    header: "플랫폼",
+    width: 120,
+    align: "center",
+    render: (proposal) => <PlatformLabel platform={platformFor(proposal.snsCode)} />,
+  },
+  { key: "accountId", header: "SNS 계정", width: 150, align: "center" },
+  { key: "email", header: "이메일 주소", width: 210, align: "center" },
+  { key: "adminName", header: "발송자", width: 130, align: "center" },
+  {
+    id: "sentAt",
+    header: "발송 시각",
+    width: 150,
+    align: "center",
+    render: (proposal) => dateTime(proposal.createdAt),
+  },
+  ];
+}
+
+function ProposalDeliveryDetail({ proposal }: { proposal: ProposalHistoryEntry }) {
+  return (
+    <div className="fuma-detail-panel__content fuma-proposal-delivery-detail">
+      <section aria-label="발송 내역" className="fuma-proposal-delivery-detail__section">
+        <dl className="fuma-proposal-delivery-detail__list">
+          <div>
+            <dt>크리에이터</dt>
+            <dd>{proposal.creatorName}</dd>
+          </div>
+          <div>
+            <dt>SNS 계정</dt>
+            <dd>{proposal.accountId}</dd>
+          </div>
+          <div>
+            <dt>이메일</dt>
+            <dd>{proposal.email}</dd>
+          </div>
+          <div>
+            <dt>발송자</dt>
+            <dd>{proposal.adminName}</dd>
+          </div>
+          <div>
+            <dt>발송 시각</dt>
+            <dd>{dateTime(proposal.createdAt)}</dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+  );
 }
 
 export function ProposalComposePage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const creatorId = Number(searchParams.get("creator"));
+  const invalidCreatorId = !Number.isSafeInteger(creatorId) || creatorId <= 0;
+  const [creator, setCreator] = useState<CreatorDetail | null>(null);
+  const [history, setHistory] = useState<ProposalHistoryEntry[] | null>(null);
+  const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
   const [proposalCompleted, setProposalCompleted] = useState(false);
-  const creatorIds = searchParams.get("creators")?.split(",") ?? [searchParams.get("creator")];
-  const selectedCreators = CREATORS.filter((item) => creatorIds.includes(item.id));
-  const creator = selectedCreators[0];
-  const isBatchProposal = selectedCreators.length > 1;
 
-  if (!creator) {
+  useEffect(() => {
+    if (invalidCreatorId) return;
+    const controller = new AbortController();
+    getCreator(creatorId, controller.signal).then((result) => {
+      if (!controller.signal.aborted) setCreator(result);
+    }).catch((reason: unknown) => {
+      if (!controller.signal.aborted) {
+        setError(reason instanceof Error ? reason.message : "크리에이터 정보를 불러오지 못했습니다.");
+      }
+    });
+    return () => controller.abort();
+  }, [creatorId, invalidCreatorId]);
+
+  useEffect(() => {
+    if (invalidCreatorId) return;
+    const controller = new AbortController();
+    // ponytail: proposals API has no per-creator filter, so this reads one page and filters
+    // client-side; upgrade to a server-side creatorId filter if history grows past 100 entries.
+    getAdminProposals(0, 100, controller.signal).then((result) => {
+      if (!controller.signal.aborted) {
+        setHistory(result.content.filter((entry) => entry.creatorId === creatorId));
+      }
+    }).catch(() => {
+      if (!controller.signal.aborted) setHistory([]);
+    });
+    return () => controller.abort();
+  }, [creatorId, invalidCreatorId]);
+
+  if (invalidCreatorId) {
     return (
       <section className="fuma-page">
         <PageHeader title="셀렉터스 제안" />
@@ -412,85 +487,66 @@ export function ProposalComposePage() {
     );
   }
 
-  const channelOptions = [{ label: "이메일", value: "이메일" }];
-  const recipientLabel = isBatchProposal ? "크리에이터님" : `${creator.profile.handle}님`;
-  const proposalSubject = isBatchProposal
-    ? "[더현대Hi] 셀렉터스 크리에이터 활동을 제안드립니다"
-    : `[더현대Hi] ${creator.profile.handle}님, 셀렉터스 크리에이터 활동을 제안드립니다`;
-  const proposalMessage = `안녕하세요, ${recipientLabel}.
-더현대Hi 셀렉터스 운영팀입니다.
-
-${isBatchProposal
-    ? "크리에이터님의 콘텐츠를 관심 있게 보고, 더현대Hi와 함께하는 셀렉터스 활동을 제안드리고자 연락드립니다."
-    : `${creator.profile.handle}님의 ${creator.category} 콘텐츠를 관심 있게 보고, 더현대Hi와 함께하는 셀렉터스 활동을 제안드리고자 연락드립니다.`}
-
-셀렉터스는 크리에이터의 개성과 전문성을 바탕으로 더현대Hi의 상품과 브랜드를 소개하는 크리에이터 파트너 프로그램입니다.
-
-[제안 내용]
-- 더현대Hi 주요 캠페인 및 콘텐츠 협업
-- 채널 특성에 맞춘 상품과 캠페인 제안
-- 캠페인별 활동 조건 및 상세 가이드 별도 안내
-
-참여 의향이 있으시다면 본 메일에 회신해 주세요. 확인 후 활동 방식과 다음 절차를 상세히 안내드리겠습니다.
-
-감사합니다.
-더현대Hi 셀렉터스 운영팀 드림`;
+  const sendProposal = async () => {
+    setSending(true);
+    setError("");
+    try {
+      const entry = await postAdminProposal(creatorId);
+      setHistory((current) => [entry, ...(current ?? [])]);
+      setProposalCompleted(true);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "제안 메일 발송에 실패했습니다.");
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <>
     <section className="fuma-page fuma-proposal-compose">
       <PageHeader title="셀렉터스 제안" />
       <div className="fuma-page__body">
+        {error ? <EmptyState description={error} title="처리 중 오류가 발생했습니다" /> : null}
         <div className="fuma-proposal-compose__layout">
-          {isBatchProposal ? (
-            <aside aria-label="제안 대상" className="fuma-proposal-compose__creator fuma-proposal-compose__creator--batch">
+          {creator ? <ProposalCreatorSummary creator={creator} /> : (
+            <aside aria-label="제안 대상" className="fuma-proposal-compose__creator">
               <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
-              <strong>{selectedCreators.length}명 선택됨</strong>
-              <ul>{selectedCreators.map((item) => <li key={item.id}>{item.profile.handle}<span>{item.profile.platform}</span></li>)}</ul>
+              <p>크리에이터 정보를 불러오는 중입니다.</p>
             </aside>
-          ) : <ProposalCreatorSummary creator={creator} />}
-          <form
-            aria-label="제안 작성"
-            className="fuma-proposal-compose__form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setProposalCompleted(true);
-            }}
-          >
+          )}
+          <div className="fuma-proposal-compose__form">
             <div className="fuma-proposal-compose__form-heading">
-              <h2>제안 내용</h2>
-              <span>필수 항목을 입력해 주세요.</span>
+              <h2>제안 이력</h2>
+              <span>이 크리에이터에게 이전에 발송한 제안 내역입니다.</span>
             </div>
-            <FormRow label="제안 채널" required>
-              <Select aria-label="제안 채널" defaultValue="이메일" disabled options={channelOptions} />
-            </FormRow>
-            <FormRow label="제목" required>
-              <TextInput
-                aria-label="제목"
-                defaultValue={proposalSubject}
-                placeholder={proposalSubject}
-              />
-            </FormRow>
-            <FormRow label="제안 메시지" required>
-              <textarea
-                aria-label="제안 메시지"
-                className="hsas-control fuma-proposal-compose__textarea"
-                defaultValue={proposalMessage}
-                onInput={(event) => resizeProposalMessage(event.currentTarget)}
-                placeholder={proposalMessage}
-                ref={(textarea) => {
-                  if (textarea) resizeProposalMessage(textarea);
-                }}
-              />
-            </FormRow>
+            {history === null ? (
+              <p>제안 이력을 불러오는 중입니다.</p>
+            ) : history.length === 0 ? (
+              <p>이전에 발송한 제안 이력이 없습니다.</p>
+            ) : (
+              <ul>
+                {history.map((entry) => (
+                  <li key={entry.proposalHistoryId}>
+                    {dateTime(entry.createdAt)} · {entry.adminName} 발송
+                  </li>
+                ))}
+              </ul>
+            )}
             <footer className="fuma-proposal-compose__footer">
               <span>발송 후 제안 이력에서 상태를 확인할 수 있습니다.</span>
               <div>
                 <Button onClick={() => navigate(-1)}>취소</Button>
-                <Button className="fuma-proposal-compose__submit" type="submit" variant="primary">제안 발송</Button>
+                <Button
+                  className="fuma-proposal-compose__submit"
+                  disabled={!creator || sending}
+                  onClick={sendProposal}
+                  variant="primary"
+                >
+                  {sending ? "발송 중..." : "제안 발송"}
+                </Button>
               </div>
             </footer>
-          </form>
+          </div>
         </div>
       </div>
     </section>
@@ -507,185 +563,33 @@ ${isBatchProposal
   );
 }
 
-function createProposalColumns(): DenseTableColumn<ProposalFixture>[] {
-  return [
-  {
-    id: "target",
-    header: "크리에이터",
-    width: 120,
-    align: "center",
-    render: (proposal) => proposal.receiver,
-  },
-  {
-    id: "platform",
-    header: "플랫폼",
-    width: 120,
-    align: "center",
-    render: (proposal) => {
-      const creator = CREATORS.find((item) => item.id === proposal.targetId);
-      return creator ? <PlatformLabel platform={creator.profile.platform} /> : "-";
-    },
-  },
-  { key: "recipientEmail", header: "이메일 주소", width: 210, align: "center" },
-  { key: "sentAt", header: "발송 시각", width: 150, align: "center" },
-  { key: "administratorName", header: "발송자", width: 130, align: "center" },
-  {
-    key: "status",
-    header: "상태",
-    width: 110,
-    align: "center",
-    render: (proposal) => (
-      <StatusPill tone={proposalTone(proposal.status)}>{proposal.status}</StatusPill>
-    ),
-  },
-  ];
-}
-
-function ProposalDeliveryDetail({ proposal }: { proposal: ProposalFixture }) {
-  return (
-    <div className="fuma-detail-panel__content fuma-proposal-delivery-detail">
-      <section aria-label="발송 내역" className="fuma-proposal-delivery-detail__section">
-        <dl className="fuma-proposal-delivery-detail__list">
-          <div>
-            <dt>크리에이터 SNS ID</dt>
-            <dd>{proposal.receiver}</dd>
-          </div>
-          <div>
-            <dt>발송 관리자 ID</dt>
-            <dd>{proposal.administratorId}</dd>
-          </div>
-          <div>
-            <dt>발송 시각</dt>
-            <dd>{proposal.sentAt}</dd>
-          </div>
-          <div>
-            <dt>상태</dt>
-            <dd><StatusPill tone={proposalTone(proposal.status)}>{proposal.status}</StatusPill></dd>
-          </div>
-          <div>
-            <dt>발송 안내</dt>
-            <dd>{proposal.message}</dd>
-          </div>
-        </dl>
-      </section>
-    </div>
-  );
-}
-
 export function ProposalHistoryPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [selectedProposal, setSelectedProposal] = useState<ProposalFixture | null>(null);
-  const [sentDateInput, setSentDateInput] = useState(searchParams.get("sentDate") ?? "");
-  const [keywordInput, setKeywordInput] = useState(
-    searchParams.get("keyword") ?? searchParams.get("creator") ?? "",
-  );
-  const creatorId = searchParams.get("creator");
-  const requestedStatus = searchParams.get("status");
-  const selectedStatus = PROPOSAL_HISTORY_STATUSES.find((status) => status === requestedStatus);
-  const sentDate = searchParams.get("sentDate");
-  const keyword = searchParams.get("keyword")?.trim().toLocaleLowerCase("ko-KR");
-  const proposals = (
-    searchParams.get("fixture") === "empty"
-      ? []
-      : creatorId
-        ? PROPOSALS.filter((proposal) => proposal.targetId === creatorId)
-        : PROPOSALS
-  ).filter((proposal) => (
-    (!selectedStatus || proposal.status === selectedStatus)
-    && (!sentDate || proposal.sentAt.startsWith(sentDate))
-    && (!keyword || [
-      proposal.targetId,
-      proposal.targetName,
-      proposal.receiver,
-      proposal.recipientEmail,
-    ].some((value) => value.toLocaleLowerCase("ko-KR").includes(keyword)))
-  ));
-  const { currentPage, pagedItems: pagedProposals, totalPages } = paginate(
-    proposals,
-    page,
-    PROPOSAL_PAGE_SIZE,
-  );
+  const [pageData, setPageData] = useState<ProposalHistoryPageResult | null>(null);
+  const [error, setError] = useState("");
+  const [selectedProposal, setSelectedProposal] = useState<ProposalHistoryEntry | null>(null);
 
-  const selectStatus = (status?: ProposalStatus) => {
-    const nextParams = new URLSearchParams(searchParams);
-    if (status) {
-      nextParams.set("status", status);
-    } else {
-      nextParams.delete("status");
-    }
-    setPage(1);
-    setSearchParams(nextParams);
-  };
-
-  const searchProposals = () => {
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("creator");
-    if (sentDateInput) {
-      nextParams.set("sentDate", sentDateInput);
-    } else {
-      nextParams.delete("sentDate");
-    }
-    if (keywordInput.trim()) {
-      nextParams.set("keyword", keywordInput.trim());
-    } else {
-      nextParams.delete("keyword");
-    }
-    setPage(1);
-    setSearchParams(nextParams);
-  };
-
-  const resetProposalSearch = () => {
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("creator");
-    nextParams.delete("sentDate");
-    nextParams.delete("keyword");
-    nextParams.delete("status");
-    setSentDateInput("");
-    setKeywordInput("");
-    setPage(1);
-    setSearchParams(nextParams);
-  };
+  useEffect(() => {
+    const controller = new AbortController();
+    getAdminProposals(page - 1, PROPOSAL_PAGE_SIZE, controller.signal).then((result) => {
+      setPageData(result);
+      setError("");
+    }).catch((reason: unknown) => {
+      if (!controller.signal.aborted) {
+        setError(reason instanceof Error ? reason.message : "제안 이력 조회에 실패했습니다.");
+      }
+    });
+    return () => controller.abort();
+  }, [page]);
 
   return (
     <section className="fuma-page">
       <PageHeader title="제안 이력 관리" />
       <div className="fuma-page__body">
-        <div className="fuma-operations-search fuma-settlement-search fuma-proposal-history-search">
-          <SearchPanel actions={<SearchActions onReset={resetProposalSearch} onSearch={searchProposals} />}>
-            <FilterField htmlFor="proposal-sent-date" label="발송일">
-              <TextInput
-                aria-label="발송일"
-                id="proposal-sent-date"
-                onChange={(event) => setSentDateInput(event.target.value)}
-                type="date"
-                value={sentDateInput}
-              />
-            </FilterField>
-            <FilterField htmlFor="proposal-keyword" label="ID 또는 이름">
-              <TextInput
-                aria-label="ID 또는 이름"
-                id="proposal-keyword"
-                onChange={(event) => setKeywordInput(event.target.value)}
-                placeholder="크리에이터 ID 또는 이름 검색"
-                value={keywordInput}
-              />
-            </FilterField>
-          </SearchPanel>
-        </div>
-        <ChoiceTabs
-          ariaLabel="제안 발송 상태"
-          className="fuma-proposal-status-filter"
-          emptyOption={{ label: "전체", onSelect: () => selectStatus() }}
-          onChange={selectStatus}
-          options={PROPOSAL_HISTORY_STATUSES}
-          value={selectedStatus}
-        />
         <div className="fuma-result-toolbar fuma-simple-result-toolbar">
           <strong>제안 이력 목록</strong>
           <div className="fuma-settlement-result-meta">
-            <span>{sentDate ? sentDate.replaceAll("-", ".") : "전체 발송일"}</span>
-            <span>총 {proposals.length}건</span>
+            <span>총 {pageData?.totalElements ?? 0}건</span>
           </div>
         </div>
         <div
@@ -693,19 +597,23 @@ export function ProposalHistoryPage() {
           className="fuma-wide-table fuma-settlement-table fuma-proposal-history-table"
           role="region"
         >
-          <DenseTable
-            columns={createProposalColumns()}
-            emptyMessage="등록된 제안 이력이 없습니다."
-            onRowClick={setSelectedProposal}
-            rowKey={(proposal) => proposal.id}
-            rows={pagedProposals}
-          />
+          {error ? (
+            <EmptyState description={error} title="목록을 불러오지 못했습니다" />
+          ) : (
+            <DenseTable
+              columns={proposalHistoryColumns()}
+              emptyMessage={pageData ? "등록된 제안 이력이 없습니다." : "제안 이력을 불러오는 중입니다."}
+              onRowClick={setSelectedProposal}
+              rowKey={(proposal) => proposal.proposalHistoryId}
+              rows={pageData?.content ?? []}
+            />
+          )}
         </div>
         <Pagination
           onPageChange={setPage}
-          page={currentPage}
+          page={page}
           pageSize={PROPOSAL_PAGE_SIZE}
-          totalPages={totalPages}
+          totalPages={Math.max(1, pageData?.totalPages ?? 1)}
         />
       </div>
       {selectedProposal ? (

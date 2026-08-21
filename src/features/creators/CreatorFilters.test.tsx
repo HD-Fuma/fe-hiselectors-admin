@@ -1,8 +1,7 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { CreatorListPage, ProposalHistoryPage } from "./CreatorPages";
-import { PROPOSALS } from "../../entities/creator";
 
 function renderCreatorPage(path = "/creators") {
   return render(
@@ -180,42 +179,44 @@ describe("creator filters", () => {
   });
 });
 
-describe("proposal history filters", () => {
-  test("filters by status, date, and keyword and reset restores status and pagination", async () => {
+describe("proposal history", () => {
+  function proposalEntry(overrides: Partial<Record<string, unknown>> = {}) {
+    return {
+      proposalHistoryId: 1,
+      creatorId: 113,
+      creatorName: "김서연",
+      snsCode: "INSTAGRAM",
+      accountId: "seo.yeon",
+      email: "seoyeon@example.com",
+      adminName: "김민지",
+      createdAt: "2026-08-03T10:24:00",
+      ...overrides,
+    };
+  }
+
+  test("requests server pagination and renders the API result as a read-only table", async () => {
     const user = userEvent.setup();
+    const fetchMock = vi.fn((_input: RequestInfo | URL) => Promise.resolve(new Response(JSON.stringify({
+      success: true,
+      data: {
+        content: [proposalEntry()],
+        totalElements: 21,
+        totalPages: 2,
+        number: 0,
+        size: 20,
+      },
+    }))));
+    vi.stubGlobal("fetch", fetchMock);
     renderProposalPage();
-    const totalPages = Math.ceil(PROPOSALS.length / 20);
-    const failedStatus = screen.getByRole("button", { name: "발송 실패" });
+
+    const table = screen.getByRole("region", { name: "제안 이력 목록" });
+    expect(await within(table).findByText("김서연")).toBeInTheDocument();
+    expect(within(table).getByText("seoyeon@example.com")).toBeInTheDocument();
+    expect(resultCount(21)).toBeInTheDocument();
+    expect(screen.getByText("1 / 2 페이지")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "다음 페이지" }));
-    expect(screen.getByText(`2 / ${totalPages} 페이지`)).toBeInTheDocument();
-
-    await user.click(failedStatus);
-    const failedCount = PROPOSALS.filter((proposal) => proposal.status === "발송 실패").length;
-    expect(resultCount(failedCount)).toBeInTheDocument();
-    expect(screen.getByText(`1 / ${Math.ceil(failedCount / 20)} 페이지`)).toBeInTheDocument();
-
-    const search = screen.getByRole("search", { name: "검색 조건" });
-    const sentDate = within(search).getByLabelText("발송일");
-    const keyword = within(search).getByRole("textbox", { name: "ID 또는 이름" });
-    fireEvent.change(sentDate, { target: { value: "2026-08-01" } });
-    await user.type(keyword, "이지아");
-    await user.click(within(search).getByRole("button", { name: "조회" }));
-
-    const combinedCount = PROPOSALS.filter((proposal) => (
-      proposal.status === "발송 실패"
-      && proposal.sentAt.startsWith("2026-08-01")
-      && [proposal.targetId, proposal.targetName, proposal.receiver, proposal.recipientEmail]
-        .some((value) => value.toLocaleLowerCase("ko-KR").includes("이지아"))
-    )).length;
-    expect(resultCount(combinedCount)).toBeInTheDocument();
-
-    await user.click(within(search).getByRole("button", { name: "초기화" }));
-
-    expect(resultCount(PROPOSALS.length)).toBeInTheDocument();
-    expect(sentDate).toHaveValue("");
-    expect(keyword).toHaveValue("");
-    expect(screen.getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText(`1 / ${totalPages} 페이지`)).toBeInTheDocument();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(String(fetchMock.mock.calls[1][0])).toContain("page=1");
   });
 });
