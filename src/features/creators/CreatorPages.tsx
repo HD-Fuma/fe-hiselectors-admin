@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { AlertDialog } from "../../components/ui/AlertDialog";
-import { Button, Select, TextInput } from "../../components/ui/Controls";
+import { Button, buttonClassNames, Select, TextInput } from "../../components/ui/Controls";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -96,7 +96,7 @@ function CreatorAccountLink({ creator }: { creator: CreatorSummary }) {
   return href ? (
     <a
       aria-label={`${creator.creatorName || creator.accountId} ${label} (새 창)`}
-      className="hsas-button fuma-table-link"
+      className={buttonClassNames("secondary", "fuma-table-link")}
       href={href}
       rel="noreferrer"
       target="_blank"
@@ -265,6 +265,11 @@ export function CreatorListPage() {
     setAppliedFilters(EMPTY_CREATOR_FILTERS);
     setPage(1);
   };
+  const selectCategory = (categoryCode: string) => {
+    setFilters((current) => ({ ...current, categoryCode }));
+    setAppliedFilters((current) => ({ ...current, categoryCode }));
+    setPage(1);
+  };
 
   return (
     <>
@@ -285,9 +290,6 @@ export function CreatorListPage() {
             <FilterField htmlFor="creator-platform" label="플랫폼">
               <Select id="creator-platform" onChange={(event) => setFilters((current) => ({ ...current, snsCode: event.target.value }))} options={CREATOR_PLATFORM_OPTIONS} value={filters.snsCode} />
             </FilterField>
-            <FilterField htmlFor="creator-category" label="카테고리">
-              <Select id="creator-category" onChange={(event) => setFilters((current) => ({ ...current, categoryCode: event.target.value }))} options={categoryOptions} value={filters.categoryCode} />
-            </FilterField>
             <FilterField htmlFor="creator-min-follower" label="최소 팔로워·구독자">
               <TextInput id="creator-min-follower" inputMode="numeric" min="0" onChange={(event) => setFilters((current) => ({ ...current, minFollower: event.target.value }))} placeholder="0" value={filters.minFollower} />
             </FilterField>
@@ -299,6 +301,13 @@ export function CreatorListPage() {
             </FilterField>
           </SearchPanel>
         </div>
+        <ChoiceTabs
+          ariaLabel="크리에이터 카테고리"
+          emptyOption={{ label: "전체", onSelect: () => selectCategory("") }}
+          onChange={selectCategory}
+          options={categoryOptions.filter((option) => option.value)}
+          value={appliedFilters.categoryCode || null}
+        />
         <ResultToolbar
           actions={(
             <Button aria-haspopup="dialog" onClick={() => setDiscoverySettingsOpen(true)}>
