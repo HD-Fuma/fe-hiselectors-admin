@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -14,6 +22,7 @@ import {
   MoreHorizontal,
   Play,
   Repeat2,
+  RefreshCw,
   Send,
   Settings,
   Share2,
@@ -27,6 +36,7 @@ import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, SegmentedControl, Select, TextInput } from "../../components/ui/Controls";
 import { ContentCollectionCard } from "../../components/ui/ContentCollectionCard";
 import { contentCollectionFormatKey } from "../../components/ui/contentCollectionFormat";
+import { CreatorProfilePhoto } from "../../components/ui/CreatorProfilePhoto";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -39,12 +49,13 @@ import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
 import {
-  CONTENT_INSPECTIONS,
   INSPECTION_TYPE_LABELS,
-  findContentInspectionFixture,
+  adaptContentInspection,
+  getCurrentGenerationContents,
+  runContentBatch,
   type ContentAnnotation,
   type ContentAnnotationTarget,
-  type ContentFormat,
+  type ContentBatchRunResponse,
   type ContentInspectionFixture,
   type ContentSnapshot,
   type InspectionStatus,
@@ -52,6 +63,11 @@ import {
 
 const CONTENT_INSPECTION_PAGE_SIZE = 20;
 type ContentInspectionCategory = "신규" | "수정" | "검수 완료";
+
+function collectionStepStatus(succeeded: boolean, savedCount: number) {
+  if (succeeded) return "성공";
+  return savedCount > 0 ? "일부 실패" : "실패";
+}
 
 interface QueueFilterValues {
   keyword: string;
@@ -139,395 +155,11 @@ function QueueFilters({
   );
 }
 
-const CONTENT_INSPECTION_AUTHORS = [
-  "김서연", "박도윤", "이지아", "오하늘", "한유진", "정하린", "윤채원", "서민준", "배수아", "임도현",
-  "최가은", "문지후", "유나영", "강태윤", "신예린", "장서준", "노아린", "홍지민", "백승현", "송하윤",
-] as const;
-
-const CONTENT_INSPECTION_SNS_IDS = [
-  "@seoyeon", "@doyoon", "@zia", "@haneul", "@yujin", "@harin", "@chaewon", "@minjun", "@sua", "@dohyun",
-  "@gaeun", "@jihoo", "@nayoung", "@taeyoon", "@yerin", "@seojun", "@arin", "@jimin", "@seunghyun", "@hayoon",
-] as const;
-
-interface ContentInspectionTemplateIssue {
-  detail: string;
-  evidence: string;
-  guidance: string;
-  source: "본문" | "OCR" | "STT";
-  title: string;
-}
-
-interface ContentInspectionTemplate {
-  contentFormat: ContentFormat;
-  duration?: string;
-  issue?: ContentInspectionTemplateIssue;
-  mediaKinds: readonly ("이미지" | "동영상")[];
-  platform: "Instagram" | "YouTube";
-  text: string;
-  title: string;
-  youtubeVideoId?: string;
-}
-
-const CONTENT_INSPECTION_TEMPLATES: readonly ContentInspectionTemplate[] = [
-  {
-    contentFormat: "유튜브 롱폼",
-    duration: "12:48",
-    mediaKinds: ["동영상"],
-    platform: "YouTube",
-    youtubeVideoId: "7xsLcM1WtAQ",
-    title: "7일 입어본 가을 골프웨어 솔직 리뷰",
-    text: "본 영상은 현대홈쇼핑의 유료광고를 포함합니다.\n세인트앤드류스 스트레치 패딩 팬츠를 일주일 동안 출근과 라운딩에 입어보고 보온감, 활동성, 사이즈 팁을 정리했습니다.\n00:00 착용 핏 · 03:24 소재와 보온감 · 08:10 코디 팁\n#현대홈쇼핑 #셀렉터스 #골프웨어 #광고",
-  },
-  {
-    contentFormat: "유튜브 롱폼",
-    duration: "16:05",
-    issue: {
-      detail: "비교 근거 없이 보온 성능이 가장 우수하다고 단정한 음성이 포함되어 있습니다.",
-      evidence: "이 제품이 무조건 가장 따뜻합니다",
-      guidance: "개인적인 착용 경험임을 밝히고 객관적인 비교로 오해될 표현을 수정해 주세요.",
-      source: "STT",
-      title: "성능 단정 표현",
-    },
-    mediaKinds: ["동영상"],
-    platform: "YouTube",
-    youtubeVideoId: "7xsLcM1WtAQ",
-    title: "겨울 패딩 3종 직접 비교해 봤습니다",
-    text: "두께가 다른 겨울 패딩 세 가지를 같은 날 착용해 핏과 움직임을 비교했습니다. 제품별 장단점과 추천 체형은 영상 후반에 정리해 두었어요.\n#현대홈쇼핑 #패딩비교 #유료광고 #광고",
-  },
-  {
-    contentFormat: "유튜브 롱폼",
-    duration: "18:22",
-    mediaKinds: ["동영상"],
-    platform: "YouTube",
-    youtubeVideoId: "7xsLcM1WtAQ",
-    title: "민감성 피부의 일주일 홈케어 루틴",
-    text: "저녁 세안부터 보습 마무리까지 실제로 사용한 순서대로 보여드립니다. 피부 타입에 따라 사용감은 다를 수 있으니 전성분과 사용법을 함께 확인해 주세요.\n#현대홈쇼핑 #뷰티루틴 #스킨케어 #유료광고 #광고",
-  },
-  {
-    contentFormat: "유튜브 쇼츠",
-    duration: "00:34",
-    mediaKinds: ["동영상"],
-    platform: "YouTube",
-    youtubeVideoId: "0i5p6WE58Jc",
-    title: "30초 만에 완성하는 출근 룩",
-    text: "셔츠 하나로 월요일부터 금요일까지 돌려 입는 세 가지 방법. 저장해 두고 바쁜 아침에 꺼내 보세요.\n#Shorts #출근룩 #데일리코디 #현대홈쇼핑 #광고",
-  },
-  {
-    contentFormat: "유튜브 쇼츠",
-    duration: "00:27",
-    issue: {
-      detail: "검증 가능한 가격 비교 자료 없이 최저가를 단정하고 있습니다.",
-      evidence: "오늘이 무조건 최저가",
-      guidance: "행사 기간과 실제 할인 조건만 안내하도록 문구를 수정해 주세요.",
-      source: "본문",
-      title: "최저가 단정 표현",
-    },
-    mediaKinds: ["동영상"],
-    platform: "YouTube",
-    youtubeVideoId: "0i5p6WE58Jc",
-    title: "주말 특가 핵심만 27초 정리",
-    text: "이번 주말 혜택과 쿠폰 적용 방법을 빠르게 정리했어요. 오늘이 무조건 최저가, 프로필의 공식 상품 링크에서 확인하세요.\n#Shorts #주말특가 #현대홈쇼핑 #광고",
-  },
-  {
-    contentFormat: "유튜브 쇼츠",
-    duration: "00:41",
-    mediaKinds: ["동영상"],
-    platform: "YouTube",
-    youtubeVideoId: "0i5p6WE58Jc",
-    title: "좁은 주방 수납 전후 비교",
-    text: "자주 쓰는 조리도구만 남기고 동선을 바꿔 봤어요. 설치 순서와 실제 수납량을 40초 안에 보여드립니다.\n#Shorts #주방정리 #수납팁 #현대홈쇼핑 #광고",
-  },
-  {
-    contentFormat: "인스타 릴스",
-    duration: "00:22",
-    mediaKinds: ["동영상"],
-    platform: "Instagram",
-    title: "휴양지 원피스 한 벌로 세 가지 무드",
-    text: "햇빛 아래에서는 단독으로, 저녁에는 얇은 셔츠와 함께 입어봤어요. 키 165cm 기준 기장과 움직임도 영상에서 확인해 보세요.\n#여름코디 #원피스 #릴스 #현대홈쇼핑 #셀렉터스 #광고",
-  },
-  {
-    contentFormat: "인스타 릴스",
-    duration: "00:31",
-    issue: {
-      detail: "착용만으로 신체 비율이 크게 달라진다고 오해할 수 있는 음성 표현입니다.",
-      evidence: "입기만 하면 다리가 5cm 길어 보여요",
-      guidance: "실제 디자인 특징과 개인적인 착용 인상으로 표현해 주세요.",
-      source: "STT",
-      title: "과장된 착용 효과",
-    },
-    mediaKinds: ["동영상"],
-    platform: "Instagram",
-    title: "다리가 길어 보이는 데님 핏 비교",
-    text: "스트레이트와 와이드 핏을 같은 상의에 매치해 실루엣 차이를 비교했습니다. 체형과 사이즈에 따라 핏은 달라질 수 있어요.\n#데님코디 #릴스 #현대홈쇼핑 #광고",
-  },
-  {
-    contentFormat: "인스타 릴스",
-    duration: "00:26",
-    mediaKinds: ["동영상"],
-    platform: "Instagram",
-    title: "집에서 만드는 복숭아 아이스티",
-    text: "복숭아청 한 스푼과 탄산수로 완성한 여름 홈카페 메뉴입니다. 정확한 용량과 보관 방법은 본문 하단에 적어두었어요.\n#홈카페 #여름음료 #릴스 #현대홈쇼핑 #광고",
-  },
-  {
-    contentFormat: "인스타 피드",
-    mediaKinds: ["이미지", "이미지", "이미지", "이미지"],
-    platform: "Instagram",
-    title: "오늘의 라운딩 룩과 실제 착용 후기",
-    text: "아침에는 쌀쌀하고 낮에는 따뜻했던 날이라 얇은 이너와 패딩 팬츠를 함께 입었습니다. 2번 사진에서 허리 밴딩, 4번 사진에서 뒷모습 핏을 확인할 수 있어요.\n#라운딩룩 #골프웨어 #현대홈쇼핑 #셀렉터스 #광고",
-  },
-  {
-    contentFormat: "인스타 피드",
-    issue: {
-      detail: "이미지 문구가 실제 면적 측정 없이 수납 공간이 두 배 증가한다고 표현합니다.",
-      evidence: "공간이 두 배 넓어지는 수납법",
-      guidance: "수납 전후의 실제 수치나 개인 사용 후기로 표현을 바꿔 주세요.",
-      source: "OCR",
-      title: "효과 과장 문구",
-    },
-    mediaKinds: ["이미지", "이미지", "이미지", "이미지", "이미지"],
-    platform: "Instagram",
-    title: "작은 집을 위한 현관 수납 정리",
-    text: "자주 신는 신발과 계절용품을 구분해 현관장을 다시 정리했습니다. 사진을 넘기면 사용한 수납함 규격과 배치 순서를 볼 수 있어요.\n#정리수납 #리빙 #인스타피드 #현대홈쇼핑 #광고",
-  },
-  {
-    contentFormat: "인스타 피드",
-    mediaKinds: ["이미지", "이미지", "이미지"],
-    platform: "Instagram",
-    title: "반려견과 다녀온 주말 산책 코스",
-    text: "그늘이 많고 쉬어 갈 벤치가 있는 2.4km 코스입니다. 사용한 리드줄과 휴대용 물병은 마지막 사진에 정리했습니다.\n#반려생활 #산책기록 #주말일상 #현대홈쇼핑 #광고",
-  },
-  {
-    contentFormat: "인스타 이미지",
-    mediaKinds: ["이미지"],
-    platform: "Instagram",
-    title: "체형별 팬츠 사이즈 선택 가이드",
-    text: "허리와 힙 실측값을 기준으로 정리한 사이즈표입니다. 평소 착용 사이즈보다 제품 상세 치수를 먼저 확인해 주세요.\n#사이즈가이드 #골프웨어 #현대홈쇼핑 #광고",
-  },
-  {
-    contentFormat: "인스타 이미지",
-    issue: {
-      detail: "동일 조건의 시장 가격 비교 근거 없이 업계 최저가를 보장하고 있습니다.",
-      evidence: "업계 최저가 보장",
-      guidance: "적용 쿠폰과 행사 가격 등 확인 가능한 혜택만 표기해 주세요.",
-      source: "본문",
-      title: "가격 보장 표현",
-    },
-    mediaKinds: ["이미지"],
-    platform: "Instagram",
-    title: "주말 한정 쿠폰 안내",
-    text: "금요일 오전 10시부터 일요일 자정까지 사용할 수 있는 앱 전용 쿠폰입니다. 업계 최저가 보장 문구와 함께 자세한 조건은 공식 링크에서 확인해 주세요.\n#주말쿠폰 #쇼핑혜택 #현대홈쇼핑 #광고",
-  },
-  {
-    contentFormat: "인스타 이미지",
-    mediaKinds: ["이미지"],
-    platform: "Instagram",
-    title: "8월 라이브 방송 일정",
-    text: "이번 달 셀렉터스 라이브 방송 일정을 한 장에 정리했습니다. 관심 상품의 방송 시간을 저장하고 알림을 설정해 주세요.\n#라이브커머스 #방송일정 #현대홈쇼핑 #셀렉터스 #광고",
-  },
-] as const;
-
-const CONTENT_INSPECTION_MEDIA = [
-  "/creator-media/kr-cr-001-01.jpg",
-  "/creator-media/kr-cr-001-02.jpg",
-  "/creator-media/kr-cr-001-03.jpg",
-  "/creator-media/kr-cr-002-01.jpg",
-  "/creator-media/kr-cr-002-02.jpg",
-  "/creator-media/kr-cr-002-03.jpg",
-  "/creator-media/kr-cr-003-01.jpg",
-  "/creator-media/kr-cr-003-02.jpg",
-  "/creator-media/kr-cr-003-03.jpg",
-  "/creator-media/kr-cr-004-01.jpg",
-  "/creator-media/kr-cr-004-02.jpg",
-  "/creator-media/kr-cr-004-03.jpg",
-] as const;
-
-const CONTENT_INSPECTION_PRODUCT_URLS = [
-  "https://www.hmall.com/p/2200098405",
-  "https://www.hmall.com/p/2200089867",
-  "https://www.hmall.com/p/2200089740",
-] as const;
-
-const CONTENT_INSPECTION_LIST_ITEMS: readonly ContentInspectionFixture[] = Array.from({ length: 50 }, (_, index) => {
-  const source = CONTENT_INSPECTIONS[index % CONTENT_INSPECTIONS.length];
-  const template = CONTENT_INSPECTION_TEMPLATES[index % CONTENT_INSPECTION_TEMPLATES.length];
-  const day = String(1 + (index % 10)).padStart(2, "0");
-  const hour = String(9 + (index % 10)).padStart(2, "0");
-  const minute = String((index * 7) % 60).padStart(2, "0");
-  const capturedAt = "2026-08-" + day + " " + hour + ":" + minute;
-  const isRevision = index % 10 === 9;
-  const issue = template.issue;
-  const issueSource = issue?.source === "본문"
-    ? "게시물 본문(TEXT)"
-    : issue?.source === "OCR"
-      ? "OCR · 이미지 1"
-      : "STT · 00:05–00:09";
-  const signals: ContentInspectionFixture["report"]["signals"] = [
-    {
-      title: "광고 표시",
-      detail: "본문에서 유료광고 및 광고 해시태그를 확인했습니다.",
-      source: "게시물 본문(TEXT)",
-      evidence: "#광고",
-      tone: "pass",
-    },
-    {
-      title: "공식 상품 링크",
-      detail: "연결된 URL이 Hmall 공식 상품 주소와 일치합니다.",
-      source: "URL",
-      evidence: "hmall.com",
-      tone: "pass",
-    },
-  ];
-
-  if (issue) {
-    signals.push({
-      title: issue.title,
-      detail: issue.detail,
-      source: issueSource,
-      evidence: issue.evidence,
-      guidance: issue.guidance,
-      tone: "critical",
-    });
-  }
-
-  const issueAnnotation: ContentAnnotation | undefined = issue ? {
-    guidance: issue.guidance,
-    id: `ct-${String(index + 1).padStart(3, "0")}-violation-1`,
-    location: issue.source === "본문"
-      ? "게시물 본문"
-      : issue.source === "OCR"
-        ? "이미지 1 · 중앙 문구"
-        : "동영상 1 · 00:05–00:09",
-    reason: issue.detail,
-    severity: "critical",
-    source: "자동 감지",
-    state: "active",
-    target: issue.source === "본문"
-      ? {
-          endIndex: template.text.indexOf(issue.evidence) + issue.evidence.length,
-          kind: "text",
-          occurrence: 1,
-          quote: issue.evidence,
-          startIndex: template.text.indexOf(issue.evidence),
-        }
-      : {
-          box: issue.source === "OCR"
-            ? { x: 14, y: 31, width: 72, height: 18 }
-            : { x: 7, y: 70, width: 86, height: 15 },
-          kind: "media",
-          mediaIndex: 0,
-          quote: issue.evidence,
-          ...(issue.source === "STT"
-            ? { timeRange: { start: "00:05", end: "00:09" } }
-            : {}),
-        },
-    title: issue.title,
-  } : undefined;
-
-  const extracts: ContentInspectionFixture["report"]["extracts"] = [];
-  if (template.mediaKinds.includes("이미지")) {
-    extracts.push({
-      type: "OCR",
-      text: issue?.source === "OCR" ? issue.evidence : template.title + " · 상품 정보와 사이즈 안내",
-      location: "이미지 1 · 중앙",
-    });
-  }
-  if (template.mediaKinds.includes("동영상")) {
-    extracts.push({
-      type: "STT",
-      text: issue?.source === "STT" ? issue.evidence : template.title + "의 주요 특징과 실제 사용 후기를 소개합니다.",
-      location: "동영상 1 · 00:00–00:12",
-    });
-  }
-
-  const inspectionStatus: InspectionStatus = issue
-    ? index % 3 === 0 ? "위반 확정" : index % 3 === 1 ? "수정 요청" : "검수 대기"
-    : index % 4 === 0 ? "검수 대기" : "승인";
-  const mediaUrls = Array.from(
-    { length: template.mediaKinds.length },
-    (_, mediaIndex) => CONTENT_INSPECTION_MEDIA[(index + mediaIndex) % CONTENT_INSPECTION_MEDIA.length],
-  );
-
-  return {
-    ...source,
-    id: "ct-" + String(index + 1).padStart(3, "0"),
-    contentTitle: template.title,
-    contentFormat: template.contentFormat,
-    duration: template.duration,
-    author: CONTENT_INSPECTION_AUTHORS[index % CONTENT_INSPECTION_AUTHORS.length],
-    cohort: String(2 + (index % 3)) + "기",
-    sourcePlatform: template.platform,
-    submittedAt: capturedAt,
-    inspectionType: isRevision ? "VIOLATION_CORRECTION" : "NEW",
-    previousSnapshot: isRevision ? {
-      ...source.currentSnapshot,
-      annotations: undefined,
-      capturedAt: `2026-08-${day} 08:${minute}`,
-      label: "이전 버전",
-      text: template.text.replaceAll("#광고", ""),
-      urls: [CONTENT_INSPECTION_PRODUCT_URLS[index % CONTENT_INSPECTION_PRODUCT_URLS.length]],
-      mediaCount: template.mediaKinds.length,
-      mediaKinds: [...template.mediaKinds],
-      mediaUrls,
-      youtubeVideoId: template.youtubeVideoId,
-    } : null,
-    inspectionStatus,
-    processingState: inspectionStatus === "승인"
-      ? "처리 완료"
-      : inspectionStatus === "수정 요청"
-        ? "안내 대기"
-        : "미처리",
-    aiStatus: "ready",
-    aiSummary: issue
-      ? template.contentFormat + " 콘텐츠에서 " + issue.title + " 후보 1건을 확인했습니다."
-      : "광고 표기와 공식 상품 링크가 확인되었으며 현재 감지된 위반 후보가 없습니다.",
-    detectedIssues: issue ? [issue.title + " 1건"] : ["감지된 위반 없음"],
-    violationType: issue?.title ?? null,
-    availableActions: ["검수 완료", "수정 요청", "위반 판정"],
-    changeItems: isRevision
-      ? ["광고 해시태그 추가", "본문 문구 수정", `미디어 ${template.mediaKinds.length}개 유지`]
-      : ["이전 비교 대상 없음", "미디어 " + template.mediaKinds.length + "개"],
-    currentSnapshot: {
-      ...source.currentSnapshot,
-      annotations: issueAnnotation ? [issueAnnotation] : undefined,
-      capturedAt,
-      label: template.contentFormat,
-      text: template.text,
-      urls: [CONTENT_INSPECTION_PRODUCT_URLS[index % CONTENT_INSPECTION_PRODUCT_URLS.length]],
-      mediaCount: template.mediaKinds.length,
-      mediaKinds: [...template.mediaKinds],
-      mediaUrls,
-      youtubeVideoId: template.youtubeVideoId,
-    },
-    report: {
-      generatedAt: capturedAt,
-      signals,
-      extracts,
-      history: [
-        { at: capturedAt, label: "콘텐츠 수집", actor: "수집 시스템" },
-        { at: capturedAt, label: "자동 검수 완료", actor: "검수 시스템" },
-      ],
-    },
-  };
-});
-
-function contentAuthorProfileImage(contentId: string) {
-  const sequence = Number.parseInt(contentId.replace(/\D/g, ""), 10) || 1;
-  const profileIndex = ((sequence - 1) % 4) + 1;
-  return `/creator-media/kr-cr-${String(profileIndex).padStart(3, "0")}-profile.jpg`;
-}
-
-function contentAuthorSnsId(contentId: string) {
-  const sequence = Number.parseInt(contentId.replace(/\D/g, ""), 10) || 1;
-  return CONTENT_INSPECTION_SNS_IDS[(sequence - 1) % CONTENT_INSPECTION_SNS_IDS.length];
-}
-
-function inspectionRequiredContents() {
-  return CONTENT_INSPECTION_LIST_ITEMS
+function inspectionRequiredContents(contents: readonly ContentInspectionFixture[]) {
+  return contents
     .filter((content) => content.inspectionStatus === "검수 대기")
     .slice()
-    .sort((left, right) => (
-      left.submittedAt.localeCompare(right.submittedAt) || left.id.localeCompare(right.id)
-    ));
+    .reverse();
 }
 
 function CollectionCard({
@@ -538,7 +170,7 @@ function CollectionCard({
   onSelect: (content: ContentInspectionFixture) => void;
 }) {
   const snapshot = content.currentSnapshot;
-  const mainMedia = snapshot.mediaUrls[0];
+  const mainMedia = snapshot.mediaUrls.find(Boolean);
   const issueCount = content.report.signals.filter((signal) => signal.tone !== "pass").length;
   const hasVideo = snapshot.mediaKinds[0] === "동영상";
 
@@ -560,7 +192,9 @@ function CollectionCard({
             className="fuma-content-collection__violation-count"
             data-has-violation={issueCount > 0}
           >
-            {issueCount ? `위반 항목 ${issueCount}개` : "위반 항목 없음"}
+            {content.aiStatus === "pending"
+              ? "분석 대기"
+              : issueCount ? `위반 항목 ${issueCount}개` : "위반 항목 없음"}
           </span>
         )}
         footerStart={content.submittedAt.slice(0, 10)}
@@ -568,9 +202,9 @@ function CollectionCard({
         mediaCount={snapshot.mediaCount}
         mediaUrl={mainMedia}
         platform={contentPlatform(content.sourcePlatform)}
-        profileImageUrl={contentAuthorProfileImage(content.id)}
+        profileImageUrl={content.profileImageUrl ?? ""}
         showPlay={hasVideo}
-        snsId={contentAuthorSnsId(content.id)}
+        snsId={content.accountId}
         status={(
           <StatusPill
             className="fuma-content-collection__inspection-status"
@@ -653,34 +287,93 @@ function ContentInspectionCollection({
 }
 
 function ContentInspectionCategoryTabs({
+  onCollectionComplete,
   onStartInspection,
   pendingCount,
   selectedCategory,
   onSelect,
 }: {
+  onCollectionComplete: () => Promise<void>;
   onStartInspection: () => void;
   pendingCount: number;
   selectedCategory: ContentInspectionCategory;
   onSelect: (category: ContentInspectionCategory) => void;
 }) {
+  const [isCollecting, setIsCollecting] = useState(false);
+  const [collectionResult, setCollectionResult] = useState<ContentBatchRunResponse | null>(
+    null,
+  );
+  const [collectionError, setCollectionError] = useState<string | null>(null);
+
+  const runContentCollection = async () => {
+    setIsCollecting(true);
+    setCollectionResult(null);
+    setCollectionError(null);
+    try {
+      const result = await runContentBatch();
+      await onCollectionComplete();
+      setCollectionResult(result);
+    } catch (error) {
+      setCollectionError(
+        error instanceof Error ? error.message : "콘텐츠 배치 실행에 실패했습니다.",
+      );
+    } finally {
+      setIsCollecting(false);
+    }
+  };
+
   return (
-    <ChoiceTabs
-      actions={(
-        <Button
-          className="fuma-content-inspection-start-button"
-          disabled={pendingCount === 0}
-          onClick={onStartInspection}
-          variant="primary"
+    <>
+      <ChoiceTabs
+        actions={(
+          <span className="fuma-content-collection-run-actions">
+            <Button
+              aria-label={isCollecting ? "콘텐츠 새로고침 중" : "콘텐츠 새로고침"}
+              className="fuma-content-inspection-refresh-button"
+              disabled={isCollecting}
+              onClick={() => void runContentCollection()}
+              title={isCollecting ? "콘텐츠 새로고침 중" : "콘텐츠 새로고침"}
+            >
+              <RefreshCw aria-hidden="true" className={isCollecting ? "is-spinning" : undefined} size={15} />
+            </Button>
+            <Button
+              className="fuma-content-inspection-start-button"
+              disabled={pendingCount === 0}
+              onClick={onStartInspection}
+              variant="primary"
+            >
+              검수 시작
+            </Button>
+          </span>
+        )}
+        ariaLabel="콘텐츠 처리 구분"
+        className="fuma-list-action-toolbar"
+        onChange={onSelect}
+        options={CONTENT_INSPECTION_CATEGORIES}
+        value={selectedCategory}
+      />
+      {collectionResult ? (
+        <p className="fuma-content-inspection-collection-feedback" role="status">
+          배치 완료 · 신규 콘텐츠 {collectionResult.newContentCount}건 · 성과 저장{" "}
+          {collectionResult.engagementCount}건 · 신규 수집{" "}
+          {collectionStepStatus(
+            collectionResult.newContentSucceeded,
+            collectionResult.newContentCount,
+          )} · 기존 콘텐츠 검수{" "}
+          {collectionStepStatus(
+            collectionResult.storedContentSucceeded,
+            collectionResult.engagementCount,
+          )}
+        </p>
+      ) : collectionError ? (
+        <p
+          className="fuma-content-inspection-collection-feedback fuma-content-inspection-collection-feedback--error"
+          role="alert"
         >
-          검수 시작
-        </Button>
-      )}
-      ariaLabel="콘텐츠 처리 구분"
-      className="fuma-list-action-toolbar"
-      onChange={onSelect}
-      options={CONTENT_INSPECTION_CATEGORIES}
-      value={selectedCategory}
-    />
+          {collectionError}
+        </p>
+      ) : null}
+    </>
   );
 }
 
@@ -732,6 +425,62 @@ export function ContentInspectionListPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [contents, setContents] = useState<ContentInspectionFixture[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const contentRequestController = useRef<AbortController | null>(null);
+  const latestContentRequestId = useRef(0);
+  const fetchContents = useCallback(async () => {
+    contentRequestController.current?.abort();
+    const controller = new AbortController();
+    const requestId = latestContentRequestId.current + 1;
+    contentRequestController.current = controller;
+    latestContentRequestId.current = requestId;
+    try {
+      const result = await getCurrentGenerationContents(controller.signal);
+      if (latestContentRequestId.current !== requestId) return;
+      setContents(result.map(adaptContentInspection));
+    } catch (error) {
+      if (
+        latestContentRequestId.current !== requestId
+        || (error instanceof Error && error.name === "AbortError")
+      ) return;
+      setLoadError(error instanceof Error ? error.message : "콘텐츠 목록 조회에 실패했습니다.");
+      throw error;
+    } finally {
+      if (latestContentRequestId.current === requestId) setIsLoading(false);
+    }
+  }, []);
+  const reloadContents = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    await fetchContents();
+  }, [fetchContents]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const requestId = latestContentRequestId.current + 1;
+    contentRequestController.current = controller;
+    latestContentRequestId.current = requestId;
+
+    void getCurrentGenerationContents(controller.signal)
+      .then((result) => {
+        if (latestContentRequestId.current !== requestId) return;
+        setContents(result.map(adaptContentInspection));
+      })
+      .catch((error: unknown) => {
+        if (
+          latestContentRequestId.current !== requestId
+          || (error instanceof Error && error.name === "AbortError")
+        ) return;
+        setLoadError(error instanceof Error ? error.message : "콘텐츠 목록 조회에 실패했습니다.");
+      })
+      .finally(() => {
+        if (latestContentRequestId.current === requestId) setIsLoading(false);
+      });
+
+    return () => controller.abort();
+  }, []);
   const selectedCategory = CONTENT_INSPECTION_CATEGORIES.find(
     (category) => category === searchParams.get("category"),
   ) ?? "신규";
@@ -744,7 +493,7 @@ export function ContentInspectionListPage() {
       : "",
   };
   const normalizedKeyword = appliedFilters.keyword.trim().toLocaleLowerCase("ko-KR");
-  const filteredContents = CONTENT_INSPECTION_LIST_ITEMS.filter((content) => {
+  const filteredContents = contents.filter((content) => {
     const matchesCategory = contentInspectionCategory(content) === selectedCategory;
     const hasViolation = content.report.signals.some((signal) => signal.tone !== "pass");
     const matchesKeyword = !normalizedKeyword || [
@@ -765,7 +514,7 @@ export function ContentInspectionListPage() {
     requestedPage,
     CONTENT_INSPECTION_PAGE_SIZE,
   );
-  const pendingContents = inspectionRequiredContents();
+  const pendingContents = inspectionRequiredContents(contents);
 
   const updateListParam = (
     key: "category" | "issues" | "page" | "view",
@@ -816,31 +565,50 @@ export function ContentInspectionListPage() {
           onReset={resetQueueFilters}
         />
         <ContentInspectionCategoryTabs
+          onCollectionComplete={reloadContents}
           onStartInspection={() => {
             const firstPendingContent = pendingContents[0];
             if (!firstPendingContent) return;
             navigate(`/content/inspections/${firstPendingContent.id}`, {
-              state: { from: `${location.pathname}${location.search}`, inspectionSession: true },
+              state: {
+                content: firstPendingContent,
+                contents,
+                from: `${location.pathname}${location.search}`,
+                inspectionSession: true,
+              },
             });
           }}
           onSelect={(category) => updateListParam("category", category, "신규", true)}
           pendingCount={pendingContents.length}
           selectedCategory={selectedCategory}
         />
-        <ContentInspectionCollection
-          contents={pageContents}
-          onChangeView={(nextViewMode) => updateListParam("view", nextViewMode, "grid")}
-          onChangeViolationOnly={(nextViolationOnly) => (
-            updateListParam("issues", nextViolationOnly ? "1" : "0", "0", true)
-          )}
-          onSelect={(content) => navigate(`/content/inspections/${content.id}`, {
-            state: { from: `${location.pathname}${location.search}` },
-          })}
-          totalCount={filteredContents.length}
-          violationOnly={violationOnly}
-          viewMode={viewMode}
-        />
-        {filteredContents.length > 0 ? (
+        {isLoading ? (
+          <section aria-label="수집 콘텐츠 목록" className="fuma-content-collection">
+            <EmptyState title="콘텐츠를 불러오는 중입니다." />
+          </section>
+        ) : loadError ? (
+          <p
+            className="fuma-content-inspection-collection-feedback fuma-content-inspection-collection-feedback--error"
+            role="alert"
+          >
+            {loadError}
+          </p>
+        ) : (
+          <ContentInspectionCollection
+            contents={pageContents}
+            onChangeView={(nextViewMode) => updateListParam("view", nextViewMode, "grid")}
+            onChangeViolationOnly={(nextViolationOnly) => (
+              updateListParam("issues", nextViolationOnly ? "1" : "0", "0", true)
+            )}
+            onSelect={(content) => navigate(`/content/inspections/${content.id}`, {
+              state: { content, contents, from: `${location.pathname}${location.search}` },
+            })}
+            totalCount={filteredContents.length}
+            violationOnly={violationOnly}
+            viewMode={viewMode}
+          />
+        )}
+        {!isLoading && !loadError && filteredContents.length > 0 ? (
           <Pagination
             onPageChange={(page) => updateListParam("page", String(page), "1")}
             page={currentPage}
@@ -900,7 +668,7 @@ function MinimalInspectionOverview({ content }: { content: ContentInspectionFixt
       </header>
       <dl>
         <div><dt>제출일</dt><dd>{content.submittedAt}</dd></div>
-        <div><dt>리포트 생성일</dt><dd>{content.report.generatedAt}</dd></div>
+        <div><dt>리포트 생성일</dt><dd>{content.report.generatedAt ?? "분석 대기"}</dd></div>
       </dl>
     </section>
   );
@@ -1117,13 +885,8 @@ function MinimalVersionCard({
     ? 16 / 9
     : mediaAspectRatios[visibleIndex] ?? (isVerticalVideo ? 9 / 16 : isInstagram ? 1 : 16 / 9);
   const mediaStageFit = embedUrl ? "fill" : mediaAspectRatio >= frameAspectRatio ? "width" : "height";
-  const contentNumber = Number(content.id.replace(/\D/g, "")) || 1;
-  const handle = content.author.replaceAll(" ", "").toLowerCase();
-  const avatarUrl = `/creator-media/kr-cr-${String(((contentNumber - 1) % 4) + 1).padStart(3, "0")}-profile.jpg`;
-  const instagramLikes = (180 + contentNumber * 37).toLocaleString("ko-KR");
-  const instagramComments = 12 + (contentNumber % 24);
-  const youtubeViews = (12_000 + contentNumber * 8_431).toLocaleString("ko-KR");
-  const youtubeLikes = (320 + contentNumber * 83).toLocaleString("ko-KR");
+  const handle = content.accountId ?? content.author;
+  const avatarUrl = content.profileImageUrl ?? "";
   const [month, day] = snapshot.capturedAt.slice(5, 10).split("-");
   const postDate = `${Number(month)}월 ${Number(day)}일`;
 
@@ -1161,8 +924,10 @@ function MinimalVersionCard({
       <div className="fuma-platform-inspection-frame">
         {isInstagram ? (
           <div className="fuma-platform-inspection-frame__instagram-header">
-            <span className="fuma-platform-inspection-frame__avatar"><img alt={`${content.author} 프로필`} src={avatarUrl} /></span>
-            <div><strong>{handle}</strong><small>현대홈쇼핑 셀렉터스 · 4일</small></div>
+            <span className="fuma-platform-inspection-frame__avatar">
+              <CreatorProfilePhoto creatorName={content.author} src={avatarUrl} />
+            </span>
+            <div><strong>{handle}</strong><small>현대홈쇼핑 셀렉터스 · {content.cohort}</small></div>
             <button aria-label="게시물 메뉴" type="button"><MoreHorizontal aria-hidden="true" size={20} /></button>
           </div>
         ) : null}
@@ -1293,9 +1058,9 @@ function MinimalVersionCard({
               <button aria-label="저장" type="button"><Bookmark aria-hidden="true" size={23} /></button>
             </div>
             <div className="fuma-platform-inspection-frame__instagram-copy">
-              <strong>좋아요 {instagramLikes}개</strong>
+              <strong>성과 정보 없음</strong>
               <p><b>{handle}</b>{" "}<ViolationHighlightedText anchorPrefix={focusedViolation !== undefined ? content.id : undefined} annotations={annotations} text={snapshot.text} useStoredIndexes /></p>
-              <button type="button">댓글 {instagramComments}개 모두 보기</button>
+              <button type="button">댓글 정보 없음</button>
               <time>{postDate}</time>
             </div>
           </>
@@ -1304,12 +1069,14 @@ function MinimalVersionCard({
             <h4>{content.contentTitle}</h4>
             <div className="fuma-platform-inspection-frame__youtube-toolbar">
               <div className="fuma-platform-inspection-frame__youtube-channel">
-                <span className="fuma-platform-inspection-frame__avatar"><img alt={`${content.author} 채널 프로필`} src={avatarUrl} /></span>
-                <span><strong>{content.author}</strong><small>구독자 2.5만명</small></span>
+                <span className="fuma-platform-inspection-frame__avatar">
+                  <CreatorProfilePhoto creatorName={content.author} src={avatarUrl} />
+                </span>
+                <span><strong>{content.author}</strong><small>구독자 정보 없음</small></span>
                 <button type="button">구독</button>
               </div>
               <div className="fuma-platform-inspection-frame__youtube-actions">
-                <button type="button"><ThumbsUp aria-hidden="true" size={17} /> {youtubeLikes}</button>
+                <button aria-label="좋아요" type="button"><ThumbsUp aria-hidden="true" size={17} /></button>
                 <button aria-label="싫어요" type="button"><ThumbsDown aria-hidden="true" size={17} /></button>
                 <button type="button"><Share2 aria-hidden="true" size={17} /> 공유</button>
                 <button type="button"><Bookmark aria-hidden="true" size={17} /> 저장</button>
@@ -1317,7 +1084,7 @@ function MinimalVersionCard({
               </div>
             </div>
             <div className="fuma-platform-inspection-frame__youtube-description">
-              <strong>조회수 {youtubeViews}회 · {postDate}</strong>
+              <strong>성과 정보 없음 · {postDate}</strong>
               <p><ViolationHighlightedText anchorPrefix={focusedViolation !== undefined ? content.id : undefined} annotations={annotations} text={snapshot.text} useStoredIndexes /></p>
             </div>
           </div>
@@ -1335,12 +1102,17 @@ function MinimalVersionComparison({
   focusedViolation: { ordinal: number; requestId: number } | null;
 }) {
   const isRevision = Boolean(content.previousSnapshot);
+  const isEditedWithoutPrevious = !isRevision && content.inspectionType !== "NEW";
 
   return (
     <section className="fuma-minimal-inspection-section">
       <header className="fuma-minimal-inspection-section__header">
-        <h3>{isRevision ? "수정 콘텐츠 비교" : "등록 콘텐츠"}</h3>
-        <span>{isRevision ? `${content.changeItems.length}건 수정됨` : "신규 등록"}</span>
+        <h3>{isRevision ? "수정 콘텐츠 비교" : isEditedWithoutPrevious ? "수정 콘텐츠" : "등록 콘텐츠"}</h3>
+        <span>
+          {isRevision
+            ? `${content.changeItems.length}건 수정됨`
+            : isEditedWithoutPrevious ? "이전 버전 정보 없음" : "신규 등록"}
+        </span>
       </header>
       {content.previousSnapshot && content.changeItems.length > 0 ? (
         <ul className="fuma-minimal-version-changes">
@@ -1355,7 +1127,7 @@ function MinimalVersionComparison({
           key={`${content.id}-current`}
           content={content}
           focusedViolation={focusedViolation}
-          label={isRevision ? "수정 후" : "신규 등록"}
+          label={isRevision ? "수정 후" : isEditedWithoutPrevious ? "현재 버전" : "신규 등록"}
           snapshot={content.currentSnapshot}
         />
       </div>
@@ -1364,6 +1136,23 @@ function MinimalVersionComparison({
 }
 
 function MinimalAnalysisReport({ content }: { content: ContentInspectionFixture }) {
+  if (content.aiStatus === "pending") {
+    return (
+      <section
+        aria-label="분석 리포트"
+        className="fuma-minimal-inspection-section fuma-creator-analysis-report fuma-content-analysis-report"
+      >
+        <header className="fuma-minimal-inspection-section__header fuma-content-analysis-report__header">
+          <div><span>CONTENT REPORT</span><h3>분석 리포트</h3></div>
+          <time>분석 대기</time>
+        </header>
+        <div className="fuma-creator-analysis-report__content">
+          <p>AI 분석 결과가 아직 없습니다.</p>
+        </div>
+      </section>
+    );
+  }
+
   const ocrExtract = content.report.extracts.find((extract) => extract.type === "OCR");
   const sttExtract = content.report.extracts.find((extract) => extract.type === "STT");
   const annotations = indexedViolationAnnotations(content, content.currentSnapshot);
@@ -1475,10 +1264,11 @@ function MinimalFinalInspection({
   onNavigateToViolation: (ordinal: number) => void;
 }) {
   const [decision, setDecision] = useState<"승인" | "반려" | null>(null);
+  const analysisPending = content.aiStatus === "pending";
   const candidates = content.report.signals.filter((signal) => signal.tone !== "pass");
   const [candidateDecisions, setCandidateDecisions] = useState<Record<string, "위반" | "위반 아님">>({});
   const decidedCount = candidates.filter((candidate) => candidateDecisions[`${candidate.source}-${candidate.title}`]).length;
-  const allCandidatesDecided = decidedCount === candidates.length;
+  const allCandidatesDecided = !analysisPending && decidedCount === candidates.length;
 
   const decideCandidate = (key: string, candidateDecision: "위반" | "위반 아님") => {
     setCandidateDecisions((current) => ({ ...current, [key]: candidateDecision }));
@@ -1497,7 +1287,9 @@ function MinimalFinalInspection({
       </dl>
       <section className="fuma-minimal-final-inspection__candidates">
         <header><strong>위반 여부 판정</strong><span>{decidedCount}/{candidates.length}</span></header>
-        {candidates.length > 0 ? candidates.map((candidate, index) => {
+        {analysisPending ? (
+          <p>위반 정보 없음</p>
+        ) : candidates.length > 0 ? candidates.map((candidate, index) => {
           const key = `${candidate.source}-${candidate.title}`;
           const candidateDecision = candidateDecisions[key];
           return (
@@ -1538,7 +1330,7 @@ function MinimalFinalInspection({
         <Button
           aria-pressed={decision === "반려"}
           className={decision === "반려" ? "is-rejected" : undefined}
-          disabled={!allCandidatesDecided}
+          disabled={analysisPending || !allCandidatesDecided}
           onClick={() => setDecision("반려")}
         >
           반려
@@ -1546,13 +1338,17 @@ function MinimalFinalInspection({
         <Button
           aria-pressed={decision === "승인"}
           className={decision === "승인" ? "is-approved" : undefined}
-          disabled={!allCandidatesDecided}
+          disabled={analysisPending || !allCandidatesDecided}
           onClick={() => setDecision("승인")}
         >
           승인
         </Button>
       </div>
-      {!allCandidatesDecided ? <p>모든 위반 후보를 먼저 판정해 주세요.</p> : decision ? <p>{decision}으로 선택했습니다.</p> : null}
+      {analysisPending
+        ? <p>분석이 완료된 후 최종 검수를 진행할 수 있습니다.</p>
+        : !allCandidatesDecided
+          ? <p>모든 위반 후보를 먼저 판정해 주세요.</p>
+          : decision ? <p>{decision}으로 선택했습니다.</p> : null}
     </section>
   );
 }
@@ -1589,10 +1385,22 @@ export function ContentInspectionDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { contentId } = useParams();
-  const content = CONTENT_INSPECTION_LIST_ITEMS.find((item) => item.id === contentId)
-    ?? findContentInspectionFixture(contentId);
-  const returnPath = (location.state as { from?: unknown } | null)?.from;
-  const pendingContents = inspectionRequiredContents();
+  const routeState = location.state as {
+    content?: ContentInspectionFixture;
+    contents?: ContentInspectionFixture[];
+    from?: unknown;
+    inspectionSession?: boolean;
+  } | null;
+  const initialRouteContents = routeState?.contents
+    ?? (routeState?.content ? [routeState.content] : []);
+  const [detailContents, setDetailContents] = useState<ContentInspectionFixture[]>(
+    initialRouteContents,
+  );
+  const [isLoading, setIsLoading] = useState(initialRouteContents.length === 0);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const content = detailContents.find((item) => item.id === contentId);
+  const returnPath = routeState?.from;
+  const pendingContents = inspectionRequiredContents(detailContents);
   const currentPendingIndex = pendingContents.findIndex((item) => item.id === contentId);
   const nextContent = currentPendingIndex >= 0
     ? pendingContents[currentPendingIndex + 1]
@@ -1601,11 +1409,43 @@ export function ContentInspectionDetailPage() {
     ? Math.max(0, pendingContents.length - currentPendingIndex - 1)
     : pendingContents.length;
 
+  useEffect(() => {
+    const routeContents = routeState?.contents
+      ?? (routeState?.content ? [routeState.content] : []);
+    if (routeContents.some((item) => item.id === contentId)) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    void getCurrentGenerationContents(controller.signal)
+      .then((result) => {
+        setDetailContents(result.map(adaptContentInspection));
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") return;
+        setLoadError(error instanceof Error ? error.message : "콘텐츠 목록 조회에 실패했습니다.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [contentId, routeState]);
+
   return (
     <section className="fuma-page fuma-content-inspection-detail" data-visual-contract="content-inspection">
       <PageHeader title="콘텐츠 검수 상세" />
       <div className="fuma-page__body">
-        {content ? (
+        {isLoading ? (
+          <EmptyState title="콘텐츠를 불러오는 중입니다." />
+        ) : loadError ? (
+          <p
+            className="fuma-content-inspection-collection-feedback fuma-content-inspection-collection-feedback--error"
+            role="alert"
+          >
+            {loadError}
+          </p>
+        ) : content ? (
           <>
             <div className="fuma-detail-toolbar fuma-minimal-inspection-toolbar">
               <button
@@ -1621,7 +1461,9 @@ export function ContentInspectionDetailPage() {
                 <Button
                   className="fuma-content-inspection-next-button"
                   disabled={!nextContent}
-                  onClick={() => nextContent && navigate(`/content/inspections/${nextContent.id}`, { state: location.state })}
+                  onClick={() => nextContent && navigate(`/content/inspections/${nextContent.id}`, {
+                    state: { ...routeState, content: nextContent, contents: detailContents },
+                  })}
                   variant="primary"
                 >
                   다음 콘텐츠 <ChevronRight aria-hidden="true" size={14} />
