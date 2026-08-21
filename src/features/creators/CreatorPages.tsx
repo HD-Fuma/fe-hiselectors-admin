@@ -90,8 +90,8 @@ function CreatorAccountLink({ creator }: { creator: CreatorSummary }) {
     : instagramUsername
       ? `https://www.instagram.com/${encodeURIComponent(instagramUsername)}`
       : null;
-  const label = creator.snsCode === "YOUTUBE" ? "채널 열기" : "프로필 열기";
-  const linkText = creator.snsCode === "YOUTUBE" ? `${label} ↗` : `@${instagramUsername} ↗`;
+  const label = "채널 열기";
+  const linkText = `${label} ↗`;
 
   return href ? (
     <a

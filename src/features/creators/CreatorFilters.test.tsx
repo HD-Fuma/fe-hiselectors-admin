@@ -98,13 +98,13 @@ describe("creator filters", () => {
 
     const table = screen.getByRole("region", { name: "크리에이터 목록" });
     expect(await within(table).findByText("김서연")).toBeInTheDocument();
-    expect(within(table).getByText("@seo.yeon ↗")).toBeInTheDocument();
+    expect(within(table).getAllByText("채널 열기 ↗")).toHaveLength(2);
     expect(within(table).getByText("82,400")).toBeInTheDocument();
     expect(within(table).getByText("4.25%")).toBeInTheDocument();
     expect(within(table).getByText("14건")).toBeInTheDocument();
     expect(within(table).getByText("25+건")).toBeInTheDocument();
     expect(await within(table).findByText("스킨케어")).toBeInTheDocument();
-    expect(within(table).getByRole("link", { name: "김서연 프로필 열기 (새 창)" }))
+    expect(within(table).getByRole("link", { name: "김서연 채널 열기 (새 창)" }))
       .toHaveAttribute("href", "https://www.instagram.com/seo.yeon");
     expect(within(table).getByRole("link", { name: "Clevr TV 채널 열기 (새 창)" }))
       .toHaveAttribute("href", "https://www.youtube.com/channel/UCnMBn-PNx1M9TLF0s-sEDeQ");
