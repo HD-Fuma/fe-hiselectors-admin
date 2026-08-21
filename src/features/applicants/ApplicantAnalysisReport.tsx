@@ -42,6 +42,7 @@ function reportSummary(applicant: AdminApplicationDetail) {
 }
 
 export function ApplicantAnalysisReport({ applicant }: { applicant: AdminApplicationDetail }) {
+  const collectionDone = applicant.mediaCollectionStatus === "DONE";
   const formatTotal = applicant.metrics.contentFormats.reduce((total, format) => (
     total + format.count
   ), 0);
@@ -79,9 +80,11 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: AdminApplica
         },
         {
           label: "업로드 주기",
-          value: `${applicant.metrics.uploadCadence.weeklyAverage === null
-            ? "-"
-            : `주 ${applicant.metrics.uploadCadence.weeklyAverage.toFixed(1)}회`} · 표본 ${formatNumber(applicant.metrics.uploadCadence.sampleCount)}건`,
+          value: collectionDone
+            ? `${applicant.metrics.uploadCadence.weeklyAverage === null
+              ? "-"
+              : `주 ${applicant.metrics.uploadCadence.weeklyAverage.toFixed(1)}회`} · 표본 ${formatNumber(applicant.metrics.uploadCadence.sampleCount)}건`
+            : "-",
         },
         {
           label: "최장 게시 공백",
@@ -99,22 +102,22 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: AdminApplica
         },
         {
           label: "평균 조회",
-          value: metricValue(applicant.metrics.averageViewCount),
+          value: collectionDone ? metricValue(applicant.metrics.averageViewCount) : "-",
           percentile: null,
         },
         {
           label: "평균 좋아요",
-          value: metricValue(applicant.metrics.averageLikeCount),
+          value: collectionDone ? metricValue(applicant.metrics.averageLikeCount) : "-",
           percentile: null,
         },
         {
           label: "평균 댓글",
-          value: metricValue(applicant.metrics.averageCommentCount),
+          value: collectionDone ? metricValue(applicant.metrics.averageCommentCount) : "-",
           percentile: null,
         },
         {
           label: "ER",
-          value: metricValue(applicant.metrics.engagementRate, "%"),
+          value: collectionDone ? metricValue(applicant.metrics.engagementRate, "%") : "-",
           percentile: null,
         },
       ]}

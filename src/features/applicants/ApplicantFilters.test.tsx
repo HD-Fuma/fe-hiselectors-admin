@@ -84,7 +84,7 @@ const applicantDetail = {
     },
     averageViewCount: { value: null, sampleCount: 0 },
     averageLikeCount: { value: 120.5, sampleCount: 2 },
-    averageCommentCount: { value: 8, sampleCount: 3 },
+    averageCommentCount: { value: 0, sampleCount: 3 },
     engagementRate: { value: 2.55, sampleCount: 2 },
     contentFormats: [
       { contentType: "FEED", count: 2 },
@@ -103,7 +103,7 @@ const applicantDetail = {
     publishedAt: "2026-08-02T12:00:00",
     viewCount: null,
     likeCount: 120,
-    commentCount: 8,
+    commentCount: 0,
     collectedAt: "2026-08-05T10:00:00",
   }],
 };
@@ -334,27 +334,33 @@ describe("applicant api pages", () => {
     expect(await within(panel).findByRole("heading", { name: "김민지" })).toBeInTheDocument();
     const report = within(panel).getByRole("region", { name: "지원자 분석 리포트" });
     expect(within(report).getByText("- · 표본 0건")).toBeInTheDocument();
+    expect(within(report).getByText("평균 댓글").parentElement)
+      .toHaveTextContent("0 · 표본 3건");
     expect(within(report).getAllByText("미분류")).not.toHaveLength(0);
     expect(within(report).getByText("전체 공개 콘텐츠").parentElement).toHaveTextContent("126건");
     expect(within(panel).getByText("최종 업데이트").parentElement)
       .toHaveTextContent("2026.08.05 10:00");
   });
 
-  test("renders an uncollected detail without coercing nullable cadence to zero", async () => {
+  test.each([
+    ["PENDING", "SNS 정량 지표 수집을 기다리고 있습니다."],
+    ["FAILED", "SNS 정량 지표를 수집하지 못했습니다."],
+  ] as const)("renders a %s detail without zero samples", async (mediaCollectionStatus, summary) => {
+    const uncollectedDetail = { ...pendingApplicantDetail, mediaCollectionStatus };
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
       const path = new URL(String(input)).pathname;
       if (path.endsWith("/api/admin/generations")) return json([]);
-      if (/\/api\/admin\/applications\/1$/.test(path)) return json(pendingApplicantDetail);
+      if (/\/api\/admin\/applications\/1$/.test(path)) return json(uncollectedDetail);
       return json(page(applicants));
     }));
     renderApplicantPage("/applicants?detail=1");
     const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
     const report = await within(panel).findByRole("region", { name: "지원자 분석 리포트" });
 
-    expect(within(report).getByText("SNS 정량 지표 수집을 기다리고 있습니다."))
-      .toBeInTheDocument();
+    expect(within(report).getByText(summary)).toBeInTheDocument();
     expect(within(report).getByText("업로드 주기").parentElement)
-      .toHaveTextContent("- · 표본 0건");
+      .toHaveTextContent("-");
+    expect(report).not.toHaveTextContent("표본 0건");
     expect(within(report).getByText("최장 게시 공백").parentElement).toHaveTextContent("-");
     const formats = within(report).getByRole("group", { name: "콘텐츠 형식 합계 미수집" });
     expect(within(formats).getByText("-")).toBeInTheDocument();
@@ -366,6 +372,12 @@ describe("applicant api pages", () => {
       metrics: {
         ...applicantDetail.metrics,
         recent90DayContentCount: 0,
+        uploadCadence: {
+          sampleCount: 0,
+          dailyAverage: 0,
+          weeklyAverage: 0,
+          maximumGapDays: null,
+        },
         contentFormats: [],
       },
       contents: [],
@@ -381,6 +393,8 @@ describe("applicant api pages", () => {
     const report = await within(panel).findByRole("region", { name: "지원자 분석 리포트" });
     const formats = within(report).getByRole("group", { name: "콘텐츠 형식 총 0건" });
 
+    expect(within(report).getByText("업로드 주기").parentElement)
+      .toHaveTextContent("주 0.0회 · 표본 0건");
     expect(within(formats).getByText("0건")).toBeInTheDocument();
   });
 
