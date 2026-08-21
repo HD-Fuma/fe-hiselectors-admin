@@ -1,4 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import {
   Button,
   buttonClassNames,
@@ -9,6 +11,7 @@ import {
   type SegmentedControlProps,
 } from "./Controls";
 import { StatusPill, type StatusPillProps } from "./StatusPill";
+import { ViewModeToggle } from "./ViewModeToggle";
 
 // @ts-expect-error Segmented controls use the documented value/options vocabulary.
 const invalidSegmentedAliases: SegmentedControlProps = { activeId: "yes", items: [] };
@@ -18,6 +21,38 @@ void invalidSegmentedAliases;
 void invalidStatusAlias;
 
 describe("HSAS controls", () => {
+  test("changes view mode with the shared sliding toggle", async () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<ViewModeToggle onChange={onChange} value="grid" />);
+
+    const toggle = screen.getByRole("group", { name: "보기 방식" });
+    expect(toggle).toHaveClass("is-grid");
+    expect(screen.getByRole("tooltip")).toHaveTextContent("보기 방식을 변경할 수 있습니다");
+    expect(screen.getByRole("tooltip")).toHaveClass("is-visible");
+
+    fireEvent.mouseEnter(toggle.parentElement!);
+    expect(screen.getByRole("tooltip")).not.toHaveClass("is-visible");
+
+    await userEvent.click(screen.getByRole("button", { name: "카드" }));
+    expect(onChange).toHaveBeenCalledWith("list");
+
+    rerender(<ViewModeToggle onChange={onChange} value="list" />);
+    expect(toggle).toHaveClass("is-list");
+
+    await userEvent.click(screen.getByRole("button", { name: "목록" }));
+    expect(onChange).toHaveBeenLastCalledWith("grid");
+  });
+
+  test("hides the view mode guidance after two seconds", () => {
+    vi.useFakeTimers();
+    render(<ViewModeToggle onChange={vi.fn()} value="grid" />);
+
+    expect(screen.getByRole("tooltip")).toHaveClass("is-visible");
+    act(() => vi.advanceTimersByTime(2000));
+    expect(screen.getByRole("tooltip")).not.toHaveClass("is-visible");
+    vi.useRealTimers();
+  });
+
   test("shares the button class contract with non-button elements", () => {
     expect(buttonClassNames("primary", "custom-link")).toBe(
       "hsas-button ui-button hsas-button--primary ui-button--primary custom-link",

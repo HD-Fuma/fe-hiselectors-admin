@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
@@ -11,15 +11,18 @@ import "../../styles/performance-dashboard.css";
 import {
   CAMPAIGN_PERFORMANCE,
   CONTENT_INFLUENCE,
-  CONTENT_UPLOAD_ACTIVITY,
   PRODUCT_INFLUENCE,
   SELECTOR_PERFORMANCE,
   creatorNameById,
+  adaptContentPerformance,
   formatCount,
   formatRate,
+  getContentPerformance,
+  getContentPerformanceSummary,
   selectorCohortById,
   type CampaignPerformance,
   type ContentInfluence,
+  type ContentPerformanceSummaryApi,
   type SelectorPerformance,
 } from "../../entities/performance";
 import { ContentPerformanceDashboard } from "./ContentPerformanceDashboard";
@@ -106,6 +109,7 @@ function PerformanceFilters({
   onChange,
   onReset,
   onSearch,
+  showPeriod = true,
   values,
 }: {
   keyword?: KeywordFilter;
@@ -115,6 +119,7 @@ function PerformanceFilters({
   ) => void;
   onReset: () => void;
   onSearch: () => void;
+  showPeriod?: boolean;
   values: PerformanceFilterValues;
 }) {
   return (
@@ -149,30 +154,32 @@ function PerformanceFilters({
             value={values.campaign}
           />
         </FilterField>
-        <div aria-label="집계 기간" className="fuma-performance-period-filter" role="group">
-          <span>기간</span>
-          <div>
-            <TextInput
-              aria-label="집계 시작일"
-              id="performance-period-start"
-              max={values.periodEnd || undefined}
-              name="periodStart"
-              onChange={(event) => onChange("periodStart", event.target.value)}
-              type="date"
-              value={values.periodStart}
-            />
-            <span aria-hidden="true">~</span>
-            <TextInput
-              aria-label="집계 종료일"
-              id="performance-period-end"
-              min={values.periodStart || undefined}
-              name="periodEnd"
-              onChange={(event) => onChange("periodEnd", event.target.value)}
-              type="date"
-              value={values.periodEnd}
-            />
+        {showPeriod ? (
+          <div aria-label="집계 기간" className="fuma-performance-period-filter" role="group">
+            <span>기간</span>
+            <div>
+              <TextInput
+                aria-label="집계 시작일"
+                id="performance-period-start"
+                max={values.periodEnd || undefined}
+                name="periodStart"
+                onChange={(event) => onChange("periodStart", event.target.value)}
+                type="date"
+                value={values.periodStart}
+              />
+              <span aria-hidden="true">~</span>
+              <TextInput
+                aria-label="집계 종료일"
+                id="performance-period-end"
+                min={values.periodStart || undefined}
+                name="periodEnd"
+                onChange={(event) => onChange("periodEnd", event.target.value)}
+                type="date"
+                value={values.periodEnd}
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
       </SearchPanel>
     </div>
   );
@@ -550,8 +557,28 @@ function contentPerformanceForFilters(filters: PerformanceFilterValues) {
   ));
 }
 
+function apiContentPerformanceForFilters(
+  contents: readonly ContentInfluence[],
+  filters: PerformanceFilterValues,
+) {
+  return contents.filter((content) => (
+    !filters.campaign
+    && (!filters.cohort || content.cohort === filters.cohort)
+    && includesKeyword(
+      [content.id, content.title, content.authorName ?? ""],
+      filters.keyword,
+    )
+  ));
+}
+
 export function ContentPerformancePage() {
   const [page, setPage] = useState(1);
+  const [apiContents, setApiContents] = useState<ContentInfluence[]>([]);
+  const [apiErrorMessage, setApiErrorMessage] = useState("");
+  const [apiLoading, setApiLoading] = useState(true);
+  const [uploadSummary, setUploadSummary] = useState<ContentPerformanceSummaryApi>();
+  const [uploadSummaryError, setUploadSummaryError] = useState("");
+  const [uploadSummaryLoading, setUploadSummaryLoading] = useState(true);
   const {
     appliedFilters,
     applyFilters,
@@ -560,13 +587,35 @@ export function ContentPerformancePage() {
     updateDraftFilter,
   } = usePerformanceFilterState();
   const contents = contentPerformanceForFilters(appliedFilters);
-  const cohortContents = contentPerformanceForFilters({ ...appliedFilters, cohort: "" });
-  const activities = CONTENT_UPLOAD_ACTIVITY.filter((activity) => isWithinPeriod(
-    activity.activityDate,
-    appliedFilters.periodStart,
-    appliedFilters.periodEnd,
-  ));
-  const highlightedCohort = appliedFilters.cohort || SELECTOR_PERFORMANCE[0]?.cohort || "";
+  const resultContents = apiContentPerformanceForFilters(apiContents, appliedFilters);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void getContentPerformance(controller.signal)
+      .then((items) => setApiContents(items.map(adaptContentPerformance)))
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setApiErrorMessage(error instanceof Error
+          ? error.message
+          : "콘텐츠 성과 목록 조회에 실패했습니다.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setApiLoading(false);
+      });
+    void getContentPerformanceSummary(controller.signal)
+      .then(setUploadSummary)
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setUploadSummaryError(error instanceof Error
+          ? error.message
+          : "콘텐츠 업로드 요약 조회에 실패했습니다.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setUploadSummaryLoading(false);
+      });
+
+    return () => controller.abort();
+  }, []);
 
   const applyAndResetPage = () => {
     applyFilters();
@@ -582,25 +631,31 @@ export function ContentPerformancePage() {
     <section className="fuma-page fuma-performance-page">
       <PageHeader title="콘텐츠 성과" />
       <div className="fuma-page__body">
-        <PerformanceFilters
-          keyword={{
-            id: "performance-content-keyword",
-            label: "콘텐츠/작성자",
-            placeholder: "콘텐츠 ID, 제목 또는 작성자 검색",
-          }}
-          onChange={updateDraftFilter}
-          onReset={resetAndResetPage}
-          onSearch={applyAndResetPage}
-          values={draftFilters}
-        />
         <ContentPerformanceDashboard
-          activities={activities}
-          cohortContents={cohortContents}
           contents={contents}
-          highlightedCohort={highlightedCohort}
+          filters={(
+            <PerformanceFilters
+              keyword={{
+                id: "performance-content-keyword",
+                label: "콘텐츠/작성자",
+                placeholder: "콘텐츠 ID, 제목 또는 작성자 검색",
+              }}
+              onChange={updateDraftFilter}
+              onReset={resetAndResetPage}
+              onSearch={applyAndResetPage}
+              showPeriod={false}
+              values={draftFilters}
+            />
+          )}
           key={JSON.stringify(appliedFilters)}
           onPageChange={setPage}
           page={page}
+          resultContents={resultContents}
+          resultErrorMessage={apiErrorMessage}
+          resultLoading={apiLoading}
+          uploadSummary={uploadSummary}
+          uploadSummaryError={uploadSummaryError}
+          uploadSummaryLoading={uploadSummaryLoading}
         />
       </div>
     </section>

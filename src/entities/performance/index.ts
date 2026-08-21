@@ -10,6 +10,8 @@ export {
   formatRate,
   selectorCohortById,
 } from "./model/fixtures";
+export { adaptContentPerformance, getContentPerformance, getContentPerformanceSummary } from "./api";
+export type { ContentPerformanceApiItem, ContentPerformanceSummaryApi } from "./api";
 export type {
   CampaignPerformance,
   CampaignPerformanceStatus,

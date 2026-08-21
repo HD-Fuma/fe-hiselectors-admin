@@ -136,6 +136,108 @@
   font-weight: 700;
 }
 
+.hsas-view-mode-toggle-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.hsas-view-mode-toggle {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(2, 50px);
+  padding: 2px;
+  border: 1px solid #b9c4c0;
+  border-radius: 6px;
+  background: #f2f5f4;
+}
+
+.hsas-view-mode-toggle__slider {
+  position: absolute;
+  z-index: -1;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: 50px;
+  border-radius: 4px;
+  background: var(--hsas-teal);
+  box-shadow: 0 1px 3px rgb(25 67 58 / 18%);
+  transition: transform 180ms ease;
+}
+
+.hsas-view-mode-toggle.is-list .hsas-view-mode-toggle__slider {
+  transform: translateX(50px);
+}
+
+.hsas-view-mode-toggle button {
+  min-height: 27px;
+  padding: 0 var(--hsas-space-6);
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--hsas-text-muted);
+  font: inherit;
+  font-size: var(--hsas-font-11);
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.hsas-view-mode-toggle button[aria-pressed="true"] {
+  color: var(--hsas-text-inverse);
+  font-weight: 800;
+}
+
+.hsas-view-mode-toggle button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--hsas-teal) 45%, white);
+  outline-offset: -2px;
+}
+
+.hsas-view-mode-toggle-wrap .hsas-view-mode-toggle__tooltip {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  right: 0;
+  width: max-content;
+  max-width: 210px;
+  padding: var(--hsas-space-8) var(--hsas-space-10);
+  border-radius: 7px;
+  background: #283b33;
+  color: var(--hsas-color-white);
+  font-size: var(--hsas-font-10);
+  font-weight: 700;
+  line-height: 1.35;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-2px);
+  transition: opacity 240ms ease, transform 240ms ease, visibility 0s linear 240ms;
+}
+
+.hsas-view-mode-toggle-wrap .hsas-view-mode-toggle__tooltip::after {
+  position: absolute;
+  right: 18px;
+  bottom: 100%;
+  border: 5px solid transparent;
+  border-bottom-color: #283b33;
+  content: "";
+}
+
+.hsas-view-mode-toggle-wrap .hsas-view-mode-toggle__tooltip.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hsas-view-mode-toggle__slider,
+  .hsas-view-mode-toggle button,
+  .hsas-view-mode-toggle__tooltip {
+    transition: none;
+  }
+}
+
 .hsas-status-pill {
   display: inline-flex;
   min-height: 19px;
