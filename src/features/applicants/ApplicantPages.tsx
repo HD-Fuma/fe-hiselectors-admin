@@ -15,8 +15,10 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import {
   getAdminApplication,
+  getAdminApplicationAiReport,
   getAdminApplications,
   updateAdminApplicationStatus,
+  type AdminApplicationAiReport,
   type AdminApplicationDetail,
   type AdminApplicationIdentity,
   type AdminApplicationSummary,
@@ -491,6 +493,7 @@ export function ApplicantDetailPage({
     applicant: AdminApplicationDetail | null;
     error: string;
   } | null>(null);
+  const [aiReport, setAiReport] = useState<{ id: number; report: AdminApplicationAiReport | null } | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<ApplicationStatus | null>(null);
   const [confirmedDecision, setConfirmedDecision] = useState<{
     id: number;
@@ -513,6 +516,15 @@ export function ApplicantDetailPage({
           error: reason instanceof Error ? reason.message : "지원자 상세 조회에 실패했습니다.",
         });
       }
+    });
+    return () => controller.abort();
+  }, [invalidApplicantId, numericApplicantId]);
+
+  useEffect(() => {
+    if (invalidApplicantId) return;
+    const controller = new AbortController();
+    getAdminApplicationAiReport(numericApplicantId, controller.signal).then((report) => {
+      if (!controller.signal.aborted) setAiReport({ id: numericApplicantId, report });
     });
     return () => controller.abort();
   }, [invalidApplicantId, numericApplicantId]);
@@ -661,7 +673,12 @@ export function ApplicantDetailPage({
         profile={detailProfile}
         title="지원자 상세"
       >
-        {applicant ? <ApplicantAnalysisReport applicant={applicant} /> : null}
+        {applicant ? (
+          <ApplicantAnalysisReport
+            aiReport={aiReport?.id === numericApplicantId ? aiReport.report : null}
+            applicant={applicant}
+          />
+        ) : null}
       </ProfileDetailShell>
     </>
   );

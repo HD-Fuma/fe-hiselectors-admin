@@ -88,6 +88,20 @@ export interface AdminApplicationDetail extends AdminApplicationIdentity {
   contents: ApplicationContent[];
 }
 
+export interface AdminApplicationAiReport {
+  applicationId: number;
+  summary: string;
+  category: string;
+  keywords: string[];
+  contentStyle: string;
+  tone: string;
+  strength: string;
+  warning: string;
+  brandHistory: string;
+  status: string;
+  createdAt: string;
+}
+
 export interface AdminApplicationSearchRequest {
   keyword?: string;
   snsCode?: ApplicationSnsCode;
@@ -170,6 +184,21 @@ export function getAdminApplication(id: number, signal?: AbortSignal) {
     "지원자 상세 조회에 실패했습니다.",
     signal,
   );
+}
+
+export async function getAdminApplicationAiReport(id: number, signal?: AbortSignal) {
+  try {
+    return await request<AdminApplicationAiReport>(
+      `/api/admin/applications/${id}/ai-report`,
+      "AI 리포트 조회에 실패했습니다.",
+      signal,
+    );
+  } catch (reason) {
+    if (!(reason instanceof DOMException && reason.name === "AbortError")) {
+      console.error(`[ai-report] applicationId=${id}`, reason);
+    }
+    return null;
+  }
 }
 
 export function updateAdminApplicationStatus(id: number, status: Exclude<ApplicationStatus, "PENDING">) {

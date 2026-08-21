@@ -8,3 +8,5 @@ test-results/
 *.tsbuildinfo
 vite-dev*.log
 .DS_Store
+.idea/
+.serena/
