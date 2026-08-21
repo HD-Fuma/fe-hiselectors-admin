@@ -13,6 +13,10 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link, matchPath, useNavigate } from "react-router-dom";
+import {
+  clearAdministratorSession,
+  getAdministratorSession,
+} from "../../features/auth/api";
 import type {
   AdminRouteMeta,
   NavGroup,
@@ -59,6 +63,8 @@ export function AdminSidebar({
   routes,
 }: AdminSidebarProps) {
   const navigate = useNavigate();
+  const session = getAdministratorSession();
+  const administratorName = session?.name ?? session?.loginId ?? "관리자";
   const [expandedGroups, setExpandedGroups] = useState<Set<NavGroup>>(
     () => new Set(groups.map(({ id }) => id)),
   );
@@ -167,10 +173,10 @@ export function AdminSidebar({
       </nav>
       <div className="hsas-admin-sidebar__account" data-shell-part="account">
         <span className="hsas-admin-sidebar__account-avatar" aria-hidden="true">
-          관
+          {administratorName.slice(0, 1)}
         </span>
         <span className="hsas-admin-sidebar__account-copy">
-          <strong>관리자</strong>
+          <strong>{administratorName}</strong>
           <span>관리자 계정</span>
         </span>
         <span className="hsas-admin-sidebar__account-actions">
@@ -178,7 +184,10 @@ export function AdminSidebar({
             type="button"
             className="hsas-admin-sidebar__account-action"
             aria-label="로그아웃"
-            onClick={() => navigate("/login", { replace: true })}
+            onClick={() => {
+              clearAdministratorSession();
+              navigate("/login", { replace: true });
+            }}
           >
             <LogOut aria-hidden="true" />
           </button>

@@ -147,7 +147,7 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
   renderRoute("/creators");
 
   const shell = screen.getByTestId("admin-shell");
-  expect(within(shell).getByText("관리자")).toBeInTheDocument();
+  expect(within(shell).getByText("테스트 관리자")).toBeInTheDocument();
   expect(within(shell).getByText("관리자 계정")).toBeInTheDocument();
   expect(within(shell).queryByRole("button", { name: "설정" })).not.toBeInTheDocument();
   expect(within(shell).getAllByRole("button", { name: "로그아웃" })).toHaveLength(1);
@@ -161,6 +161,7 @@ test("logs out to the login screen", async () => {
 
   expect(screen.getByRole("main")).toHaveTextContent("Hi-Selectors");
   expect(screen.queryByTestId("admin-shell")).not.toBeInTheDocument();
+  expect(localStorage.getItem("selectors-auth")).toBeNull();
 });
 
 test("does not render icon-rail navigation controls", () => {

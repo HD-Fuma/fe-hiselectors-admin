@@ -37,6 +37,7 @@ describe("administrator login", () => {
       data: {
         accessToken: "admin.jwt",
         loginId: "admin1",
+        name: "김관리",
         role: "ADMIN",
         tokenType: "Bearer",
       },
@@ -56,7 +57,7 @@ describe("administrator login", () => {
     expect(await screen.findByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
     expect(screen.getByTestId("admin-shell")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.hiselectors.shop/api/auth/admin/login",
+      expect.stringMatching(/\/api\/auth\/admin\/login$/),
       expect.objectContaining({
         body: JSON.stringify({ loginId: "admin1", password: "password" }),
         method: "POST",
@@ -65,9 +66,43 @@ describe("administrator login", () => {
     expect(JSON.parse(localStorage.getItem("selectors-auth") ?? "{}")).toMatchObject({
       accessToken: "admin.jwt",
       loginId: "admin1",
+      name: "김관리",
       role: "ADMIN",
       tokenType: "Bearer",
     });
+  });
+
+  test("returns to the originally requested screen after login", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      code: "OK",
+      data: {
+        accessToken: "admin.jwt",
+        loginId: "admin1",
+        name: "김관리",
+        role: "ADMIN",
+        tokenType: "Bearer",
+      },
+      message: null,
+      success: true,
+    }), { status: 200 })));
+
+    const { router } = renderRoute("/settlements?status=pending", {
+      authenticated: false,
+    });
+    expect(await screen.findByRole("heading", { name: "Hi-Selectors" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/login");
+
+    await user.type(screen.getByPlaceholderText("아이디 입력"), "admin1");
+    await user.type(screen.getByPlaceholderText("비밀번호 입력"), "password");
+    await user.click(screen.getByRole("button", { name: "로그인" }));
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/settlements");
+      expect(router.state.location.search).toBe("?status=pending");
+    });
+    expect(await screen.findByTestId("admin-shell")).toBeInTheDocument();
+    expect(screen.getByText("김관리")).toBeInTheDocument();
   });
 
   test("requires both credentials before requesting login", async () => {
