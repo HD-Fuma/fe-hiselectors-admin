@@ -78,8 +78,20 @@ function selectorListStatusTone(
 const COHORT_COLUMNS: DenseTableColumn<Generation>[] = [
   { key: "id", header: "기수 ID", width: 86, align: "center" },
   { key: "generationName", header: "기수명", width: 110, align: "center" },
-  { key: "startDate", header: "기수 시작일", width: 130, align: "center", render: (cohort) => cohort.startDate.slice(0, 10) },
-  { key: "endDate", header: "기수 종료일", width: 130, align: "center", render: (cohort) => cohort.endDate.slice(0, 10) },
+  {
+    id: "recruitmentPeriod",
+    header: "모집 기간",
+    width: 210,
+    align: "center",
+    render: (cohort) => `${cohort.startDate.slice(0, 10)} ~ ${cohort.endDate.slice(0, 10)}`,
+  },
+  {
+    id: "activityPeriod",
+    header: "활동 기간",
+    width: 210,
+    align: "center",
+    render: (cohort) => `${cohort.activityStartDate.slice(0, 10)} ~ ${cohort.activityEndDate.slice(0, 10)}`,
+  },
   {
     key: "status",
     header: "기수 상태",
@@ -97,6 +109,28 @@ function sortGenerations(generations: Generation[]) {
   return [...generations].sort((left, right) => (
     right.startDate.localeCompare(left.startDate) || right.id - left.id
   ));
+}
+
+type GenerationFormValues = Pick<
+  Generation,
+  "activityEndDate" | "activityStartDate" | "endDate" | "generationName" | "startDate"
+>;
+
+function validateGeneration(values: GenerationFormValues) {
+  if (!values.generationName.trim()
+    || !values.startDate
+    || !values.endDate
+    || !values.activityStartDate
+    || !values.activityEndDate) {
+    return "기수명과 모집·활동 기간을 모두 입력해 주세요.";
+  }
+  if (values.startDate > values.endDate) {
+    return "모집 종료일은 모집 시작일보다 빠를 수 없습니다.";
+  }
+  if (values.activityStartDate > values.activityEndDate) {
+    return "활동 종료일은 활동 시작일보다 빠를 수 없습니다.";
+  }
+  return "";
 }
 
 export function CohortManagementPage() {
@@ -119,6 +153,8 @@ export function CohortManagementPage() {
   const cohortRevisionRef = useRef(0);
   const overlayRevisionRef = useRef(0);
   const [newCohort, setNewCohort] = useState({
+    activityEndDate: "",
+    activityStartDate: "",
     endDate: "",
     generationName: "",
     startDate: "",
@@ -174,7 +210,13 @@ export function CohortManagementPage() {
 
   const openCreateModal = () => {
     overlayRevisionRef.current += 1;
-    setNewCohort({ endDate: "", generationName: "", startDate: "" });
+    setNewCohort({
+      activityEndDate: "",
+      activityStartDate: "",
+      endDate: "",
+      generationName: "",
+      startDate: "",
+    });
     setFormError("");
     setIsCreateOpen(true);
   };
@@ -194,12 +236,9 @@ export function CohortManagementPage() {
 
   const createCohort = async () => {
     const generationName = newCohort.generationName.trim();
-    if (!generationName || !newCohort.startDate || !newCohort.endDate) {
-      setFormError("기수명과 기간을 모두 입력해 주세요.");
-      return;
-    }
-    if (newCohort.startDate > newCohort.endDate) {
-      setFormError("종료일은 시작일보다 빠를 수 없습니다.");
+    const validationError = validateGeneration(newCohort);
+    if (validationError) {
+      setFormError(validationError);
       return;
     }
 
@@ -213,6 +252,8 @@ export function CohortManagementPage() {
         generationName,
         startDate: `${newCohort.startDate}T00:00:00`,
         endDate: `${newCohort.endDate}T23:59:59`,
+        activityStartDate: `${newCohort.activityStartDate}T00:00:00`,
+        activityEndDate: `${newCohort.activityEndDate}T23:59:59`,
       });
       setCohorts((current) => sortGenerations([...current, created]));
       if (overlayRevisionRef.current === overlayRevision) {
@@ -231,12 +272,9 @@ export function CohortManagementPage() {
   const saveCohort = async () => {
     if (!editingCohort) return;
     const generationName = editingCohort.generationName.trim();
-    if (!generationName || !editingCohort.startDate || !editingCohort.endDate) {
-      setFormError("기수명과 기간을 모두 입력해 주세요.");
-      return;
-    }
-    if (editingCohort.startDate > editingCohort.endDate) {
-      setFormError("종료일은 시작일보다 빠를 수 없습니다.");
+    const validationError = validateGeneration(editingCohort);
+    if (validationError) {
+      setFormError(validationError);
       return;
     }
 
@@ -249,6 +287,8 @@ export function CohortManagementPage() {
         generationName,
         startDate: `${editingCohort.startDate.slice(0, 10)}T00:00:00`,
         endDate: `${editingCohort.endDate.slice(0, 10)}T23:59:59`,
+        activityStartDate: `${editingCohort.activityStartDate.slice(0, 10)}T00:00:00`,
+        activityEndDate: `${editingCohort.activityEndDate.slice(0, 10)}T23:59:59`,
       });
       setCohorts((current) => sortGenerations(current.map((cohort) => (
         cohort.id === updated.id ? updated : cohort
@@ -301,10 +341,10 @@ export function CohortManagementPage() {
             <FilterField htmlFor="cohort-name" label="기수명">
               <TextInput id="cohort-name" name="cohortName" onChange={(event) => setKeyword(event.target.value)} placeholder="기수명 검색" value={keyword} />
             </FilterField>
-            <FilterField htmlFor="cohort-period-start" label="기수 기간">
+            <FilterField htmlFor="cohort-period-start" label="모집 기간">
               <div className="fuma-cohort-date-range">
                 <TextInput
-                  aria-label="기수 기간 시작일"
+                  aria-label="모집 기간 시작일"
                   id="cohort-period-start"
                   max={periodEnd || undefined}
                   onChange={(event) => setPeriodStart(event.target.value)}
@@ -313,7 +353,7 @@ export function CohortManagementPage() {
                 />
                 <span aria-hidden="true">~</span>
                 <TextInput
-                  aria-label="기수 기간 종료일"
+                  aria-label="모집 기간 종료일"
                   id="cohort-period-end"
                   min={periodStart || undefined}
                   onChange={(event) => setPeriodEnd(event.target.value)}
@@ -381,8 +421,10 @@ export function CohortManagementPage() {
       >
         <div className="fuma-cohort-create-form">
           <FormRow label="기수명" required><TextInput aria-label="기수명" maxLength={30} onChange={(event) => setNewCohort((current) => ({ ...current, generationName: event.target.value }))} required value={newCohort.generationName} /></FormRow>
-          <FormRow label="기수 시작일" required><TextInput aria-label="기수 시작일" max={newCohort.endDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, startDate: event.target.value }))} required type="date" value={newCohort.startDate} /></FormRow>
-          <FormRow label="기수 종료일" required><TextInput aria-label="기수 종료일" min={newCohort.startDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, endDate: event.target.value }))} required type="date" value={newCohort.endDate} /></FormRow>
+          <FormRow label="모집 시작일" required><TextInput aria-label="모집 시작일" max={newCohort.endDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, startDate: event.target.value }))} required type="date" value={newCohort.startDate} /></FormRow>
+          <FormRow label="모집 종료일" required><TextInput aria-label="모집 종료일" min={newCohort.startDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, endDate: event.target.value }))} required type="date" value={newCohort.endDate} /></FormRow>
+          <FormRow label="활동 시작일" required><TextInput aria-label="활동 시작일" max={newCohort.activityEndDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, activityStartDate: event.target.value }))} required type="date" value={newCohort.activityStartDate} /></FormRow>
+          <FormRow label="활동 종료일" required><TextInput aria-label="활동 종료일" min={newCohort.activityStartDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, activityEndDate: event.target.value }))} required type="date" value={newCohort.activityEndDate} /></FormRow>
         </div>
         {formError ? <p role="alert">{formError}</p> : null}
       </Modal>
@@ -408,6 +450,8 @@ export function CohortManagementPage() {
                   ...detailCohort,
                   startDate: detailCohort.startDate.slice(0, 10),
                   endDate: detailCohort.endDate.slice(0, 10),
+                  activityStartDate: detailCohort.activityStartDate.slice(0, 10),
+                  activityEndDate: detailCohort.activityEndDate.slice(0, 10),
                 });
                 setFormError("");
               }} variant="primary">
@@ -424,14 +468,17 @@ export function CohortManagementPage() {
                 <section aria-label="기수 정보 수정" className="fuma-cohort-detail__edit">
                   <FormRow label="기수 ID"><TextInput aria-label="기수 ID" readOnly value={editingCohort.id} /></FormRow>
                   <FormRow label="기수명" required><TextInput aria-label="기수명" maxLength={30} onChange={(event) => setEditingCohort((current) => current ? { ...current, generationName: event.target.value } : current)} required value={editingCohort.generationName} /></FormRow>
-                  <FormRow label="기수 시작일" required><TextInput aria-label="기수 시작일" onChange={(event) => setEditingCohort((current) => current ? { ...current, startDate: event.target.value } : current)} type="date" value={editingCohort.startDate} /></FormRow>
-                  <FormRow label="기수 종료일" required><TextInput aria-label="기수 종료일" onChange={(event) => setEditingCohort((current) => current ? { ...current, endDate: event.target.value } : current)} type="date" value={editingCohort.endDate} /></FormRow>
+                  <FormRow label="모집 시작일" required><TextInput aria-label="모집 시작일" max={editingCohort.endDate || undefined} onChange={(event) => setEditingCohort((current) => current ? { ...current, startDate: event.target.value } : current)} type="date" value={editingCohort.startDate} /></FormRow>
+                  <FormRow label="모집 종료일" required><TextInput aria-label="모집 종료일" min={editingCohort.startDate || undefined} onChange={(event) => setEditingCohort((current) => current ? { ...current, endDate: event.target.value } : current)} type="date" value={editingCohort.endDate} /></FormRow>
+                  <FormRow label="활동 시작일" required><TextInput aria-label="활동 시작일" max={editingCohort.activityEndDate || undefined} onChange={(event) => setEditingCohort((current) => current ? { ...current, activityStartDate: event.target.value } : current)} type="date" value={editingCohort.activityStartDate} /></FormRow>
+                  <FormRow label="활동 종료일" required><TextInput aria-label="활동 종료일" min={editingCohort.activityStartDate || undefined} onChange={(event) => setEditingCohort((current) => current ? { ...current, activityEndDate: event.target.value } : current)} type="date" value={editingCohort.activityEndDate} /></FormRow>
                 </section>
               ) : (
                 <dl className="fuma-cohort-detail__summary">
                   <div><dt>기수 ID</dt><dd>{detailCohort.id}</dd></div>
                   <div><dt>기수명</dt><dd>{detailCohort.generationName}</dd></div>
-                  <div><dt>기수 기간</dt><dd>{detailCohort.startDate.slice(0, 10)} ~ {detailCohort.endDate.slice(0, 10)}</dd></div>
+                  <div><dt>모집 기간</dt><dd>{detailCohort.startDate.slice(0, 10)} ~ {detailCohort.endDate.slice(0, 10)}</dd></div>
+                  <div><dt>활동 기간</dt><dd>{detailCohort.activityStartDate.slice(0, 10)} ~ {detailCohort.activityEndDate.slice(0, 10)}</dd></div>
                   <div><dt>기수 상태</dt><dd><StatusPill tone={cohortStatusTone(detailCohort.status)}>{cohortStatusLabel(detailCohort.status)}</StatusPill></dd></div>
                 </dl>
               )}

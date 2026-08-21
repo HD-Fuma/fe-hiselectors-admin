@@ -384,6 +384,146 @@ describe("applicant api pages", () => {
     expect(within(formats).getByText("0건")).toBeInTheDocument();
   });
 
+  test("approves a pending applicant, disables both actions, and refetches the detail", async () => {
+    const statusResponse = deferredResponse();
+    let detailRequests = 0;
+    let listRequests = 0;
+    let serverStatus: "PENDING" | "APPROVED" = "PENDING";
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith("/api/admin/generations")) return json([]);
+      if (path.endsWith("/api/admin/applications/1/status") && init?.method === "PATCH") {
+        return statusResponse.promise;
+      }
+      if (path.endsWith("/api/admin/applications/1")) {
+        detailRequests += 1;
+        return json(detailRequests === 1
+          ? applicantDetail
+          : { ...applicantDetail, status: "APPROVED" });
+      }
+      listRequests += 1;
+      return json(page(applicants.map((applicant) => (
+        applicant.id === 1 ? { ...applicant, status: serverStatus } : applicant
+      ))));
+    }));
+    const user = userEvent.setup();
+    renderApplicantPage("/applicants?detail=1");
+    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
+    const approve = await within(panel).findByRole("button", { name: "승인" });
+
+    await user.click(approve);
+
+    expect(within(panel).getByRole("button", { name: "승인 처리 중..." })).toBeDisabled();
+    expect(within(panel).getByRole("button", { name: "반려" })).toBeDisabled();
+    serverStatus = "APPROVED";
+    await act(async () => statusResponse.resolve(await json({ id: 1, status: "APPROVED" })));
+
+    await waitFor(() => {
+      expect(detailRequests).toBe(2);
+      expect(listRequests).toBe(2);
+    });
+    expect(within(panel).queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
+    const completion = within(panel).getByText("승인 처리가 완료됐습니다.").closest("section");
+    expect(completion).toHaveAttribute("role", "status");
+    expect(completion).toHaveFocus();
+    await user.click(within(panel).getByRole("button", { name: "상세 패널 닫기" }));
+    const list = await screen.findByRole("region", { name: "지원자 목록" });
+    expect(within(within(list).getAllByRole("row")[1]).getByText("승인")).toBeInTheDocument();
+  });
+
+  test("keeps a completed decision when the detail refresh fails", async () => {
+    let detailRequests = 0;
+    const alert = vi.spyOn(window, "alert").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith("/api/admin/generations")) return json([]);
+      if (path.endsWith("/api/admin/applications/1/status") && init?.method === "PATCH") {
+        return json({ id: 1, status: "APPROVED" });
+      }
+      if (path.endsWith("/api/admin/applications/1")) {
+        detailRequests += 1;
+        return detailRequests === 1 ? json(applicantDetail) : json(null, 500);
+      }
+      return json(page(applicants));
+    }));
+    const user = userEvent.setup();
+    renderApplicantPage("/applicants?detail=1");
+    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
+
+    await user.click(await within(panel).findByRole("button", { name: "승인" }));
+
+    await waitFor(() => expect(alert).toHaveBeenCalledWith(
+      "심사 처리는 완료됐지만 최신 지원자 정보를 불러오지 못했습니다.",
+    ));
+    const completion = within(panel).getByText("승인 처리가 완료됐습니다.").closest("section");
+    expect(completion).toHaveFocus();
+    expect(within(panel).queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
+    expect(within(panel).queryByRole("button", { name: "반려" })).not.toBeInTheDocument();
+    alert.mockRestore();
+  });
+
+  test("returns to the first list page after deciding the last applicant", async () => {
+    const listPages: number[] = [];
+    let approved = false;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      const path = url.pathname;
+      if (path.endsWith("/api/admin/generations")) return json([]);
+      if (path.endsWith("/api/admin/applications/1/status") && init?.method === "PATCH") {
+        approved = true;
+        return json({ id: 1, status: "APPROVED" });
+      }
+      if (path.endsWith("/api/admin/applications/1")) {
+        return json({ ...applicantDetail, status: approved ? "APPROVED" : "PENDING" });
+      }
+      const requestedPage = Number(url.searchParams.get("page"));
+      listPages.push(requestedPage);
+      return json({
+        content: requestedPage === 0 ? [applicants[1]] : [applicants[0]],
+        number: requestedPage,
+        size: 20,
+        totalElements: approved ? 1 : 2,
+        totalPages: approved ? 1 : 2,
+      });
+    }));
+    const user = userEvent.setup();
+    renderApplicantPage();
+    await screen.findByText("정하린");
+
+    await user.click(screen.getByRole("button", { name: "다음 페이지" }));
+    await user.click(await screen.findByText("김민지"));
+    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
+    await user.click(await within(panel).findByRole("button", { name: "승인" }));
+
+    await waitFor(() => expect(listPages).toEqual([0, 1, 0]));
+    await user.click(within(panel).getByRole("button", { name: "상세 패널 닫기" }));
+    expect(await screen.findByText("1 / 1 페이지")).toBeInTheDocument();
+    expect(screen.getByText("정하린")).toBeInTheDocument();
+  });
+
+  test("alerts on a failed applicant decision and leaves the actions available", async () => {
+    const alert = vi.spyOn(window, "alert").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith("/api/admin/generations")) return json([]);
+      if (path.endsWith("/api/admin/applications/1/status") && init?.method === "PATCH") {
+        return json(null, 500);
+      }
+      if (path.endsWith("/api/admin/applications/1")) return json(applicantDetail);
+      return json(page(applicants));
+    }));
+    const user = userEvent.setup();
+    renderApplicantPage("/applicants?detail=1");
+    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
+
+    await user.click(await within(panel).findByRole("button", { name: "반려" }));
+
+    await waitFor(() => expect(alert).toHaveBeenCalledWith("조회에 실패했습니다."));
+    expect(within(panel).getByRole("button", { name: "승인" })).toBeEnabled();
+    expect(within(panel).getByRole("button", { name: "반려" })).toBeEnabled();
+    alert.mockRestore();
+  });
+
   test("announces list errors", async () => {
     vi.stubGlobal("fetch", vi.fn().mockImplementation(() => json(null, 500)));
     renderApplicantPage();

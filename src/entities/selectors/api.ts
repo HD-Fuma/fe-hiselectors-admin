@@ -97,6 +97,8 @@ export interface Generation {
   generationName: string;
   startDate: string;
   endDate: string;
+  activityStartDate: string;
+  activityEndDate: string;
   status: GenerationStatus;
 }
 
@@ -104,6 +106,8 @@ export interface GenerationSaveRequest {
   generationName: string;
   startDate: string;
   endDate: string;
+  activityStartDate: string;
+  activityEndDate: string;
 }
 
 export interface PenaltyHistory {

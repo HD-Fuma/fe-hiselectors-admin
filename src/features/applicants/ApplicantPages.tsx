@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CircleHelp } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
-import { Select, TextInput } from "../../components/ui/Controls";
+import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
@@ -16,6 +16,7 @@ import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill
 import {
   getAdminApplication,
   getAdminApplications,
+  updateAdminApplicationStatus,
   type AdminApplicationDetail,
   type AdminApplicationIdentity,
   type AdminApplicationSummary,
@@ -273,6 +274,7 @@ export function ApplicantListPage() {
   const [appliedReviewStatus, setAppliedReviewStatus] = useState("");
   const [minimumCriteriaOnly, setMinimumCriteriaOnly] = useState(false);
   const [page, setPage] = useState(1);
+  const [listRequestVersion, setListRequestVersion] = useState(0);
   const listRequestKey = [
     appliedKeyword,
     appliedPlatform,
@@ -280,6 +282,7 @@ export function ApplicantListPage() {
     appliedReviewStatus,
     minimumCriteriaOnly ? "minimum" : "all",
     page,
+    listRequestVersion,
   ].join("|");
   const [listState, setListState] = useState<{
     key: string;
@@ -455,6 +458,10 @@ export function ApplicantListPage() {
           applicantIdOverride={detailApplicantId}
           embedded
           onClose={() => navigate("/applicants")}
+          onStatusChanged={() => {
+            setPage(1);
+            setListRequestVersion((version) => version + 1);
+          }}
         />
       ) : null}
     </>
@@ -465,12 +472,14 @@ interface ApplicantDetailPageProps {
   applicantIdOverride?: string;
   embedded?: boolean;
   onClose?: () => void;
+  onStatusChanged?: () => void;
 }
 
 export function ApplicantDetailPage({
   applicantIdOverride,
   embedded = false,
   onClose,
+  onStatusChanged,
 }: ApplicantDetailPageProps = {}) {
   const { applicantId: routeApplicantId } = useParams();
   const navigate = useNavigate();
@@ -482,6 +491,12 @@ export function ApplicantDetailPage({
     applicant: AdminApplicationDetail | null;
     error: string;
   } | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState<ApplicationStatus | null>(null);
+  const [confirmedDecision, setConfirmedDecision] = useState<{
+    id: number;
+    status: Exclude<ApplicationStatus, "PENDING">;
+  } | null>(null);
+  const decisionStatusRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (invalidApplicantId) return;
@@ -504,7 +519,12 @@ export function ApplicantDetailPage({
 
   const currentDetailState = detailState?.id === numericApplicantId ? detailState : null;
   const applicant = currentDetailState?.applicant ?? null;
-  const effectiveReviewStatus = applicant ? reviewStatusFor(applicant) : undefined;
+  const confirmedStatus = confirmedDecision?.id === numericApplicantId
+    ? confirmedDecision.status
+    : null;
+  const effectiveReviewStatus = confirmedStatus
+    ? confirmedStatus === "APPROVED" ? "승인" : "반려"
+    : applicant ? reviewStatusFor(applicant) : undefined;
   const audienceLabel = applicant?.snsCode === "INSTAGRAM" ? "팔로워" : "구독자";
   const detailProfile: ProfileDetailProfile | undefined = applicant && effectiveReviewStatus ? {
     audienceLabel,
@@ -560,11 +580,78 @@ export function ApplicantDetailPage({
     ? "요청한 지원자 ID가 올바르지 않습니다."
     : currentDetailState?.error;
 
+  useEffect(() => {
+    if (confirmedStatus) decisionStatusRef.current?.focus();
+  }, [confirmedStatus]);
+
+  const updateStatus = async (status: Exclude<ApplicationStatus, "PENDING">) => {
+    setUpdatingStatus(status);
+    try {
+      await updateAdminApplicationStatus(numericApplicantId, status);
+    } catch (reason) {
+      window.alert(reason instanceof Error ? reason.message : "지원자 심사 처리에 실패했습니다.");
+      setUpdatingStatus(null);
+      return;
+    }
+
+    setConfirmedDecision({ id: numericApplicantId, status });
+    onStatusChanged?.();
+    try {
+      const refreshed = await getAdminApplication(numericApplicantId);
+      setDetailState({ id: numericApplicantId, applicant: refreshed, error: "" });
+    } catch {
+      window.alert("심사 처리는 완료됐지만 최신 지원자 정보를 불러오지 못했습니다.");
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
   return (
     <>
       {embedded ? null : <ApplicantListPage />}
       <ProfileDetailShell
-        actionSection={null}
+        actionSection={confirmedStatus && effectiveReviewStatus ? (
+          <section
+            aria-live="polite"
+            className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions"
+            ref={decisionStatusRef}
+            role="status"
+            tabIndex={-1}
+          >
+            <div className="fuma-applicant-detail-actions__heading">
+              <span>심사 처리</span>
+              <StatusPill tone={reviewStatusTone(effectiveReviewStatus)}>
+                {effectiveReviewStatus}
+              </StatusPill>
+            </div>
+            <p>{effectiveReviewStatus} 처리가 완료됐습니다.</p>
+          </section>
+        ) : applicant?.status === "PENDING" && effectiveReviewStatus ? (
+          <section className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions">
+            <div className="fuma-applicant-detail-actions__heading">
+              <span>심사 처리</span>
+              <StatusPill tone={reviewStatusTone(effectiveReviewStatus)}>
+                {effectiveReviewStatus}
+              </StatusPill>
+            </div>
+            <div className="fuma-applicant-detail-actions__buttons">
+              <Button
+                disabled={updatingStatus !== null}
+                onClick={() => updateStatus("APPROVED")}
+                variant="primary"
+              >
+                {updatingStatus === "APPROVED" ? "승인 처리 중..." : "승인"}
+              </Button>
+              <Button
+                disabled={updatingStatus !== null}
+                onClick={() => updateStatus("REJECTED")}
+                variant="danger"
+              >
+                {updatingStatus === "REJECTED" ? "반려 처리 중..." : "반려"}
+              </Button>
+            </div>
+          </section>
+        ) : null}
         emptyDescription={loading
           ? "지원자 정보를 불러오는 중입니다."
           : detailError || "요청한 지원자 정보를 확인할 수 없습니다."}

@@ -101,8 +101,9 @@ export interface AdminApplicationSearchRequest {
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop")
   .replace(/\/$/, "");
 
-function headers() {
+function headers(json = false) {
   const result = new Headers();
+  if (json) result.set("Content-Type", "application/json");
   const stored = localStorage.getItem("selectors-auth");
   if (stored) {
     try {
@@ -125,8 +126,17 @@ async function errorMessage(response: Response, fallback: string) {
   } catch { return fallback; }
 }
 
-async function request<T>(path: string, fallback: string, signal?: AbortSignal) {
-  const response = await fetch(`${API_BASE_URL}${path}`, { headers: headers(), signal });
+async function request<T>(
+  path: string,
+  fallback: string,
+  signal?: AbortSignal,
+  init?: RequestInit,
+) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    headers: headers(init?.body !== undefined),
+    signal,
+  });
   if (!response.ok) throw new Error(await errorMessage(response, fallback));
 
   const body = await response.json() as {
@@ -159,5 +169,14 @@ export function getAdminApplication(id: number, signal?: AbortSignal) {
     `/api/admin/applications/${id}`,
     "지원자 상세 조회에 실패했습니다.",
     signal,
+  );
+}
+
+export function updateAdminApplicationStatus(id: number, status: Exclude<ApplicationStatus, "PENDING">) {
+  return request<{ id: number; status: ApplicationStatus }>(
+    `/api/admin/applications/${id}/status`,
+    "지원자 심사 처리에 실패했습니다.",
+    undefined,
+    { method: "PATCH", body: JSON.stringify({ status }) },
   );
 }

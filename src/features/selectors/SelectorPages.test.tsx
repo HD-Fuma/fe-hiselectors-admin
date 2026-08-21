@@ -66,6 +66,8 @@ const generation = {
   generationName: "3기",
   startDate: "2026-07-01T00:00:00",
   endDate: "2026-08-31T23:59:59",
+  activityStartDate: "2026-09-01T00:00:00",
+  activityEndDate: "2026-11-30T23:59:59",
   status: "INACTIVE",
 };
 
@@ -165,8 +167,10 @@ describe("selector api pages", () => {
     fireEvent.click(screen.getByRole("button", { name: "기수 생성" }));
     const modal = await screen.findByRole("dialog", { name: "새 기수 생성" });
     fireEvent.change(within(modal).getByRole("textbox", { name: "기수명" }), { target: { value: "4기" } });
-    fireEvent.change(within(modal).getByRole("group", { name: /기수 시작일/ }).querySelector("input")!, { target: { value: "2026-09-01" } });
-    fireEvent.change(within(modal).getByRole("group", { name: /기수 종료일/ }).querySelector("input")!, { target: { value: "2026-09-30" } });
+    fireEvent.change(within(modal).getByRole("group", { name: /모집 시작일/ }).querySelector("input")!, { target: { value: "2026-09-01" } });
+    fireEvent.change(within(modal).getByRole("group", { name: /모집 종료일/ }).querySelector("input")!, { target: { value: "2026-09-30" } });
+    fireEvent.change(within(modal).getByRole("group", { name: /활동 시작일/ }).querySelector("input")!, { target: { value: "2026-10-01" } });
+    fireEvent.change(within(modal).getByRole("group", { name: /활동 종료일/ }).querySelector("input")!, { target: { value: "2026-12-31" } });
     fireEvent.click(within(modal).getByRole("button", { name: "생성" }));
 
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
@@ -177,10 +181,42 @@ describe("selector api pages", () => {
           generationName: "4기",
           startDate: "2026-09-01T00:00:00",
           endDate: "2026-09-30T23:59:59",
+          activityStartDate: "2026-10-01T00:00:00",
+          activityEndDate: "2026-12-31T23:59:59",
         }),
       }),
     ));
     expect(await screen.findByText("4기")).toBeInTheDocument();
+  });
+
+  test("allows one-day and overlapping recruitment and activity periods", async () => {
+    renderRoute("/cohorts");
+
+    fireEvent.click(await screen.findByRole("button", { name: "기수 생성" }));
+    const modal = await screen.findByRole("dialog", { name: "새 기수 생성" });
+    const input = (label: RegExp) => (
+      within(modal).getByRole("group", { name: label }).querySelector("input")!
+    );
+    fireEvent.change(within(modal).getByRole("textbox", { name: "기수명" }), { target: { value: "4기" } });
+    fireEvent.change(input(/모집 시작일/), { target: { value: "2026-09-01" } });
+    fireEvent.change(input(/모집 종료일/), { target: { value: "2026-09-01" } });
+    fireEvent.change(input(/활동 시작일/), { target: { value: "2026-09-01" } });
+    fireEvent.change(input(/활동 종료일/), { target: { value: "2026-09-01" } });
+    fireEvent.click(within(modal).getByRole("button", { name: "생성" }));
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/admin\/generations$/),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          generationName: "4기",
+          startDate: "2026-09-01T00:00:00",
+          endDate: "2026-09-01T23:59:59",
+          activityStartDate: "2026-09-01T00:00:00",
+          activityEndDate: "2026-09-01T23:59:59",
+        }),
+      }),
+    ));
   });
 
   test("distinguishes cohort loading from an empty successful response", async () => {
@@ -244,13 +280,16 @@ describe("selector api pages", () => {
     fireEvent.click(screen.getByRole("button", { name: "기수 생성" }));
     const modal = await screen.findByRole("dialog", { name: "새 기수 생성" });
     fireEvent.change(within(modal).getByRole("textbox", { name: "기수명" }), { target: { value: "4기" } });
-    fireEvent.change(within(modal).getByRole("group", { name: /기수 시작일/ }).querySelector("input")!, { target: { value: "2026-01-01" } });
-    fireEvent.change(within(modal).getByRole("group", { name: /기수 종료일/ }).querySelector("input")!, { target: { value: "2026-01-31" } });
+    fireEvent.change(within(modal).getByRole("group", { name: /모집 시작일/ }).querySelector("input")!, { target: { value: "2026-01-01" } });
+    fireEvent.change(within(modal).getByRole("group", { name: /모집 종료일/ }).querySelector("input")!, { target: { value: "2026-01-31" } });
+    fireEvent.change(within(modal).getByRole("group", { name: /활동 시작일/ }).querySelector("input")!, { target: { value: "2026-02-01" } });
+    fireEvent.change(within(modal).getByRole("group", { name: /활동 종료일/ }).querySelector("input")!, { target: { value: "2026-04-30" } });
     fireEvent.click(within(modal).getByRole("button", { name: "생성" }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "새 기수 생성" })).not.toBeInTheDocument());
-    expect(within(region).getAllByRole("row").slice(1).map((row) => (
-      within(row).getAllByRole("cell")[1].textContent
-    ))).toEqual(["3기", "2기", "4기"]);
+    await waitFor(() => expect(within(screen.getByRole("region", { name: "기수 목록" }))
+      .getAllByRole("row").slice(1).map((row) => (
+        within(row).getAllByRole("cell")[1].textContent
+      ))).toEqual(["3기", "2기", "4기"]));
   });
 
   test("uses blacklist pagination and opens the real selector detail", async () => {
