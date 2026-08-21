@@ -339,12 +339,14 @@ function SelectorApiDetailContent({ detail }: { detail: SelectorDetail }) {
         <section aria-labelledby="selector-api-contents-title" className="fuma-content-section fuma-selector-detail-section">
           <header className="fuma-content-section__header">
             <h3 id="selector-api-contents-title">등록 콘텐츠</h3>
-            <span>총 {detail.performance.contentCount}건</span>
+            <span>총 {displayCount(detail.performance.contentCount)}</span>
           </header>
           <div aria-label="셀렉터스 콘텐츠" className="fuma-wide-table fuma-settlement-table" role="region">
             <DenseTable
               columns={CONTENT_COLUMNS}
-              emptyMessage="등록된 콘텐츠가 없습니다."
+              emptyMessage={detail.performance.contentCount == null
+                ? "콘텐츠 수집 전입니다."
+                : "등록된 콘텐츠가 없습니다."}
               rowKey={(content) => content.id}
               rows={detail.contents}
             />

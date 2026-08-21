@@ -1,4 +1,5 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import type { SelectorDetail } from "../../entities/selectors";
 import { renderRoute } from "../../test/renderRoute";
 
 const summary = {
@@ -51,15 +52,17 @@ const detail = {
     createdAt: "2026-08-18T10:00:00",
     viewCount: 12000,
     likeCount: 800,
-    commentCount: 35,
+    commentCount: 0,
   }],
   performance: {
     contentCount: 1,
     totalViewCount: 12000,
     totalLikeCount: 800,
-    totalCommentCount: 35,
+    totalCommentCount: 0,
   },
-};
+} satisfies SelectorDetail;
+
+let selectorDetail: SelectorDetail = detail;
 
 const generation = {
   id: 3,
@@ -97,12 +100,13 @@ function deferredResponse() {
 }
 
 beforeEach(() => {
+  selectorDetail = detail;
   vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url.includes("/api/admin/selectors/penalties")) {
       return json({ content: [penalty], number: 0, size: 20, totalElements: 21, totalPages: 2 });
     }
-    if (/\/api\/admin\/selectors\/7$/.test(url)) return json(detail);
+    if (/\/api\/admin\/selectors\/7$/.test(url)) return json(selectorDetail);
     if (url.endsWith("/api/admin/generations") && init?.method === "POST") {
       return json({ ...generation, id: 4, generationName: "4기" });
     }
@@ -148,8 +152,35 @@ describe("selector api pages", () => {
     expect(within(panel).getByRole("region", { name: "셀렉터스 SNS 계정" })).toHaveTextContent("hong.selector");
     expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("3기");
     expect(within(panel).getByText("누적 패널티").parentElement).toHaveTextContent("3건");
-    expect(within(panel).getByRole("region", { name: "셀렉터스 성과" })).toHaveTextContent("12,000");
+    const performance = within(panel).getByRole("region", { name: "셀렉터스 성과" });
+    expect(performance).toHaveTextContent("12,000");
+    expect(within(performance).getAllByRole("cell").at(-1)).toHaveTextContent("0");
     expect(within(panel).getByRole("region", { name: "셀렉터스 콘텐츠" })).toHaveTextContent("REELS");
+  });
+
+  test("renders uncollected performance as unavailable instead of zero", async () => {
+    selectorDetail = {
+      ...detail,
+      contents: [],
+      performance: {
+        contentCount: null,
+        totalViewCount: null,
+        totalLikeCount: null,
+        totalCommentCount: null,
+      },
+    };
+
+    renderRoute("/selectors/7");
+    const panel = await screen.findByRole("dialog", { name: "셀렉터스 상세" });
+    const performance = within(panel).getByRole("region", { name: "셀렉터스 성과" });
+
+    expect(within(performance).getAllByRole("cell")).toHaveLength(4);
+    within(performance).getAllByRole("cell").forEach((cell) => {
+      expect(cell).toHaveTextContent("-");
+    });
+    expect(within(panel).getByText("총 -")).toBeInTheDocument();
+    expect(within(panel).getByRole("region", { name: "셀렉터스 콘텐츠" }))
+      .toHaveTextContent("콘텐츠 수집 전입니다.");
   });
 
   test("creates and changes the status of a server generation", async () => {
