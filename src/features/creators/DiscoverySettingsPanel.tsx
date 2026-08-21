@@ -3,7 +3,6 @@ import { Button, Checkbox, TextInput } from "../../components/ui/Controls";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill } from "../../components/ui/StatusPill";
 import {
-  createDiscoveryCategory,
   createDiscoveryKeyword,
   deleteDiscoveryCategory,
   deleteDiscoveryKeyword,
@@ -15,8 +14,7 @@ import {
 } from "../../entities/discovery-category";
 
 interface CategoryDraft {
-  id: number | null;
-  code: string;
+  id: number;
   name: string;
   displayOrder: string;
   enabled: boolean;
@@ -31,10 +29,6 @@ interface KeywordDraft {
 
 function reasonMessage(reason: unknown, fallback: string) {
   return reason instanceof Error ? reason.message : fallback;
-}
-
-function emptyCategoryDraft(): CategoryDraft {
-  return { id: null, code: "", name: "", displayOrder: "0", enabled: true };
 }
 
 function emptyKeywordDraft(): KeywordDraft {
@@ -110,26 +104,6 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
     event.preventDefault();
     if (!categoryDraft) return;
     const displayOrder = Number(categoryDraft.displayOrder);
-    if (categoryDraft.id === null) {
-      setSaving(true);
-      setError("");
-      setNotice("");
-      try {
-        const created = await createDiscoveryCategory({
-          code: categoryDraft.code.trim(),
-          name: categoryDraft.name.trim(),
-          displayOrder,
-        });
-        setCategoryDraft(null);
-        await finishMutation(created.id, "카테고리를 추가했습니다.");
-      } catch (reason) {
-        setError(reasonMessage(reason, "카테고리 생성에 실패했습니다."));
-      } finally {
-        setSaving(false);
-      }
-      return;
-    }
-
     const categoryId = categoryDraft.id;
     const updated = await mutate(
       () => updateDiscoveryCategory(categoryId, {
@@ -213,24 +187,10 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
               <h3>카테고리</h3>
               <p>크리에이터 발굴 분류와 노출 순서를 관리합니다.</p>
             </div>
-            <Button disabled={saving} onClick={() => setCategoryDraft(emptyCategoryDraft())}>카테고리 추가</Button>
           </header>
 
           {categoryDraft ? (
             <form className="fuma-discovery-settings__form" onSubmit={saveCategory}>
-              {categoryDraft.id === null ? (
-                <label>
-                  <span>카테고리 코드</span>
-                  <TextInput
-                    maxLength={20}
-                    onChange={(event) => setCategoryDraft({ ...categoryDraft, code: event.target.value.toUpperCase() })}
-                    pattern="^[A-Z][A-Z0-9_]*$"
-                    placeholder="예: BEAUTY"
-                    required
-                    value={categoryDraft.code}
-                  />
-                </label>
-              ) : null}
               <label>
                 <span>카테고리명</span>
                 <TextInput maxLength={50} onChange={(event) => setCategoryDraft({ ...categoryDraft, name: event.target.value })} required value={categoryDraft.name} />
@@ -239,9 +199,7 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
                 <span>노출 순서</span>
                 <TextInput onChange={(event) => setCategoryDraft({ ...categoryDraft, displayOrder: event.target.value })} required type="number" value={categoryDraft.displayOrder} />
               </label>
-              {categoryDraft.id !== null ? (
-                <Checkbox checked={categoryDraft.enabled} label="발굴 대상 활성화" onChange={(event) => setCategoryDraft({ ...categoryDraft, enabled: event.target.checked })} />
-              ) : null}
+              <Checkbox checked={categoryDraft.enabled} label="발굴 대상 활성화" onChange={(event) => setCategoryDraft({ ...categoryDraft, enabled: event.target.checked })} />
               <div className="fuma-discovery-settings__form-actions">
                 <Button disabled={saving} type="submit" variant="primary">저장</Button>
                 <Button disabled={saving} onClick={() => setCategoryDraft(null)}>취소</Button>
@@ -256,10 +214,10 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
               <li className={category.id === selectedId ? "is-selected" : undefined} key={category.id}>
                 <button className="fuma-discovery-settings__category-select" onClick={() => { setSelectedId(category.id); setKeywordDraft(null); }} type="button">
                   <span><strong>{category.name}</strong><small>{category.code} · 키워드 {category.keywords.length}개</small></span>
-                  <StatusPill tone={category.enabled ? "approved" : "neutral"}>{category.enabled ? "활성" : "비활성"}</StatusPill>
+                  {!category.enabled ? <StatusPill tone="neutral">비활성</StatusPill> : null}
                 </button>
                 <div className="fuma-discovery-settings__row-actions">
-                  <Button aria-label={`${category.name} 카테고리 수정`} disabled={saving} onClick={() => { setSelectedId(category.id); setCategoryDraft({ id: category.id, code: category.code, name: category.name, displayOrder: String(category.displayOrder), enabled: category.enabled }); }} variant="ghost">수정</Button>
+                  <Button aria-label={`${category.name} 카테고리 수정`} disabled={saving} onClick={() => { setSelectedId(category.id); setCategoryDraft({ id: category.id, name: category.name, displayOrder: String(category.displayOrder), enabled: category.enabled }); }}>수정</Button>
                   <Button aria-label={`${category.name} 카테고리 삭제`} disabled={saving} onClick={() => removeCategory(category)} variant="danger">삭제</Button>
                 </div>
               </li>
@@ -305,10 +263,10 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
                   <div>
                     <strong>{keyword.keyword}</strong>
                     <span>우선순위 {keyword.priority}</span>
-                    <StatusPill tone={keyword.enabled ? "approved" : "neutral"}>{keyword.enabled ? "활성" : "비활성"}</StatusPill>
+                    {!keyword.enabled ? <StatusPill tone="neutral">비활성</StatusPill> : null}
                   </div>
                   <div className="fuma-discovery-settings__row-actions">
-                    <Button aria-label={`${keyword.keyword} 키워드 수정`} disabled={saving} onClick={() => setKeywordDraft({ id: keyword.id, keyword: keyword.keyword, priority: String(keyword.priority), enabled: keyword.enabled })} variant="ghost">수정</Button>
+                    <Button aria-label={`${keyword.keyword} 키워드 수정`} disabled={saving} onClick={() => setKeywordDraft({ id: keyword.id, keyword: keyword.keyword, priority: String(keyword.priority), enabled: keyword.enabled })}>수정</Button>
                     <Button aria-label={`${keyword.keyword} 키워드 삭제`} disabled={saving} onClick={() => removeKeyword(keyword)} variant="danger">삭제</Button>
                   </div>
                 </li>

@@ -132,18 +132,22 @@ describe("creator filters", () => {
     const activity = within(search).getByRole("textbox", { name: "최근 90일 최소 활동" });
     expect(activity).toHaveAttribute("max", "25");
     const platform = within(search).getByRole("combobox", { name: "플랫폼" });
-    const category = within(search).getByRole("combobox", { name: "카테고리" });
-    expect(await within(category).findByRole("option", { name: "스킨케어" })).toBeInTheDocument();
+    const categories = screen.getByRole("navigation", { name: "크리에이터 카테고리" });
+    const travel = await within(categories).findByRole("button", { name: "여행" });
+    expect(within(categories).getByRole("button", { name: "스킨케어" })).toBeInTheDocument();
+
+    await user.click(travel);
+    await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(2));
+    expect(travel).toHaveAttribute("aria-pressed", "true");
 
     await user.type(keyword, "seo");
     await user.type(followers, "100,000");
     await user.type(engagement, "2.5");
     await user.type(activity, "26");
     await user.selectOptions(platform, "INSTAGRAM");
-    await user.selectOptions(category, "TRAVEL");
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
-    expect(creatorRequests(fetchMock)).toHaveLength(1);
+    expect(creatorRequests(fetchMock)).toHaveLength(2);
     expect(screen.getByText("최근 90일 최소 활동은 0~25 사이의 숫자로 입력해 주세요."))
       .toBeInTheDocument();
 
@@ -151,8 +155,8 @@ describe("creator filters", () => {
     await user.type(activity, "3");
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
-    await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(2));
-    const requestUrl = new URL(String(creatorRequests(fetchMock)[1][0]));
+    await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(3));
+    const requestUrl = new URL(String(creatorRequests(fetchMock)[2][0]));
     expect(Object.fromEntries(requestUrl.searchParams)).toMatchObject({
       keyword: "seo",
       minFollower: "100000",
@@ -171,7 +175,8 @@ describe("creator filters", () => {
     expect(engagement).toHaveValue("");
     expect(activity).toHaveValue("");
     expect(platform).toHaveValue("");
-    expect(category).toHaveValue("");
+    expect(within(categories).getByRole("button", { name: "전체" }))
+      .toHaveAttribute("aria-pressed", "true");
   });
 });
 
