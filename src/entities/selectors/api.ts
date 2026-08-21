@@ -51,10 +51,10 @@ export interface SelectorContent {
 }
 
 export interface SelectorPerformance {
-  contentCount: number;
-  totalViewCount: number;
-  totalLikeCount: number;
-  totalCommentCount: number;
+  contentCount: number | null;
+  totalViewCount: number | null;
+  totalLikeCount: number | null;
+  totalCommentCount: number | null;
 }
 
 export interface SelectorDetail {
