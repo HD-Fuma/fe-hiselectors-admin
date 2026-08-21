@@ -1,5 +1,6 @@
 import { ProfileAnalysisReport } from "../../components/ui/ProfileAnalysisReport";
 import type {
+  AdminApplicationAiReport,
   AdminApplicationDetail,
   ApplicationContentFormat,
   ApplicationMetricValue,
@@ -41,7 +42,10 @@ function reportSummary(applicant: AdminApplicationDetail) {
   return `최근 ${applicant.metrics.analysisWindowDays}일 콘텐츠 ${formatNumber(applicant.metrics.recent90DayContentCount)}건의 공개 정량 지표입니다.`;
 }
 
-export function ApplicantAnalysisReport({ applicant }: { applicant: AdminApplicationDetail }) {
+export function ApplicantAnalysisReport({ aiReport, applicant }: {
+  aiReport?: AdminApplicationAiReport | null;
+  applicant: AdminApplicationDetail;
+}) {
   const collectionDone = applicant.mediaCollectionStatus === "DONE";
   const formatTotal = applicant.metrics.contentFormats.reduce((total, format) => (
     total + format.count
@@ -128,18 +132,32 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: AdminApplica
         ? formatTotal
         : null}
       formatTotalLabel="수집 콘텐츠"
-      narratives={[
+      narratives={aiReport ? [
+        { label: "위험 요소", value: aiReport.warning || unavailableNarrative },
+        { label: "강점", value: aiReport.strength || unavailableNarrative },
+        { label: "유의점", value: aiReport.warning || unavailableNarrative },
+      ] : [
         { label: "위험 요소", value: `미확인 (${unavailableNarrative})` },
         { label: "강점", value: unavailableNarrative },
         { label: "유의점", value: unavailableNarrative },
       ]}
-      summary={reportSummary(applicant)}
+      summary={aiReport?.summary || reportSummary(applicant)}
       tagGroups={[
-        { label: "카테고리", values: [] },
-        { label: "키워드", values: [] },
-        { label: "협업 이력", values: [] },
+        { label: "카테고리", values: aiReport?.category ? [aiReport.category] : [] },
+        { label: "키워드", values: aiReport?.keywords ?? [] },
+        {
+          label: "협업 이력",
+          values: aiReport?.brandHistory
+            ? aiReport.brandHistory.split(",").map((brand) => brand.trim()).filter(Boolean)
+            : [],
+        },
         { label: "콘텐츠 유형", values: formatSegments.map((format) => format.label) },
-        { label: "톤앤매너", values: [] },
+        {
+          label: "톤앤매너",
+          values: aiReport
+            ? [aiReport.tone, aiReport.contentStyle].filter(Boolean)
+            : [],
+        },
       ]}
       title="지원자 분석 리포트"
     />
