@@ -19,7 +19,24 @@ test("content performance defaults to independently flippable cards and can swit
     "이번 기수",
     "이전 대비",
   ]);
-  expect(screen.getByText("기수별 콘텐츠 성과")).toBeInTheDocument();
+  expect(screen.getByText("기수별 누적 콘텐츠 성과")).toBeInTheDocument();
+  const cohortChart = screen.getByRole("article", { name: "기수별 누적 콘텐츠 성과" });
+  expect(within(cohortChart).getByRole("button", { name: "종합" })).toHaveAttribute("aria-pressed", "true");
+  expect(within(cohortChart).getByRole("img", { name: "기수별 전체 성과 추이" })).toBeInTheDocument();
+  expect(cohortChart.querySelectorAll("[data-series]")).toHaveLength(4);
+  expect(within(cohortChart).getByRole("list", { name: "차트 범례" }).children).toHaveLength(4);
+  const cohortPoints = [...cohortChart.querySelectorAll<SVGGElement>("[data-cohort]")];
+  const cohortNames = cohortPoints.map((point) => point.dataset.cohort ?? "");
+  expect(cohortPoints.length).toBeGreaterThan(0);
+  expect(cohortNames).toEqual(
+    [...cohortNames].sort((left, right) => right.localeCompare(left, "ko", { numeric: true })),
+  );
+  await user.click(within(cohortChart).getByRole("button", { name: "댓글 수" }));
+  expect(within(cohortChart).getByRole("img", { name: "기수별 댓글 수 추이" })).toBeInTheDocument();
+  expect(cohortChart.querySelectorAll("[data-series]")).toHaveLength(1);
+  const selectedLegend = within(cohortChart).getByRole("list", { name: "차트 범례" });
+  expect(selectedLegend.children).toHaveLength(1);
+  expect(within(selectedLegend).getByText("댓글 수")).toBeInTheDocument();
   expect(screen.getByText("콘텐츠 유형")).toBeInTheDocument();
 
   const flipButtons = within(results).getAllByRole("button", { name: /성과 상세 보기$/ });

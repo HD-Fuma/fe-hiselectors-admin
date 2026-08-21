@@ -156,6 +156,48 @@ function previousNumericCohort(cohort: string) {
   return cohortNumber > 0 ? `${match[1]}${cohortNumber - 1}${match[3]}` : null;
 }
 
+type CohortChartMetric = "contentCount" | "views" | "likes" | "comments";
+type CohortChartMode = "all" | CohortChartMetric;
+
+const COHORT_CHART_OPTIONS: readonly {
+  label: string;
+  value: CohortChartMode;
+}[] = [
+  { label: "종합", value: "all" },
+  { label: "게시글 수", value: "contentCount" },
+  { label: "조회수", value: "views" },
+  { label: "좋아요", value: "likes" },
+  { label: "댓글 수", value: "comments" },
+];
+
+const COHORT_CHART_SERIES: readonly {
+  label: string;
+  unit: string;
+  value: CohortChartMetric;
+}[] = [
+  { label: "게시글 수", unit: "건", value: "contentCount" },
+  { label: "조회수", unit: "회", value: "views" },
+  { label: "좋아요", unit: "개", value: "likes" },
+  { label: "댓글 수", unit: "개", value: "comments" },
+];
+
+function smoothLinePath(points: readonly { x: number; y: number }[]) {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+
+  return points.slice(0, -1).reduce((path, point, index) => {
+    const previous = points[index - 1] ?? point;
+    const next = points[index + 1];
+    const afterNext = points[index + 2] ?? next;
+    const control1X = point.x + (next.x - previous.x) / 6;
+    const control1Y = point.y + (next.y - previous.y) / 6;
+    const control2X = next.x - (afterNext.x - point.x) / 6;
+    const control2Y = next.y - (afterNext.y - point.y) / 6;
+
+    return `${path} C ${control1X} ${control1Y}, ${control2X} ${control2Y}, ${next.x} ${next.y}`;
+  }, `M ${points[0].x} ${points[0].y}`);
+}
+
 function ContentOverview({
   cohortContents,
   contents,
@@ -165,19 +207,47 @@ function ContentOverview({
   contents: readonly ContentInfluence[];
   highlightedCohort: string;
 }) {
-  const cohortMetrics = new Map<string, { contentCount: number; views: number }>();
+  const [cohortChartMode, setCohortChartMode] = useState<CohortChartMode>("all");
+  const cohortMetrics = new Map<string, {
+    comments: number;
+    contentCount: number;
+    likes: number;
+    views: number;
+  }>();
 
   cohortContents.forEach((content) => {
     const cohort = selectorCohortById(content.selectorId);
-    const current = cohortMetrics.get(cohort) ?? { contentCount: 0, views: 0 };
+    const current = cohortMetrics.get(cohort) ?? {
+      comments: 0,
+      contentCount: 0,
+      likes: 0,
+      views: 0,
+    };
     cohortMetrics.set(cohort, {
+      comments: current.comments + content.comments,
       contentCount: current.contentCount + 1,
+      likes: current.likes + content.likes,
       views: current.views + content.views,
     });
   });
 
-  const cohorts = [...cohortMetrics].map(([cohort, metric]) => ({ cohort, ...metric }));
-  const maximumViews = Math.max(1, ...cohorts.map((cohort) => cohort.views));
+  const cohorts = [...cohortMetrics]
+    .map(([cohort, metric]) => ({ cohort, ...metric }))
+    .sort((left, right) => right.cohort.localeCompare(left.cohort, "ko", { numeric: true }));
+  const cohortChartWidth = Math.max(440, (cohorts.length - 1) * 104 + 84);
+  const visibleCohortSeries = cohortChartMode === "all"
+    ? COHORT_CHART_SERIES
+    : COHORT_CHART_SERIES.filter((series) => series.value === cohortChartMode);
+  const cohortChartSeries = visibleCohortSeries.map((series) => {
+    const maximum = Math.max(1, ...cohorts.map((cohort) => cohort[series.value]));
+    return {
+      ...series,
+      points: cohorts.map((cohort, index) => ({
+        x: 42 + index * 104,
+        y: 25 + (1 - cohort[series.value] / maximum) * 76,
+      })),
+    };
+  });
   const formatSegments = contentFormatSegments(contents);
   const currentCohortCount = cohortMetrics.get(highlightedCohort)?.contentCount ?? 0;
   const priorCohort = previousNumericCohort(highlightedCohort);
@@ -204,36 +274,76 @@ function ContentOverview({
         </dl>
       </article>
 
-      <figure
-        aria-label="기수별 콘텐츠 성과"
+      <article
+        aria-label="기수별 누적 콘텐츠 성과"
         className="fuma-content-performance-panel fuma-content-cohort-chart"
       >
-        <figcaption>
+        <header>
           <div>
-            <span>COHORT</span>
-            <h2>기수별 콘텐츠 성과</h2>
+            <span>TREND</span>
+            <h2>기수별 누적 콘텐츠 성과</h2>
           </div>
-          <small>누적 조회수 · {highlightedCohort || "현재 기수"} 강조</small>
-        </figcaption>
+          <div className="fuma-content-cohort-chart__controls">
+            <SegmentedControl
+              ariaLabel="기수별 누적 성과 지표"
+              onChange={setCohortChartMode}
+              options={COHORT_CHART_OPTIONS}
+              value={cohortChartMode}
+            />
+          </div>
+        </header>
         {cohorts.length > 0 ? (
           <div className="fuma-content-cohort-chart__scroll">
-            <ul>
-              {cohorts.map((cohort) => {
-                const height = cohort.views === 0 ? 0 : Math.max(5, (cohort.views / maximumViews) * 100);
+            <ul aria-label="차트 범례" className="fuma-content-cohort-chart__legend">
+              {visibleCohortSeries.map((series) => (
+                <li className={`is-${series.value}`} key={series.value}><i />{series.label}</li>
+              ))}
+            </ul>
+            <svg
+              aria-label={cohortChartMode === "all" ? "기수별 전체 성과 추이" : `기수별 ${cohortChartSeries[0].label} 추이`}
+              className={`fuma-content-cohort-chart__plot is-${cohortChartMode}`}
+              role="img"
+              style={{ width: `${cohortChartWidth}px` }}
+              viewBox={`0 0 ${cohortChartWidth} 148`}
+            >
+              <line className="fuma-content-cohort-chart__grid" x1="18" x2={cohortChartWidth - 18} y1="25" y2="25" />
+              <line className="fuma-content-cohort-chart__grid" x1="18" x2={cohortChartWidth - 18} y1="63" y2="63" />
+              <line className="fuma-content-cohort-chart__grid" x1="18" x2={cohortChartWidth - 18} y1="101" y2="101" />
+              {cohortChartSeries.map((series) => (
+                <g className={`fuma-content-cohort-chart__series is-${series.value}`} data-series={series.value} key={series.value}>
+                  <path className="fuma-content-cohort-chart__line" d={smoothLinePath(series.points)} />
+                  {cohorts.map((cohort, index) => {
+                    const point = series.points[index];
+                    const value = cohort[series.value];
+                    return (
+                      <g key={cohort.cohort}>
+                        <circle className="fuma-content-cohort-chart__point" cx={point.x} cy={point.y} r="4" />
+                        {cohortChartMode !== "all" ? (
+                          <text className="fuma-content-cohort-chart__value" textAnchor="middle" x={point.x} y={point.y - 11}>
+                            {formatCount(value)}
+                          </text>
+                        ) : null}
+                      </g>
+                    );
+                  })}
+                </g>
+              ))}
+              {cohorts.map((cohort, index) => {
+                const x = 42 + index * 104;
                 const highlighted = cohort.cohort === highlightedCohort;
                 return (
-                  <li data-highlighted={highlighted} key={cohort.cohort}>
-                    <strong title={`${formatCount(cohort.views)}회`}>{formatCount(cohort.views)}</strong>
-                    <i aria-hidden="true"><span style={{ height: `${height}%` }} /></i>
-                    <b>{cohort.cohort}</b>
-                    <small>{cohort.contentCount}건{highlighted ? " · 선택" : ""}</small>
-                  </li>
+                  <g data-cohort={cohort.cohort} data-highlighted={highlighted} key={cohort.cohort}>
+                    <text className="fuma-content-cohort-chart__label" textAnchor="middle" x={x} y="126">{cohort.cohort}</text>
+                    {highlighted ? (
+                      <text className="fuma-content-cohort-chart__selected" textAnchor="middle" x={x} y="140">선택</text>
+                    ) : null}
+                  </g>
                 );
               })}
-            </ul>
+            </svg>
           </div>
         ) : <p>표시할 기수별 콘텐츠가 없습니다.</p>}
-      </figure>
+      </article>
 
       <article className="fuma-content-performance-panel fuma-content-format-panel">
         <header>
