@@ -84,7 +84,7 @@ export interface ContentInspectionHistoryItem {
 }
 
 export interface ContentInspectionReport {
-  generatedAt: string;
+  generatedAt: string | null;
   signals: ContentInspectionSignal[];
   extracts: ContentInspectionExtract[];
   history: ContentInspectionHistoryItem[];
@@ -92,11 +92,16 @@ export interface ContentInspectionReport {
 
 export interface ContentInspectionFixture {
   id: string;
+  accountId?: string;
   contentTitle: string;
+  contentUrl?: string;
   contentFormat: ContentFormat;
   duration?: string;
   author: string;
   cohort: string;
+  latestVersionNo?: number;
+  profileImageUrl?: string | null;
+  selectorsId?: number;
   sourcePlatform: string;
   submittedAt: string;
   inspectionType: InspectionType;
