@@ -1,5 +1,6 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop")
-  .replace(/\/$/, "");
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
+
 const AUTH_STORAGE_KEY = "selectors-auth";
 
 interface StoredAuthSession {
@@ -93,7 +94,7 @@ export async function runContentBatch(): Promise<ContentBatchRunResponse> {
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
 
-  const response = await fetch(`${API_BASE_URL}/api/admin/content-batch/run`, {
+  const response = await adminFetch(`${API_BASE_URL}/api/admin/content-batch/run`, {
     headers,
     method: "POST",
   });
@@ -118,7 +119,7 @@ async function getCurrentGenerationContentPage(page: number, signal?: AbortSigna
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
 
-  const response = await fetch(
+  const response = await adminFetch(
     `${API_BASE_URL}/api/admin/contents?${searchParams.toString()}`,
     { headers, signal },
   );

@@ -1,3 +1,6 @@
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
+
 export type ApplicationSnsCode = "INSTAGRAM" | "YOUTUBE";
 export type ApplicationStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type ApplicationMediaCollectionStatus = "PENDING" | "DONE" | "FAILED";
@@ -112,9 +115,6 @@ export interface AdminApplicationSearchRequest {
   size: number;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop")
-  .replace(/\/$/, "");
-
 function headers(json = false) {
   const result = new Headers();
   if (json) result.set("Content-Type", "application/json");
@@ -146,7 +146,7 @@ async function request<T>(
   signal?: AbortSignal,
   init?: RequestInit,
 ) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await adminFetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: headers(init?.body !== undefined),
     signal,

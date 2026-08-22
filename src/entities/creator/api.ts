@@ -1,3 +1,6 @@
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
+
 export interface CreatorSummary {
   id: number;
   snsCode: "INSTAGRAM" | "YOUTUBE";
@@ -60,9 +63,6 @@ export interface ProposalHistoryPage {
   size: number;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080")
-  .replace(/\/$/, "");
-
 function headers() {
   const result = new Headers();
   const stored = localStorage.getItem("selectors-auth");
@@ -95,7 +95,7 @@ async function request<T>(
   signal?: AbortSignal,
   init?: RequestInit,
 ) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await adminFetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: init?.body !== undefined
       ? (() => { const h = headers(); h.set("Content-Type", "application/json"); return h; })()
@@ -108,7 +108,7 @@ async function request<T>(
 }
 
 export async function getCreators(input: CreatorSearchRequest, signal?: AbortSignal) {
-  const response = await fetch(
+  const response = await adminFetch(
     `${API_BASE_URL}/api/admin/creators?${query(input)}`,
     { headers: headers(), signal },
   );

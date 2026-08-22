@@ -1,3 +1,5 @@
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
 import type {
   Campaign,
   CampaignParticipant,
@@ -7,8 +9,6 @@ import type {
   ProductStatusCode,
   SpringPage,
 } from "./model";
-
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop").replace(/\/$/, "");
 
 function headers(json = false) {
   const result = new Headers();
@@ -33,7 +33,7 @@ async function message(response: Response, fallback: string) {
 }
 
 async function request<T>(path: string, init: RequestInit = {}, fallback = "요청에 실패했습니다."): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers: init.headers ?? headers() });
+  const response = await adminFetch(`${API_BASE_URL}${path}`, { ...init, headers: init.headers ?? headers() });
   if (!response.ok) throw new Error(await message(response, fallback));
   return (await response.json() as { data: T }).data;
 }
@@ -71,6 +71,6 @@ export function updateCampaign(id: number, body: CampaignSaveRequest) {
 }
 
 export async function deleteCampaign(id: number) {
-  const response = await fetch(`${API_BASE_URL}/api/admin/campaigns/${id}`, { method: "DELETE", headers: headers() });
+  const response = await adminFetch(`${API_BASE_URL}/api/admin/campaigns/${id}`, { method: "DELETE", headers: headers() });
   if (!response.ok) throw new Error(await message(response, "캠페인 삭제에 실패했습니다."));
 }
