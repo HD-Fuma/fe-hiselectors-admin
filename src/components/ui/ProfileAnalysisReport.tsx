@@ -59,11 +59,6 @@ interface ProfileAnalysisReportProps {
   title: string;
 }
 
-function hasRiskFactor(values: readonly string[]) {
-  const joined = values.join(" ");
-  return !["미확인", "없음", "해당 없음", "발견되지 않"].some((phrase) => joined.includes(phrase));
-}
-
 export function ProfileAnalysisReport({
   collectedAt,
   collectionDays,
@@ -234,11 +229,9 @@ export function ProfileAnalysisReport({
           <>
           <dl className="fuma-creator-analysis-claims fuma-analysis-qualitative__narrative-list">
             {riskNarrative ? (
-              <div
-                className={`fuma-creator-analysis-claim${hasRiskFactor(riskNarrative.values) ? " fuma-creator-analysis-claim--risk" : ""}`}
-              >
+              <div className="fuma-creator-analysis-claim fuma-creator-analysis-claim--risk">
                 <dt>
-                  <span className="fuma-analysis-risk-label" data-risk={hasRiskFactor(riskNarrative.values) ? "true" : "false"}>
+                  <span className="fuma-analysis-risk-label" data-risk="true">
                     <Siren aria-hidden="true" size={16} strokeWidth={2} />
                     <span>{riskNarrative.label}</span>
                   </span>

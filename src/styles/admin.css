@@ -1411,6 +1411,12 @@
   min-width: 1167px;
 }
 
+.fuma-applicant-list-table--refreshing {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
 .fuma-detail-toolbar {
   display: flex;
   min-height: 27px;
@@ -3255,6 +3261,12 @@
   display: inline-flex;
   align-items: center;
   gap: var(--hsas-space-4);
+}
+
+.fuma-applicant-ai-report-toggle {
+  margin-left: var(--hsas-space-12);
+  padding-left: var(--hsas-space-12);
+  border-left: 1px solid var(--hsas-color-line-150);
 }
 
 .fuma-applicant-batch-actions {

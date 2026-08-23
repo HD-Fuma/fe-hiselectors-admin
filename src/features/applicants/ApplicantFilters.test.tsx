@@ -398,10 +398,8 @@ describe("applicant api pages", () => {
     expect(within(formats).getByText("0건")).toBeInTheDocument();
   });
 
-  test("approves a pending applicant, disables both actions, and refetches the detail", async () => {
+  test("approves a pending applicant, closes the panel, and shows a confirmation modal", async () => {
     const statusResponse = deferredResponse();
-    let detailRequests = 0;
-    let listRequests = 0;
     let serverStatus: "PENDING" | "APPROVED" = "PENDING";
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const path = new URL(String(input)).pathname;
@@ -410,12 +408,8 @@ describe("applicant api pages", () => {
         return statusResponse.promise;
       }
       if (path.endsWith("/api/admin/applications/1")) {
-        detailRequests += 1;
-        return json(detailRequests === 1
-          ? applicantDetail
-          : { ...applicantDetail, status: "APPROVED" });
+        return json(applicantDetail);
       }
-      listRequests += 1;
       return json(page(applicants.map((applicant) => (
         applicant.id === 1 ? { ...applicant, status: serverStatus } : applicant
       ))));
@@ -433,47 +427,15 @@ describe("applicant api pages", () => {
     await act(async () => statusResponse.resolve(await json({ id: 1, status: "APPROVED" })));
 
     await waitFor(() => {
-      expect(detailRequests).toBe(2);
-      expect(listRequests).toBe(2);
+      expect(screen.queryByRole("dialog", { name: "지원자 상세" })).not.toBeInTheDocument();
     });
-    expect(within(panel).queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
-    const completion = within(panel).getByText("승인 처리가 완료됐습니다.").closest("section");
-    expect(completion).toHaveAttribute("role", "status");
-    expect(completion).toHaveFocus();
-    await user.click(within(panel).getByRole("button", { name: "상세 패널 닫기" }));
+    const modal = await screen.findByRole("alertdialog", { name: "심사 처리 완료" });
+    expect(within(modal).getByText("김민지")).toBeInTheDocument();
+    expect(within(modal).getByText(/승인 처리했습니다/)).toBeInTheDocument();
+
+    await user.click(within(modal).getByRole("button", { name: "확인" }));
     const list = await screen.findByRole("region", { name: "지원자 목록" });
     expect(within(within(list).getAllByRole("row")[1]).getByText("승인")).toBeInTheDocument();
-  });
-
-  test("keeps a completed decision when the detail refresh fails", async () => {
-    let detailRequests = 0;
-    const alert = vi.spyOn(window, "alert").mockImplementation(() => undefined);
-    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-      const path = new URL(String(input)).pathname;
-      if (path.endsWith("/api/admin/generations")) return json([]);
-      if (path.endsWith("/api/admin/applications/1/status") && init?.method === "PATCH") {
-        return json({ id: 1, status: "APPROVED" });
-      }
-      if (path.endsWith("/api/admin/applications/1")) {
-        detailRequests += 1;
-        return detailRequests === 1 ? json(applicantDetail) : json(null, 500);
-      }
-      return json(page(applicants));
-    }));
-    const user = userEvent.setup();
-    renderApplicantPage("/applicants?detail=1");
-    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
-
-    await user.click(await within(panel).findByRole("button", { name: "승인" }));
-
-    await waitFor(() => expect(alert).toHaveBeenCalledWith(
-      "심사 처리는 완료됐지만 최신 지원자 정보를 불러오지 못했습니다.",
-    ));
-    const completion = within(panel).getByText("승인 처리가 완료됐습니다.").closest("section");
-    expect(completion).toHaveFocus();
-    expect(within(panel).queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
-    expect(within(panel).queryByRole("button", { name: "반려" })).not.toBeInTheDocument();
-    alert.mockRestore();
   });
 
   test("returns to the first list page after deciding the last applicant", async () => {
@@ -509,10 +471,50 @@ describe("applicant api pages", () => {
     const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
     await user.click(await within(panel).findByRole("button", { name: "승인" }));
 
-    await waitFor(() => expect(listPages).toEqual([0, 1, 0]));
-    await user.click(within(panel).getByRole("button", { name: "상세 패널 닫기" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "지원자 상세" })).not.toBeInTheDocument());
     expect(await screen.findByText("1 / 1 페이지")).toBeInTheDocument();
     expect(screen.getByText("정하린")).toBeInTheDocument();
+    expect(listPages.length).toBeGreaterThan(0);
+  });
+
+  test("stays on the current page after deciding an applicant when other pages still remain", async () => {
+    let approved = false;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      const path = url.pathname;
+      if (path.endsWith("/api/admin/generations")) return json([]);
+      if (path.endsWith("/api/admin/applications/1/status") && init?.method === "PATCH") {
+        approved = true;
+        return json({ id: 1, status: "APPROVED" });
+      }
+      if (path.endsWith("/api/admin/applications/1")) {
+        return json({ ...applicantDetail, status: approved ? "APPROVED" : "PENDING" });
+      }
+      const requestedPage = Number(url.searchParams.get("page"));
+      return json({
+        content: requestedPage === 0 ? [applicants[1]] : [applicants[0]],
+        number: requestedPage,
+        size: 20,
+        totalElements: 3,
+        totalPages: 2,
+      });
+    }));
+    const user = userEvent.setup();
+    renderApplicantPage();
+    await screen.findByText("정하린");
+
+    await user.click(screen.getByRole("button", { name: "다음 페이지" }));
+    await user.click(await screen.findByText("김민지"));
+    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
+    await user.click(await within(panel).findByRole("button", { name: "승인" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "지원자 상세" })).not.toBeInTheDocument());
+    const modal = await screen.findByRole("alertdialog", { name: "심사 처리 완료" });
+    await user.click(within(modal).getByRole("button", { name: "확인" }));
+
+    expect(await screen.findByText("2 / 2 페이지")).toBeInTheDocument();
+    const list = screen.getByRole("region", { name: "지원자 목록" });
+    expect(within(list).getByText("김민지")).toBeInTheDocument();
   });
 
   test("alerts on a failed applicant decision and leaves the actions available", async () => {

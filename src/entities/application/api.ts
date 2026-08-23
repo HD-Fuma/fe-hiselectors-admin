@@ -105,7 +105,8 @@ export interface AdminApplicationAiReport {
   contentStyle: string;
   tone: string;
   strength: string;
-  warning: string;
+  cautions: string;
+  risks: string;
   brandHistory: string;
   status: string;
   createdAt: string;
@@ -121,6 +122,7 @@ export interface AdminApplicationSearchRequest {
   snsCode?: ApplicationSnsCode;
   status?: ApplicationStatus;
   generationId?: number;
+  hasAiReport?: boolean;
   minimumCriteriaOnly?: boolean;
   page: number;
   size: number;

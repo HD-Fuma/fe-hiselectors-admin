@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { CircleHelp } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
@@ -8,6 +8,7 @@ import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
+import { Modal } from "../../components/ui/Modal";
 import { Pagination } from "../../components/ui/Pagination";
 import { ProfileDetailShell, type ProfileDetailProfile } from "../../components/ui/ProfileDetailShell";
 import { SearchActions } from "../../components/ui/SearchActions";
@@ -147,11 +148,15 @@ function applicantToListRow(
 
 function ApplicantApprovalToolbar({
   count,
+  hasAiReportOnly,
   minimumCriteriaOnly,
+  onHasAiReportOnlyChange,
   onMinimumCriteriaOnlyChange,
 }: {
   count: number;
+  hasAiReportOnly: boolean;
   minimumCriteriaOnly: boolean;
+  onHasAiReportOnlyChange: (checked: boolean) => void;
   onMinimumCriteriaOnlyChange: (checked: boolean) => void;
 }) {
   return (
@@ -178,6 +183,15 @@ function ApplicantApprovalToolbar({
             팔로워·구독자 500명 이하 또는 최근 3개월 내 활동 콘텐츠가 3건 이하인 지원자를 필터링합니다.
           </span>
         </span>
+        <label className="fuma-applicant-minimum-toggle fuma-applicant-ai-report-toggle">
+          <input
+            checked={hasAiReportOnly}
+            onChange={(event) => onHasAiReportOnlyChange(event.target.checked)}
+            type="checkbox"
+          />
+          <span aria-hidden="true" />
+          <b>AI 리포트 있는 지원자만</b>
+        </label>
       </div>
       <div className="fuma-settlement-result-meta">
         <span>총 {count}건</span>
@@ -275,6 +289,11 @@ export function ApplicantListPage() {
   const [appliedGenerationId, setAppliedGenerationId] = useState("");
   const [appliedReviewStatus, setAppliedReviewStatus] = useState("");
   const [minimumCriteriaOnly, setMinimumCriteriaOnly] = useState(false);
+  const [hasAiReportOnly, setHasAiReportOnly] = useState(false);
+  const [decisionModal, setDecisionModal] = useState<{
+    name: string;
+    status: Exclude<ApplicationStatus, "PENDING">;
+  } | null>(null);
   const [page, setPage] = useState(1);
   const [listRequestVersion, setListRequestVersion] = useState(0);
   const listRequestKey = [
@@ -283,14 +302,13 @@ export function ApplicantListPage() {
     appliedGenerationId,
     appliedReviewStatus,
     minimumCriteriaOnly ? "minimum" : "all",
+    hasAiReportOnly ? "hasAiReport" : "all",
     page,
     listRequestVersion,
   ].join("|");
-  const [listState, setListState] = useState<{
-    key: string;
-    pageData: SpringPage<AdminApplicationSummary> | null;
-    error: string;
-  } | null>(null);
+  const [pageData, setPageData] = useState<SpringPage<AdminApplicationSummary> | null>(null);
+  const [listError, setListError] = useState("");
+  const [resolvedListKey, setResolvedListKey] = useState<string | null>(null);
   const [generations, setGenerations] = useState<SelectorFilterGeneration[]>([]);
 
   useEffect(() => {
@@ -310,20 +328,24 @@ export function ApplicantListPage() {
       snsCode: apiSnsCodeFor(appliedPlatform),
       status: apiStatusFor(appliedReviewStatus),
       generationId: appliedGenerationId ? Number(appliedGenerationId) : undefined,
+      hasAiReport: hasAiReportOnly || undefined,
       minimumCriteriaOnly: apiMinimumCriteriaOnly(appliedReviewStatus, minimumCriteriaOnly),
       page: page - 1,
       size: APPLICANT_PAGE_SIZE,
     }, controller.signal).then((result) => {
       if (!controller.signal.aborted) {
-        setListState({ key: listRequestKey, pageData: result, error: "" });
+        setPageData(result);
+        setListError("");
+        setResolvedListKey(listRequestKey);
+        if (result.totalPages > 0 && page > result.totalPages) {
+          setPage(1);
+        }
       }
     }).catch((reason: unknown) => {
       if (!controller.signal.aborted) {
-        setListState({
-          key: listRequestKey,
-          pageData: null,
-          error: reason instanceof Error ? reason.message : "지원자 목록 조회에 실패했습니다.",
-        });
+        setPageData(null);
+        setListError(reason instanceof Error ? reason.message : "지원자 목록 조회에 실패했습니다.");
+        setResolvedListKey(listRequestKey);
       }
     });
     return () => controller.abort();
@@ -332,14 +354,13 @@ export function ApplicantListPage() {
     appliedPlatform,
     appliedGenerationId,
     appliedReviewStatus,
+    hasAiReportOnly,
     listRequestKey,
     minimumCriteriaOnly,
     page,
   ]);
 
-  const currentListState = listState?.key === listRequestKey ? listState : null;
-  const pageData = currentListState?.pageData ?? null;
-  const listError = currentListState?.error ?? "";
+  const isListFetching = resolvedListKey !== listRequestKey;
   const applicants = (pageData?.content ?? []).map(applicantToListRow);
   const openApplicant = (applicant: ApplicantListRow) => navigate(`/applicants?detail=${applicant.id}`);
   const applySearch = () => {
@@ -359,6 +380,7 @@ export function ApplicantListPage() {
     setAppliedGenerationId("");
     setAppliedReviewStatus("");
     setMinimumCriteriaOnly(false);
+    setHasAiReportOnly(false);
     setPage(1);
     navigate("/applicants");
   };
@@ -418,15 +440,23 @@ export function ApplicantListPage() {
           </div>
           <ApplicantApprovalToolbar
             count={pageData?.totalElements ?? 0}
+            hasAiReportOnly={hasAiReportOnly}
             minimumCriteriaOnly={minimumCriteriaOnly}
+            onHasAiReportOnlyChange={(checked) => {
+              setHasAiReportOnly(checked);
+              setPage(1);
+            }}
             onMinimumCriteriaOnlyChange={(checked) => {
               setMinimumCriteriaOnly(checked);
               setPage(1);
             }}
           />
           <div
+            aria-busy={isListFetching}
             aria-label="지원자 목록"
-            className="fuma-wide-table fuma-settlement-table fuma-applicant-list-table"
+            className={`fuma-wide-table fuma-settlement-table fuma-applicant-list-table${
+              isListFetching && pageData ? " fuma-applicant-list-table--refreshing" : ""
+            }`}
             role="region"
           >
             {listError ? (
@@ -460,12 +490,24 @@ export function ApplicantListPage() {
           applicantIdOverride={detailApplicantId}
           embedded
           onClose={() => navigate("/applicants")}
-          onStatusChanged={() => {
-            setPage(1);
-            setListRequestVersion((version) => version + 1);
-          }}
+          onDecisionConfirmed={(name, status) => setDecisionModal({ name, status })}
+          onStatusChanged={() => setListRequestVersion((version) => version + 1)}
         />
       ) : null}
+      <Modal
+        actions={<Button onClick={() => setDecisionModal(null)} variant="primary">확인</Button>}
+        onClose={() => setDecisionModal(null)}
+        open={decisionModal !== null}
+        role="alertdialog"
+        title="심사 처리 완료"
+      >
+        {decisionModal ? (
+          <p>
+            <strong>{decisionModal.name}</strong>님을{" "}
+            {decisionModal.status === "APPROVED" ? "승인" : "반려"} 처리했습니다.
+          </p>
+        ) : null}
+      </Modal>
     </>
   );
 }
@@ -474,6 +516,7 @@ interface ApplicantDetailPageProps {
   applicantIdOverride?: string;
   embedded?: boolean;
   onClose?: () => void;
+  onDecisionConfirmed?: (name: string, status: Exclude<ApplicationStatus, "PENDING">) => void;
   onStatusChanged?: () => void;
 }
 
@@ -481,6 +524,7 @@ export function ApplicantDetailPage({
   applicantIdOverride,
   embedded = false,
   onClose,
+  onDecisionConfirmed,
   onStatusChanged,
 }: ApplicantDetailPageProps = {}) {
   const { applicantId: routeApplicantId } = useParams();
@@ -495,11 +539,6 @@ export function ApplicantDetailPage({
   } | null>(null);
   const [aiReport, setAiReport] = useState<{ id: number; report: AdminApplicationAiReport | null } | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<ApplicationStatus | null>(null);
-  const [confirmedDecision, setConfirmedDecision] = useState<{
-    id: number;
-    status: Exclude<ApplicationStatus, "PENDING">;
-  } | null>(null);
-  const decisionStatusRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (invalidApplicantId) return;
@@ -531,12 +570,7 @@ export function ApplicantDetailPage({
 
   const currentDetailState = detailState?.id === numericApplicantId ? detailState : null;
   const applicant = currentDetailState?.applicant ?? null;
-  const confirmedStatus = confirmedDecision?.id === numericApplicantId
-    ? confirmedDecision.status
-    : null;
-  const effectiveReviewStatus = confirmedStatus
-    ? confirmedStatus === "APPROVED" ? "승인" : "반려"
-    : applicant ? reviewStatusFor(applicant) : undefined;
+  const effectiveReviewStatus = applicant ? reviewStatusFor(applicant) : undefined;
   const audienceLabel = applicant?.snsCode === "INSTAGRAM" ? "팔로워" : "구독자";
   const detailProfile: ProfileDetailProfile | undefined = applicant && effectiveReviewStatus ? {
     audienceLabel,
@@ -592,10 +626,6 @@ export function ApplicantDetailPage({
     ? "요청한 지원자 ID가 올바르지 않습니다."
     : currentDetailState?.error;
 
-  useEffect(() => {
-    if (confirmedStatus) decisionStatusRef.current?.focus();
-  }, [confirmedStatus]);
-
   const updateStatus = async (status: Exclude<ApplicationStatus, "PENDING">) => {
     setUpdatingStatus(status);
     try {
@@ -606,39 +636,16 @@ export function ApplicantDetailPage({
       return;
     }
 
-    setConfirmedDecision({ id: numericApplicantId, status });
     onStatusChanged?.();
-    try {
-      const refreshed = await getAdminApplication(numericApplicantId);
-      setDetailState({ id: numericApplicantId, applicant: refreshed, error: "" });
-    } catch {
-      window.alert("심사 처리는 완료됐지만 최신 지원자 정보를 불러오지 못했습니다.");
-    } finally {
-      setUpdatingStatus(null);
-    }
+    onDecisionConfirmed?.(applicant?.applicantName ?? "지원자", status);
+    (onClose ?? (() => navigate("/applicants")))();
   };
 
   return (
     <>
       {embedded ? null : <ApplicantListPage />}
       <ProfileDetailShell
-        actionSection={confirmedStatus && effectiveReviewStatus ? (
-          <section
-            aria-live="polite"
-            className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions"
-            ref={decisionStatusRef}
-            role="status"
-            tabIndex={-1}
-          >
-            <div className="fuma-applicant-detail-actions__heading">
-              <span>심사 처리</span>
-              <StatusPill tone={reviewStatusTone(effectiveReviewStatus)}>
-                {effectiveReviewStatus}
-              </StatusPill>
-            </div>
-            <p>{effectiveReviewStatus} 처리가 완료됐습니다.</p>
-          </section>
-        ) : applicant?.status === "PENDING" && effectiveReviewStatus ? (
+        actionSection={applicant?.status === "PENDING" && effectiveReviewStatus ? (
           <section className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions">
             <div className="fuma-applicant-detail-actions__heading">
               <span>심사 처리</span>

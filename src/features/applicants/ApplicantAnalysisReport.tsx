@@ -213,9 +213,8 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
       }))
     : [];
   const qualitativeStatus = qualitativeStatusMessage(aiReport, applicant);
-  const riskNarrative = aiReport
-    ? { label: "위험 요소", values: narrativeValues(aiReport.warning, unavailableNarrative) }
-    : null;
+  const riskValues = splitCsv(aiReport?.risks);
+  const riskNarrative = riskValues.length > 0 ? { label: "위험 요소", values: riskValues } : null;
 
   return (
     <ProfileAnalysisReport
@@ -273,7 +272,7 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
       formatTotalLabel="수집 콘텐츠"
       narratives={aiReport ? [
         { label: "강점", values: narrativeValues(aiReport.strength, unavailableNarrative) },
-        { label: "유의점", values: narrativeValues(aiReport.warning, unavailableNarrative) },
+        { label: "유의점", values: narrativeValues(aiReport.cautions, unavailableNarrative) },
       ] : [
         { label: "강점", values: [unavailableNarrative] },
         { label: "유의점", values: [unavailableNarrative] },
