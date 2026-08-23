@@ -39,6 +39,7 @@ type ApplicantPlatform = "Instagram" | "YouTube";
 const REVIEW_STATUS_OPTIONS = ["전체", "검토 대기", "승인", "반려", "자동 반려"].map(
   (label) => ({ label, value: label === "전체" ? "" : label }),
 );
+const DEFAULT_REVIEW_STATUS = "검토 대기";
 const APPLICANT_PAGE_SIZE = 20;
 
 function reviewStatusTone(status: ReviewStatus): NonNullable<StatusPillProps["tone"]> {
@@ -269,11 +270,11 @@ export function ApplicantListPage() {
   const [keyword, setKeyword] = useState("");
   const [platform, setPlatform] = useState("");
   const [generationId, setGenerationId] = useState("");
-  const [reviewStatus, setReviewStatus] = useState("");
+  const [reviewStatus, setReviewStatus] = useState<string>(DEFAULT_REVIEW_STATUS);
   const [appliedKeyword, setAppliedKeyword] = useState("");
   const [appliedPlatform, setAppliedPlatform] = useState("");
   const [appliedGenerationId, setAppliedGenerationId] = useState("");
-  const [appliedReviewStatus, setAppliedReviewStatus] = useState("");
+  const [appliedReviewStatus, setAppliedReviewStatus] = useState<string>(DEFAULT_REVIEW_STATUS);
   const [minimumCriteriaOnly, setMinimumCriteriaOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [listRequestVersion, setListRequestVersion] = useState(0);
@@ -353,11 +354,11 @@ export function ApplicantListPage() {
     setKeyword("");
     setPlatform("");
     setGenerationId("");
-    setReviewStatus("");
+    setReviewStatus(DEFAULT_REVIEW_STATUS);
     setAppliedKeyword("");
     setAppliedPlatform("");
     setAppliedGenerationId("");
-    setAppliedReviewStatus("");
+    setAppliedReviewStatus(DEFAULT_REVIEW_STATUS);
     setMinimumCriteriaOnly(false);
     setPage(1);
     navigate("/applicants");

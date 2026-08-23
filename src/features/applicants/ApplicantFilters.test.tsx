@@ -219,7 +219,7 @@ describe("applicant api pages", () => {
     const minimumCriteriaRequest = vi.mocked(fetch).mock.calls
       .map(([input]) => new URL(String(input)))
       .find((url) => url.searchParams.get("minimumCriteriaOnly") === "true");
-    expect(minimumCriteriaRequest?.searchParams.get("status")).toBeNull();
+    expect(minimumCriteriaRequest?.searchParams.get("status")).toBe("PENDING");
   });
 
   test("limits the automatic-rejection status filter to pending minimum-criteria applications", async () => {
@@ -244,18 +244,15 @@ describe("applicant api pages", () => {
     });
   });
 
-  test("requests pending applications outside the minimum criteria unless the toolbar overrides it", async () => {
+  test("defaults to pending applications outside the minimum criteria unless the toolbar overrides it", async () => {
     mockApi();
     const user = userEvent.setup();
     renderApplicantPage();
     await screen.findByText("김민지");
     const search = screen.getByRole("search", { name: "검색 조건" });
 
-    await user.selectOptions(
-      within(search).getByRole("combobox", { name: "심사 상태" }),
-      "검토 대기",
-    );
-    await user.click(within(search).getByRole("button", { name: "조회" }));
+    expect(within(search).getByRole("combobox", { name: "심사 상태" }))
+      .toHaveValue("검토 대기");
 
     await waitFor(() => expect(vi.mocked(fetch).mock.calls
       .map(([input]) => new URL(String(input)))
