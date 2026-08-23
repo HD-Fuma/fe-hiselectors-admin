@@ -52,7 +52,7 @@ describe("creator filters", () => {
     ...creator,
     id: 115,
     accountId: "17841400602400210",
-    creatorName: "숫자형 인스타 계정",
+    creatorName: "numeric.instagram",
     followerCount: 12_345,
     engagementRate: 1.23,
     recent90DayContentCount: 4,
@@ -97,21 +97,36 @@ describe("creator filters", () => {
 
     const table = screen.getByRole("region", { name: "크리에이터 목록" });
     expect(await within(table).findByText("김서연")).toBeInTheDocument();
-    expect(within(table).getAllByText("채널 열기 ↗")).toHaveLength(2);
+    expect(within(table).getByText("@seo.yeon ↗")).toBeInTheDocument();
+    expect(within(table).getByText("Clevr TV ↗")).toBeInTheDocument();
     expect(within(table).getByText("82,400")).toBeInTheDocument();
     expect(within(table).getByText("4.25%")).toBeInTheDocument();
     expect(within(table).getByText("14건")).toBeInTheDocument();
     expect(within(table).getByText("25+건")).toBeInTheDocument();
     expect(await within(table).findByText("스킨케어")).toBeInTheDocument();
-    expect(within(table).getByRole("link", { name: "김서연 채널 열기 (새 창)" }))
+    expect(within(table).getByRole("link", { name: "@seo.yeon SNS 계정 열기 (새 창)" }))
       .toHaveAttribute("href", "https://www.instagram.com/seo.yeon");
-    expect(within(table).getByRole("link", { name: "Clevr TV 채널 열기 (새 창)" }))
+    expect(within(table).getByRole("link", { name: "Clevr TV SNS 계정 열기 (새 창)" }))
       .toHaveAttribute("href", "https://www.youtube.com/channel/UCnMBn-PNx1M9TLF0s-sEDeQ");
     expect(within(table).queryByText("UCnMBn-PNx1M9TLF0s-sEDeQ")).not.toBeInTheDocument();
-    const numericInstagramRow = within(table).getByText("숫자형 인스타 계정").closest("tr");
-    expect(numericInstagramRow).not.toBeNull();
-    expect(within(numericInstagramRow!).queryByRole("link")).not.toBeInTheDocument();
+    expect(within(table).getByRole("link", { name: "@numeric.instagram SNS 계정 열기 (새 창)" }))
+      .toHaveAttribute("href", "https://www.instagram.com/numeric.instagram");
     expect(screen.queryByRole("button", { name: "카드" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /제안/ })).not.toBeInTheDocument();
+
+    const seoRow = within(table).getByText("김서연").closest("tr");
+    const seoCheckbox = within(table).getByRole("checkbox", { name: "김서연 선택" });
+    const selectAll = within(table).getByRole("checkbox", { name: "현재 페이지 전체 선택" });
+    await user.click(seoCheckbox);
+    expect(seoRow).toHaveAttribute("aria-selected", "true");
+    expect(selectAll).toBePartiallyChecked();
+
+    await user.click(selectAll);
+    expect(within(table).getAllByRole("checkbox")).toHaveLength(4);
+    within(table).getAllByRole("checkbox").forEach((checkbox) => expect(checkbox).toBeChecked());
+
+    await user.click(selectAll);
+    within(table).getAllByRole("checkbox").forEach((checkbox) => expect(checkbox).not.toBeChecked());
 
     await user.click(screen.getByRole("button", { name: "다음 페이지" }));
     await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(2));
@@ -126,10 +141,10 @@ describe("creator filters", () => {
     await screen.findByText("김서연");
     const search = screen.getByRole("search", { name: "검색 조건" });
     const keyword = within(search).getByRole("textbox", { name: "키워드" });
-    const followers = within(search).getByRole("textbox", { name: "최소 팔로워·구독자" });
-    const engagement = within(search).getByRole("textbox", { name: "최소 ER" });
-    const activity = within(search).getByRole("textbox", { name: "최근 90일 최소 활동" });
-    expect(activity).toHaveAttribute("max", "25");
+    const minFollowers = within(search).getByRole("textbox", { name: "최소 팔로워·구독자" });
+    const maxFollowers = within(search).getByRole("textbox", { name: "최대 팔로워·구독자" });
+    expect(within(search).queryByRole("textbox", { name: "최소 ER" })).not.toBeInTheDocument();
+    expect(within(search).queryByRole("textbox", { name: "최근 90일 최소 활동" })).not.toBeInTheDocument();
     const platform = within(search).getByRole("combobox", { name: "플랫폼" });
     const categories = screen.getByRole("navigation", { name: "크리에이터 카테고리" });
     const travel = await within(categories).findByRole("button", { name: "여행" });
@@ -140,18 +155,17 @@ describe("creator filters", () => {
     expect(travel).toHaveAttribute("aria-pressed", "true");
 
     await user.type(keyword, "seo");
-    await user.type(followers, "100,000");
-    await user.type(engagement, "2.5");
-    await user.type(activity, "26");
+    await user.type(minFollowers, "600,000");
+    await user.type(maxFollowers, "500,000");
     await user.selectOptions(platform, "INSTAGRAM");
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
     expect(creatorRequests(fetchMock)).toHaveLength(2);
-    expect(screen.getByText("최근 90일 최소 활동은 0~25 사이의 숫자로 입력해 주세요."))
+    expect(screen.getByText("팔로워·구독자 범위를 올바르게 입력해 주세요."))
       .toBeInTheDocument();
 
-    await user.clear(activity);
-    await user.type(activity, "3");
+    await user.clear(minFollowers);
+    await user.type(minFollowers, "100,000");
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
     await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(3));
@@ -159,20 +173,20 @@ describe("creator filters", () => {
     expect(Object.fromEntries(requestUrl.searchParams)).toMatchObject({
       keyword: "seo",
       minFollower: "100000",
-      minEngagementRate: "2.5",
-      minRecent90DayContentCount: "3",
+      maxFollower: "500000",
       snsCode: "INSTAGRAM",
       categoryCode: "TRAVEL",
       page: "0",
       size: "20",
     });
+    expect(requestUrl.searchParams.has("minEngagementRate")).toBe(false);
+    expect(requestUrl.searchParams.has("minRecent90DayContentCount")).toBe(false);
 
     await user.click(within(search).getByRole("button", { name: "초기화" }));
 
     expect(keyword).toHaveValue("");
-    expect(followers).toHaveValue("");
-    expect(engagement).toHaveValue("");
-    expect(activity).toHaveValue("");
+    expect(minFollowers).toHaveValue("");
+    expect(maxFollowers).toHaveValue("");
     expect(platform).toHaveValue("");
     expect(within(categories).getByRole("button", { name: "전체" }))
       .toHaveAttribute("aria-pressed", "true");
@@ -196,7 +210,7 @@ describe("proposal history", () => {
 
   test("requests server pagination and renders the API result as a read-only table", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn((_input: RequestInfo | URL) => Promise.resolve(new Response(JSON.stringify({
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       success: true,
       data: {
         content: [proposalEntry()],
@@ -205,7 +219,7 @@ describe("proposal history", () => {
         number: 0,
         size: 20,
       },
-    }))));
+    })));
     vi.stubGlobal("fetch", fetchMock);
     renderProposalPage();
 

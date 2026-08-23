@@ -18,6 +18,7 @@ export interface CreatorSearchRequest {
   categoryCode?: string;
   snsCode?: string;
   minFollower?: number;
+  maxFollower?: number;
   minEngagementRate?: number;
   minRecent90DayContentCount?: number;
   page: number;

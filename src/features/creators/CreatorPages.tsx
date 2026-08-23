@@ -56,8 +56,7 @@ const EMPTY_CREATOR_FILTERS = {
   snsCode: "",
   categoryCode: "",
   minFollower: "",
-  minEngagementRate: "",
-  minRecent90DayContentCount: "",
+  maxFollower: "",
 };
 
 function dateTime(value: string) {
@@ -82,28 +81,33 @@ function platformFor(code: CreatorSummary["snsCode"]): CreatorProfileFixture["pl
 }
 
 function CreatorAccountLink({ creator }: { creator: CreatorSummary }) {
-  const instagramUsername = /^\d+$/.test(creator.accountId)
-    ? null
+  const instagramUsernameCandidate = /^\d+$/.test(creator.accountId)
+    ? creator.creatorName?.replace(/^@/, "")
     : creator.accountId.replace(/^@/, "");
+  const instagramUsername = instagramUsernameCandidate
+    && /^[A-Za-z0-9._]{1,30}$/.test(instagramUsernameCandidate)
+    ? instagramUsernameCandidate
+    : null;
   const href = creator.snsCode === "YOUTUBE"
     ? `https://www.youtube.com/channel/${encodeURIComponent(creator.accountId)}`
     : instagramUsername
       ? `https://www.instagram.com/${encodeURIComponent(instagramUsername)}`
       : null;
-  const label = "채널 열기";
-  const linkText = `${label} ↗`;
+  const accountName = creator.snsCode === "INSTAGRAM" && instagramUsername
+    ? `@${instagramUsername}`
+    : creator.creatorName || creator.accountId;
 
   return href ? (
     <a
-      aria-label={`${creator.creatorName || creator.accountId} ${label} (새 창)`}
+      aria-label={`${accountName} SNS 계정 열기 (새 창)`}
       className={buttonClassNames("secondary", "fuma-table-link")}
       href={href}
       rel="noreferrer"
       target="_blank"
     >
-      {linkText}
+      {accountName} ↗
     </a>
-  ) : "-";
+  ) : accountName;
 }
 
 function PlatformLabel({ platform }: { platform: CreatorProfileFixture["platform"] }) {
@@ -117,7 +121,6 @@ function PlatformLabel({ platform }: { platform: CreatorProfileFixture["platform
 
 function creatorColumns(
   categoryOptions: readonly { label: string; value: string }[],
-  onPropose: (creator: CreatorSummary) => void,
 ): DenseTableColumn<CreatorSummary>[] {
   return [
   { key: "id", header: "크리에이터 ID", width: 92, align: "center" },
@@ -181,29 +184,13 @@ function creatorColumns(
     align: "center",
     render: (creator) => creator.lastContentAt?.slice(0, 10) ?? "-",
   },
-  {
-    id: "propose",
-    header: "제안",
-    width: 96,
-    align: "center",
-    render: (creator) => (
-      <Button
-        onClick={(event) => {
-          event.stopPropagation();
-          onPropose(creator);
-        }}
-      >
-        제안 보내기
-      </Button>
-    ),
-  },
   ];
 }
 
 export function CreatorListPage() {
-  const navigate = useNavigate();
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_CREATOR_FILTERS);
+  const [selectedCreatorIds, setSelectedCreatorIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
   const [pageData, setPageData] = useState<Awaited<ReturnType<typeof getCreators>> | null>(null);
   const [error, setError] = useState("");
@@ -228,8 +215,7 @@ export function CreatorListPage() {
       snsCode: appliedFilters.snsCode || undefined,
       categoryCode: appliedFilters.categoryCode || undefined,
       minFollower: numericFilter(appliedFilters.minFollower),
-      minEngagementRate: numericFilter(appliedFilters.minEngagementRate),
-      minRecent90DayContentCount: numericFilter(appliedFilters.minRecent90DayContentCount),
+      maxFollower: numericFilter(appliedFilters.maxFollower),
       page: page - 1,
       size: CREATOR_LIST_PAGE_SIZE,
     }, controller.signal).then((result) => {
@@ -250,26 +236,78 @@ export function CreatorListPage() {
   }, [refreshCategoryOptions]);
 
   const applySearch = () => {
-    const minRecentActivity = numericFilter(filters.minRecent90DayContentCount);
-    if (filters.minRecent90DayContentCount.trim()
-      && (minRecentActivity === undefined || minRecentActivity > 25)) {
-      setError("최근 90일 최소 활동은 0~25 사이의 숫자로 입력해 주세요.");
+    const minFollower = numericFilter(filters.minFollower);
+    const maxFollower = numericFilter(filters.maxFollower);
+    if ((filters.minFollower.trim() && minFollower === undefined)
+      || (filters.maxFollower.trim() && maxFollower === undefined)
+      || (minFollower !== undefined && maxFollower !== undefined && minFollower > maxFollower)) {
+      setError("팔로워·구독자 범위를 올바르게 입력해 주세요.");
       return;
     }
     setError("");
     setAppliedFilters({ ...filters, keyword: filters.keyword.trim() });
+    setSelectedCreatorIds(new Set());
     setPage(1);
   };
   const resetSearch = () => {
     setFilters(EMPTY_CREATOR_FILTERS);
     setAppliedFilters(EMPTY_CREATOR_FILTERS);
+    setSelectedCreatorIds(new Set());
     setPage(1);
   };
   const selectCategory = (categoryCode: string) => {
     setFilters((current) => ({ ...current, categoryCode }));
     setAppliedFilters((current) => ({ ...current, categoryCode }));
+    setSelectedCreatorIds(new Set());
     setPage(1);
   };
+  const listedCreators = pageData?.content ?? [];
+  const selectedOnPage = listedCreators.filter((creator) => selectedCreatorIds.has(creator.id)).length;
+  const allListedCreatorsSelected = listedCreators.length > 0
+    && selectedOnPage === listedCreators.length;
+  const toggleSelected = (creatorId: number) => setSelectedCreatorIds((current) => {
+    const next = new Set(current);
+    if (next.has(creatorId)) next.delete(creatorId);
+    else next.add(creatorId);
+    return next;
+  });
+  const toggleAll = () => setSelectedCreatorIds((current) => {
+    const next = new Set(current);
+    const shouldClearPage = listedCreators.every((creator) => next.has(creator.id));
+    listedCreators.forEach((creator) => {
+      if (shouldClearPage) next.delete(creator.id);
+      else next.add(creator.id);
+    });
+    return next;
+  });
+  const columns: DenseTableColumn<CreatorSummary>[] = [
+    {
+      id: "select",
+      header: (
+        <input
+          aria-label="현재 페이지 전체 선택"
+          checked={allListedCreatorsSelected}
+          disabled={listedCreators.length === 0}
+          onChange={toggleAll}
+          ref={(input) => {
+            if (input) input.indeterminate = selectedOnPage > 0 && !allListedCreatorsSelected;
+          }}
+          type="checkbox"
+        />
+      ),
+      width: 40,
+      align: "center",
+      render: (creator) => (
+        <input
+          aria-label={`${creator.creatorName || creator.accountId} 선택`}
+          checked={selectedCreatorIds.has(creator.id)}
+          onChange={() => toggleSelected(creator.id)}
+          type="checkbox"
+        />
+      ),
+    },
+    ...creatorColumns(categoryOptions),
+  ];
 
   return (
     <>
@@ -290,15 +328,15 @@ export function CreatorListPage() {
             <FilterField htmlFor="creator-platform" label="플랫폼">
               <Select id="creator-platform" onChange={(event) => setFilters((current) => ({ ...current, snsCode: event.target.value }))} options={CREATOR_PLATFORM_OPTIONS} value={filters.snsCode} />
             </FilterField>
-            <FilterField htmlFor="creator-min-follower" label="최소 팔로워·구독자">
-              <TextInput id="creator-min-follower" inputMode="numeric" min="0" onChange={(event) => setFilters((current) => ({ ...current, minFollower: event.target.value }))} placeholder="0" value={filters.minFollower} />
-            </FilterField>
-            <FilterField htmlFor="creator-min-er" label="최소 ER">
-              <TextInput id="creator-min-er" inputMode="decimal" min="0" onChange={(event) => setFilters((current) => ({ ...current, minEngagementRate: event.target.value }))} placeholder="0" value={filters.minEngagementRate} />
-            </FilterField>
-            <FilterField htmlFor="creator-min-activity" label="최근 90일 최소 활동">
-              <TextInput id="creator-min-activity" inputMode="numeric" max="25" min="0" onChange={(event) => setFilters((current) => ({ ...current, minRecent90DayContentCount: event.target.value }))} placeholder="0~25" value={filters.minRecent90DayContentCount} />
-            </FilterField>
+            <div className="fuma-follower-range">
+              <span>팔로워·구독자</span>
+              <div className="fuma-follower-range__inputs">
+                <TextInput aria-label="최소 팔로워·구독자" id="creator-followers-min" inputMode="numeric" min="0" onChange={(event) => setFilters((current) => ({ ...current, minFollower: event.target.value }))} placeholder="최소" value={filters.minFollower} />
+                <i aria-hidden="true" />
+                <TextInput aria-label="최대 팔로워·구독자" id="creator-followers-max" inputMode="numeric" min="0" onChange={(event) => setFilters((current) => ({ ...current, maxFollower: event.target.value }))} placeholder="최대" value={filters.maxFollower} />
+                <em>명</em>
+              </div>
+            </div>
           </SearchPanel>
         </div>
         <ChoiceTabs
@@ -323,10 +361,11 @@ export function CreatorListPage() {
             <EmptyState description={error} title="목록을 불러오지 못했습니다" />
           ) : (
             <DenseTable
-              columns={creatorColumns(categoryOptions, (creator) => navigate(`/proposals/new?creator=${creator.id}`))}
+              columns={columns}
               emptyMessage={pageData ? "검색 결과가 없습니다." : "크리에이터를 불러오는 중입니다."}
               rowKey={(creator) => creator.id}
-              rows={pageData?.content ?? []}
+              rows={listedCreators}
+              selectedRowKeys={[...selectedCreatorIds]}
             />
           )}
         </div>

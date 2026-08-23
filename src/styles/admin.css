@@ -513,15 +513,15 @@
   background: #fafbfb;
 }
 
-.hsas-dense-table__row {
+.hsas-dense-table__row[tabindex="0"] {
   cursor: pointer;
 }
 
-.hsas-dense-table__row td {
+.hsas-dense-table__row[tabindex="0"] td {
   transition: background-color 120ms ease, color 120ms ease;
 }
 
-.hsas-dense-table tbody .hsas-dense-table__row:hover td {
+.hsas-dense-table tbody .hsas-dense-table__row[tabindex="0"]:hover td {
   background: rgb(30 157 139 / 8%);
 }
 
@@ -3730,9 +3730,6 @@
 .fuma-creator-toolbar__select-mode:hover { border-color: #91aaa0; background: var(--hsas-color-surface-subtle); }
 .fuma-creator-toolbar__select-mode[aria-pressed="true"] { border-color: #c7ceca; background: #f3f5f4; color: #4f5a55; }
 .hsas-dense-table input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--hsas-teal); cursor: pointer; }
-.fuma-creator-toolbar__proposal { height: 29px; padding: 0 var(--hsas-space-12); border: 1px solid var(--hsas-teal); border-radius: 5px; background: var(--hsas-teal); color: var(--hsas-color-white); cursor: pointer; font-size: var(--hsas-font-11); font-weight: 600; }
-.fuma-creator-toolbar__proposal:disabled { border-color: #dce4e0; background: #dce4e0; color: #89948f; cursor: default; }
-
 .fuma-creator-toolbar__divider {
   width: 1px;
   height: 20px;
