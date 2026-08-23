@@ -171,11 +171,31 @@ describe("creator filters", () => {
     const panel = await screen.findByRole("dialog", { name: "제안 발송" });
     expect(within(panel).getByText("김서연")).toBeInTheDocument();
     expect(within(panel).getByText("Clevr TV")).toBeInTheDocument();
+    expect(within(panel).getByRole("combobox", { name: "제안 채널" }))
+      .toBeDisabled();
+    const subject = within(panel).getByRole("textbox", { name: "제목" });
+    const message = within(panel).getByRole("textbox", { name: "제안 메시지" });
+    expect(subject).toHaveAttribute("maxlength", "200");
+    expect(message).toHaveAttribute("maxlength", "10000");
+    expect((subject as HTMLInputElement).value).toContain("${creatorName}");
+    expect((message as HTMLTextAreaElement).value).toContain("${proposalLink}");
+    await user.clear(subject);
+    await user.type(subject, "   ");
+    expect(within(panel).getByRole("button", { name: "2명에게 제안 발송" }))
+      .toBeDisabled();
+    expect(proposalRequests(fetchMock)).toHaveLength(0);
+    await user.clear(subject);
+    await user.type(subject, "맞춤 제목");
+    await user.clear(message);
+    await user.type(message, "맞춤 메시지");
     await user.click(within(panel).getByRole("button", { name: "2명에게 제안 발송" }));
 
     await waitFor(() => expect(proposalRequests(fetchMock)).toHaveLength(2));
-    expect(proposalRequests(fetchMock).map(([, init]) => JSON.parse(String(init?.body)).creatorId))
-      .toEqual([113, 114]);
+    expect(proposalRequests(fetchMock).map(([, init]) => JSON.parse(String(init?.body))))
+      .toEqual([
+        { creatorId: 113, subject: "맞춤 제목", body: "맞춤 메시지" },
+        { creatorId: 114, subject: "맞춤 제목", body: "맞춤 메시지" },
+      ]);
     const completed = await screen.findByRole("alertdialog", { name: "제안 발송 완료" });
     expect(completed).toHaveTextContent("2명에게 제안을 발송했습니다.");
     await user.click(within(completed).getByRole("button", { name: "확인" }));
@@ -193,14 +213,26 @@ describe("creator filters", () => {
     await user.click(within(table).getByRole("checkbox", { name: "현재 페이지 전체 선택" }));
     await user.click(screen.getByRole("button", { name: "선택 3명 제안 발송" }));
     const panel = await screen.findByRole("dialog", { name: "제안 발송" });
+    const subject = within(panel).getByRole("textbox", { name: "제목" });
+    const message = within(panel).getByRole("textbox", { name: "제안 메시지" });
+    await user.clear(subject);
+    await user.type(subject, "재시도 제목");
+    await user.clear(message);
+    await user.type(message, "재시도 메시지");
     await user.click(within(panel).getByRole("button", { name: "3명에게 제안 발송" }));
 
     expect(await within(panel).findByRole("alert"))
       .toHaveTextContent("2명 발송 완료, 1명 발송에 실패했습니다. 발송 실패");
-    expect(proposalRequests(fetchMock).map(([, init]) => JSON.parse(String(init?.body)).creatorId))
-      .toEqual([113, 114, 115]);
+    expect(proposalRequests(fetchMock).map(([, init]) => JSON.parse(String(init?.body))))
+      .toEqual([113, 114, 115].map((creatorId) => ({
+        creatorId,
+        subject: "재시도 제목",
+        body: "재시도 메시지",
+      })));
     expect(within(panel).getByText("Clevr TV")).toBeInTheDocument();
     expect(within(panel).queryByText("김서연")).not.toBeInTheDocument();
+    expect(subject).toHaveValue("재시도 제목");
+    expect(message).toHaveValue("재시도 메시지");
     expect(within(panel).getByRole("button", { name: "1명에게 제안 발송" })).toBeEnabled();
   });
 

@@ -141,11 +141,14 @@ export function getAdminProposals(page: number, size: number, signal?: AbortSign
   );
 }
 
-export function postAdminProposal(creatorId: number) {
+export function postAdminProposal(
+  creatorId: number,
+  content?: { subject: string; body: string },
+) {
   return request<ProposalHistoryEntry>(
     "/api/admin/proposals",
     "제안 메일 발송에 실패했습니다.",
     undefined,
-    { method: "POST", body: JSON.stringify({ creatorId }) },
+    { method: "POST", body: JSON.stringify({ creatorId, ...content }) },
   );
 }

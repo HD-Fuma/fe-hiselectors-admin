@@ -7,6 +7,7 @@ import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
+import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
@@ -31,6 +32,28 @@ import {
 
 const PROPOSAL_PAGE_SIZE = 20;
 const CREATOR_LIST_PAGE_SIZE = 20;
+const PROPOSAL_CHANNEL_OPTIONS = [{ label: "이메일", value: "이메일" }] as const;
+const DEFAULT_PROPOSAL_SUBJECT = "[셀렉터스] ${creatorName}님, 크리에이터 활동을 제안드립니다";
+const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
+셀렉터스 운영팀입니다.
+
+\${creatorName}님의 콘텐츠를 관심 있게 보고, 셀렉터스 활동을 제안드리고자 연락드립니다.
+
+셀렉터스는 크리에이터의 개성과 전문성을 바탕으로 다양한 상품과 브랜드를 소개하는 크리에이터 파트너 프로그램입니다.
+
+[제안 내용]
+- 주요 캠페인 및 콘텐츠 협업
+- 채널 특성에 맞춘 상품과 캠페인 제안
+- 캠페인별 활동 조건 및 상세 가이드 별도 안내
+
+참여 의향이 있으시다면 본 메일에 회신하거나 아래 링크에서 신청해 주세요.
+\${proposalLink}
+
+감사합니다.
+셀렉터스 운영팀 드림
+
+담당자: \${adminName} \${adminPosition}
+이메일: \${adminEmail}`;
 
 const CREATOR_PLATFORM_OPTIONS = [
   { label: "전체", value: "" },
@@ -180,6 +203,11 @@ function creatorColumns(
   ];
 }
 
+function resizeProposalMessage(textarea: HTMLTextAreaElement) {
+  textarea.style.height = "auto";
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
 function BatchProposalPanel({
   creators,
   onClose,
@@ -193,9 +221,16 @@ function BatchProposalPanel({
 }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [subject, setSubject] = useState(DEFAULT_PROPOSAL_SUBJECT);
+  const [message, setMessage] = useState(DEFAULT_PROPOSAL_MESSAGE);
+  const proposalInvalid = !subject.trim() || !message.trim();
 
   const sendProposals = async () => {
     if (sending || creators.length === 0) return;
+    if (proposalInvalid) {
+      setError("제목과 제안 메시지를 입력해 주세요.");
+      return;
+    }
     setSending(true);
     setError("");
     const failed: CreatorSummary[] = [];
@@ -204,7 +239,7 @@ function BatchProposalPanel({
 
     for (const creator of creators) {
       try {
-        await postAdminProposal(creator.id);
+        await postAdminProposal(creator.id, { subject: subject.trim(), body: message.trim() });
         succeeded += 1;
       } catch (reason) {
         failed.push(creator);
@@ -226,7 +261,12 @@ function BatchProposalPanel({
   return (
     <SidePanel
       actions={(
-        <Button disabled={sending} onClick={sendProposals} variant="primary">
+        <Button
+          disabled={sending || proposalInvalid}
+          form="batch-proposal-form"
+          type="submit"
+          variant="primary"
+        >
           {sending ? "발송 중..." : `${creators.length}명에게 제안 발송`}
         </Button>
       )}
@@ -234,6 +274,7 @@ function BatchProposalPanel({
       title="제안 발송"
     >
       <div className="fuma-detail-panel__content">
+        {error ? <p role="alert">{error}</p> : null}
         <aside aria-label="제안 대상" className="fuma-proposal-compose__creator fuma-proposal-compose__creator--batch">
           <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
           <strong>{creators.length}명 선택됨</strong>
@@ -246,10 +287,55 @@ function BatchProposalPanel({
             ))}
           </ul>
           <p className="fuma-proposal-compose__creator-note">
-            서버에 등록된 제안 메일 템플릿으로 대상별 순차 발송됩니다.
+            템플릿 변수는 대상별 정보로 바뀌어 순차 발송됩니다.
           </p>
         </aside>
-        {error ? <p role="alert">{error}</p> : null}
+        <form
+          aria-busy={sending}
+          aria-label="제안 작성"
+          className="fuma-proposal-compose__form"
+          id="batch-proposal-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void sendProposals();
+          }}
+        >
+          <div className="fuma-proposal-compose__form-heading">
+            <h2>제안 내용</h2>
+            <span>필수 항목을 입력해 주세요.</span>
+          </div>
+          <FormRow label="제안 채널" required>
+            <Select aria-label="제안 채널" defaultValue="이메일" disabled options={PROPOSAL_CHANNEL_OPTIONS} />
+          </FormRow>
+          <FormRow label="제목" required>
+            <TextInput
+              aria-label="제목"
+              disabled={sending}
+              maxLength={200}
+              onChange={(event) => setSubject(event.target.value)}
+              required
+              value={subject}
+            />
+          </FormRow>
+          <FormRow label="제안 메시지" required>
+            <textarea
+              aria-label="제안 메시지"
+              className="hsas-control fuma-proposal-compose__textarea"
+              disabled={sending}
+              maxLength={10_000}
+              onChange={(event) => setMessage(event.target.value)}
+              onInput={(event) => resizeProposalMessage(event.currentTarget)}
+              ref={(textarea) => {
+                if (textarea) resizeProposalMessage(textarea);
+              }}
+              required
+              value={message}
+            />
+          </FormRow>
+          <footer className="fuma-proposal-compose__footer">
+            <span>발송 후 제안 이력에서 상태를 확인할 수 있습니다.</span>
+          </footer>
+        </form>
       </div>
     </SidePanel>
   );
