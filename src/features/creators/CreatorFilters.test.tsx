@@ -96,25 +96,28 @@ describe("creator filters", () => {
     renderCreatorPage();
 
     const table = screen.getByRole("region", { name: "크리에이터 목록" });
-    expect(await within(table).findByText("김서연")).toBeInTheDocument();
-    expect(within(table).getByText("@seo.yeon ↗")).toBeInTheDocument();
+    expect(await within(table).findByText("김서연 ↗")).toBeInTheDocument();
     expect(within(table).getByText("Clevr TV ↗")).toBeInTheDocument();
     expect(within(table).getByText("82,400")).toBeInTheDocument();
     expect(within(table).getByText("4.25%")).toBeInTheDocument();
     expect(within(table).getByText("14건")).toBeInTheDocument();
     expect(within(table).getByText("25+건")).toBeInTheDocument();
     expect(await within(table).findByText("스킨케어")).toBeInTheDocument();
-    expect(within(table).getByRole("link", { name: "@seo.yeon SNS 계정 열기 (새 창)" }))
+    expect(within(table).queryByRole("columnheader", { name: "SNS 계정" }))
+      .not.toBeInTheDocument();
+    const seoLink = within(table).getByRole("link", { name: "김서연 SNS 계정 열기 (새 창)" });
+    expect(seoLink)
       .toHaveAttribute("href", "https://www.instagram.com/seo.yeon");
+    expect(seoLink).not.toHaveClass("hsas-button");
     expect(within(table).getByRole("link", { name: "Clevr TV SNS 계정 열기 (새 창)" }))
       .toHaveAttribute("href", "https://www.youtube.com/channel/UCnMBn-PNx1M9TLF0s-sEDeQ");
     expect(within(table).queryByText("UCnMBn-PNx1M9TLF0s-sEDeQ")).not.toBeInTheDocument();
-    expect(within(table).getByRole("link", { name: "@numeric.instagram SNS 계정 열기 (새 창)" }))
+    expect(within(table).getByRole("link", { name: "numeric.instagram SNS 계정 열기 (새 창)" }))
       .toHaveAttribute("href", "https://www.instagram.com/numeric.instagram");
     expect(screen.queryByRole("button", { name: "카드" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /제안/ })).not.toBeInTheDocument();
 
-    const seoRow = within(table).getByText("김서연").closest("tr");
+    const seoRow = within(table).getByText("김서연 ↗").closest("tr");
     const seoCheckbox = within(table).getByRole("checkbox", { name: "김서연 선택" });
     const selectAll = within(table).getByRole("checkbox", { name: "현재 페이지 전체 선택" });
     await user.click(seoCheckbox);
@@ -138,7 +141,7 @@ describe("creator filters", () => {
     const fetchMock = mockCreatorApi();
     vi.stubGlobal("fetch", fetchMock);
     renderCreatorPage();
-    await screen.findByText("김서연");
+    await screen.findByText("김서연 ↗");
     const search = screen.getByRole("search", { name: "검색 조건" });
     const keyword = within(search).getByRole("textbox", { name: "키워드" });
     const minFollowers = within(search).getByRole("textbox", { name: "최소 팔로워·구독자" });

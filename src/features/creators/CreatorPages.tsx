@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { AlertDialog } from "../../components/ui/AlertDialog";
-import { Button, buttonClassNames, Select, TextInput } from "../../components/ui/Controls";
+import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -93,14 +93,14 @@ function CreatorAccountLink({ creator }: { creator: CreatorSummary }) {
     : instagramUsername
       ? `https://www.instagram.com/${encodeURIComponent(instagramUsername)}`
       : null;
-  const accountName = creator.snsCode === "INSTAGRAM" && instagramUsername
-    ? `@${instagramUsername}`
-    : creator.creatorName || creator.accountId;
+  const accountName = creator.creatorName
+    || (creator.snsCode === "INSTAGRAM" && instagramUsername
+      ? `@${instagramUsername}`
+      : creator.accountId);
 
   return href ? (
     <a
       aria-label={`${accountName} SNS 계정 열기 (새 창)`}
-      className={buttonClassNames("secondary", "fuma-table-link")}
       href={href}
       rel="noreferrer"
       target="_blank"
@@ -128,13 +128,6 @@ function creatorColumns(
     key: "creatorName",
     header: "계정명",
     width: 150,
-    align: "center",
-    render: (creator) => creator.creatorName || "-",
-  },
-  {
-    id: "account",
-    header: "SNS 계정",
-    width: 110,
     align: "center",
     render: (creator) => <CreatorAccountLink creator={creator} />,
   },

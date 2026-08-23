@@ -1195,23 +1195,11 @@
   line-height: 19px;
 }
 
-.fuma-table-link,
 .fuma-detail-toolbar__link,
 .fuma-result-toolbar__link {
   display: inline-block;
   box-sizing: border-box;
   text-decoration: none;
-}
-
-.fuma-table-link {
-  border: 1px solid var(--hsas-border-dark);
-  border-radius: var(--hsas-radius);
-  background: var(--hsas-surface);
-  color: var(--hsas-text);
-}
-
-.fuma-table-link:hover {
-  background: var(--hsas-surface-muted);
 }
 
 .fuma-content-section {
