@@ -169,10 +169,24 @@ describe("creator filters", () => {
     await user.click(screen.getByRole("button", { name: "선택 2명 제안 발송" }));
 
     const panel = await screen.findByRole("dialog", { name: "제안 발송" });
+    expect(panel).toHaveAttribute("data-visual-contract", "detail-side-panel");
+    expect(within(panel).getByText("CREATOR OUTREACH")).toBeInTheDocument();
+    expect(within(panel).getByRole("heading", {
+      name: "2명의 크리에이터에게 보낼 제안을 작성합니다.",
+    })).toBeInTheDocument();
+    expect(within(panel).getByRole("heading", { name: "제안 내용" })).toBeInTheDocument();
+    const target = within(panel).getByRole("complementary", { name: "제안 대상" });
+    expect(target).toHaveTextContent("2명 선택됨");
+    expect(within(target).getAllByRole("listitem")).toHaveLength(2);
     expect(within(panel).getByText("김서연")).toBeInTheDocument();
     expect(within(panel).getByText("Clevr TV")).toBeInTheDocument();
+    expect(target).toHaveTextContent("82,400");
+    expect(target).toHaveTextContent("830,000");
+    expect(target).toHaveTextContent("뷰티");
+    await waitFor(() => expect(target).toHaveTextContent("스킨케어"));
     expect(within(panel).getByRole("combobox", { name: "제안 채널" }))
       .toBeDisabled();
+    expect(within(panel).getByText("이메일 자동 발송")).toBeInTheDocument();
     const subject = within(panel).getByRole("textbox", { name: "제목" });
     const message = within(panel).getByRole("textbox", { name: "제안 메시지" });
     expect(subject).toHaveAttribute("maxlength", "200");

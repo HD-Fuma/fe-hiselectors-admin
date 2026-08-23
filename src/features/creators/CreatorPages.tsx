@@ -209,11 +209,13 @@ function resizeProposalMessage(textarea: HTMLTextAreaElement) {
 }
 
 function BatchProposalPanel({
+  categoryOptions,
   creators,
   onClose,
   onComplete,
   onFailed,
 }: {
+  categoryOptions: readonly { label: string; value: string }[];
   creators: CreatorSummary[];
   onClose: () => void;
   onComplete: (count: number) => void;
@@ -273,69 +275,92 @@ function BatchProposalPanel({
       onClose={() => { if (!sending) onClose(); }}
       title="제안 발송"
     >
-      <div className="fuma-detail-panel__content">
-        {error ? <p role="alert">{error}</p> : null}
-        <aside aria-label="제안 대상" className="fuma-proposal-compose__creator fuma-proposal-compose__creator--batch">
-          <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
-          <strong>{creators.length}명 선택됨</strong>
-          <ul>
-            {creators.map((creator) => (
-              <li key={creator.id}>
-                {creator.creatorName || creator.accountId}
-                <span>{platformFor(creator.snsCode)}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="fuma-proposal-compose__creator-note">
-            템플릿 변수는 대상별 정보로 바뀌어 순차 발송됩니다.
-          </p>
-        </aside>
-        <form
-          aria-busy={sending}
-          aria-label="제안 작성"
-          className="fuma-proposal-compose__form"
-          id="batch-proposal-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void sendProposals();
-          }}
-        >
-          <div className="fuma-proposal-compose__form-heading">
-            <h2>제안 내용</h2>
-            <span>필수 항목을 입력해 주세요.</span>
+      <div className="fuma-detail-panel__content fuma-proposal-compose">
+        <div className="fuma-proposal-compose__intro">
+          <div>
+            <p>CREATOR OUTREACH</p>
+            <h2>{creators.length}명의 크리에이터에게 보낼 제안을 작성합니다.</h2>
           </div>
-          <FormRow label="제안 채널" required>
-            <Select aria-label="제안 채널" defaultValue="이메일" disabled options={PROPOSAL_CHANNEL_OPTIONS} />
-          </FormRow>
-          <FormRow label="제목" required>
-            <TextInput
-              aria-label="제목"
-              disabled={sending}
-              maxLength={200}
-              onChange={(event) => setSubject(event.target.value)}
-              required
-              value={subject}
-            />
-          </FormRow>
-          <FormRow label="제안 메시지" required>
-            <textarea
-              aria-label="제안 메시지"
-              className="hsas-control fuma-proposal-compose__textarea"
-              disabled={sending}
-              maxLength={10_000}
-              onChange={(event) => setMessage(event.target.value)}
-              onInput={(event) => resizeProposalMessage(event.currentTarget)}
-              ref={(textarea) => {
-                if (textarea) resizeProposalMessage(textarea);
-              }}
-              required
-              value={message}
-            />
-          </FormRow>
-          <footer className="fuma-proposal-compose__footer">
-            <span>발송 후 제안 이력에서 상태를 확인할 수 있습니다.</span>
-          </footer>
-        </form>
+          <span>발송 전 내용을 다시 확인해 주세요.</span>
+        </div>
+        {error ? <p role="alert">{error}</p> : null}
+        <div className="fuma-proposal-compose__layout fuma-proposal-compose__layout--panel">
+          <aside aria-label="제안 대상" className="fuma-proposal-compose__creator fuma-proposal-compose__creator--batch">
+            <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
+            <strong>{creators.length}명 선택됨</strong>
+            <ul>
+              {creators.map((creator) => {
+                const platform = platformFor(creator.snsCode);
+                const audienceLabel = platform === "Instagram" ? "팔로워" : "구독자";
+                return (
+                  <li key={creator.id}>
+                    <strong>{creator.creatorName || creator.accountId}</strong>
+                    <span>
+                      {platform} · {audienceLabel}{" "}
+                      {creator.followerCount === null ? "-" : formatNumber(creator.followerCount)} ·{" "}
+                      {categoryLabel(creator.category, categoryOptions)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="fuma-proposal-compose__creator-note">
+              템플릿 변수는 대상별 정보로 바뀌어 순차 발송됩니다.
+            </p>
+          </aside>
+          <form
+            aria-busy={sending}
+            aria-label="제안 작성"
+            className="fuma-proposal-compose__form"
+            id="batch-proposal-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void sendProposals();
+            }}
+          >
+            <div className="fuma-proposal-compose__form-heading">
+              <h2>제안 내용</h2>
+              <span>필수 항목을 입력해 주세요.</span>
+            </div>
+            <FormRow label="제안 채널" required>
+              <Select aria-label="제안 채널" defaultValue="이메일" disabled options={PROPOSAL_CHANNEL_OPTIONS} />
+            </FormRow>
+            <FormRow label="발송 방식">
+              <div className="fuma-proposal-compose__delivery">
+                <strong>이메일 자동 발송</strong>
+                <span>선택한 {creators.length}명에게 개별 메일로 순차 발송합니다.</span>
+              </div>
+            </FormRow>
+            <FormRow label="제목" required>
+              <TextInput
+                aria-label="제목"
+                disabled={sending}
+                maxLength={200}
+                onChange={(event) => setSubject(event.target.value)}
+                required
+                value={subject}
+              />
+            </FormRow>
+            <FormRow label="제안 메시지" required>
+              <textarea
+                aria-label="제안 메시지"
+                className="hsas-control fuma-proposal-compose__textarea"
+                disabled={sending}
+                maxLength={10_000}
+                onChange={(event) => setMessage(event.target.value)}
+                onInput={(event) => resizeProposalMessage(event.currentTarget)}
+                ref={(textarea) => {
+                  if (textarea) resizeProposalMessage(textarea);
+                }}
+                required
+                value={message}
+              />
+            </FormRow>
+            <footer className="fuma-proposal-compose__footer">
+              <span>발송 후 제안 이력에서 상태를 확인할 수 있습니다.</span>
+            </footer>
+          </form>
+        </div>
       </div>
     </SidePanel>
   );
@@ -551,6 +576,7 @@ export function CreatorListPage() {
     ) : null}
     {proposalPanelOpen ? (
       <BatchProposalPanel
+        categoryOptions={[...categoryOptions, ...CREATOR_CATEGORY_OPTIONS]}
         creators={[...selectedCreators.values()]}
         onClose={() => setProposalPanelOpen(false)}
         onComplete={(count) => {
