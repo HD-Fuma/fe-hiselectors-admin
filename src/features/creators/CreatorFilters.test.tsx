@@ -71,22 +71,39 @@ describe("creator filters", () => {
     }));
   }
 
-  function mockCreatorApi(totalPages = 1) {
-    return vi.fn((input: RequestInfo | URL) => Promise.resolve(
-      String(input).endsWith("/api/admin/categories")
-        ? new Response(JSON.stringify({
-            success: true,
-            data: [
-              { id: 1, code: "TRAVEL", name: "여행", displayOrder: 1, enabled: true, keywords: [] },
-              { id: 2, code: "SKINCARE", name: "스킨케어", displayOrder: 2, enabled: true, keywords: [] },
-            ],
-          }))
-        : ok(totalPages),
-    ));
+  function mockCreatorApi(totalPages = 1, failedProposalIds: ReadonlySet<number> = new Set()) {
+    return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/api/admin/proposals") && init?.method === "POST") {
+        const { creatorId } = JSON.parse(String(init.body)) as { creatorId: number };
+        const failed = failedProposalIds.has(creatorId);
+        return Promise.resolve(new Response(JSON.stringify({
+          success: !failed,
+          data: failed ? null : { proposalHistoryId: creatorId },
+          message: failed ? "발송 실패" : null,
+        }), { status: failed ? 502 : 201 }));
+      }
+      return Promise.resolve(
+        String(input).endsWith("/api/admin/categories")
+          ? new Response(JSON.stringify({
+              success: true,
+              data: [
+                { id: 1, code: "TRAVEL", name: "여행", displayOrder: 1, enabled: true, keywords: [] },
+                { id: 2, code: "SKINCARE", name: "스킨케어", displayOrder: 2, enabled: true, keywords: [] },
+              ],
+            }))
+          : ok(totalPages),
+      );
+    });
   }
 
   function creatorRequests(fetchMock: ReturnType<typeof mockCreatorApi>) {
     return fetchMock.mock.calls.filter(([input]) => String(input).includes("/api/admin/creators?"));
+  }
+
+  function proposalRequests(fetchMock: ReturnType<typeof mockCreatorApi>) {
+    return fetchMock.mock.calls.filter(([input, init]) => (
+      String(input).endsWith("/api/admin/proposals") && init?.method === "POST"
+    ));
   }
 
   test("renders the API result as a read-only table and requests server pagination", async () => {
@@ -115,7 +132,7 @@ describe("creator filters", () => {
     expect(within(table).getByRole("link", { name: "numeric.instagram SNS 계정 열기 (새 창)" }))
       .toHaveAttribute("href", "https://www.instagram.com/numeric.instagram");
     expect(screen.queryByRole("button", { name: "카드" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /제안/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "선택 0명 제안 발송" })).toBeDisabled();
 
     const seoRow = within(table).getByText("김서연 ↗").closest("tr");
     const seoCheckbox = within(table).getByRole("checkbox", { name: "김서연 선택" });
@@ -123,17 +140,68 @@ describe("creator filters", () => {
     await user.click(seoCheckbox);
     expect(seoRow).toHaveAttribute("aria-selected", "true");
     expect(selectAll).toBePartiallyChecked();
+    expect(screen.getByRole("button", { name: "선택 1명 제안 발송" })).toBeEnabled();
 
     await user.click(selectAll);
     expect(within(table).getAllByRole("checkbox")).toHaveLength(4);
     within(table).getAllByRole("checkbox").forEach((checkbox) => expect(checkbox).toBeChecked());
+    expect(screen.getByRole("button", { name: "선택 3명 제안 발송" })).toBeEnabled();
 
     await user.click(selectAll);
     within(table).getAllByRole("checkbox").forEach((checkbox) => expect(checkbox).not.toBeChecked());
+    expect(screen.getByRole("button", { name: "선택 0명 제안 발송" })).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: "다음 페이지" }));
     await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(2));
     expect(String(creatorRequests(fetchMock)[1][0])).toContain("page=1");
+  });
+
+  test("sends proposals to every selected creator from the side panel", async () => {
+    const user = userEvent.setup();
+    const fetchMock = mockCreatorApi();
+    vi.stubGlobal("fetch", fetchMock);
+    renderCreatorPage();
+    const table = screen.getByRole("region", { name: "크리에이터 목록" });
+    await within(table).findByText("김서연 ↗");
+
+    await user.click(within(table).getByRole("checkbox", { name: "김서연 선택" }));
+    await user.click(within(table).getByRole("checkbox", { name: "Clevr TV 선택" }));
+    await user.click(screen.getByRole("button", { name: "선택 2명 제안 발송" }));
+
+    const panel = await screen.findByRole("dialog", { name: "제안 발송" });
+    expect(within(panel).getByText("김서연")).toBeInTheDocument();
+    expect(within(panel).getByText("Clevr TV")).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: "2명에게 제안 발송" }));
+
+    await waitFor(() => expect(proposalRequests(fetchMock)).toHaveLength(2));
+    expect(proposalRequests(fetchMock).map(([, init]) => JSON.parse(String(init?.body)).creatorId))
+      .toEqual([113, 114]);
+    const completed = await screen.findByRole("alertdialog", { name: "제안 발송 완료" });
+    expect(completed).toHaveTextContent("2명에게 제안을 발송했습니다.");
+    await user.click(within(completed).getByRole("button", { name: "확인" }));
+    expect(screen.getByRole("button", { name: "선택 0명 제안 발송" })).toBeDisabled();
+  });
+
+  test("continues after a failed proposal and leaves only failures selected", async () => {
+    const user = userEvent.setup();
+    const fetchMock = mockCreatorApi(1, new Set([114]));
+    vi.stubGlobal("fetch", fetchMock);
+    renderCreatorPage();
+    const table = screen.getByRole("region", { name: "크리에이터 목록" });
+    await within(table).findByText("김서연 ↗");
+
+    await user.click(within(table).getByRole("checkbox", { name: "현재 페이지 전체 선택" }));
+    await user.click(screen.getByRole("button", { name: "선택 3명 제안 발송" }));
+    const panel = await screen.findByRole("dialog", { name: "제안 발송" });
+    await user.click(within(panel).getByRole("button", { name: "3명에게 제안 발송" }));
+
+    expect(await within(panel).findByRole("alert"))
+      .toHaveTextContent("2명 발송 완료, 1명 발송에 실패했습니다. 발송 실패");
+    expect(proposalRequests(fetchMock).map(([, init]) => JSON.parse(String(init?.body)).creatorId))
+      .toEqual([113, 114, 115]);
+    expect(within(panel).getByText("Clevr TV")).toBeInTheDocument();
+    expect(within(panel).queryByText("김서연")).not.toBeInTheDocument();
+    expect(within(panel).getByRole("button", { name: "1명에게 제안 발송" })).toBeEnabled();
   });
 
   test("sends quantitative filters to the API and reset clears them", async () => {

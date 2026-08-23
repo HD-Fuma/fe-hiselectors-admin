@@ -180,14 +180,91 @@ function creatorColumns(
   ];
 }
 
+function BatchProposalPanel({
+  creators,
+  onClose,
+  onComplete,
+  onFailed,
+}: {
+  creators: CreatorSummary[];
+  onClose: () => void;
+  onComplete: (count: number) => void;
+  onFailed: (creators: CreatorSummary[]) => void;
+}) {
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+
+  const sendProposals = async () => {
+    if (sending || creators.length === 0) return;
+    setSending(true);
+    setError("");
+    const failed: CreatorSummary[] = [];
+    let succeeded = 0;
+    let firstFailure = "";
+
+    for (const creator of creators) {
+      try {
+        await postAdminProposal(creator.id);
+        succeeded += 1;
+      } catch (reason) {
+        failed.push(creator);
+        if (!firstFailure) {
+          firstFailure = reason instanceof Error ? reason.message : "제안 메일 발송에 실패했습니다.";
+        }
+      }
+    }
+
+    setSending(false);
+    if (failed.length > 0) {
+      onFailed(failed);
+      setError(`${succeeded > 0 ? `${succeeded}명 발송 완료, ` : ""}${failed.length}명 발송에 실패했습니다. ${firstFailure}`);
+      return;
+    }
+    onComplete(succeeded);
+  };
+
+  return (
+    <SidePanel
+      actions={(
+        <Button disabled={sending} onClick={sendProposals} variant="primary">
+          {sending ? "발송 중..." : `${creators.length}명에게 제안 발송`}
+        </Button>
+      )}
+      onClose={() => { if (!sending) onClose(); }}
+      title="제안 발송"
+    >
+      <div className="fuma-detail-panel__content">
+        <aside aria-label="제안 대상" className="fuma-proposal-compose__creator fuma-proposal-compose__creator--batch">
+          <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
+          <strong>{creators.length}명 선택됨</strong>
+          <ul>
+            {creators.map((creator) => (
+              <li key={creator.id}>
+                {creator.creatorName || creator.accountId}
+                <span>{platformFor(creator.snsCode)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="fuma-proposal-compose__creator-note">
+            서버에 등록된 제안 메일 템플릿으로 대상별 순차 발송됩니다.
+          </p>
+        </aside>
+        {error ? <p role="alert">{error}</p> : null}
+      </div>
+    </SidePanel>
+  );
+}
+
 export function CreatorListPage() {
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_CREATOR_FILTERS);
-  const [selectedCreatorIds, setSelectedCreatorIds] = useState<Set<number>>(new Set());
+  const [selectedCreators, setSelectedCreators] = useState<Map<number, CreatorSummary>>(new Map());
   const [page, setPage] = useState(1);
   const [pageData, setPageData] = useState<Awaited<ReturnType<typeof getCreators>> | null>(null);
   const [error, setError] = useState("");
   const [discoverySettingsOpen, setDiscoverySettingsOpen] = useState(false);
+  const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
+  const [proposalCompletedCount, setProposalCompletedCount] = useState(0);
   const [categoryOptions, setCategoryOptions] = useState<readonly { label: string; value: string }[]>(
     CREATOR_CATEGORY_OPTIONS,
   );
@@ -239,37 +316,37 @@ export function CreatorListPage() {
     }
     setError("");
     setAppliedFilters({ ...filters, keyword: filters.keyword.trim() });
-    setSelectedCreatorIds(new Set());
+    setSelectedCreators(new Map());
     setPage(1);
   };
   const resetSearch = () => {
     setFilters(EMPTY_CREATOR_FILTERS);
     setAppliedFilters(EMPTY_CREATOR_FILTERS);
-    setSelectedCreatorIds(new Set());
+    setSelectedCreators(new Map());
     setPage(1);
   };
   const selectCategory = (categoryCode: string) => {
     setFilters((current) => ({ ...current, categoryCode }));
     setAppliedFilters((current) => ({ ...current, categoryCode }));
-    setSelectedCreatorIds(new Set());
+    setSelectedCreators(new Map());
     setPage(1);
   };
   const listedCreators = pageData?.content ?? [];
-  const selectedOnPage = listedCreators.filter((creator) => selectedCreatorIds.has(creator.id)).length;
+  const selectedOnPage = listedCreators.filter((creator) => selectedCreators.has(creator.id)).length;
   const allListedCreatorsSelected = listedCreators.length > 0
     && selectedOnPage === listedCreators.length;
-  const toggleSelected = (creatorId: number) => setSelectedCreatorIds((current) => {
-    const next = new Set(current);
-    if (next.has(creatorId)) next.delete(creatorId);
-    else next.add(creatorId);
+  const toggleSelected = (creator: CreatorSummary) => setSelectedCreators((current) => {
+    const next = new Map(current);
+    if (next.has(creator.id)) next.delete(creator.id);
+    else next.set(creator.id, creator);
     return next;
   });
-  const toggleAll = () => setSelectedCreatorIds((current) => {
-    const next = new Set(current);
+  const toggleAll = () => setSelectedCreators((current) => {
+    const next = new Map(current);
     const shouldClearPage = listedCreators.every((creator) => next.has(creator.id));
     listedCreators.forEach((creator) => {
       if (shouldClearPage) next.delete(creator.id);
-      else next.add(creator.id);
+      else next.set(creator.id, creator);
     });
     return next;
   });
@@ -293,8 +370,8 @@ export function CreatorListPage() {
       render: (creator) => (
         <input
           aria-label={`${creator.creatorName || creator.accountId} 선택`}
-          checked={selectedCreatorIds.has(creator.id)}
-          onChange={() => toggleSelected(creator.id)}
+          checked={selectedCreators.has(creator.id)}
+          onChange={() => toggleSelected(creator)}
           type="checkbox"
         />
       ),
@@ -341,9 +418,19 @@ export function CreatorListPage() {
         />
         <ResultToolbar
           actions={(
-            <Button aria-haspopup="dialog" onClick={() => setDiscoverySettingsOpen(true)}>
-              발굴 설정
-            </Button>
+            <>
+              <Button
+                aria-haspopup="dialog"
+                disabled={selectedCreators.size === 0}
+                onClick={() => setProposalPanelOpen(true)}
+                variant="primary"
+              >
+                선택 {selectedCreators.size}명 제안 발송
+              </Button>
+              <Button aria-haspopup="dialog" onClick={() => setDiscoverySettingsOpen(true)}>
+                발굴 설정
+              </Button>
+            </>
           )}
           className="fuma-simple-result-toolbar"
           meta={<span>총 {pageData?.totalElements ?? 0}건</span>}
@@ -358,7 +445,7 @@ export function CreatorListPage() {
               emptyMessage={pageData ? "검색 결과가 없습니다." : "크리에이터를 불러오는 중입니다."}
               rowKey={(creator) => creator.id}
               rows={listedCreators}
-              selectedRowKeys={[...selectedCreatorIds]}
+              selectedRowKeys={[...selectedCreators.keys()]}
             />
           )}
         </div>
@@ -376,6 +463,26 @@ export function CreatorListPage() {
         refreshCategoryOptions().catch(() => undefined);
       }} />
     ) : null}
+    {proposalPanelOpen ? (
+      <BatchProposalPanel
+        creators={[...selectedCreators.values()]}
+        onClose={() => setProposalPanelOpen(false)}
+        onComplete={(count) => {
+          setSelectedCreators(new Map());
+          setProposalPanelOpen(false);
+          setProposalCompletedCount(count);
+        }}
+        onFailed={(failed) => setSelectedCreators(
+          new Map(failed.map((creator) => [creator.id, creator])),
+        )}
+      />
+    ) : null}
+    <AlertDialog
+      message={`${proposalCompletedCount}명에게 제안을 발송했습니다.`}
+      onClose={() => setProposalCompletedCount(0)}
+      open={proposalCompletedCount > 0}
+      title="제안 발송 완료"
+    />
     </>
   );
 }
