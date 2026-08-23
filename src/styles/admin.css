@@ -6948,7 +6948,8 @@
   margin: 0;
 }
 
-.fuma-creator-analysis-claims { display: grid; grid-template-columns: 1fr; gap: var(--hsas-space-9); }
+.fuma-creator-analysis-claims { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--hsas-space-9); }
+.fuma-creator-analysis-claims > .fuma-creator-analysis-claim.fuma-creator-analysis-claim--risk { grid-column: 1 / -1; }
 .fuma-creator-analysis-claims > div { display: grid; gap: var(--hsas-space-7); min-width: 0; padding: var(--hsas-space-13) var(--hsas-space-14); border: 1px solid #e5e9e7; border-radius: 9px; background: var(--hsas-color-white); }
 .fuma-creator-analysis-claims > div:first-child { grid-column: auto; background: var(--hsas-color-white); }
 .fuma-creator-analysis-claims dt { display: flex; align-items: center; justify-content: space-between; gap: var(--hsas-space-12); }
@@ -8219,6 +8220,206 @@
   background: var(--fuma-content-accent-soft);
 }
 
+.fuma-representative-card-wrap { display: grid; gap: var(--hsas-space-10); }
+
+.fuma-representative-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: var(--hsas-space-18);
+  padding: var(--hsas-space-16);
+  border: 1px solid #f2d6ed;
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, #fff0fb 0%, transparent 55%),
+    linear-gradient(150deg, #fffafd 0%, var(--hsas-color-white) 60%);
+  box-shadow: 0 1px 2px rgba(33, 53, 44, 0.04);
+}
+
+.fuma-representative-card__media {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #efe4ec;
+  aspect-ratio: 9 / 16;
+  box-shadow: 0 6px 18px rgba(189, 85, 173, 0.18);
+}
+
+.fuma-representative-card[data-layout="landscape"] .fuma-representative-card__media {
+  aspect-ratio: 16 / 9;
+}
+
+.fuma-representative-card__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.fuma-representative-card__media:hover img { transform: scale(1.05); }
+
+.fuma-representative-card__media-empty {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #c79bc0;
+}
+
+.fuma-representative-card__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  padding-left: 2px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  background: rgba(24, 20, 23, 0.5);
+  backdrop-filter: blur(2px);
+  color: var(--hsas-color-white);
+  transform: translate(-50%, -50%);
+}
+
+.fuma-representative-card__format-badge {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  padding: var(--hsas-space-3) var(--hsas-space-8);
+  border-radius: 999px;
+  background: rgba(24, 20, 23, 0.6);
+  backdrop-filter: blur(2px);
+  color: var(--hsas-color-white);
+  font-size: var(--hsas-font-9);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.fuma-representative-card__info {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: var(--hsas-space-11);
+}
+
+.fuma-representative-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hsas-space-8);
+}
+
+.fuma-representative-card__views {
+  color: #bd55ad;
+  font-size: var(--hsas-font-18);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.fuma-representative-basis {
+  display: grid;
+  gap: var(--hsas-space-8);
+  padding: var(--hsas-space-12) var(--hsas-space-13);
+  border: 1px solid #f2d6ed;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.fuma-representative-basis__label {
+  color: #a24d95;
+  font-size: var(--hsas-font-9);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.fuma-representative-basis__insight {
+  margin: 0;
+  color: #4f584f;
+  font-size: var(--hsas-font-11);
+  font-weight: 600;
+}
+
+.fuma-representative-card__keywords {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fuma-representative-card__cta {
+  justify-self: start;
+  margin-top: auto;
+  color: #a24d95;
+  font-size: var(--hsas-font-11);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.fuma-representative-card__cta:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .fuma-representative-card { grid-template-columns: 104px minmax(0, 1fr); }
+  .fuma-representative-card__views { font-size: var(--hsas-font-15); }
+}
+
+.fuma-bar-rows { display: grid; gap: var(--hsas-space-7); }
+
+.fuma-bar-rows__row {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--hsas-space-8);
+}
+
+.fuma-bar-rows__label {
+  overflow: hidden;
+  color: #5b6a63;
+  font-size: var(--hsas-font-10);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-bar-rows__track {
+  position: relative;
+  height: 9px;
+  border-radius: 999px;
+  background: #eef1ef;
+  overflow: hidden;
+}
+
+.fuma-bar-rows__fill {
+  height: 100%;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(90deg, #de76ce, #bd55ad);
+  transition: width 0.4s ease;
+}
+
+.fuma-bar-rows__fill[data-tone="muted"] { background: #c7ccd1; }
+
+.fuma-bar-rows__value {
+  color: #21352c;
+  font-size: var(--hsas-font-11);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.fuma-analysis-engagement__card--funnel {
+  grid-column: 1 / -1;
+  display: block;
+}
+
+.fuma-analysis-engagement__card--funnel > span {
+  display: block;
+  margin-bottom: var(--hsas-space-9);
+}
+
+.fuma-analysis-engagement__card--funnel .fuma-bar-rows__label { width: 62px; }
+
 .fuma-analysis-format-breakdown {
   display: grid;
   grid-template-columns: 130px minmax(0, 1fr);
@@ -8408,6 +8609,7 @@
 .fuma-analysis-tags__evidence { color: #bd55ad; font-size: var(--hsas-font-9); font-weight: 750; text-decoration: none; white-space: nowrap; }
 .fuma-analysis-tags__tag {
   display: inline-flex;
+  max-width: 100%;
   align-items: center;
   min-height: 23px;
   padding: var(--hsas-space-3) var(--hsas-space-7);
@@ -8418,13 +8620,41 @@
   font-size: var(--hsas-font-10);
   font-weight: 700;
   line-height: 1.2;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .fuma-analysis-tags__tag--keyword { gap: var(--hsas-space-5); border-color: #f0d7ec; background: #fff3fc; color: #a54d98; }
 .fuma-analysis-tags__tag strong { color: inherit; font-size: inherit; font-weight: 800; }
 .fuma-analysis-tags__tag small { color: #bd55ad; font-size: var(--hsas-font-9); font-weight: 800; }
 .fuma-analysis-tags__empty { padding: var(--hsas-space-4) 0; color: #91989d; font-size: var(--hsas-font-10); }
+
+.fuma-analysis-qualitative__status {
+  display: flex;
+  align-items: center;
+  gap: var(--hsas-space-8);
+  padding: var(--hsas-space-16);
+  border: 1px dashed #e0cbe2;
+  border-radius: 10px;
+  background: #fdf6fb;
+  color: #8a6c88;
+  font-size: var(--hsas-font-12);
+  font-weight: 600;
+}
+
+.fuma-analysis-qualitative__status-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--hsas-color-accent-pink);
+  animation: fuma-analysis-status-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes fuma-analysis-status-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
 
 .fuma-creator-analysis-claims .fuma-analysis-tags__group { grid-template-columns: 74px minmax(0, 1fr); width: 100%; }
 .fuma-analysis-qualitative .fuma-analysis-tags__group > .fuma-analysis-tags__list { margin: 0; padding: 0; list-style: none; }
@@ -8589,7 +8819,7 @@
   font-size: var(--hsas-font-13);
 }
 
-.fuma-creator-analysis-claims > .fuma-creator-analysis-claim--risk {
+.fuma-creator-analysis-claims > .fuma-creator-analysis-claim.fuma-creator-analysis-claim--risk {
   border-color: #f0d2cf;
   border-left: 3px solid #d76767;
   background: #fff3f2;
@@ -8598,6 +8828,15 @@
 .fuma-creator-analysis-claims > .fuma-creator-analysis-claim--plain {
   background: var(--hsas-color-white);
 }
+
+.fuma-creator-analysis-claim__list {
+  display: grid;
+  gap: var(--hsas-space-4);
+  margin: 0;
+  padding-left: 1.1em;
+}
+
+.fuma-creator-analysis-claim__list li { padding-left: var(--hsas-space-2); }
 
 .fuma-analysis-risk-label {
   display: inline-flex;

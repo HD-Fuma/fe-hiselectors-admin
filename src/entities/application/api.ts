@@ -4,8 +4,10 @@ import { API_BASE_URL } from "../../lib/apiBaseUrl";
 export type ApplicationSnsCode = "INSTAGRAM" | "YOUTUBE";
 export type ApplicationStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type ApplicationMediaCollectionStatus = "PENDING" | "DONE" | "FAILED";
+export type ApplicationAnalysisStatus = "PENDING" | "IN_PROGRESS" | "DONE" | "FAILED";
 export type ApplicationContentType = "SHORT_FORM" | "LONG_FORM" | "SHORTS" | "FEED";
 export type ApplicationContentFormat = ApplicationContentType | "UNKNOWN";
+export type ApplicationRepresentativeContentType = "SHORT_FORM" | "FEED" | "LONG_FORM";
 
 export interface SpringPage<T> {
   content: T[];
@@ -68,6 +70,9 @@ export interface ApplicationMetrics {
   averageCommentCount: ApplicationMetricValue;
   engagementRate: ApplicationMetricValue;
   contentFormats: ApplicationContentFormatCount[];
+  viewCountPercentile: number | null;
+  likeCountPercentile: number | null;
+  commentCountPercentile: number | null;
 }
 
 export interface ApplicationContent {
@@ -87,6 +92,7 @@ export interface ApplicationContent {
 }
 
 export interface AdminApplicationDetail extends AdminApplicationIdentity {
+  analysisStatus: ApplicationAnalysisStatus;
   metrics: ApplicationMetrics;
   contents: ApplicationContent[];
 }
@@ -103,6 +109,11 @@ export interface AdminApplicationAiReport {
   brandHistory: string;
   status: string;
   createdAt: string;
+  representativeContentUrl: string | null;
+  representativeContentType: ApplicationRepresentativeContentType | null;
+  representativeViewCount: number | null;
+  representativeCategory: string | null;
+  representativeKeywords: string[] | null;
 }
 
 export interface AdminApplicationSearchRequest {

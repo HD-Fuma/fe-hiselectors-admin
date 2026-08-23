@@ -330,9 +330,9 @@ describe("applicant api pages", () => {
     await act(async () => pendingDetail.resolve(await json(applicantDetail)));
     expect(await within(panel).findByRole("heading", { name: "김민지" })).toBeInTheDocument();
     const report = within(panel).getByRole("region", { name: "지원자 분석 리포트" });
-    expect(within(report).getByText("- · 표본 0건")).toBeInTheDocument();
-    expect(within(report).getByText("평균 댓글").parentElement)
-      .toHaveTextContent("0 · 표본 3건");
+    expect(within(report).queryByText("평균 조회")).not.toBeInTheDocument();
+    expect(within(report).getByText("평균 좋아요").parentElement).toHaveTextContent("120.5건");
+    expect(within(report).getByText("평균 댓글").parentElement).toHaveTextContent("0건");
     expect(within(report).getAllByText("미분류")).not.toHaveLength(0);
     expect(within(report).getByText("전체 공개 콘텐츠").parentElement).toHaveTextContent("126건");
     expect(within(panel).getByText("최종 업데이트").parentElement)
