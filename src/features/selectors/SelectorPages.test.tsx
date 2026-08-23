@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { SelectorDetail } from "../../entities/selectors";
+import type { SettlementSelectorDetail } from "../../entities/settlement";
 import { renderRoute } from "../../test/renderRoute";
 
 const summary = {
@@ -25,6 +26,9 @@ const detail = {
   userId: 700,
   createdAt: "2026-08-19T10:00:00",
   updatedAt: "2026-08-20T09:00:00",
+  snsVerifiedAt: "2026-07-01T11:00:00",
+  privacyAgreedAt: "2026-07-01T11:05:00",
+  alimtalkAgreed: true,
   generations: [{
     generationId: 3,
     generationName: "3기",
@@ -48,6 +52,7 @@ const detail = {
     id: 101,
     snsCode: "INSTAGRAM",
     contentUrl: "https://www.instagram.com/p/example",
+    title: "여름 스타일링 추천",
     contentType: "REELS",
     createdAt: "2026-08-18T10:00:00",
     viewCount: 12000,
@@ -63,6 +68,51 @@ const detail = {
 } satisfies SelectorDetail;
 
 let selectorDetail: SelectorDetail = detail;
+
+const settlementDetail = {
+  profile: {
+    selectorsId: 7,
+    selectorsCode: "SEL0007",
+    selectorsNickname: "홍길동",
+    snsCode: "INSTAGRAM",
+    accountId: "hong.selector",
+    followerCount: 12345,
+    profileImageUrl: null,
+    lastCollectedAt: "2026-08-20T08:00:00",
+  },
+  settlementSummary: {
+    cumulativePurchaseConversionCount: 12,
+    cumulativePaidCommission: 320000,
+    currentMonth: "2026-08",
+    currentMonthPurchaseConversionCount: 3,
+    nextMonthScheduledCommission: 75000,
+    nextPaymentMonth: "2026-09",
+    nextPaymentSettlementStatus: "PAYMENT_PENDING",
+  },
+  histories: {
+    content: [{
+      activityMonth: "2026-08",
+      calculatedAt: "2026-08-21T10:00:00",
+      confirmedPurchaseCount: 3,
+      confirmedSalesAmount: 1500000,
+      paymentMonth: "2026-09",
+      selectorsCode: "SEL0007",
+      selectorsId: 7,
+      selectorsNickname: "홍길동",
+      settlementAmount: 75000,
+      settlementId: 501,
+      settlementRate: 5,
+      settlementMonth: "2026-08",
+      settlementSourceCode: "DAILY_BATCH",
+      status: "PAYMENT_PENDING",
+      updatedAt: "2026-08-21T10:00:00",
+    }],
+    number: 0,
+    size: 12,
+    totalElements: 1,
+    totalPages: 1,
+  },
+} satisfies SettlementSelectorDetail;
 
 const generation = {
   id: 3,
@@ -106,6 +156,7 @@ beforeEach(() => {
     if (url.includes("/api/admin/selectors/penalties")) {
       return json({ content: [penalty], number: 0, size: 20, totalElements: 21, totalPages: 2 });
     }
+    if (url.includes("/api/admin/settlements/selectors/7/detail")) return json(settlementDetail);
     if (/\/api\/admin\/selectors\/7$/.test(url)) return json(selectorDetail);
     if (url.endsWith("/api/admin/generations") && init?.method === "POST") {
       return json({ ...generation, id: 4, generationName: "4기" });
@@ -144,18 +195,52 @@ describe("selector api pages", () => {
     expect(screen.getByText("총 1건")).toBeInTheDocument();
   });
 
-  test("renders selector detail account, penalties, contents, and performance", async () => {
+  test("renders enhanced selector detail and settlement information", async () => {
     renderRoute("/selectors/7");
     const panel = await screen.findByRole("dialog", { name: "셀렉터스 상세" });
 
     expect(await within(panel).findByRole("heading", { name: "홍길동" })).toBeInTheDocument();
-    expect(within(panel).getByRole("region", { name: "셀렉터스 SNS 계정" })).toHaveTextContent("hong.selector");
+    expect(within(panel).getByText("hong.selector")).toBeInTheDocument();
+    expect(within(panel).queryByRole("region", { name: "셀렉터스 SNS 계정" })).not.toBeInTheDocument();
     expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("3기");
     expect(within(panel).getByText("누적 패널티").parentElement).toHaveTextContent("3건");
+    const consent = within(panel).getByRole("heading", { name: "동의 및 수신 정보" }).closest("section")!;
+    expect(consent).toHaveTextContent("2026-07-01 11:00");
+    expect(consent).toHaveTextContent("2026-07-01 11:05");
+    expect(within(consent).getByText("카카오 알림톡 수신 동의").parentElement).toHaveTextContent("동의");
+    expect(within(consent).getByText("동의")).toHaveClass("hsas-status-pill");
+    expect(within(consent).getByText("최종 정보 갱신일").parentElement).toHaveTextContent("2026-08-20 09:00");
     const performance = within(panel).getByRole("region", { name: "셀렉터스 성과" });
     expect(performance).toHaveTextContent("12,000");
     expect(within(performance).getAllByRole("cell").at(-1)).toHaveTextContent("0");
-    expect(within(panel).getByRole("region", { name: "셀렉터스 콘텐츠" })).toHaveTextContent("REELS");
+    const contents = within(panel).getByRole("region", { name: "셀렉터스 콘텐츠" });
+    expect(within(contents).getByText("REELS")).toHaveClass("hsas-status-pill");
+    expect(within(contents).getByRole("link", { name: /여름 스타일링 추천/ }))
+      .toHaveAttribute("title", "여름 스타일링 추천");
+    expect(within(panel).getByText("최근 1건 · 전체 1건")).toBeInTheDocument();
+    const settlements = within(panel).getByRole("region", { name: "셀렉터스 정산 내역" });
+    expect(settlements).toHaveTextContent("75,000원");
+    expect(within(panel).getByText("누적 지급 수수료").parentElement).toHaveTextContent("320,000원");
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/admin\/settlements\/selectors\/7\/detail\?page=0&size=12$/),
+      expect.anything(),
+    );
+  });
+
+  test("keeps selector detail visible when settlement lookup fails", async () => {
+    const currentFetch = vi.mocked(fetch);
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => (
+      String(input).includes("/api/admin/settlements/selectors/7/detail")
+        ? json(null, 500)
+        : currentFetch(input, init)
+    )));
+
+    renderRoute("/selectors/7");
+    const panel = await screen.findByRole("dialog", { name: "셀렉터스 상세" });
+
+    expect(await within(panel).findByRole("heading", { name: "홍길동" })).toBeInTheDocument();
+    expect(within(within(panel).getByRole("region", { name: "셀렉터스 정산 내역" }))
+      .getByRole("alert")).toHaveTextContent("셀렉터스 상세 정보 조회에 실패했습니다.");
   });
 
   test("renders uncollected performance as unavailable instead of zero", async () => {
@@ -178,7 +263,7 @@ describe("selector api pages", () => {
     within(performance).getAllByRole("cell").forEach((cell) => {
       expect(cell).toHaveTextContent("-");
     });
-    expect(within(panel).getByText("총 -")).toBeInTheDocument();
+    expect(within(panel).getByText("최근 0건 · 전체 -")).toBeInTheDocument();
     expect(within(panel).getByRole("region", { name: "셀렉터스 콘텐츠" }))
       .toHaveTextContent("콘텐츠 수집 전입니다.");
   });

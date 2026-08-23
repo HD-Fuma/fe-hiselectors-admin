@@ -46,6 +46,7 @@ export interface SelectorContent {
   id: number;
   snsCode: SelectorSnsCode | null;
   contentUrl: string;
+  title: string | null;
   contentType: string | null;
   createdAt: string;
   viewCount: number | null;
@@ -70,6 +71,9 @@ export interface SelectorDetail {
   userId: number | null;
   createdAt: string;
   updatedAt: string;
+  snsVerifiedAt: string | null;
+  privacyAgreedAt: string | null;
+  alimtalkAgreed: boolean;
   generations: SelectorGeneration[];
   snsAccount: SelectorSnsAccount | null;
   totalPenaltyCount: number;

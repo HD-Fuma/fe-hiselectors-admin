@@ -34,6 +34,10 @@ import {
   type SelectorSummary,
   type SpringPage,
 } from "../../entities/selectors";
+import {
+  getSettlementSelectorDetail,
+  type SettlementSelectorDetail,
+} from "../../entities/settlement";
 import { formatNumber, formatWon } from "../../lib/formatters";
 import { paginate } from "../../lib/pagination";
 import {
@@ -701,6 +705,8 @@ export function SelectorDetailPage() {
     id: number;
     selector: SelectorDetail | null;
     error: string;
+    settlementDetail: SettlementSelectorDetail | null;
+    settlementDetailError: boolean;
   } | null>(null);
   const fromQualifications = searchParams.get("from") === "qualifications";
   const qualificationReturnQuery = qualificationQuery(
@@ -719,17 +725,30 @@ export function SelectorDetailPage() {
     if (!Number.isSafeInteger(id) || id <= 0) return;
 
     const controller = new AbortController();
-    getSelector(id, controller.signal)
-      .then((selector) => setDetailState({ id, selector, error: "" }))
-      .catch((reason: unknown) => {
-        if (!controller.signal.aborted) {
-          setDetailState({
-            id,
-            selector: null,
-            error: reason instanceof Error ? reason.message : "셀렉터스 상세 조회에 실패했습니다.",
-          });
-        }
+    Promise.allSettled([
+      getSelector(id, controller.signal),
+      getSettlementSelectorDetail(id, controller.signal),
+    ]).then(([selectorResult, settlementResult]) => {
+      if (controller.signal.aborted) return;
+      if (selectorResult.status === "rejected") {
+        const reason = selectorResult.reason as unknown;
+        setDetailState({
+          id,
+          selector: null,
+          error: reason instanceof Error ? reason.message : "셀렉터스 상세 조회에 실패했습니다.",
+          settlementDetail: null,
+          settlementDetailError: settlementResult.status === "rejected",
+        });
+        return;
+      }
+      setDetailState({
+        id,
+        selector: selectorResult.value,
+        error: "",
+        settlementDetail: settlementResult.status === "fulfilled" ? settlementResult.value : null,
+        settlementDetailError: settlementResult.status === "rejected",
       });
+    });
     return () => controller.abort();
   }, [selectorId]);
 
@@ -743,6 +762,9 @@ export function SelectorDetailPage() {
           ? "요청한 셀렉터스 ID가 올바르지 않습니다."
           : currentDetailState?.error}
         selectorDetailLoading={!invalidSelectorId && !currentDetailState}
+        settlementDetail={currentDetailState?.settlementDetail ?? null}
+        settlementDetailError={currentDetailState?.settlementDetailError ?? false}
+        settlementDetailLoading={!invalidSelectorId && !currentDetailState}
       />
     </>
   );
