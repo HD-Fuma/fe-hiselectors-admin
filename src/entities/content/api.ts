@@ -60,6 +60,99 @@ export interface ContentBatchRunResponse {
   storedContentSucceeded: boolean;
 }
 
+export type ContentVersionInspectionStatus =
+  | "PENDING"
+  | "INSPECTING"
+  | "COMPLETED"
+  | "FAILED";
+
+export type ContentViolationType =
+  | "AD_DISCLOSURE_INVALID"
+  | "AFFILIATE_LINK_INVALID"
+  | "ABUSIVE_LANGUAGE"
+  | "HATE_DISCRIMINATION"
+  | "VIOLENCE_THREAT"
+  | "SEXUAL_CONTENT"
+  | "POLITICAL_CONTENT"
+  | "SOCIAL_CONTROVERSY"
+  | "FALSE_EXAGGERATED_CLAIM"
+  | "BRAND_REPUTATION_DAMAGE";
+
+export type ContentViolationItemStatus =
+  | "PENDING"
+  | "VIOLATION_CONFIRMED"
+  | "EDIT_REQUESTED"
+  | "DISMISSED"
+  | "RESOLVED";
+
+export type ContentEvidenceMediaType = "TEXT" | "IMAGE" | "VIDEO";
+
+export interface ContentBoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface ContentEvidenceLocation {
+  bbox: ContentBoundingBox | null;
+  contentMediaId: number | null;
+  endIndex: number | null;
+  endTime: number | null;
+  excerpt: string | null;
+  mediaType: ContentEvidenceMediaType;
+  startIndex: number | null;
+  startTime: number | null;
+}
+
+export interface ContentViolationEvidence {
+  confidence: number;
+  locations: ContentEvidenceLocation[];
+  reason: string;
+}
+
+export interface ContentViolation {
+  evidence: ContentViolationEvidence | null;
+  status: ContentViolationItemStatus;
+  violationItemId: number;
+  violationType: ContentViolationType;
+  violationTypeDescription: string;
+}
+
+export interface ContentReport {
+  contentReportId: number;
+  flow: string | null;
+  overallAssessment: string | null;
+  purpose: string | null;
+  summary: string | null;
+}
+
+export interface ContentVersionSummary {
+  contentVersionId: number;
+  createdAt: string;
+  inspectedAt: string | null;
+  inspectionStatus: ContentVersionInspectionStatus;
+  versionNo: number;
+}
+
+export interface ContentVersionDetail extends ContentVersionSummary {
+  contentReport: ContentReport | null;
+  texts: string[];
+  violations: ContentViolation[];
+}
+
+export interface ContentDetail {
+  contentId: number;
+  contentType: CollectedContentType;
+  contentUrl: string;
+  selectedVersion: ContentVersionDetail;
+  selectorsId: number;
+  snsCode: ContentInspectionSnsCode;
+  snsContentId: string;
+  storedAt: string;
+  versions: ContentVersionSummary[];
+}
+
 async function errorMessage(response: Response, fallbackMessage: string) {
   try {
     const result = await response.json() as Partial<ApiResult<unknown>>;
@@ -146,4 +239,36 @@ export async function getCurrentGenerationContents(signal?: AbortSignal) {
   }
 
   return contents;
+}
+
+async function fetchContentDetail(path: string, signal?: AbortSignal) {
+  const headers = new Headers();
+  const authorization = authorizationHeader();
+  if (authorization) headers.set("Authorization", authorization);
+
+  const response = await fetch(`${API_BASE_URL}${path}`, { headers, signal });
+  if (!response.ok) {
+    throw new Error(await errorMessage(response, "콘텐츠 상세 조회에 실패했습니다."));
+  }
+
+  const result = await response.json() as ApiResult<ContentDetail>;
+  if (!result.success || !result.data?.selectedVersion) {
+    throw new Error(result.message || "콘텐츠 상세 조회에 실패했습니다.");
+  }
+  return result.data;
+}
+
+export function getContentDetail(contentId: number, signal?: AbortSignal) {
+  return fetchContentDetail(`/api/admin/contents/${contentId}`, signal);
+}
+
+export function getContentVersionDetail(
+  contentId: number,
+  contentVersionId: number,
+  signal?: AbortSignal,
+) {
+  return fetchContentDetail(
+    `/api/admin/contents/${contentId}/versions/${contentVersionId}`,
+    signal,
+  );
 }

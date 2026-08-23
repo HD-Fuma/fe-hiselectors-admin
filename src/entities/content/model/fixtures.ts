@@ -88,6 +88,17 @@ export interface ContentInspectionReport {
   signals: ContentInspectionSignal[];
   extracts: ContentInspectionExtract[];
   history: ContentInspectionHistoryItem[];
+  purpose?: string | null;
+  flow?: string | null;
+  overallAssessment?: string | null;
+}
+
+export interface ContentInspectionVersionSummary {
+  contentVersionId: number;
+  versionNo: number;
+  inspectionStatus: string;
+  createdAt: string;
+  inspectedAt: string | null;
 }
 
 export interface ContentInspectionFixture {
@@ -99,9 +110,11 @@ export interface ContentInspectionFixture {
   duration?: string;
   author: string;
   cohort: string;
+  contentVersionId?: number;
   latestVersionNo?: number;
   profileImageUrl?: string | null;
   selectorsId?: number;
+  versions?: ContentInspectionVersionSummary[];
   sourcePlatform: string;
   submittedAt: string;
   inspectionType: InspectionType;

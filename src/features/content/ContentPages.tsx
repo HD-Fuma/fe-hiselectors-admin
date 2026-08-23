@@ -52,6 +52,9 @@ import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platform
 import {
   INSPECTION_TYPE_LABELS,
   adaptContentInspection,
+  adaptContentInspectionDetail,
+  getContentDetail,
+  getContentVersionDetail,
   getCurrentGenerationContents,
   runContentBatch,
   type ContentAnnotation,
@@ -64,6 +67,97 @@ import {
 
 const CONTENT_INSPECTION_PAGE_SIZE = 20;
 type ContentInspectionCategory = "신규" | "수정" | "검수 완료";
+
+function formatInspectionDate(value: string) {
+  const zoned = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value.trim());
+  if (zoned) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      const parts = Object.fromEntries(
+        new Intl.DateTimeFormat("en-GB", {
+          day: "2-digit",
+          hour: "2-digit",
+          hourCycle: "h23",
+          minute: "2-digit",
+          month: "2-digit",
+          timeZone: "Asia/Seoul",
+          year: "numeric",
+        }).formatToParts(date).map((part) => [part.type, part.value]),
+      );
+      if (parts.year && parts.month && parts.day && parts.hour && parts.minute) {
+        return `${parts.year.slice(2)}.${parts.month}.${parts.day} ${parts.hour}:${parts.minute}`;
+      }
+    }
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(value);
+  if (!match) return value;
+  return `${match[1].slice(2)}.${match[2]}.${match[3]} ${match[4]}:${match[5]}`;
+}
+
+function latestContentVersion(content: ContentInspectionFixture) {
+  const versions = content.versions ?? [];
+  if (versions.length === 0) {
+    return {
+      contentVersionId: content.contentVersionId ?? 0,
+      versionNo: content.latestVersionNo ?? 1,
+    };
+  }
+  return versions.reduce((latest, version) => (
+    version.versionNo > latest.versionNo ? version : latest
+  ));
+}
+
+function contentSummaryBullets(content: ContentInspectionFixture) {
+  return [
+    content.aiSummary,
+    content.report.purpose,
+    content.report.flow,
+    content.report.overallAssessment,
+  ].flatMap((value) => {
+    const text = value?.trim();
+    if (!text || text === "분석 대기" || text === "분석 완료") return [];
+    return [text];
+  });
+}
+
+type InspectionIssueSignal = ContentInspectionFixture["report"]["signals"][number] & {
+  ordinal: number;
+};
+
+type InspectionJudgment = "위반" | "정상";
+
+function inspectionIssueSignals(content: ContentInspectionFixture): InspectionIssueSignal[] {
+  return content.report.signals
+    .filter((signal) => signal.tone !== "pass")
+    .map((signal, index) => ({ ...signal, ordinal: index + 1 }));
+}
+
+function inspectionPassSignals(content: ContentInspectionFixture) {
+  return content.report.signals.filter((signal) => (
+    signal.tone === "pass"
+    && !/미감지|감지되지 않았|감지 항목 없음/.test(`${signal.title}${signal.detail}${signal.evidence}`)
+  ));
+}
+
+function issueOrdinalLabel(ordinal: number) {
+  return ordinal >= 1 && ordinal <= 20 ? String.fromCharCode(0x245F + ordinal) : String(ordinal);
+}
+
+function currentDisplayedVersionNo(content: ContentInspectionFixture) {
+  const matched = content.versions?.find((version) => version.contentVersionId === content.contentVersionId);
+  return matched?.versionNo ?? content.latestVersionNo ?? 1;
+}
+
+function showsInspectionGuideline(signal: { guidance?: string; title: string }) {
+  return Boolean(signal.guidance && /광고|수수료|경제적 이해/.test(signal.title));
+}
+
+function detectionSourceLabel(source: string) {
+  if (source.includes("OCR")) return "OCR";
+  if (source.includes("STT") || source.includes("음성")) return "STT";
+  return "본문";
+}
 
 function collectionStepStatus(succeeded: boolean, savedCount: number) {
   if (succeeded) return "성공";
@@ -617,59 +711,6 @@ export function ContentInspectionListPage() {
   );
 }
 
-type InspectionHistoryItem = ContentInspectionFixture["report"]["history"][number];
-
-const INSPECTION_HISTORY_COLUMNS: DenseTableColumn<InspectionHistoryItem>[] = [
-  { key: "at", header: "처리 일시", width: "34%", align: "center" },
-  { key: "label", header: "처리 내용", align: "center" },
-  { key: "actor", header: "처리 주체", width: "24%", align: "center" },
-];
-
-function InspectionHistory({ content }: { content: ContentInspectionFixture }) {
-  return (
-    <section
-      aria-label="검수 이력"
-      className="fuma-creator-analysis-report fuma-content-analysis-report fuma-content-inspection-history-report"
-    >
-      <header className="fuma-minimal-inspection-section__header fuma-content-analysis-report__header">
-        <div><span>HISTORY</span><h3>검수 이력</h3></div>
-      </header>
-      <div className="fuma-creator-analysis-report__content">
-        <div
-          aria-label="검수 이력 목록"
-          className="fuma-wide-table fuma-settlement-table fuma-proposal-history-table"
-          role="region"
-        >
-          <DenseTable
-            columns={INSPECTION_HISTORY_COLUMNS}
-            rowKey={(item) => `${item.at}-${item.label}`}
-            rows={[...content.report.history]}
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function MinimalInspectionOverview({ content }: { content: ContentInspectionFixture }) {
-  return (
-    <section className="fuma-minimal-inspection-overview">
-      <header>
-        <div>
-          <span>{INSPECTION_TYPE_LABELS[content.inspectionType]}</span>
-          <h2>{content.contentTitle}</h2>
-          <p>{content.author} · {content.sourcePlatform} · {content.contentFormat}</p>
-        </div>
-        <StatusPill tone={inspectionStatusTone(content.inspectionStatus)}>{content.inspectionStatus}</StatusPill>
-      </header>
-      <dl>
-        <div><dt>제출일</dt><dd>{content.submittedAt}</dd></div>
-        <div><dt>리포트 생성일</dt><dd>{content.report.generatedAt ?? "분석 대기"}</dd></div>
-      </dl>
-    </section>
-  );
-}
-
 function youtubeEmbedUrl(videoId?: string) {
   return videoId && /^[A-Za-z0-9_-]{11}$/.test(videoId)
     ? `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1`
@@ -747,21 +788,21 @@ function indexedViolationAnnotations(
   content: ContentInspectionFixture,
   snapshot: ContentSnapshot,
 ): IndexedContentAnnotation[] {
-  const candidates = content.report.signals.filter((signal) => signal.tone !== "pass");
+  const candidates = inspectionIssueSignals(content);
   const annotations = (snapshot.annotations ?? [])
     .filter((annotation) => annotation.state === "active")
     .map((annotation, annotationIndex) => {
       const candidateIndex = candidates.findIndex((signal) => annotationMatchesSignal(annotation, signal));
       return {
         ...annotation,
-        ordinal: candidateIndex >= 0 ? candidateIndex + 1 : annotationIndex + 1,
+        ordinal: candidateIndex >= 0 ? candidates[candidateIndex].ordinal : annotationIndex + 1,
       };
     });
 
   if (snapshot === content.currentSnapshot) {
-    candidates.forEach((signal, candidateIndex) => {
+    candidates.forEach((signal) => {
       if (!annotations.some((annotation) => annotationMatchesSignal(annotation, signal))) {
-        annotations.push(annotationFromSignal(signal, snapshot, candidateIndex + 1));
+        annotations.push(annotationFromSignal(signal, snapshot, signal.ordinal));
       }
     });
   }
@@ -783,13 +824,15 @@ function findQuoteRange(text: string, quote: string, occurrence = 1) {
 }
 
 function ViolationHighlightedText({
-  anchorPrefix,
   annotations,
+  focusedOrdinal,
+  onSelectViolation,
   text,
   useStoredIndexes = false,
 }: {
-  anchorPrefix?: string;
   annotations: readonly IndexedContentAnnotation[];
+  focusedOrdinal?: number;
+  onSelectViolation?: (ordinal: number) => void;
   text: string;
   useStoredIndexes?: boolean;
 }) {
@@ -824,12 +867,14 @@ function ViolationHighlightedText({
       <mark
         aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
         className="fuma-inspection-text-violation"
+        data-focused={focusedOrdinal === annotation.ordinal}
         data-ordinal={annotation.ordinal}
         data-severity={annotation.severity}
-        data-violation-anchor={anchorPrefix ? annotation.ordinal : undefined}
-        id={anchorPrefix ? `${anchorPrefix}-violation-${annotation.ordinal}` : undefined}
+        data-violation-anchor={annotation.ordinal}
+        id={focusedOrdinal !== undefined ? `violation-text-${annotation.ordinal}` : undefined}
         key={`${annotation.id}-${start}`}
-        tabIndex={anchorPrefix ? -1 : undefined}
+        onClick={onSelectViolation ? () => onSelectViolation(annotation.ordinal) : undefined}
+        tabIndex={onSelectViolation ? 0 : focusedOrdinal !== undefined ? -1 : undefined}
         title={`${annotation.title}: ${annotation.reason}`}
       >
         {text.slice(start, end)}
@@ -846,11 +891,13 @@ function MinimalVersionCard({
   content,
   focusedViolation,
   label,
+  onSelectViolation,
   snapshot,
 }: {
   content: ContentInspectionFixture;
   focusedViolation?: { ordinal: number; requestId: number } | null;
   label: string;
+  onSelectViolation?: (ordinal: number) => void;
   snapshot: ContentSnapshot;
 }) {
   const cardRef = useRef<HTMLElement>(null);
@@ -967,25 +1014,27 @@ function MinimalVersionCard({
                   if (annotation.target.kind !== "media") return null;
                   const { box, timeRange } = annotation.target;
                   return (
-                    <span
+                    <button
+                      aria-current={focusedViolation?.ordinal === annotation.ordinal}
                       aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
                       className="fuma-platform-inspection-frame__violation-box"
-                      data-violation-anchor={focusedViolation !== undefined ? annotation.ordinal : undefined}
+                      data-focused={focusedViolation?.ordinal === annotation.ordinal}
                       data-severity={annotation.severity}
-                      id={focusedViolation !== undefined ? `${content.id}-violation-${annotation.ordinal}` : undefined}
+                      data-violation-anchor={annotation.ordinal}
+                      id={focusedViolation != null ? `${content.id}-violation-${annotation.ordinal}` : undefined}
                       key={annotation.id}
-                      role="note"
+                      onClick={() => onSelectViolation?.(annotation.ordinal)}
                       style={{
                         height: `${box.height}%`,
                         left: `${box.x}%`,
                         top: `${box.y}%`,
                         width: `${box.width}%`,
                       }}
-                      tabIndex={focusedViolation !== undefined ? -1 : undefined}
+                      type="button"
                     >
                       <span className="fuma-inspection-annotation-pin">{annotation.ordinal}</span>
                       <small>{timeRange ? `${timeRange.start}–${timeRange.end}` : annotation.title}</small>
-                    </span>
+                    </button>
                   );
                 })}
               </div>
@@ -1055,7 +1104,7 @@ function MinimalVersionCard({
             </div>
             <div className="fuma-platform-inspection-frame__instagram-copy">
               <strong>성과 정보 없음</strong>
-              <p><b>{handle}</b>{" "}<ViolationHighlightedText anchorPrefix={focusedViolation !== undefined ? content.id : undefined} annotations={annotations} text={snapshot.text} useStoredIndexes /></p>
+              <p><b>{handle}</b>{" "}<ViolationHighlightedText annotations={annotations} focusedOrdinal={focusedViolation?.ordinal} onSelectViolation={onSelectViolation} text={snapshot.text} useStoredIndexes /></p>
               <button type="button">댓글 정보 없음</button>
               <time>{postDate}</time>
             </div>
@@ -1081,7 +1130,7 @@ function MinimalVersionCard({
             </div>
             <div className="fuma-platform-inspection-frame__youtube-description">
               <strong>성과 정보 없음 · {postDate}</strong>
-              <p><ViolationHighlightedText anchorPrefix={focusedViolation !== undefined ? content.id : undefined} annotations={annotations} text={snapshot.text} useStoredIndexes /></p>
+              <p><ViolationHighlightedText annotations={annotations} focusedOrdinal={focusedViolation?.ordinal} onSelectViolation={onSelectViolation} text={snapshot.text} useStoredIndexes /></p>
             </div>
           </div>
         )}
@@ -1090,163 +1139,122 @@ function MinimalVersionCard({
   );
 }
 
-function MinimalVersionComparison({
+function MinimalAiAnalysis({
   content,
-  focusedViolation,
+  focusedOrdinal,
+  onSelectViolation,
 }: {
   content: ContentInspectionFixture;
-  focusedViolation: { ordinal: number; requestId: number } | null;
+  focusedOrdinal?: number;
+  onSelectViolation: (ordinal: number) => void;
 }) {
-  const isRevision = Boolean(content.previousSnapshot);
-  const isEditedWithoutPrevious = !isRevision && content.inspectionType !== "NEW";
-
-  return (
-    <section className="fuma-minimal-inspection-section">
-      <header className="fuma-minimal-inspection-section__header">
-        <h3>{isRevision ? "수정 콘텐츠 비교" : isEditedWithoutPrevious ? "수정 콘텐츠" : "등록 콘텐츠"}</h3>
-        <span>
-          {isRevision
-            ? `${content.changeItems.length}건 수정됨`
-            : isEditedWithoutPrevious ? "이전 버전 정보 없음" : "신규 등록"}
-        </span>
-      </header>
-      {content.previousSnapshot && content.changeItems.length > 0 ? (
-        <ul className="fuma-minimal-version-changes">
-          {content.changeItems.map((item) => <li key={item}>{item}</li>)}
-        </ul>
-      ) : null}
-      <div className={`fuma-minimal-version-grid${content.previousSnapshot ? "" : " is-single"}`}>
-        {content.previousSnapshot ? (
-          <MinimalVersionCard key={`${content.id}-previous`} content={content} label="수정 전" snapshot={content.previousSnapshot} />
-        ) : null}
-        <MinimalVersionCard
-          key={`${content.id}-current`}
-          content={content}
-          focusedViolation={focusedViolation}
-          label={isRevision ? "수정 후" : isEditedWithoutPrevious ? "현재 버전" : "신규 등록"}
-          snapshot={content.currentSnapshot}
-        />
-      </div>
-    </section>
-  );
-}
-
-function MinimalAnalysisReport({ content }: { content: ContentInspectionFixture }) {
-  if (content.aiStatus === "pending") {
-    return (
-      <section
-        aria-label="분석 리포트"
-        className="fuma-minimal-inspection-section fuma-creator-analysis-report fuma-content-analysis-report"
-      >
-        <header className="fuma-minimal-inspection-section__header fuma-content-analysis-report__header">
-          <div><span>CONTENT REPORT</span><h3>분석 리포트</h3></div>
-          <time>분석 대기</time>
-        </header>
-        <div className="fuma-creator-analysis-report__content">
-          <p>AI 분석 결과가 아직 없습니다.</p>
-        </div>
-      </section>
-    );
-  }
-
-  const ocrExtract = content.report.extracts.find((extract) => extract.type === "OCR");
-  const sttExtract = content.report.extracts.find((extract) => extract.type === "STT");
-  const annotations = indexedViolationAnnotations(content, content.currentSnapshot);
-  const safetyText = [
-    content.currentSnapshot.text,
-    ...content.report.extracts.map((extract) => extract.text),
-    ...content.report.signals.flatMap((signal) => [signal.title, signal.detail, signal.evidence]),
-  ].join(" ");
-  const safetyChecks = [
-    { label: "욕설", detected: /욕설|비속어|모욕/.test(safetyText) },
-    { label: "폭력성", detected: /폭력|상해|위협/.test(safetyText) },
-    { label: "음란물", detected: /음란|선정성|성적 표현/.test(safetyText) },
-  ];
-  const captionAdDetected = /#광고|유료광고|협찬/.test(content.currentSnapshot.text);
-  const ocrAdDetected = /#광고|유료광고|협찬/.test(ocrExtract?.text ?? "");
-  const adSignalPassed = content.report.signals.some((signal) => signal.title.includes("광고 표시") && signal.tone === "pass");
-  const analysisSummary = sttExtract
-    ? `${content.contentTitle}의 특징과 사용 경험을 설명하고 구매 정보를 안내하는 내용입니다. 음성 문장에 포함된 단정적 표현과 광고 고지를 함께 확인해야 합니다.`
-    : "추출된 음성 문장이 없어 화면 글자와 게시물 본문을 기준으로 검수합니다.";
-  const analysisSignals = [
-    ...safetyChecks.map((check) => ({
-      alert: check.detected,
-      label: check.label,
-      meta: "안전성",
-      value: check.detected ? "검토 필요" : "미감지",
-    })),
-    {
-      alert: !(adSignalPassed || captionAdDetected),
-      label: "본문 광고 표시",
-      meta: "TEXT",
-      value: adSignalPassed || captionAdDetected ? "표시 확인" : "확인 필요",
-    },
-    {
-      alert: !ocrAdDetected,
-      label: "OCR 광고 표시",
-      meta: "OCR",
-      value: ocrAdDetected ? "표시 확인" : "확인 필요",
-    },
-  ];
+  const analysisPending = content.aiStatus === "pending";
+  const summaryBullets = analysisPending ? [] : contentSummaryBullets(content);
+  const issues = inspectionIssueSignals(content);
+  const passSignals = inspectionPassSignals(content);
+  const extracts = content.report.extracts;
+  const versionNo = currentDisplayedVersionNo(content);
+  const showChanges = versionNo > 1 && content.changeItems.length > 0;
 
   return (
     <section
-      aria-label="분석 리포트"
-      className="fuma-minimal-inspection-section fuma-creator-analysis-report fuma-content-analysis-report"
+      aria-label="AI 분석"
+      className="fuma-minimal-inspection-section fuma-creator-analysis-report fuma-content-analysis-report fuma-content-ai-summary"
     >
       <header className="fuma-minimal-inspection-section__header fuma-content-analysis-report__header">
-        <div><span>CONTENT REPORT</span><h3>분석 리포트</h3></div>
-        <time>{content.report.generatedAt}</time>
+        <div><span>AI ANALYSIS</span><h3>AI 분석</h3></div>
       </header>
-
       <div className="fuma-creator-analysis-report__content">
-        <section aria-label="분석 요약" className="fuma-content-analysis-summary">
-          <span>분석 요약</span>
-          <p>{analysisSummary}</p>
-        </section>
-
-        <section aria-label="추출 내용" className="fuma-creator-analysis-block">
-          <div className="fuma-creator-analysis-block__heading">
-            <h3>추출 내용</h3><span>OCR · STT 기반</span>
-          </div>
-          <dl className="fuma-creator-analysis-claims fuma-content-analysis-extracts">
-            <div data-has-content={ocrExtract ? "true" : "false"}>
-              <dt><span>OCR 화면 글자</span><small>{ocrExtract?.location ?? "추출 결과 없음"}</small></dt>
-              <dd>
-                {ocrExtract
-                  ? <ViolationHighlightedText annotations={annotations} text={ocrExtract.text} />
-                  : "추출된 화면 글자가 없습니다."}
-              </dd>
-            </div>
-            <div data-has-content={sttExtract ? "true" : "false"}>
-              <dt><span>STT 음성 문장</span><small>{sttExtract?.location ?? "추출 결과 없음"}</small></dt>
-              <dd>
-                {sttExtract
-                  ? <ViolationHighlightedText annotations={annotations} text={sttExtract.text} />
-                  : "추출된 음성 문장이 없습니다."}
-              </dd>
-            </div>
-          </dl>
-        </section>
-
-        <section aria-label="위험/광고 요소" className="fuma-creator-analysis-block">
-          <div className="fuma-creator-analysis-block__heading">
-            <h3>위험/광고 요소</h3><span>본문 및 추출 데이터 기준</span>
-          </div>
-          <div className="fuma-analysis-engagement__grid fuma-content-analysis-signal-grid">
-            {analysisSignals.map((signal) => (
-              <article
-                className="fuma-analysis-engagement__card fuma-content-analysis-signal-card"
-                data-alert={signal.alert}
-                key={signal.label}
-              >
-                <span>{signal.label}</span>
-                <strong>{signal.value}</strong>
-                <small>{signal.meta}</small>
-              </article>
-            ))}
-          </div>
-        </section>
+        {analysisPending ? (
+          <p>분석 대기</p>
+        ) : (
+          <>
+            <section aria-label="콘텐츠 요약" className="fuma-content-analysis-summary">
+              <span>콘텐츠 요약</span>
+              {summaryBullets.length > 0 ? (
+                <ul>
+                  {summaryBullets.map((bullet) => <li key={bullet}>{bullet}</li>)}
+                </ul>
+              ) : (
+                <p>요약 정보가 없습니다.</p>
+              )}
+            </section>
+            <section aria-label="검수 근거" className="fuma-content-inspection-evidence">
+              <header>
+                <h4>검수 근거</h4>
+                <span>위반 후보 {issues.length}건</span>
+              </header>
+              {issues.length > 0 ? (
+                <ul>
+                  {issues.map((issue) => (
+                    <li key={`${issue.ordinal}-${issue.title}`}>
+                      <button
+                        aria-current={focusedOrdinal === issue.ordinal}
+                        className="fuma-content-inspection-evidence__item"
+                        data-focused={focusedOrdinal === issue.ordinal}
+                        onClick={() => onSelectViolation(issue.ordinal)}
+                        type="button"
+                      >
+                        <strong>{issueOrdinalLabel(issue.ordinal)} {issue.title}</strong>
+                        <p>{issue.detail}</p>
+                        <dl>
+                          <div>
+                            <dt>위치</dt>
+                            <dd>{issue.source}</dd>
+                          </div>
+                          <div>
+                            <dt>{detectionSourceLabel(issue.source)}</dt>
+                            <dd>{issue.evidence.trim() || "검출 문구 없음"}</dd>
+                          </div>
+                        </dl>
+                        {showsInspectionGuideline(issue) ? (
+                          <aside>
+                            <span>검수 기준</span>
+                            <p>{issue.guidance}</p>
+                          </aside>
+                        ) : null}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>표시할 위반 근거가 없습니다.</p>
+              )}
+              {passSignals.length > 0 ? (
+                <details>
+                  <summary>정상 항목 {passSignals.length}건</summary>
+                  <ul>
+                    {passSignals.map((signal) => (
+                      <li key={signal.title}>
+                        <strong>{signal.title}</strong>
+                        <span>{signal.detail}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
+              {extracts.length > 0 ? (
+                <details>
+                  <summary>전체 추출 내용 보기</summary>
+                  {extracts.map((extract) => (
+                    <p key={`${extract.type}-${extract.location}`}>
+                      <strong>{extract.type}</strong> {extract.text}
+                    </p>
+                  ))}
+                </details>
+              ) : null}
+            </section>
+            {showChanges ? (
+              <section aria-label="이전 버전 대비 변경" className="fuma-content-inspection-changes">
+                <h4>이전 버전 대비 변경</h4>
+                <p>v{versionNo - 1} → v{versionNo}</p>
+                <ul>
+                  {content.changeItems.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+              </section>
+            ) : null}
+          </>
+        )}
       </div>
     </section>
   );
@@ -1254,20 +1262,25 @@ function MinimalAnalysisReport({ content }: { content: ContentInspectionFixture 
 
 function MinimalFinalInspection({
   content,
+  focusedOrdinal,
   onNavigateToViolation,
 }: {
   content: ContentInspectionFixture;
+  focusedOrdinal?: number;
   onNavigateToViolation: (ordinal: number) => void;
 }) {
   const [decision, setDecision] = useState<"승인" | "반려" | null>(null);
   const analysisPending = content.aiStatus === "pending";
-  const candidates = content.report.signals.filter((signal) => signal.tone !== "pass");
-  const [candidateDecisions, setCandidateDecisions] = useState<Record<string, "위반" | "위반 아님">>({});
-  const decidedCount = candidates.filter((candidate) => candidateDecisions[`${candidate.source}-${candidate.title}`]).length;
-  const allCandidatesDecided = !analysisPending && decidedCount === candidates.length;
+  const candidates = inspectionIssueSignals(content);
+  const [judgments, setJudgments] = useState<Partial<Record<number, InspectionJudgment>>>({});
+  const judgedCount = candidates.filter((candidate) => judgments[candidate.ordinal]).length;
+  const allJudged = candidates.length === 0 || judgedCount === candidates.length;
+  const hasViolationJudgment = candidates.some((candidate) => judgments[candidate.ordinal] === "위반");
+  const approveEnabled = !analysisPending && allJudged && !hasViolationJudgment;
+  const rejectEnabled = !analysisPending && allJudged && hasViolationJudgment;
 
-  const decideCandidate = (key: string, candidateDecision: "위반" | "위반 아님") => {
-    setCandidateDecisions((current) => ({ ...current, [key]: candidateDecision }));
+  const setJudgment = (ordinal: number, judgment: InspectionJudgment) => {
+    setJudgments((current) => ({ ...current, [ordinal]: judgment }));
     setDecision(null);
   };
 
@@ -1279,41 +1292,45 @@ function MinimalFinalInspection({
       </header>
       <dl>
         <div><dt>검수 상태</dt><dd>{decision ?? "검수 전"}</dd></div>
-        <div><dt>후보 판정</dt><dd>{decidedCount} / {candidates.length}</dd></div>
+        <div><dt>후보 판정</dt><dd>{judgedCount} / {candidates.length}</dd></div>
       </dl>
       <section className="fuma-minimal-final-inspection__candidates">
-        <header><strong>위반 여부 판정</strong><span>{decidedCount}/{candidates.length}</span></header>
+        <header><strong>위반 여부 판정</strong><span>{judgedCount}/{candidates.length}</span></header>
         {analysisPending ? (
           <p>위반 정보 없음</p>
-        ) : candidates.length > 0 ? candidates.map((candidate, index) => {
-          const key = `${candidate.source}-${candidate.title}`;
-          const candidateDecision = candidateDecisions[key];
+        ) : candidates.length > 0 ? candidates.map((candidate) => {
+          const judgment = judgments[candidate.ordinal];
           return (
-            <article key={key}>
+            <article
+              data-focused={focusedOrdinal === candidate.ordinal}
+              data-judgment={judgment ?? "pending"}
+              key={`${candidate.source}-${candidate.title}`}
+            >
               <button
-                aria-label={`${candidate.title} 위반 위치로 이동`}
+                aria-current={focusedOrdinal === candidate.ordinal}
+                aria-label={`${issueOrdinalLabel(candidate.ordinal)} ${candidate.title} 위반 위치로 이동`}
                 className="fuma-minimal-final-inspection__candidate-jump"
-                onClick={() => onNavigateToViolation(index + 1)}
+                onClick={() => onNavigateToViolation(candidate.ordinal)}
                 type="button"
               >
-                <span><span>{index + 1}</span><strong>{candidate.title}</strong></span>
+                <strong>{issueOrdinalLabel(candidate.ordinal)} {candidate.title}</strong>
+                <small>AI 판정 · 위반 후보</small>
                 <blockquote>“{candidate.evidence}”</blockquote>
-                <small>{candidate.source}</small>
+                <small>{candidate.detail || candidate.source}</small>
               </button>
               <div className="fuma-minimal-final-inspection__candidate-actions">
+                <span>관리자 판정</span>
                 <Button
-                  aria-pressed={candidateDecision === "위반"}
-                  className={candidateDecision === "위반" ? "is-violation" : undefined}
-                  onClick={() => decideCandidate(key, "위반")}
+                  aria-pressed={judgment === "위반"}
+                  onClick={() => setJudgment(candidate.ordinal, "위반")}
                 >
                   위반
                 </Button>
                 <Button
-                  aria-pressed={candidateDecision === "위반 아님"}
-                  className={candidateDecision === "위반 아님" ? "is-clear" : undefined}
-                  onClick={() => decideCandidate(key, "위반 아님")}
+                  aria-pressed={judgment === "정상"}
+                  onClick={() => setJudgment(candidate.ordinal, "정상")}
                 >
-                  위반 아님
+                  정상
                 </Button>
               </div>
             </article>
@@ -1326,7 +1343,7 @@ function MinimalFinalInspection({
         <Button
           aria-pressed={decision === "반려"}
           className={decision === "반려" ? "is-rejected" : undefined}
-          disabled={analysisPending || !allCandidatesDecided}
+          disabled={!rejectEnabled}
           onClick={() => setDecision("반려")}
         >
           반려
@@ -1334,7 +1351,7 @@ function MinimalFinalInspection({
         <Button
           aria-pressed={decision === "승인"}
           className={decision === "승인" ? "is-approved" : undefined}
-          disabled={analysisPending || !allCandidatesDecided}
+          disabled={!approveEnabled}
           onClick={() => setDecision("승인")}
         >
           승인
@@ -1342,18 +1359,40 @@ function MinimalFinalInspection({
       </div>
       {analysisPending
         ? <p>분석이 완료된 후 최종 검수를 진행할 수 있습니다.</p>
-        : !allCandidatesDecided
-          ? <p>모든 위반 후보를 먼저 판정해 주세요.</p>
-          : decision ? <p>{decision}으로 선택했습니다.</p> : null}
+        : decision ? <p>{decision}으로 선택했습니다.</p> : null}
     </section>
   );
 }
 
-function ContentInspectionDetailContent({ content }: { content: ContentInspectionFixture }) {
+function ContentInspectionDetailContent({
+  content,
+  nextContent,
+  onBack,
+  onNext,
+  remainingCount,
+}: {
+  content: ContentInspectionFixture;
+  nextContent?: ContentInspectionFixture;
+  onBack: () => void;
+  onNext: () => void;
+  remainingCount: number;
+}) {
   const [focusedViolation, setFocusedViolation] = useState<{
     ordinal: number;
     requestId: number;
   } | null>(null);
+  const [versionOverride, setVersionOverride] = useState<ContentInspectionFixture | null>(null);
+  const [versionError, setVersionError] = useState<string | null>(null);
+  const versionRequestRef = useRef<AbortController | null>(null);
+  const displayed = versionOverride?.id === content.id ? versionOverride : content;
+  const latestVersion = latestContentVersion(content);
+  const versions = [...(content.versions ?? [])].sort((left, right) => right.versionNo - left.versionNo);
+  const versionOptions = (versions.length > 0 ? versions : [latestVersion]).map((version) => ({
+    label: version.contentVersionId === latestVersion.contentVersionId
+      ? `v${version.versionNo} · 최신 버전`
+      : `v${version.versionNo}`,
+    value: String(version.contentVersionId),
+  }));
 
   const navigateToViolation = (ordinal: number) => {
     setFocusedViolation((current) => ({
@@ -1362,18 +1401,137 @@ function ContentInspectionDetailContent({ content }: { content: ContentInspectio
     }));
   };
 
+  const selectVersion = (contentVersionId: number) => {
+    versionRequestRef.current?.abort();
+    setVersionError(null);
+    if (contentVersionId === latestVersion.contentVersionId) {
+      setVersionOverride(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    versionRequestRef.current = controller;
+    void getContentVersionDetail(Number(content.id), contentVersionId, controller.signal)
+      .then((detail) => {
+        setVersionOverride(adaptContentInspectionDetail(detail, content));
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") return;
+        setVersionError(error instanceof Error ? error.message : "콘텐츠 버전 조회에 실패했습니다.");
+      });
+  };
+
+  useEffect(() => () => versionRequestRef.current?.abort(), []);
+
   return (
-    <div className="fuma-minimal-inspection-layout">
-      <main className="fuma-minimal-inspection-main">
-        <MinimalInspectionOverview content={content} />
-        <MinimalVersionComparison content={content} focusedViolation={focusedViolation} />
-        <MinimalAnalysisReport content={content} />
-        <InspectionHistory content={content} />
-      </main>
-      <aside className="fuma-minimal-inspection-sidebar">
-        <MinimalFinalInspection content={content} key={content.id} onNavigateToViolation={navigateToViolation} />
-      </aside>
-    </div>
+    <>
+      <div className="fuma-detail-toolbar fuma-minimal-inspection-toolbar">
+        <button className="hsas-button fuma-detail-toolbar__link" onClick={onBack} type="button">
+          <ArrowLeft aria-hidden="true" size={14} strokeWidth={1.8} />
+          대기열
+        </button>
+        <div className="fuma-minimal-inspection-toolbar__next">
+          <span><strong>{remainingCount}건</strong>의 콘텐츠가 남았습니다.</span>
+          <Button
+            className="fuma-content-inspection-next-button"
+            disabled={!nextContent}
+            onClick={onNext}
+            variant="primary"
+          >
+            다음 콘텐츠 <ChevronRight aria-hidden="true" size={14} />
+          </Button>
+        </div>
+      </div>
+      {versionError ? (
+        <p
+          className="fuma-content-inspection-collection-feedback fuma-content-inspection-collection-feedback--error"
+          role="alert"
+        >
+          {versionError}
+        </p>
+      ) : null}
+      <div className="fuma-minimal-inspection-layout">
+        <main className="fuma-minimal-inspection-main">
+          <section aria-label="셀렉터스 계정" className="fuma-content-inspection-identity">
+            <div className="fuma-content-inspection-author">
+              <CreatorProfilePhoto creatorName={content.author} src={content.profileImageUrl ?? ""} />
+              <div className="fuma-content-inspection-author__copy">
+                <div className="fuma-content-inspection-author__account">
+                  <strong>{content.author}</strong>
+                  <div>
+                    <PlatformIcon decorative platform={contentPlatform(content.sourcePlatform)} />
+                  </div>
+                  <small>{content.accountId ?? content.author}</small>
+                </div>
+                <p className="fuma-content-inspection-author__title">{displayed.contentTitle}</p>
+                <p className="fuma-content-inspection-author__format">
+                  {displayed.sourcePlatform} · {displayed.contentFormat}
+                </p>
+              </div>
+            </div>
+            <div className="fuma-content-inspection-meta">
+              <dl className="fuma-content-inspection-meta__dates">
+                <div>
+                  <dt>최초 등록일</dt>
+                  <dd>
+                    <time dateTime={content.submittedAt}>
+                      {formatInspectionDate(content.submittedAt)}
+                    </time>
+                  </dd>
+                </div>
+                <div>
+                  <dt>마지막 수정</dt>
+                  <dd>
+                    <time dateTime={displayed.currentSnapshot.capturedAt}>
+                      {formatInspectionDate(displayed.currentSnapshot.capturedAt)}
+                    </time>
+                  </dd>
+                </div>
+              </dl>
+              <label className="fuma-content-inspection-meta__version">
+                <span>버전</span>
+                <Select
+                  aria-label="버전"
+                  onChange={(event) => selectVersion(Number(event.target.value))}
+                  options={versionOptions}
+                  value={String(displayed.contentVersionId ?? latestVersion.contentVersionId)}
+                />
+              </label>
+            </div>
+          </section>
+          <section
+            aria-label="콘텐츠 원문"
+            className="fuma-minimal-inspection-section fuma-creator-analysis-report fuma-content-analysis-report fuma-content-original"
+          >
+            <header className="fuma-minimal-inspection-section__header fuma-content-analysis-report__header">
+              <div><span>CONTENT</span><h3>콘텐츠 원문</h3></div>
+            </header>
+            <div className="fuma-creator-analysis-report__content">
+              <MinimalVersionCard
+                content={displayed}
+                focusedViolation={focusedViolation}
+                label="콘텐츠 원문"
+                onSelectViolation={navigateToViolation}
+                snapshot={displayed.currentSnapshot}
+              />
+            </div>
+          </section>
+          <MinimalAiAnalysis
+            content={displayed}
+            focusedOrdinal={focusedViolation?.ordinal}
+            onSelectViolation={navigateToViolation}
+          />
+        </main>
+        <aside className="fuma-minimal-inspection-sidebar">
+          <MinimalFinalInspection
+            content={displayed}
+            focusedOrdinal={focusedViolation?.ordinal}
+            key={`${displayed.id}-${displayed.contentVersionId ?? "latest"}`}
+            onNavigateToViolation={navigateToViolation}
+          />
+        </aside>
+      </div>
+    </>
   );
 }
 
@@ -1381,6 +1539,8 @@ export function ContentInspectionDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { contentId } = useParams();
+  const numericContentId = Number(contentId);
+  const invalidContentId = !Number.isSafeInteger(numericContentId) || numericContentId <= 0;
   const routeState = location.state as {
     content?: ContentInspectionFixture;
     contents?: ContentInspectionFixture[];
@@ -1392,9 +1552,11 @@ export function ContentInspectionDetailPage() {
   const [detailContents, setDetailContents] = useState<ContentInspectionFixture[]>(
     initialRouteContents,
   );
-  const [isLoading, setIsLoading] = useState(initialRouteContents.length === 0);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<{ id: string; message: string } | null>(null);
   const content = detailContents.find((item) => item.id === contentId);
+  const visibleError = loadError !== null && loadError.id === contentId
+    ? loadError.message
+    : null;
   const returnPath = routeState?.from;
   const pendingContents = inspectionRequiredContents(detailContents);
   const currentPendingIndex = pendingContents.findIndex((item) => item.id === contentId);
@@ -1406,73 +1568,70 @@ export function ContentInspectionDetailPage() {
     : pendingContents.length;
 
   useEffect(() => {
+    if (invalidContentId || !contentId) return undefined;
+
     const routeContents = routeState?.contents
       ?? (routeState?.content ? [routeState.content] : []);
-    if (routeContents.some((item) => item.id === contentId)) {
-      return undefined;
-    }
-
+    const hasRouteContent = routeContents.some((item) => item.id === contentId);
     const controller = new AbortController();
-    void getCurrentGenerationContents(controller.signal)
-      .then((result) => {
-        setDetailContents(result.map(adaptContentInspection));
+
+    void Promise.all([
+      hasRouteContent
+        ? Promise.resolve(routeContents)
+        : getCurrentGenerationContents(controller.signal).then((result) => result.map(adaptContentInspection)),
+      getContentDetail(numericContentId, controller.signal),
+    ])
+      .then(([contents, detail]) => {
+        const adapted = adaptContentInspectionDetail(
+          detail,
+          contents.find((item) => item.id === String(detail.contentId)),
+        );
+        setDetailContents(
+          contents.some((item) => item.id === adapted.id)
+            ? contents.map((item) => item.id === adapted.id ? adapted : item)
+            : [adapted, ...contents],
+        );
       })
       .catch((error: unknown) => {
         if (error instanceof Error && error.name === "AbortError") return;
-        setLoadError(error instanceof Error ? error.message : "콘텐츠 목록 조회에 실패했습니다.");
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setIsLoading(false);
+        setLoadError({
+          id: contentId,
+          message: error instanceof Error ? error.message : "콘텐츠 상세 조회에 실패했습니다.",
+        });
       });
 
     return () => controller.abort();
-  }, [contentId, routeState]);
+  }, [contentId, invalidContentId, numericContentId, routeState]);
 
   return (
     <section className="fuma-page fuma-content-inspection-detail" data-visual-contract="content-inspection">
       <PageHeader title="콘텐츠 검수 상세" />
       <div className="fuma-page__body">
-        {isLoading ? (
-          <EmptyState title="콘텐츠를 불러오는 중입니다." />
-        ) : loadError ? (
+        {visibleError ? (
           <p
             className="fuma-content-inspection-collection-feedback fuma-content-inspection-collection-feedback--error"
             role="alert"
           >
-            {loadError}
+            {visibleError}
           </p>
         ) : content ? (
-          <>
-            <div className="fuma-detail-toolbar fuma-minimal-inspection-toolbar">
-              <button
-                className="hsas-button fuma-detail-toolbar__link"
-                onClick={() => typeof returnPath === "string" ? navigate(-1) : navigate("/content/inspections")}
-                type="button"
-              >
-                <ArrowLeft aria-hidden="true" size={14} strokeWidth={1.8} />
-                대기열
-              </button>
-              <div>
-                <span><strong>{remainingCount}건</strong>의 콘텐츠가 남았습니다.</span>
-                <Button
-                  className="fuma-content-inspection-next-button"
-                  disabled={!nextContent}
-                  onClick={() => nextContent && navigate(`/content/inspections/${nextContent.id}`, {
-                    state: { ...routeState, content: nextContent, contents: detailContents },
-                  })}
-                  variant="primary"
-                >
-                  다음 콘텐츠 <ChevronRight aria-hidden="true" size={14} />
-                </Button>
-              </div>
-            </div>
-            <ContentInspectionDetailContent content={content} />
-          </>
-        ) : (
+          <ContentInspectionDetailContent
+            content={content}
+            key={content.id}
+            nextContent={nextContent}
+            onBack={() => typeof returnPath === "string" ? navigate(-1) : navigate("/content/inspections")}
+            onNext={() => nextContent && navigate(`/content/inspections/${nextContent.id}`, {
+              state: { ...routeState, content: nextContent, contents: detailContents },
+            })}
+            remainingCount={remainingCount}
+          />
+        ) : invalidContentId ? (
           <EmptyState
             description="요청한 콘텐츠 검수 정보를 확인해 주세요."
             title="대상을 찾을 수 없습니다."
           />
+        ) : (
+          <EmptyState title="콘텐츠를 불러오는 중입니다." />
         )}
       </div>
     </section>

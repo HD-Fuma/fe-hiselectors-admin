@@ -93,3 +93,65 @@ test("retrieves every current-generation content page with authentication and ca
     expect((init as RequestInit).signal).toBe(controller.signal);
   });
 });
+
+test("retrieves a content detail with authentication and cancellation", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    code: "OK",
+    data: {
+      contentId: 901,
+      selectedVersion: {
+        contentVersionId: 9010,
+        versionNo: 2,
+      },
+    },
+    message: null,
+    success: true,
+  }), {
+    headers: { "Content-Type": "application/json" },
+    status: 200,
+  }));
+  vi.stubGlobal("fetch", fetchMock);
+  const controller = new AbortController();
+
+  await expect(contentEntity.getContentDetail(901, controller.signal)).resolves.toMatchObject({
+    contentId: 901,
+    selectedVersion: { contentVersionId: 9010, versionNo: 2 },
+  });
+
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  const [input, init] = fetchMock.mock.calls[0];
+  expect(new URL(String(input)).pathname).toBe("/api/admin/contents/901");
+  expect(new Headers((init as RequestInit).headers).get("Authorization")).toBe("Bearer admin.jwt");
+  expect((init as RequestInit).signal).toBe(controller.signal);
+});
+
+test("retrieves a content version detail with authentication and cancellation", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    code: "OK",
+    data: {
+      contentId: 901,
+      selectedVersion: {
+        contentVersionId: 9001,
+        versionNo: 1,
+      },
+    },
+    message: null,
+    success: true,
+  }), {
+    headers: { "Content-Type": "application/json" },
+    status: 200,
+  }));
+  vi.stubGlobal("fetch", fetchMock);
+  const controller = new AbortController();
+
+  await expect(contentEntity.getContentVersionDetail(901, 9001, controller.signal)).resolves.toMatchObject({
+    contentId: 901,
+    selectedVersion: { contentVersionId: 9001, versionNo: 1 },
+  });
+
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  const [input, init] = fetchMock.mock.calls[0];
+  expect(new URL(String(input)).pathname).toBe("/api/admin/contents/901/versions/9001");
+  expect(new Headers((init as RequestInit).headers).get("Authorization")).toBe("Bearer admin.jwt");
+  expect((init as RequestInit).signal).toBe(controller.signal);
+});
