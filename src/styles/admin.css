@@ -6943,7 +6943,8 @@
   margin: 0;
 }
 
-.fuma-creator-analysis-claims { display: grid; grid-template-columns: 1fr; gap: var(--hsas-space-9); }
+.fuma-creator-analysis-claims { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--hsas-space-9); }
+.fuma-creator-analysis-claims > .fuma-creator-analysis-claim.fuma-creator-analysis-claim--risk { grid-column: 1 / -1; }
 .fuma-creator-analysis-claims > div { display: grid; gap: var(--hsas-space-7); min-width: 0; padding: var(--hsas-space-13) var(--hsas-space-14); border: 1px solid #e5e9e7; border-radius: 9px; background: var(--hsas-color-white); }
 .fuma-creator-analysis-claims > div:first-child { grid-column: auto; background: var(--hsas-color-white); }
 .fuma-creator-analysis-claims dt { display: flex; align-items: center; justify-content: space-between; gap: var(--hsas-space-12); }
@@ -8803,7 +8804,7 @@
   font-size: var(--hsas-font-13);
 }
 
-.fuma-creator-analysis-claims > .fuma-creator-analysis-claim--risk {
+.fuma-creator-analysis-claims > .fuma-creator-analysis-claim.fuma-creator-analysis-claim--risk {
   border-color: #f0d2cf;
   border-left: 3px solid #d76767;
   background: #fff3f2;

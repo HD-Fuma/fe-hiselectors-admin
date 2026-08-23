@@ -30,11 +30,40 @@ function formatLabel(format: ApplicationContentFormat) {
 
 const MAX_KEYWORDS = 20;
 
+const BRACKET_OPEN = new Set(["(", "[", "{"]);
+const BRACKET_CLOSE = new Set([")", "]", "}"]);
+
+/** 괄호 안의 쉼표(예: "메뉴(피자, 파스타)")는 무시하고, 최상위 쉼표에서만 나눈다. */
+function splitTopLevelCommas(value: string) {
+  const parts: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const char of value) {
+    if (BRACKET_OPEN.has(char)) depth++;
+    else if (BRACKET_CLOSE.has(char)) depth = Math.max(0, depth - 1);
+    if (char === "," && depth === 0) {
+      parts.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  parts.push(current);
+  return parts;
+}
+
 function splitCsv(...values: (string | undefined)[]) {
   return values
-    .flatMap((value) => (value ? value.split(",") : []))
-    .map((value) => value.trim())
+    .flatMap((value) => (value ? splitTopLevelCommas(value) : []))
+    .map((value) => value.trim().replace(/^[-–—]\s*/, ""))
     .filter(Boolean);
+}
+
+const CONTENT_TYPE_TOKENS = new Set(["SHORT_FORM", "LONG_FORM", "SHORTS", "FEED", "REELS", "POST"]);
+
+/** 톤앤매너 응답에 콘텐츠 유형 원시값(예: LONG_FORM)이 섞여 나오는 백엔드 이슈 방어. */
+function excludeContentTypeTokens(values: string[]) {
+  return values.filter((value) => !CONTENT_TYPE_TOKENS.has(value.toUpperCase()));
 }
 
 function narrativeValues(raw: string | undefined, fallback: string) {
@@ -184,6 +213,9 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
       }))
     : [];
   const qualitativeStatus = qualitativeStatusMessage(aiReport, applicant);
+  const riskNarrative = aiReport
+    ? { label: "위험 요소", values: narrativeValues(aiReport.warning, unavailableNarrative) }
+    : null;
 
   return (
     <ProfileAnalysisReport
@@ -240,16 +272,15 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
         : null}
       formatTotalLabel="수집 콘텐츠"
       narratives={aiReport ? [
-        { label: "위험 요소", values: narrativeValues(aiReport.warning, unavailableNarrative) },
         { label: "강점", values: narrativeValues(aiReport.strength, unavailableNarrative) },
         { label: "유의점", values: narrativeValues(aiReport.warning, unavailableNarrative) },
       ] : [
-        { label: "위험 요소", values: [`미확인 (${unavailableNarrative})`] },
         { label: "강점", values: [unavailableNarrative] },
         { label: "유의점", values: [unavailableNarrative] },
       ]}
       qualitativeStatus={qualitativeStatus}
       representativeContent={representativeContent}
+      riskNarrative={riskNarrative}
       summary={aiReport?.summary || reportSummary(applicant)}
       tagGroups={[
         { label: "카테고리", values: aiReport?.category ? [aiReport.category] : [] },
@@ -258,7 +289,7 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
         { label: "콘텐츠 유형", values: formatSegments.map((format) => format.label) },
         {
           label: "톤앤매너",
-          values: aiReport ? splitCsv(aiReport.tone, aiReport.contentStyle) : [],
+          values: aiReport ? excludeContentTypeTokens(splitCsv(aiReport.tone, aiReport.contentStyle)) : [],
         },
       ]}
       title="지원자 분석 리포트"

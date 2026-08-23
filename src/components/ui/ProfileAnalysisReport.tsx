@@ -53,6 +53,7 @@ interface ProfileAnalysisReportProps {
   narratives: readonly ProfileAnalysisNarrative[];
   qualitativeStatus?: string | null;
   representativeContent?: ProfileAnalysisRepresentativeContent | null;
+  riskNarrative?: ProfileAnalysisNarrative | null;
   summary: string;
   tagGroups: readonly ProfileAnalysisTagGroup[];
   title: string;
@@ -77,6 +78,7 @@ export function ProfileAnalysisReport({
   narratives,
   qualitativeStatus,
   representativeContent,
+  riskNarrative,
   summary,
   tagGroups,
   title,
@@ -231,25 +233,30 @@ export function ProfileAnalysisReport({
           ) : (
           <>
           <dl className="fuma-creator-analysis-claims fuma-analysis-qualitative__narrative-list">
-            {narratives.map((claim) => (
+            {riskNarrative ? (
               <div
-                className={`fuma-creator-analysis-claim${claim.label === "강점" || claim.label === "유의점" ? " fuma-creator-analysis-claim--plain" : ""}${claim.label === "위험 요소" && hasRiskFactor(claim.values) ? " fuma-creator-analysis-claim--risk" : ""}`}
-                key={claim.label}
+                className={`fuma-creator-analysis-claim${hasRiskFactor(riskNarrative.values) ? " fuma-creator-analysis-claim--risk" : ""}`}
               >
                 <dt>
-                  {claim.label === "위험 요소" ? (
-                    <span className="fuma-analysis-risk-label" data-risk={hasRiskFactor(claim.values) ? "true" : "false"}>
-                      <Siren aria-hidden="true" size={16} strokeWidth={2} />
-                      <span>{claim.label}</span>
-                    </span>
-                  ) : <span>{claim.label}</span>}
+                  <span className="fuma-analysis-risk-label" data-risk={hasRiskFactor(riskNarrative.values) ? "true" : "false"}>
+                    <Siren aria-hidden="true" size={16} strokeWidth={2} />
+                    <span>{riskNarrative.label}</span>
+                  </span>
                 </dt>
                 <dd>
-                  {claim.values.length > 1 ? (
-                    <ul className="fuma-creator-analysis-claim__list">
-                      {claim.values.map((value) => <li key={value}>{value}</li>)}
-                    </ul>
-                  ) : claim.values[0]}
+                  <ul className="fuma-creator-analysis-claim__list">
+                    {riskNarrative.values.map((value) => <li key={value}>{value}</li>)}
+                  </ul>
+                </dd>
+              </div>
+            ) : null}
+            {narratives.map((claim) => (
+              <div className="fuma-creator-analysis-claim fuma-creator-analysis-claim--plain" key={claim.label}>
+                <dt><span>{claim.label}</span></dt>
+                <dd>
+                  <ul className="fuma-creator-analysis-claim__list">
+                    {claim.values.map((value) => <li key={value}>{value}</li>)}
+                  </ul>
                 </dd>
               </div>
             ))}
