@@ -7,10 +7,20 @@ function collectionResponse(overrides: Record<string, unknown> = {}) {
   return new Response(JSON.stringify({
     code: "OK",
     data: {
-      engagementCount: 5,
-      newContentCount: 7,
-      newContentSucceeded: true,
-      storedContentSucceeded: true,
+      currentStep: null,
+      failedCount: 0,
+      finishedAt: null,
+      processedCount: 0,
+      progressPercent: null,
+      runId: "run-content-1",
+      skippedCount: 0,
+      startedAt: "2026-08-23T01:00:00Z",
+      startedBy: { adminId: 1, name: "관리자" },
+      status: "QUEUED",
+      succeededCount: 0,
+      taskType: "CONTENT_SYNC",
+      totalCount: null,
+      triggerType: "ADMIN_TRIGGERED",
       ...overrides,
     },
     message: null,
@@ -77,23 +87,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test("requests one content collection run and reports progress and result", async () => {
-  let resolveCollection: ((response: Response) => void) | undefined;
-  let resolveReload: ((response: Response) => void) | undefined;
-  let getRequestCount = 0;
+test("requests one content collection run with idempotency and reports accepted status", async () => {
   const fetchMock = vi.fn().mockImplementation((_input: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === "POST") {
-      return new Promise<Response>((resolve) => {
-        resolveCollection = resolve;
-      });
+      return Promise.resolve(collectionResponse());
     }
-    getRequestCount += 1;
-    if (getRequestCount === 1) {
-      return Promise.resolve(contentsResponse([contentItem(1, "기존 콘텐츠")]));
-    }
-    return new Promise<Response>((resolve) => {
-      resolveReload = resolve;
-    });
+    return Promise.resolve(contentsResponse([contentItem(1, "기존 콘텐츠")]));
   });
   vi.stubGlobal("fetch", fetchMock);
 
@@ -110,33 +109,48 @@ test("requests one content collection run and reports progress and result", asyn
   expect(refreshButton.querySelector("svg")).toBeInTheDocument();
   expect(within(categoryTabs).getByRole("button", { name: "검수 시작" })).toBeEnabled();
 
+  const requestsBeforeRun = fetchMock.mock.calls.length;
   fireEvent.click(refreshButton);
 
-  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(fetchMock).toHaveBeenCalledTimes(requestsBeforeRun + 1);
   expect(within(categoryTabs).getByRole("button", { name: "콘텐츠 새로고침 중" })).toBeDisabled();
-  const [input, init] = fetchMock.mock.calls[1];
+  const [input, init] = fetchMock.mock.calls[requestsBeforeRun];
   expect(String(input)).toBe("https://api.hiselectors.shop/api/admin/content-batch/run");
   expect((init as RequestInit).method).toBe("POST");
   expect(new Headers((init as RequestInit).headers).get("Authorization")).toBe(
     "Bearer admin.jwt",
   );
-
-  resolveCollection?.(collectionResponse());
-  await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-  expect(within(categoryTabs).getByRole("button", { name: "콘텐츠 새로고침 중" })).toBeDisabled();
-
-  resolveReload?.(contentsResponse([
-    contentItem(2, "새로 수집된 콘텐츠"),
-    contentItem(1, "기존 콘텐츠"),
-  ]));
+  const idempotencyKey = new Headers((init as RequestInit).headers).get("Idempotency-Key");
+  expect(idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
 
   const status = await screen.findByRole("status");
-  expect(status).toHaveTextContent("신규 콘텐츠 7건");
-  expect(status).toHaveTextContent("성과 저장 5건");
-  expect(status).toHaveTextContent("신규 수집 성공");
-  expect(status).toHaveTextContent("기존 콘텐츠 검수 성공");
-  expect(screen.getByRole("main")).toHaveTextContent("새로 수집된 콘텐츠");
+  expect(status).toHaveTextContent("작업 요청됨");
+  expect(status).toHaveTextContent("진행상황에서 확인");
+  expect(status).toHaveTextContent("run-content-1");
+  expect(fetchMock).toHaveBeenCalledTimes(requestsBeforeRun + 1);
   expect(within(categoryTabs).getByRole("button", { name: "콘텐츠 새로고침" })).toBeEnabled();
+});
+
+test("shows the backend conflict message when a collection is already running", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockImplementation((_input, init?: RequestInit) => (
+    init?.method === "POST"
+      ? Promise.resolve(new Response(JSON.stringify({
+          code: "TASK_ALREADY_RUNNING",
+          data: null,
+          message: "같은 작업이 이미 실행 중입니다.",
+          success: false,
+        }), {
+          headers: { "Content-Type": "application/json" },
+          status: 409,
+        }))
+      : Promise.resolve(contentsResponse([]))
+  )));
+
+  renderRoute("/content/inspections");
+  await screen.findByText("검색 결과가 없습니다.");
+  fireEvent.click(screen.getByRole("button", { name: "콘텐츠 새로고침" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("같은 작업이 이미 실행 중입니다.");
 });
 
 test("shows a collection failure as an inline alert", async () => {
@@ -162,30 +176,22 @@ test("shows a collection failure as an inline alert", async () => {
   expect(screen.getByRole("button", { name: "콘텐츠 새로고침" })).toBeEnabled();
 });
 
-test("describes a batch with saved content and account failures as partially failed", async () => {
-  let getRequestCount = 0;
-  vi.stubGlobal("fetch", vi.fn().mockImplementation((_input, init?: RequestInit) => {
+test("does not reload contents after an accepted collection request", async () => {
+  const fetchMock = vi.fn().mockImplementation((_input: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === "POST") {
-      return Promise.resolve(collectionResponse({
-        engagementCount: 0,
-        newContentCount: 1,
-        newContentSucceeded: false,
-      }));
+      return Promise.resolve(collectionResponse());
     }
-    getRequestCount += 1;
-    return Promise.resolve(contentsResponse(
-      getRequestCount === 1 ? [] : [contentItem(1, "수집된 콘텐츠")],
-    ));
-  }));
+    return Promise.resolve(contentsResponse([]));
+  });
+  vi.stubGlobal("fetch", fetchMock);
 
   renderRoute("/content/inspections");
   await screen.findByText("검색 결과가 없습니다.");
+  const requestsBeforeRun = fetchMock.mock.calls.length;
   fireEvent.click(screen.getByRole("button", { name: "콘텐츠 새로고침" }));
 
-  const status = await screen.findByRole("status");
-  expect(status).toHaveTextContent("신규 콘텐츠 1건");
-  expect(status).toHaveTextContent("신규 수집 일부 실패");
-  expect(screen.getByRole("main")).toHaveTextContent("수집된 콘텐츠");
+  await screen.findByRole("status");
+  expect(fetchMock).toHaveBeenCalledTimes(requestsBeforeRun + 1);
 });
 
 test("uses an isolated action layout and a readable success text token", () => {

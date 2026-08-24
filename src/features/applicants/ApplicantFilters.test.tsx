@@ -108,6 +108,20 @@ const applicantDetail = {
   }],
 };
 
+const applicantAiReport = {
+  applicationId: 1,
+  summary: "",
+  category: "",
+  keywords: [],
+  contentStyle: "",
+  tone: "",
+  strength: "",
+  warning: "",
+  brandHistory: "",
+  status: "COMPLETED",
+  createdAt: "2026-08-05T10:00:00",
+};
+
 const pendingApplicantDetail = {
   ...applicantDetail,
   mediaCollectionStatus: "PENDING",
@@ -406,6 +420,7 @@ describe("applicant api pages", () => {
       if (path.endsWith("/api/admin/applications/1/status") && init?.method === "PATCH") {
         return statusResponse.promise;
       }
+      if (path.endsWith("/api/admin/applications/1/ai-report")) return json(applicantAiReport);
       if (path.endsWith("/api/admin/applications/1")) {
         detailRequests += 1;
         return json(detailRequests === 1
@@ -484,6 +499,7 @@ describe("applicant api pages", () => {
         approved = true;
         return json({ id: 1, status: "APPROVED" });
       }
+      if (path.endsWith("/api/admin/applications/1/ai-report")) return json(applicantAiReport);
       if (path.endsWith("/api/admin/applications/1")) {
         return json({ ...applicantDetail, status: approved ? "APPROVED" : "PENDING" });
       }

@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { CreatorListPage, ProposalHistoryPage } from "./CreatorPages";
+import { CreatorListPage, ProposalComposePage, ProposalHistoryPage } from "./CreatorPages";
 
 function renderCreatorPage(path = "/creators") {
   return render(
@@ -17,6 +17,31 @@ function renderProposalPage(path = "/proposals") {
       <ProposalHistoryPage />
     </MemoryRouter>,
   );
+}
+
+function renderProposalComposePage(path = "/proposals/new?creator=113") {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <ProposalComposePage />
+    </MemoryRouter>,
+  );
+}
+
+function acceptedProposal(runId: string) {
+  return {
+    currentStep: null,
+    failedCount: 0,
+    processedCount: 0,
+    progressPercent: null,
+    runId,
+    skippedCount: 0,
+    startedBy: { adminId: 1, name: "관리자" },
+    status: "QUEUED",
+    succeededCount: 0,
+    taskType: "PROPOSAL_EMAIL_SEND",
+    totalCount: null,
+    triggerType: "ADMIN_TRIGGERED",
+  };
 }
 
 function resultCount(count: number) {
@@ -78,9 +103,9 @@ describe("creator filters", () => {
         const failed = failedProposalIds.has(creatorId);
         return Promise.resolve(new Response(JSON.stringify({
           success: !failed,
-          data: failed ? null : { proposalHistoryId: creatorId },
+          data: failed ? null : acceptedProposal(`proposal-run-${creatorId}`),
           message: failed ? "발송 실패" : null,
-        }), { status: failed ? 502 : 201 }));
+        }), { status: failed ? 502 : 202 }));
       }
       return Promise.resolve(
         String(input).endsWith("/api/admin/categories")
@@ -210,9 +235,16 @@ describe("creator filters", () => {
         { creatorId: 113, subject: "맞춤 제목", body: "맞춤 메시지" },
         { creatorId: 114, subject: "맞춤 제목", body: "맞춤 메시지" },
       ]);
-    const completed = await screen.findByRole("alertdialog", { name: "제안 발송 완료" });
-    expect(completed).toHaveTextContent("2명에게 제안을 발송했습니다.");
-    await user.click(within(completed).getByRole("button", { name: "확인" }));
+    const requested = await screen.findByRole("alertdialog", { name: "제안 발송 요청" });
+    expect(requested).toHaveTextContent("2명에게 제안 발송을 요청했습니다.");
+    expect(requested).toHaveTextContent("작업 진행상황에서 확인해 주세요.");
+    const idempotencyKeys = proposalRequests(fetchMock).map(([, init]) => (
+      new Headers(init?.headers).get("Idempotency-Key")
+    ));
+    expect(idempotencyKeys).toHaveLength(2);
+    idempotencyKeys.forEach((key) => expect(key).toMatch(/^[0-9a-f-]{36}$/));
+    expect(new Set(idempotencyKeys).size).toBe(2);
+    await user.click(within(requested).getByRole("button", { name: "확인" }));
     expect(screen.getByRole("button", { name: "선택 0명 제안 발송" })).toBeDisabled();
   });
 
@@ -236,7 +268,7 @@ describe("creator filters", () => {
     await user.click(within(panel).getByRole("button", { name: "3명에게 제안 발송" }));
 
     expect(await within(panel).findByRole("alert"))
-      .toHaveTextContent("2명 발송 완료, 1명 발송에 실패했습니다. 발송 실패");
+      .toHaveTextContent("2명 요청됨, 1명 요청에 실패했습니다. 발송 실패");
     expect(proposalRequests(fetchMock).map(([, init]) => JSON.parse(String(init?.body))))
       .toEqual([113, 114, 115].map((creatorId) => ({
         creatorId,
@@ -308,6 +340,58 @@ describe("creator filters", () => {
     expect(within(categories).getByRole("button", { name: "전체" }))
       .toHaveAttribute("aria-pressed", "true");
   });
+});
+
+test("single proposal acceptance does not append a completed history entry", async () => {
+  const user = userEvent.setup();
+  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = new URL(String(input));
+    if (url.pathname === "/api/admin/proposals" && init?.method === "POST") {
+      return Promise.resolve(new Response(JSON.stringify({
+        success: true,
+        data: acceptedProposal("proposal-run-single"),
+      }), { status: 202 }));
+    }
+    if (url.pathname === "/api/admin/proposals") {
+      return Promise.resolve(new Response(JSON.stringify({
+        success: true,
+        data: { content: [], totalElements: 0, totalPages: 0, number: 0, size: 100 },
+      })));
+    }
+    return Promise.resolve(new Response(JSON.stringify({
+      success: true,
+      data: {
+        id: 113,
+        snsCode: "INSTAGRAM",
+        accountId: "seo.yeon",
+        creatorName: "김서연",
+        email: "seoyeon@example.com",
+        followerCount: 82_400,
+        engagementRate: 4.25,
+        lastContentAt: "2026-08-12T20:00:00",
+        category: "BEAUTY",
+      },
+    })));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  renderProposalComposePage();
+
+  await screen.findByText("이전에 발송한 제안 이력이 없습니다.");
+  expect(screen.getByText("발송 작업을 요청하고 작업 진행상황에서 확인할 수 있습니다."))
+    .toBeInTheDocument();
+  expect(screen.getByText("요청 후 작업 진행상황에서 처리 상태를 확인할 수 있습니다."))
+    .toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "제안 발송" }));
+
+  const requested = await screen.findByRole("alertdialog", { name: "제안 발송 요청" });
+  expect(requested).toHaveTextContent("작업 진행상황에서 확인해 주세요.");
+  expect(screen.getByText("이전에 발송한 제안 이력이 없습니다.")).toBeInTheDocument();
+  const proposalRequest = fetchMock.mock.calls.find(([input, init]) => (
+    new URL(String(input)).pathname === "/api/admin/proposals" && init?.method === "POST"
+  ));
+  expect(proposalRequest).toBeDefined();
+  expect(new Headers(proposalRequest?.[1]?.headers).get("Idempotency-Key"))
+    .toMatch(/^[0-9a-f-]{36}$/);
 });
 
 describe("proposal history", () => {

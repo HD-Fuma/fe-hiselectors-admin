@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "../../components/shell/PageHeader";
+import { AlertDialog } from "../../components/ui/AlertDialog";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { FilterField } from "../../components/ui/FilterField";
@@ -225,6 +226,7 @@ export function NotificationHistoryPage() {
   const [isResendDialogOpen, setIsResendDialogOpen] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [resendError, setResendError] = useState("");
+  const [resendRequested, setResendRequested] = useState(false);
   const latestRequestId = useRef(0);
 
   useEffect(() => {
@@ -313,9 +315,9 @@ export function NotificationHistoryPage() {
       await resendNotification(selectedItem.notificationId);
       setIsResendDialogOpen(false);
       closeDetail();
-      prepareRequest();
+      setResendRequested(true);
     } catch (error) {
-      setResendError(error instanceof Error ? error.message : "메시지를 재발송하지 못했습니다.");
+      setResendError(error instanceof Error ? error.message : "메시지 재발송 요청에 실패했습니다.");
     } finally {
       setIsResending(false);
     }
@@ -391,6 +393,12 @@ export function NotificationHistoryPage() {
           </div>
         ) : null}
       </Modal>
+      <AlertDialog
+        message="메시지 재발송을 요청했습니다. 작업 진행상황에서 확인해 주세요."
+        onClose={() => setResendRequested(false)}
+        open={resendRequested}
+        title="재발송 요청"
+      />
     </section>
   );
 }

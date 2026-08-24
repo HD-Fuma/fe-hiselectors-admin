@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { resendNotification } from "../../entities/notifications";
 import { renderRoute } from "../../test/renderRoute";
 
 const HISTORY_ITEM = {
@@ -51,10 +52,23 @@ test("filters notification history and resends a failed message after confirmati
       expect(init?.method).toBe("POST");
       return Promise.resolve(new Response(JSON.stringify({
         code: "OK",
-        data: { notificationId: 35, status: "SENT" },
+        data: {
+          currentStep: null,
+          failedCount: 0,
+          processedCount: 0,
+          progressPercent: null,
+          runId: "kakao-resend-run-35",
+          skippedCount: 0,
+          startedBy: { adminId: 1, name: "관리자" },
+          status: "QUEUED",
+          succeededCount: 0,
+          taskType: "KAKAO_MESSAGE_SEND",
+          totalCount: null,
+          triggerType: "ADMIN_TRIGGERED",
+        },
         message: null,
         success: true,
-      }), { headers: { "Content-Type": "application/json" }, status: 200 }));
+      }), { headers: { "Content-Type": "application/json" }, status: 202 }));
     }
     return Promise.resolve(historyResponse());
   });
@@ -95,9 +109,40 @@ test("filters notification history and resends a failed message after confirmati
   expect(within(confirmation).getByText("김하이 (hi-selector)")).toBeInTheDocument();
   fireEvent.click(within(confirmation).getByRole("button", { name: "재발송" }));
 
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
   expect(new URL(String(fetchMock.mock.calls[2][0])).pathname).toBe(
     "/api/admin/notifications/35/resend",
   );
-  expect(new URL(String(fetchMock.mock.calls[3][0])).pathname).toBe("/api/admin/notifications");
+  const resendHeaders = new Headers((fetchMock.mock.calls[2][1] as RequestInit).headers);
+  expect(resendHeaders.get("Authorization")).toBe("Bearer admin.jwt");
+  expect(resendHeaders.get("Idempotency-Key")).toMatch(/^[0-9a-f-]{36}$/);
+  const requested = await screen.findByRole("alertdialog", { name: "재발송 요청" });
+  expect(requested).toHaveTextContent("메시지 재발송을 요청했습니다.");
+  expect(requested).toHaveTextContent("작업 진행상황에서 확인해 주세요.");
+});
+
+test("uses request wording when the resend API rejects without a server message", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 500 })));
+
+  await expect(resendNotification(35)).rejects.toThrow("메시지 재발송 요청에 실패했습니다.");
+});
+
+test("uses request wording when resend fails without an Error", async () => {
+  const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => (
+    new URL(String(input)).pathname.endsWith("/resend")
+      ? Promise.reject(null)
+      : Promise.resolve(historyResponse())
+  ));
+  vi.stubGlobal("fetch", fetchMock);
+  renderRoute("/notifications");
+
+  const results = await screen.findByRole("region", { name: "알림 및 메시지 발송 내역" });
+  fireEvent.click(within(results).getByRole("row", { name: /선정 승인/ }));
+  const detail = await screen.findByRole("dialog", { name: "발송 내역 상세" });
+  fireEvent.click(within(detail).getByRole("button", { name: "재발송" }));
+  const confirmation = await screen.findByRole("dialog", { name: "메시지 재발송" });
+  fireEvent.click(within(confirmation).getByRole("button", { name: "재발송" }));
+
+  expect(await within(confirmation).findByRole("alert"))
+    .toHaveTextContent("메시지 재발송 요청에 실패했습니다.");
 });

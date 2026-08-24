@@ -236,13 +236,13 @@ function BatchProposalPanel({
     setSending(true);
     setError("");
     const failed: CreatorSummary[] = [];
-    let succeeded = 0;
+    let accepted = 0;
     let firstFailure = "";
 
     for (const creator of creators) {
       try {
         await postAdminProposal(creator.id, { subject: subject.trim(), body: message.trim() });
-        succeeded += 1;
+        accepted += 1;
       } catch (reason) {
         failed.push(creator);
         if (!firstFailure) {
@@ -254,10 +254,10 @@ function BatchProposalPanel({
     setSending(false);
     if (failed.length > 0) {
       onFailed(failed);
-      setError(`${succeeded > 0 ? `${succeeded}명 발송 완료, ` : ""}${failed.length}명 발송에 실패했습니다. ${firstFailure}`);
+      setError(`${accepted > 0 ? `${accepted}명 요청됨, ` : ""}${failed.length}명 요청에 실패했습니다. ${firstFailure}`);
       return;
     }
-    onComplete(succeeded);
+    onComplete(accepted);
   };
 
   return (
@@ -269,7 +269,7 @@ function BatchProposalPanel({
           type="submit"
           variant="primary"
         >
-          {sending ? "발송 중..." : `${creators.length}명에게 제안 발송`}
+          {sending ? "요청 중..." : `${creators.length}명에게 제안 발송`}
         </Button>
       )}
       onClose={() => { if (!sending) onClose(); }}
@@ -357,7 +357,7 @@ function BatchProposalPanel({
               />
             </FormRow>
             <footer className="fuma-proposal-compose__footer">
-              <span>발송 후 제안 이력에서 상태를 확인할 수 있습니다.</span>
+              <span>요청 후 작업 진행상황에서 처리 상태를 확인할 수 있습니다.</span>
             </footer>
           </form>
         </div>
@@ -375,7 +375,7 @@ export function CreatorListPage() {
   const [error, setError] = useState("");
   const [discoverySettingsOpen, setDiscoverySettingsOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
-  const [proposalCompletedCount, setProposalCompletedCount] = useState(0);
+  const [proposalRequestedCount, setProposalRequestedCount] = useState(0);
   const [categoryOptions, setCategoryOptions] = useState<readonly { label: string; value: string }[]>(
     CREATOR_CATEGORY_OPTIONS,
   );
@@ -582,7 +582,7 @@ export function CreatorListPage() {
         onComplete={(count) => {
           setSelectedCreators(new Map());
           setProposalPanelOpen(false);
-          setProposalCompletedCount(count);
+          setProposalRequestedCount(count);
         }}
         onFailed={(failed) => setSelectedCreators(
           new Map(failed.map((creator) => [creator.id, creator])),
@@ -590,10 +590,10 @@ export function CreatorListPage() {
       />
     ) : null}
     <AlertDialog
-      message={`${proposalCompletedCount}명에게 제안을 발송했습니다.`}
-      onClose={() => setProposalCompletedCount(0)}
-      open={proposalCompletedCount > 0}
-      title="제안 발송 완료"
+      message={`${proposalRequestedCount}명에게 제안 발송을 요청했습니다. 작업 진행상황에서 확인해 주세요.`}
+      onClose={() => setProposalRequestedCount(0)}
+      open={proposalRequestedCount > 0}
+      title="제안 발송 요청"
     />
     </>
   );
@@ -625,7 +625,7 @@ function ProposalCreatorSummary({ creator }: { creator: CreatorDetail }) {
         </div>
       </dl>
       <p className="fuma-proposal-compose__creator-note">
-        발송 버튼을 누르면 크리에이터 이메일로 셀렉터스 제안 메일이 발송되고 제안 이력에 기록됩니다.
+        발송 작업을 요청하고 작업 진행상황에서 확인할 수 있습니다.
       </p>
     </aside>
   );
@@ -694,7 +694,7 @@ export function ProposalComposePage() {
   const [history, setHistory] = useState<ProposalHistoryEntry[] | null>(null);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
-  const [proposalCompleted, setProposalCompleted] = useState(false);
+  const [proposalRequested, setProposalRequested] = useState(false);
 
   useEffect(() => {
     if (invalidCreatorId) return;
@@ -742,11 +742,10 @@ export function ProposalComposePage() {
     setSending(true);
     setError("");
     try {
-      const entry = await postAdminProposal(creatorId);
-      setHistory((current) => [entry, ...(current ?? [])]);
-      setProposalCompleted(true);
+      await postAdminProposal(creatorId);
+      setProposalRequested(true);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "제안 메일 발송에 실패했습니다.");
+      setError(reason instanceof Error ? reason.message : "제안 메일 발송 요청에 실패했습니다.");
     } finally {
       setSending(false);
     }
@@ -784,7 +783,7 @@ export function ProposalComposePage() {
               </ul>
             )}
             <footer className="fuma-proposal-compose__footer">
-              <span>발송 후 제안 이력에서 상태를 확인할 수 있습니다.</span>
+              <span>요청 후 작업 진행상황에서 처리 상태를 확인할 수 있습니다.</span>
               <div>
                 <Button onClick={() => navigate(-1)}>취소</Button>
                 <Button
@@ -793,7 +792,7 @@ export function ProposalComposePage() {
                   onClick={sendProposal}
                   variant="primary"
                 >
-                  {sending ? "발송 중..." : "제안 발송"}
+                  {sending ? "요청 중..." : "제안 발송"}
                 </Button>
               </div>
             </footer>
@@ -802,13 +801,10 @@ export function ProposalComposePage() {
       </div>
     </section>
     <AlertDialog
-      message="제안이 완료되었습니다."
-      onClose={() => {
-        setProposalCompleted(false);
-        navigate("/creators");
-      }}
-      open={proposalCompleted}
-      title="제안 발송 완료"
+      message="제안 발송을 요청했습니다. 작업 진행상황에서 확인해 주세요."
+      onClose={() => setProposalRequested(false)}
+      open={proposalRequested}
+      title="제안 발송 요청"
     />
     </>
   );
