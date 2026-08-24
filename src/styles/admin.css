@@ -7271,6 +7271,10 @@
   animation: fuma-detail-panel-enter 180ms ease-out;
 }
 
+.fuma-detail-panel[data-entry-animation="false"] {
+  animation: none;
+}
+
 .fuma-detail-panel__resize-handle {
   position: absolute;
   z-index: 5;

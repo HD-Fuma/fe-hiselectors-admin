@@ -87,6 +87,17 @@ describe("campaign filter behavior", () => {
     expect(within(detail).queryByRole("region", { name: "참여 셀렉터스" })).not.toBeInTheDocument();
   });
 
+  test("transitions from campaign detail to editing without replaying the panel animation", async () => {
+    renderRoute("/campaigns/3");
+    const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
+
+    fireEvent.click(within(detail).getByRole("link", { name: "캠페인 수정" }));
+
+    const editor = await screen.findByRole("dialog", { name: "캠페인 수정" });
+    expect(editor).toHaveAttribute("data-entry-animation", "false");
+    expect(within(editor).getByRole("textbox", { name: "캠페인명" })).toHaveValue(campaign.title);
+  });
+
   test("filters the product picker without losing hidden selections", async () => {
     renderRoute("/campaigns/new");
     const editor = await screen.findByRole("dialog", { name: "새 캠페인 생성" });

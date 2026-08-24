@@ -549,6 +549,7 @@ function CampaignEditorPanel({ campaign, mode, onClose }: CampaignEditorPanelPro
           </Button>
         </>
       }
+      animateOnOpen={mode === "create"}
       onClose={onClose}
       title={mode === "create" ? "새 캠페인 생성" : "캠페인 수정"}
     >
@@ -579,8 +580,11 @@ export function CampaignCreatePage() {
 
 export function CampaignEditPage() {
   const { campaignId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
-  const [campaign, setCampaign] = useState<Campaign | null>();
+  const routeCampaign = (location.state as { campaign?: Campaign } | null)?.campaign;
+  const [campaign, setCampaign] = useState<Campaign | null | undefined>(() =>
+    routeCampaign?.id === Number(campaignId) ? routeCampaign : undefined);
   useEffect(() => {
     const controller = new AbortController();
     const id = Number(campaignId);
@@ -718,6 +722,7 @@ export function CampaignDetailPage({
           <Link
             aria-label="캠페인 수정"
             className="hsas-button hsas-button--primary"
+            state={{ campaign }}
             to={`/campaigns/${campaign.id}/edit`}
           >
             수정
