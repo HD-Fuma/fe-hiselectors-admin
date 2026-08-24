@@ -8,29 +8,29 @@ import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import {
+  apiStatusesForFilter,
   getSettlementEstimates,
   getSettlementSelectorDetail,
-  SETTLEMENT_STATUSES,
+  SETTLEMENT_STATUS_FILTERS,
   SettlementTable,
   type SettlementEstimate,
   type SettlementSelectorDetail,
-  type SettlementStatus,
+  type SettlementStatusFilter,
   type SettlementTableRow,
   type SpringPage,
 } from "../../entities/settlement";
 import {
-  SELECTORS,
+  getSelector,
   SelectorDetailPanel,
-  type SelectorFixture,
+  type SelectorDetail,
 } from "../../entities/selectors";
 
 const SETTLEMENT_PAGE_SIZE = 20;
 
-function previousSettlementMonth(date = new Date()) {
-  const previousMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+function currentSettlementMonth(date = new Date()) {
   return [
-    previousMonth.getFullYear(),
-    String(previousMonth.getMonth() + 1).padStart(2, "0"),
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
   ].join("-");
 }
 
@@ -49,38 +49,11 @@ function activityMonthLabel(activityMonth: string) {
   return `${year}년 ${Number(monthNumber)}월`;
 }
 
-function selectorDetailForSettlement(settlement: SettlementTableRow): SelectorFixture {
-  const fixtureId = `sl-${String(settlement.selectorsId).padStart(3, "0")}`;
-  const selector = SELECTORS.find((item) => (
-    item.selectorCode === settlement.selectorsCode
-    || item.name === settlement.selectorsNickname
-    || item.id === fixtureId
-  ));
-
-  if (selector) return selector;
-
-  const sequence = settlement.selectorsId || 1;
-  const selectorName = settlement.selectorsNickname || "셀렉터스";
-
-  return {
-    clicks: 0,
-    cohort: "-",
-    contentCount: 0,
-    conversions: 0,
-    id: fixtureId,
-    name: selectorName,
-    recentActivity: settlement.updatedAt?.slice(0, 10) || "-",
-    selectorCode: settlement.selectorsCode || `SEL-${String(sequence).padStart(4, "0")}`,
-    shopNickname: selectorName,
-    sns: sequence % 2 === 0 ? "YouTube" : "Instagram",
-    status: "활동 중",
-    violationCount: 0,
-  };
-}
-
 interface SettlementDetailState {
-  detail: SettlementSelectorDetail | null;
-  error: boolean;
+  selector: SelectorDetail | null;
+  selectorError: string;
+  settlementDetail: SettlementSelectorDetail | null;
+  settlementDetailError: boolean;
   loading: boolean;
 }
 
@@ -113,10 +86,10 @@ function SettlementFilters({
 }
 
 export function SettlementManagementPage() {
-  const [defaultMonth] = useState(previousSettlementMonth);
+  const [defaultMonth] = useState(currentSettlementMonth);
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
   const [appliedMonth, setAppliedMonth] = useState(defaultMonth);
-  const [selectedStatus, setSelectedStatus] = useState<SettlementStatus | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<SettlementStatusFilter | null>(null);
   const [page, setPage] = useState(1);
   const [requestVersion, setRequestVersion] = useState(0);
   const [settlementPage, setSettlementPage] = useState(emptySettlementPage);
@@ -137,7 +110,7 @@ export function SettlementManagementPage() {
       activityMonth: appliedMonth,
       page: page - 1,
       size: SETTLEMENT_PAGE_SIZE,
-      status: selectedStatus ?? undefined,
+      statuses: apiStatusesForFilter(selectedStatus),
     }, controller.signal)
       .then((result) => {
         if (latestRequestId.current !== requestId) return;
@@ -179,23 +152,39 @@ export function SettlementManagementPage() {
     detailRequestId.current = requestId;
     detailAbortController.current = controller;
     setSelectedSettlement(settlement);
-    setSettlementDetailState({ detail: null, error: false, loading: true });
+    setSettlementDetailState({
+      loading: true,
+      selector: null,
+      selectorError: "",
+      settlementDetail: null,
+      settlementDetailError: false,
+    });
 
-    getSettlementSelectorDetail(settlement.selectorsId, controller.signal)
-      .then((result) => {
-        if (detailRequestId.current !== requestId) return;
-        setSettlementDetailState({ detail: result, error: false, loading: false });
-      })
-      .catch((error: unknown) => {
-        if (
-          detailRequestId.current !== requestId
-          || (error instanceof Error && error.name === "AbortError")
-        ) {
-          return;
-        }
+    Promise.allSettled([
+      getSelector(settlement.selectorsId, controller.signal),
+      getSettlementSelectorDetail(settlement.selectorsId, controller.signal),
+    ]).then(([selectorResult, settlementResult]) => {
+      if (controller.signal.aborted || detailRequestId.current !== requestId) return;
+      if (selectorResult.status === "rejected") {
+        const reason = selectorResult.reason as unknown;
+        setSettlementDetailState({
+          loading: false,
+          selector: null,
+          selectorError: reason instanceof Error ? reason.message : "셀렉터스 상세 조회에 실패했습니다.",
+          settlementDetail: null,
+          settlementDetailError: settlementResult.status === "rejected",
+        });
+        return;
+      }
 
-        setSettlementDetailState({ detail: null, error: true, loading: false });
+      setSettlementDetailState({
+        loading: false,
+        selector: selectorResult.value,
+        selectorError: "",
+        settlementDetail: settlementResult.status === "fulfilled" ? settlementResult.value : null,
+        settlementDetailError: settlementResult.status === "rejected",
       });
+    });
   };
 
   const prepareRequest = () => {
@@ -223,7 +212,7 @@ export function SettlementManagementPage() {
     prepareRequest();
   };
 
-  const changeStatus = (status: SettlementStatus | null) => {
+  const changeStatus = (status: SettlementStatusFilter | null) => {
     setSelectedStatus(status);
     setPage(1);
     prepareRequest();
@@ -262,7 +251,7 @@ export function SettlementManagementPage() {
             onSelect: () => changeStatus(null),
           }}
           onChange={(status) => changeStatus(status)}
-          options={SETTLEMENT_STATUSES}
+          options={SETTLEMENT_STATUS_FILTERS}
           value={selectedStatus}
         />
         <ResultToolbar
@@ -293,9 +282,11 @@ export function SettlementManagementPage() {
       {selectedSettlement ? (
         <SelectorDetailPanel
           onClose={closeSettlementDetail}
-          selector={selectorDetailForSettlement(selectedSettlement)}
-          settlementDetail={settlementDetailState?.detail ?? null}
-          settlementDetailError={settlementDetailState?.error ?? false}
+          selectorDetail={settlementDetailState?.selector}
+          selectorDetailError={settlementDetailState?.selectorError}
+          selectorDetailLoading={settlementDetailState?.loading ?? false}
+          settlementDetail={settlementDetailState?.settlementDetail ?? null}
+          settlementDetailError={settlementDetailState?.settlementDetailError ?? false}
           settlementDetailLoading={settlementDetailState?.loading ?? false}
         />
       ) : null}

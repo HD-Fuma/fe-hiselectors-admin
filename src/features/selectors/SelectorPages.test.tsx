@@ -34,8 +34,13 @@ const detail = {
     generationName: "3기",
     startDate: "2026-07-01T00:00:00",
     endDate: "2026-08-31T23:59:59",
+    activityStartDate: "2026-08-01T00:00:00",
+    activityEndDate: "2026-10-31T23:59:59",
     status: "ACTIVE",
     joinedAt: "2026-07-02T12:00:00",
+    totalSales: 1_500_000,
+    confirmedPurchaseCount: 12,
+    paidCommissionAmount: 320000,
   }],
   snsAccount: {
     id: 11,
@@ -70,6 +75,7 @@ const detail = {
 let selectorDetail: SelectorDetail = detail;
 
 const settlementDetail = {
+  accountRegistered: true,
   profile: {
     selectorsId: 7,
     selectorsCode: "SEL0007",
@@ -88,6 +94,7 @@ const settlementDetail = {
     nextMonthScheduledCommission: 75000,
     nextPaymentMonth: "2026-09",
     nextPaymentSettlementStatus: "PAYMENT_PENDING",
+    cumulativeSalesAmount: 1_500_000,
   },
   histories: {
     content: [{
@@ -200,31 +207,99 @@ describe("selector api pages", () => {
     const panel = await screen.findByRole("dialog", { name: "셀렉터스 상세" });
 
     expect(await within(panel).findByRole("heading", { name: "홍길동" })).toBeInTheDocument();
-    expect(within(panel).getByText("hong.selector")).toBeInTheDocument();
+    expect(within(panel).getByRole("link", { name: "@hong.selector" })).toHaveAttribute(
+      "href",
+      "https://www.instagram.com/hong.selector",
+    );
+    expect(within(panel).getByText("팔로워 1.2만명")).toBeInTheDocument();
+    expect(within(panel).queryByLabelText("셀렉터스 정보")).not.toBeInTheDocument();
+    expect(within(panel).queryByText(/등록 2026-/)).not.toBeInTheDocument();
     expect(within(panel).queryByRole("region", { name: "셀렉터스 SNS 계정" })).not.toBeInTheDocument();
     expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("3기");
-    expect(within(panel).getByText("누적 패널티").parentElement).toHaveTextContent("3건");
+    expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("2026-08-01 ~ 2026-10-31");
+    expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("12건");
+    expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("1,500,000원");
+    expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("320,000원");
+    expect(within(panel).getByText("총 1건")).toBeInTheDocument();
+    expect(within(panel).getByLabelText("셀렉터스 기수")).toHaveTextContent("3기");
+    expect(within(panel).getByText("셀렉터스 코드").parentElement).toHaveTextContent("SEL0007");
+    expect(within(panel).getByText("셀렉터스명").parentElement).toHaveTextContent("홍길동");
+    expect(within(panel).getByText("누적 구매수").parentElement).toHaveTextContent("12건");
+    expect(within(panel).getByText("누적 매출").parentElement).toHaveTextContent("1,500,000원");
     const consent = within(panel).getByRole("heading", { name: "동의 및 수신 정보" }).closest("section")!;
     expect(consent).toHaveTextContent("2026-07-01 11:00");
     expect(consent).toHaveTextContent("2026-07-01 11:05");
-    expect(within(consent).getByText("카카오 알림톡 수신 동의").parentElement).toHaveTextContent("동의");
+    expect(within(consent).getByText("광고성 정보 수신동의").parentElement).toHaveTextContent("동의");
     expect(within(consent).getByText("동의")).toHaveClass("hsas-status-pill");
     expect(within(consent).getByText("최종 정보 갱신일").parentElement).toHaveTextContent("2026-08-20 09:00");
     const performance = within(panel).getByRole("region", { name: "셀렉터스 성과" });
-    expect(performance).toHaveTextContent("12,000");
-    expect(within(performance).getAllByRole("cell").at(-1)).toHaveTextContent("0");
+    expect(within(panel).getByText("3기 기준")).toBeInTheDocument();
+    expect(performance).toHaveTextContent("12건");
+    expect(performance).toHaveTextContent("1,500,000원");
+    expect(performance).toHaveTextContent("320,000원");
+    expect(performance).toHaveTextContent("2026-08-01 ~ 2026-10-31");
     const contents = within(panel).getByRole("region", { name: "셀렉터스 콘텐츠" });
     expect(within(contents).getByText("REELS")).toHaveClass("hsas-status-pill");
     expect(within(contents).getByRole("link", { name: /여름 스타일링 추천/ }))
       .toHaveAttribute("title", "여름 스타일링 추천");
     expect(within(panel).getByText("최근 1건 · 전체 1건")).toBeInTheDocument();
+    expect(within(panel).getByText("마지막 갱신 2026-08-21 10:00")).toBeInTheDocument();
     const settlements = within(panel).getByRole("region", { name: "셀렉터스 정산 내역" });
     expect(settlements).toHaveTextContent("75,000원");
     expect(within(panel).getByText("누적 지급 수수료").parentElement).toHaveTextContent("320,000원");
+    expect(within(panel).getAllByText("지급 상태")[0].parentElement).toHaveTextContent("지급 대기");
+    expect(within(panel).getByText("정산정보 등록 여부").parentElement).toHaveTextContent("등록 완료");
+    expect(within(panel).queryByText("현재 활동월")).not.toBeInTheDocument();
+    expect(within(panel).queryByText("다음 지급월")).not.toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(
       expect.stringMatching(/\/api\/admin\/settlements\/selectors\/7\/detail\?page=0&size=12$/),
       expect.anything(),
     );
+  });
+
+  test("shows payment hold status with the hold reason", async () => {
+    const currentFetch = vi.mocked(fetch);
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes("/api/admin/settlements/selectors/7/detail")) {
+        return json({
+          ...settlementDetail,
+          settlementSummary: {
+            ...settlementDetail.settlementSummary,
+            nextPaymentSettlementStatus: "PAYMENT_HOLD_BLACK",
+          },
+          histories: {
+            ...settlementDetail.histories,
+            content: [{
+              ...settlementDetail.histories.content[0],
+              status: "PAYMENT_HOLD_BLACK",
+            }],
+          },
+        });
+      }
+      return currentFetch(input, init);
+    }));
+
+    renderRoute("/selectors/7");
+    const panel = await screen.findByRole("dialog", { name: "셀렉터스 상세" });
+    const settlement = within(panel).getByRole("heading", { name: "정산 정보" }).closest("section")!;
+
+    expect(within(settlement).getByText("지급 보류")).toHaveClass("hsas-status-pill");
+    expect(within(settlement).getByText("블랙리스트")).toBeInTheDocument();
+  });
+
+  test("shows unregistered settlement account status", async () => {
+    const currentFetch = vi.mocked(fetch);
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes("/api/admin/settlements/selectors/7/detail")) {
+        return json({ ...settlementDetail, accountRegistered: false });
+      }
+      return currentFetch(input, init);
+    }));
+
+    renderRoute("/selectors/7");
+    const panel = await screen.findByRole("dialog", { name: "셀렉터스 상세" });
+
+    expect(within(panel).getByText("정산정보 등록 여부").parentElement).toHaveTextContent("미등록");
   });
 
   test("keeps selector detail visible when settlement lookup fails", async () => {
@@ -257,15 +332,37 @@ describe("selector api pages", () => {
 
     renderRoute("/selectors/7");
     const panel = await screen.findByRole("dialog", { name: "셀렉터스 상세" });
-    const performance = within(panel).getByRole("region", { name: "셀렉터스 성과" });
 
-    expect(within(performance).getAllByRole("cell")).toHaveLength(4);
-    within(performance).getAllByRole("cell").forEach((cell) => {
-      expect(cell).toHaveTextContent("-");
-    });
     expect(within(panel).getByText("최근 0건 · 전체 -")).toBeInTheDocument();
     expect(within(panel).getByRole("region", { name: "셀렉터스 콘텐츠" }))
       .toHaveTextContent("콘텐츠 수집 전입니다.");
+  });
+
+  test("shows brief performance only for the active generation", async () => {
+    selectorDetail = {
+      ...detail,
+      generations: [
+        {
+          ...detail.generations[0],
+          generationId: 4,
+          generationName: "2기",
+          status: "INACTIVE",
+          totalSales: 9_000_000,
+          confirmedPurchaseCount: 99,
+          paidCommissionAmount: 900000,
+        },
+        detail.generations[0],
+      ],
+    };
+
+    renderRoute("/selectors/7");
+    const panel = await screen.findByRole("dialog", { name: "셀렉터스 상세" });
+    const performance = within(panel).getByRole("region", { name: "셀렉터스 성과" });
+
+    expect(within(panel).getByText("3기 기준")).toBeInTheDocument();
+    expect(performance).toHaveTextContent("12건");
+    expect(performance).not.toHaveTextContent("9,000,000원");
+    expect(performance).not.toHaveTextContent("2기");
   });
 
   test("creates and changes the status of a server generation", async () => {

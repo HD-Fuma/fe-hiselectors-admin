@@ -2,7 +2,7 @@ import type { Key, ReactNode } from "react";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { formatNumber, formatWon } from "../../lib/formatters";
-import type { SettlementStatus, SettlementTableRow } from "./model";
+import { settlementStatusLabel, type SettlementStatus, type SettlementTableRow } from "./model";
 
 export interface SettlementTableProps {
   ariaLabel?: string;
@@ -13,19 +13,14 @@ export interface SettlementTableProps {
   selectedRowKeys?: readonly Key[];
 }
 
-const STATUS_LABELS: Record<SettlementStatus, string> = {
-  CALCULATING: "계산 중",
-  PAYMENT_HOLD: "지급 보류",
-  PAYMENT_PENDING: "지급 대기",
-  SETTLED: "지급 완료",
-};
-
 const STATUS_TONES: Record<
   SettlementStatus,
   NonNullable<StatusPillProps["tone"]>
 > = {
   CALCULATING: "neutral",
-  PAYMENT_HOLD: "danger",
+  EXPIRED: "rejected",
+  PAYMENT_HOLD_BLACK: "danger",
+  PAYMENT_HOLD_INFO: "danger",
   PAYMENT_PENDING: "pending",
   SETTLED: "approved",
 };
@@ -106,12 +101,12 @@ const SETTLEMENT_TABLE_COLUMNS: DenseTableColumn<SettlementTableRow>[] = [
   {
     key: "status",
     header: "지급 상태",
-    width: 90,
+    width: 130,
     align: "center",
     render: (settlement) => (
       settlement.status ? (
-        <StatusPill tone={STATUS_TONES[settlement.status]}>
-          {STATUS_LABELS[settlement.status]}
+        <StatusPill tone={STATUS_TONES[settlement.status] ?? "neutral"}>
+          {settlementStatusLabel(settlement.status)}
         </StatusPill>
       ) : "-"
     ),

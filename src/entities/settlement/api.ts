@@ -5,6 +5,7 @@ import type {
   SettlementEstimate,
   SettlementEstimateRequest,
   SettlementSelectorDetail,
+  SettlementStatus,
   SpringPage,
 } from "./model";
 
@@ -43,8 +44,50 @@ async function errorMessage(response: Response, fallbackMessage: string) {
   }
 }
 
-export async function getSettlementEstimates(
-  request: SettlementEstimateRequest,
+const COMBINED_STATUS_FETCH_SIZE = 1_000;
+
+function authorizationHeaders() {
+  const headers = new Headers();
+  const authorization = authorizationHeader();
+  if (authorization) headers.set("Authorization", authorization);
+  return headers;
+}
+
+function requestedStatuses(request: SettlementEstimateRequest) {
+  if (request.statuses && request.statuses.length > 0) return request.statuses;
+  if (request.status) return [request.status];
+  return undefined;
+}
+
+function mergeEstimatePages(
+  pages: SpringPage<SettlementEstimate>[],
+  page: number,
+  size: number,
+): SpringPage<SettlementEstimate> {
+  const content = pages
+    .flatMap((item) => item.content)
+    .sort((left, right) => (
+      left.selectorsId - right.selectorsId
+      || left.settlementId - right.settlementId
+    ));
+  const start = page * size;
+
+  return {
+    content: content.slice(start, start + size),
+    number: page,
+    size,
+    totalElements: content.length,
+    totalPages: Math.ceil(content.length / size),
+  };
+}
+
+async function fetchSettlementEstimatePage(
+  request: {
+    activityMonth?: string;
+    page: number;
+    size: number;
+    status?: SettlementStatus;
+  },
   signal?: AbortSignal,
 ): Promise<SpringPage<SettlementEstimate>> {
   const searchParams = new URLSearchParams({
@@ -55,13 +98,9 @@ export async function getSettlementEstimates(
   if (request.activityMonth) searchParams.set("activityMonth", request.activityMonth);
   if (request.status) searchParams.set("status", request.status);
 
-  const headers = new Headers();
-  const authorization = authorizationHeader();
-  if (authorization) headers.set("Authorization", authorization);
-
   const response = await adminFetch(
     `${API_BASE_URL}/api/admin/settlements/estimates?${searchParams.toString()}`,
-    { headers, signal },
+    { headers: authorizationHeaders(), signal },
   );
 
   if (!response.ok) {
@@ -76,18 +115,39 @@ export async function getSettlementEstimates(
   return result.data;
 }
 
+export async function getSettlementEstimates(
+  request: SettlementEstimateRequest,
+  signal?: AbortSignal,
+): Promise<SpringPage<SettlementEstimate>> {
+  const statuses = requestedStatuses(request);
+  if (!statuses || statuses.length <= 1) {
+    return fetchSettlementEstimatePage({
+      activityMonth: request.activityMonth,
+      page: request.page,
+      size: request.size,
+      status: statuses?.[0],
+    }, signal);
+  }
+
+  const pages = await Promise.all(statuses.map((status) => fetchSettlementEstimatePage({
+    activityMonth: request.activityMonth,
+    page: 0,
+    size: COMBINED_STATUS_FETCH_SIZE,
+    status,
+  }, signal)));
+
+  return mergeEstimatePages(pages, request.page, request.size);
+}
+
 export async function getSettlementSelectorDetail(
   selectorsId: number,
   signal?: AbortSignal,
 ): Promise<SettlementSelectorDetail> {
   const searchParams = new URLSearchParams({ page: "0", size: "12" });
-  const headers = new Headers();
-  const authorization = authorizationHeader();
-  if (authorization) headers.set("Authorization", authorization);
 
   const response = await adminFetch(
     `${API_BASE_URL}/api/admin/settlements/selectors/${selectorsId}/detail?${searchParams.toString()}`,
-    { headers, signal },
+    { headers: authorizationHeaders(), signal },
   );
 
   if (!response.ok) {

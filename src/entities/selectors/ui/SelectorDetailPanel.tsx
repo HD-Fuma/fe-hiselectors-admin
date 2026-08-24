@@ -4,11 +4,13 @@ import { CreatorProfilePhoto } from "../../../components/ui/CreatorProfilePhoto"
 import { DenseTable, type DenseTableColumn } from "../../../components/ui/DenseTable";
 import { SidePanel } from "../../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../../components/ui/StatusPill";
-import { formatNumber, formatWon } from "../../../lib/formatters";
-import type {
-  SettlementEstimate,
-  SettlementPaymentStatus,
-  SettlementSelectorDetail,
+import { formatCompactCount, formatNumber, formatWon } from "../../../lib/formatters";
+import {
+  primarySettlementPaymentStatus,
+  settlementHoldReason,
+  settlementStatusLabel,
+  type SettlementSelectorDetail,
+  type SettlementStatus,
 } from "../../settlement";
 import { getSelectorDetailData, type SelectorSocialLink } from "../model/detailData";
 import type { SelectorFixture } from "../model/fixtures";
@@ -16,7 +18,6 @@ import type {
   SelectorContent,
   SelectorDetail,
   SelectorGeneration,
-  SelectorPerformance,
   SelectorSnsCode,
 } from "../api";
 
@@ -43,28 +44,53 @@ interface SelectorSettlementTableRow {
   ordinal: number;
   settlementAmount: number | null | undefined;
   settlementRate: number | null | undefined;
-  status: SelectorSettlementStatus | "-";
+  status: string;
+  statusCode?: SettlementStatus | null;
+  updatedAt?: string | null;
 }
 
-type SelectorSettlementStatus = SettlementPaymentStatus | "계산 중" | "지급 대기" | "지급 보류";
-
 function settlementStatusTone(
-  status: SelectorSettlementStatus | "-",
+  status: string,
 ): NonNullable<StatusPillProps["tone"]> {
-  if (status === "지급 완료") return "approved";
-  if (status === "확정" || status === "지급 대기") return "pending";
-  if (status === "지급 보류") return "danger";
+  if (status === "지급 완료" || status === "SETTLED") return "approved";
+  if (status === "확정" || status === "지급 대기" || status === "PAYMENT_PENDING" || status === "CALCULATING") {
+    return "pending";
+  }
+  if (
+    status === "정산 보류"
+    || status === "지급 보류"
+    || status === "PAYMENT_HOLD_INFO"
+    || status === "PAYMENT_HOLD_BLACK"
+  ) return "danger";
+  if (status === "지급 만료" || status === "EXPIRED") return "rejected";
   return "neutral";
 }
 
-function settlementStatusLabel(
-  status: SettlementEstimate["status"] | null | undefined,
-): SelectorSettlementStatus | "-" {
-  if (!status) return "-";
-  if (status === "SETTLED") return "지급 완료";
-  if (status === "PAYMENT_PENDING") return "지급 대기";
-  if (status === "PAYMENT_HOLD") return "지급 보류";
-  return "계산 중";
+function accountHandle(accountId: string) {
+  const trimmed = accountId.trim();
+  return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
+}
+
+function snsAccountHref(
+  platform: "Instagram" | "YouTube" | null,
+  accountId: string | null | undefined,
+) {
+  if (!platform || !accountId) return null;
+  if (accountId.startsWith("http")) return accountId;
+  const normalizedAccountId = accountId.replace(/^@/, "").trim();
+  if (!normalizedAccountId) return null;
+  return platform === "YouTube"
+    ? `https://www.youtube.com/channel/${normalizedAccountId}`
+    : `https://www.instagram.com/${normalizedAccountId}`;
+}
+
+function audienceCountLabel(
+  platform: "Instagram" | "YouTube" | null,
+  followerCount: number | null | undefined,
+) {
+  if (followerCount == null) return null;
+  const unit = platform === "YouTube" ? "구독자" : "팔로워";
+  return `${unit} ${formatCompactCount(followerCount)}명`;
 }
 
 function settlementProfileSnsLink(
@@ -78,24 +104,24 @@ function settlementProfileSnsLink(
 
   if (!platform) return null;
 
-  const accountId = profile.accountId ?? "";
-  const normalizedAccountId = accountId.replace(/^@/, "");
-  const url = accountId.startsWith("http")
-    ? accountId
-    : platform === "YouTube"
-      ? `https://www.youtube.com/${normalizedAccountId}`
-      : `https://www.instagram.com/${normalizedAccountId}`;
+  const href = snsAccountHref(platform, profile.accountId);
+  if (!href) return null;
 
   return {
-    handle: displayText(accountId),
+    handle: displayText(profile.accountId),
     platform,
-    url,
+    url: href,
   };
 }
 
 function displayDateTime(value: string | null | undefined) {
   if (!value) return "-";
   return value.replace("T", " ").slice(0, 16);
+}
+
+function displayDateRange(start: string | null | undefined, end: string | null | undefined) {
+  if (!start || !end) return "-";
+  return `${start.slice(0, 10)} ~ ${end.slice(0, 10)}`;
 }
 
 function displayText(value: string | number | null | undefined) {
@@ -117,6 +143,13 @@ function displayRate(value: number | null | undefined) {
 function displayCount(value: number | null | undefined) {
   const formatted = displayNumber(value);
   return formatted === "-" ? formatted : `${formatted}건`;
+}
+
+function latestTimestamp(values: Array<string | null | undefined>) {
+  return values.reduce<string | null>((latest, value) => {
+    if (!value) return latest;
+    return latest == null || value > latest ? value : latest;
+  }, null);
 }
 
 const SETTLEMENT_COLUMNS: DenseTableColumn<SelectorSettlementTableRow>[] = [
@@ -165,7 +198,7 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SelectorSettlementTableRow>[] = [
   {
     key: "status",
     header: "지급 상태",
-    width: 90,
+    width: 130,
     align: "center",
     render: (settlement) => (
       <StatusPill tone={settlementStatusTone(settlement.status)}>
@@ -188,12 +221,17 @@ function apiPlatform(snsCode: SelectorSnsCode | null) {
 }
 
 const GENERATION_COLUMNS: DenseTableColumn<SelectorGeneration>[] = [
-  { key: "generationName", header: "기수", width: 90, align: "center" },
-  { id: "period", header: "모집 기간", render: (generation) => `${generation.startDate.slice(0, 10)} ~ ${generation.endDate.slice(0, 10)}` },
+  { key: "generationName", header: "기수", width: 80, align: "center" },
+  {
+    id: "activityPeriod",
+    header: "활동 기간",
+    align: "center",
+    render: (generation) => displayDateRange(generation.activityStartDate, generation.activityEndDate),
+  },
   {
     key: "status",
     header: "상태",
-    width: 90,
+    width: 80,
     align: "center",
     render: (generation) => (
       <StatusPill tone={generation.status === "ACTIVE" ? "approved" : "neutral"}>
@@ -201,14 +239,61 @@ const GENERATION_COLUMNS: DenseTableColumn<SelectorGeneration>[] = [
       </StatusPill>
     ),
   },
-  { key: "joinedAt", header: "참여 등록일", width: 145, align: "center", render: (generation) => displayDateTime(generation.joinedAt) },
+  {
+    key: "confirmedPurchaseCount",
+    header: "구매확정",
+    width: 90,
+    align: "center",
+    render: (generation) => displayCount(generation.confirmedPurchaseCount),
+  },
+  {
+    key: "totalSales",
+    header: "총 매출",
+    width: 110,
+    align: "center",
+    render: (generation) => displayWon(generation.totalSales),
+  },
+  {
+    key: "paidCommissionAmount",
+    header: "지급 수수료",
+    width: 110,
+    align: "center",
+    render: (generation) => displayWon(generation.paidCommissionAmount),
+  },
+  {
+    key: "joinedAt",
+    header: "참여 등록일",
+    width: 135,
+    align: "center",
+    render: (generation) => displayDateTime(generation.joinedAt),
+  },
 ];
 
-const PERFORMANCE_COLUMNS: DenseTableColumn<SelectorPerformance>[] = [
-  { key: "contentCount", header: "콘텐츠", align: "right", render: (performance) => displayCount(performance.contentCount) },
-  { key: "totalViewCount", header: "누적 조회", align: "right", render: (performance) => displayNumber(performance.totalViewCount) },
-  { key: "totalLikeCount", header: "누적 좋아요", align: "right", render: (performance) => displayNumber(performance.totalLikeCount) },
-  { key: "totalCommentCount", header: "누적 댓글", align: "right", render: (performance) => displayNumber(performance.totalCommentCount) },
+const ACTIVE_GENERATION_PERFORMANCE_COLUMNS: DenseTableColumn<SelectorGeneration>[] = [
+  {
+    key: "confirmedPurchaseCount",
+    header: "구매확정",
+    align: "center",
+    render: (generation) => displayCount(generation.confirmedPurchaseCount),
+  },
+  {
+    key: "totalSales",
+    header: "총 매출",
+    align: "center",
+    render: (generation) => displayWon(generation.totalSales),
+  },
+  {
+    key: "paidCommissionAmount",
+    header: "지급 수수료",
+    align: "center",
+    render: (generation) => displayWon(generation.paidCommissionAmount),
+  },
+  {
+    id: "activityPeriod",
+    header: "활동 기간",
+    align: "center",
+    render: (generation) => displayDateRange(generation.activityStartDate, generation.activityEndDate),
+  },
 ];
 
 function contentLinkLabel(content: SelectorContent) {
@@ -243,6 +328,7 @@ const CONTENT_COLUMNS: DenseTableColumn<SelectorContent>[] = [
   {
     key: "contentUrl",
     header: "콘텐츠",
+    align: "center",
     render: (content) => content.contentUrl
       ? (
         <a
@@ -257,27 +343,43 @@ const CONTENT_COLUMNS: DenseTableColumn<SelectorContent>[] = [
       : "-",
   },
   { key: "createdAt", header: "등록일", width: 135, align: "center", render: (content) => displayDateTime(content.createdAt) },
-  { key: "viewCount", header: "조회", width: 78, align: "right", render: (content) => displayNumber(content.viewCount) },
-  { key: "likeCount", header: "좋아요", width: 78, align: "right", render: (content) => displayNumber(content.likeCount) },
-  { key: "commentCount", header: "댓글", width: 78, align: "right", render: (content) => displayNumber(content.commentCount) },
+  { key: "viewCount", header: "조회", width: 78, align: "center", render: (content) => displayNumber(content.viewCount) },
+  { key: "likeCount", header: "좋아요", width: 78, align: "center", render: (content) => displayNumber(content.likeCount) },
+  { key: "commentCount", header: "댓글", width: 78, align: "center", render: (content) => displayNumber(content.commentCount) },
 ];
 
 function SelectorApiDetailContent({
+  accountRegistered,
   detail,
-  settlementCount,
   settlementEmptyMessage,
   settlementRows,
   settlementSummary,
 }: {
+  accountRegistered: boolean;
   detail: SelectorDetail;
-  settlementCount: number;
   settlementEmptyMessage: ReactNode;
   settlementRows: SelectorSettlementTableRow[];
   settlementSummary: SettlementSelectorDetail["settlementSummary"] | undefined;
 }) {
   const primaryAccount = detail.snsAccount;
   const platform = apiPlatform(primaryAccount?.snsCode ?? null);
-  const latestGeneration = detail.generations[0];
+  const generations = detail.generations ?? [];
+  const latestGeneration = generations[0];
+  const activeGeneration = generations.find((generation) => generation.status === "ACTIVE");
+  const accountId = primaryAccount?.accountId?.trim() || "";
+  const handle = accountId ? accountHandle(accountId) : null;
+  const channelHref = snsAccountHref(platform, accountId || null);
+  const audienceLabel = audienceCountLabel(platform, primaryAccount?.followerCount);
+  const paymentStatus = primarySettlementPaymentStatus([
+    settlementSummary?.nextPaymentSettlementStatus,
+    ...settlementRows.map((row) => row.statusCode),
+  ]);
+  const paymentHoldReason = settlementHoldReason(paymentStatus);
+  const paymentStatusLabel = paymentHoldReason
+    ? "지급 보류"
+    : paymentStatus
+      ? settlementStatusLabel(paymentStatus)
+      : "지급 대상 없음";
 
   return (
     <div className="fuma-detail-panel__content fuma-selector-detail-panel">
@@ -295,40 +397,34 @@ function SelectorApiDetailContent({
         </div>
         <div className="fuma-creator-detail-hero__content">
           <div className="fuma-creator-detail-hero__identity">
+            <div aria-label="셀렉터스 기수" className="fuma-creator-detail-hero__generation">
+              {latestGeneration?.generationName ?? "기수 없음"}
+            </div>
             <div className="fuma-creator-detail-hero__title-row">
               <h2>{detail.nickname}</h2>
               <StatusPill tone={apiSelectorStatusTone(detail.roleId)}>
                 {detail.roleName || detail.roleId}
               </StatusPill>
             </div>
-            {platform && primaryAccount ? (
+            {handle || audienceLabel ? (
               <div className="fuma-creator-detail-hero__channel">
-                <PlatformIcon decorative platform={platform} />
-                <span>{platform}</span>
-                <span>{displayText(primaryAccount.accountId)}</span>
+                {handle && channelHref ? (
+                  <a href={channelHref} rel="noreferrer" target="_blank">
+                    <strong>{handle}</strong>
+                  </a>
+                ) : handle ? (
+                  <strong>{handle}</strong>
+                ) : null}
+                {handle && audienceLabel ? <span aria-hidden="true">·</span> : null}
+                {audienceLabel ? <span>{audienceLabel}</span> : null}
               </div>
             ) : null}
-            <div aria-label="셀렉터스 정보" className="fuma-creator-detail-hero__categories">
-              <strong>셀렉터스</strong>
-              <span aria-hidden="true">/</span>
-              <span>{detail.id} · {detail.selectorsCode} · {detail.nickname}</span>
-            </div>
           </div>
-          <p className="fuma-unified-detail-hero__summary">
-            {latestGeneration?.generationName ?? "참여 기수 없음"} · {detail.roleName || detail.roleId} · 등록 {displayDateTime(detail.createdAt)}
-          </p>
           <dl className="fuma-creator-detail-hero__metrics">
-            <div><dt>대표 SNS 팔로워</dt><dd>{displayNumber(primaryAccount?.followerCount)}</dd></div>
-            <div><dt>누적 패널티</dt><dd>{displayCount(detail.totalPenaltyCount)}</dd></div>
-            <div><dt>활성 패널티</dt><dd>{displayCount(detail.activePenaltyCount)}</dd></div>
-            <div>
-              <dt>블랙리스트</dt>
-              <dd>
-                <StatusPill tone={detail.blacklistTarget ? "rejected" : "neutral"}>
-                  {detail.blacklistTarget ? "대상" : "비대상"}
-                </StatusPill>
-              </dd>
-            </div>
+            <div><dt>셀렉터스 코드</dt><dd>{displayText(detail.selectorsCode)}</dd></div>
+            <div><dt>셀렉터스명</dt><dd>{displayText(detail.nickname)}</dd></div>
+            <div><dt>누적 구매수</dt><dd>{displayCount(settlementSummary?.cumulativePurchaseConversionCount)}</dd></div>
+            <div><dt>누적 매출</dt><dd>{displayWon(settlementSummary?.cumulativeSalesAmount)}</dd></div>
           </dl>
         </div>
       </section>
@@ -339,15 +435,15 @@ function SelectorApiDetailContent({
         </header>
         <dl className="fuma-key-value-grid">
           <div className="fuma-key-value-grid__item">
-            <dt>SNS 인증 정보 제출일</dt>
+            <dt>SNS 수집 동의</dt>
             <dd>{displayDateTime(detail.snsVerifiedAt)}</dd>
           </div>
           <div className="fuma-key-value-grid__item">
-            <dt>개인정보 활용 동의일</dt>
+            <dt>개인정보 활용 동의</dt>
             <dd>{displayDateTime(detail.privacyAgreedAt)}</dd>
           </div>
           <div className="fuma-key-value-grid__item">
-            <dt>카카오 알림톡 수신 동의</dt>
+            <dt>광고성 정보 수신동의</dt>
             <dd>
               <StatusPill tone={detail.alimtalkAgreed ? "approved" : "neutral"}>
                 {detail.alimtalkAgreed ? "동의" : "미동의"}
@@ -365,13 +461,15 @@ function SelectorApiDetailContent({
         <section aria-labelledby="selector-performance-title" className="fuma-content-section fuma-selector-detail-section">
           <header className="fuma-content-section__header">
             <h3 id="selector-performance-title">간략 성과</h3>
-            <span>누적 기준</span>
+            <span>{activeGeneration ? `${activeGeneration.generationName} 기준` : "활성 기수 없음"}</span>
           </header>
           <div aria-label="셀렉터스 성과" className="fuma-wide-table fuma-settlement-table" role="region">
             <DenseTable
-              columns={PERFORMANCE_COLUMNS}
-              rowKey={() => detail.id}
-              rows={[detail.performance]}
+              align="center"
+              columns={ACTIVE_GENERATION_PERFORMANCE_COLUMNS}
+              emptyMessage="활성 기수 성과가 없습니다."
+              rowKey={(generation) => generation.generationId}
+              rows={activeGeneration ? [activeGeneration] : []}
             />
           </div>
         </section>
@@ -396,14 +494,15 @@ function SelectorApiDetailContent({
         <section aria-labelledby="selector-generation-history-title" className="fuma-content-section fuma-selector-detail-section">
           <header className="fuma-content-section__header">
             <h3 id="selector-generation-history-title">참여 기수 이력</h3>
-            <span>총 {detail.generations.length}건</span>
+            <span>총 {generations.length}건</span>
           </header>
           <div aria-label="셀렉터스 참여 기수 이력" className="fuma-wide-table fuma-settlement-table" role="region">
             <DenseTable
+              align="center"
               columns={GENERATION_COLUMNS}
               emptyMessage="참여 기수 이력이 없습니다."
               rowKey={(generation) => generation.generationId}
-              rows={detail.generations}
+              rows={generations}
             />
           </div>
         </section>
@@ -411,7 +510,7 @@ function SelectorApiDetailContent({
         <section aria-labelledby="selector-api-settlement-title" className="fuma-content-section fuma-selector-detail-section">
           <header className="fuma-content-section__header">
             <h3 id="selector-api-settlement-title">정산 정보</h3>
-            <span>최근 최대 12건 · 전체 {settlementCount.toLocaleString("ko-KR")}건</span>
+            <span>마지막 갱신 {displayDateTime(latestTimestamp(settlementRows.map((row) => row.updatedAt)))}</span>
           </header>
           {settlementSummary ? (
             <dl className="fuma-key-value-grid">
@@ -428,16 +527,25 @@ function SelectorApiDetailContent({
                 <dd>{displayWon(settlementSummary.cumulativePaidCommission)}</dd>
               </div>
               <div className="fuma-key-value-grid__item">
-                <dt>다음달 지급 예정</dt>
+                <dt>이번달 지급 예정</dt>
                 <dd>{displayWon(settlementSummary.nextMonthScheduledCommission)}</dd>
               </div>
               <div className="fuma-key-value-grid__item">
-                <dt>현재 활동월</dt>
-                <dd>{displayText(settlementSummary.currentMonth)}</dd>
+                <dt>지급 상태</dt>
+                <dd>
+                  <StatusPill tone={paymentStatus ? settlementStatusTone(paymentStatus) : "neutral"}>
+                    {paymentStatusLabel}
+                  </StatusPill>
+                  {paymentHoldReason ? <span>{paymentHoldReason}</span> : null}
+                </dd>
               </div>
               <div className="fuma-key-value-grid__item">
-                <dt>다음 지급월</dt>
-                <dd>{displayText(settlementSummary.nextPaymentMonth)}</dd>
+                <dt>정산정보 등록 여부</dt>
+                <dd>
+                  <StatusPill tone={accountRegistered ? "approved" : "danger"}>
+                    {accountRegistered ? "등록 완료" : "미등록"}
+                  </StatusPill>
+                </dd>
               </div>
             </dl>
           ) : null}
@@ -493,6 +601,8 @@ export function SelectorDetailPanel({
       settlementAmount: settlement.settlementAmount,
       settlementRate: settlement.settlementRate,
       status: settlementStatusLabel(settlement.status),
+      statusCode: settlement.status,
+      updatedAt: settlement.updatedAt,
     }))
     : selector && fixtureDetail
     ? fixtureDetail.settlements.map((settlement, index) => ({
@@ -534,8 +644,8 @@ export function SelectorDetailPanel({
         </div>
       ) : selectorDetail ? (
         <SelectorApiDetailContent
+          accountRegistered={settlementDetail?.accountRegistered === true}
           detail={selectorDetail}
-          settlementCount={settlementCount}
           settlementEmptyMessage={settlementEmptyMessage}
           settlementRows={settlementRows}
           settlementSummary={settlementSummary}
@@ -594,7 +704,7 @@ export function SelectorDetailPanel({
                     <div><dt>누적 구매 전환</dt><dd>{displayCount(settlementSummary?.cumulativePurchaseConversionCount)}</dd></div>
                     <div><dt>이번달 구매 전환</dt><dd>{displayCount(settlementSummary?.currentMonthPurchaseConversionCount)}</dd></div>
                     <div><dt>누적 지급 수수료</dt><dd>{displayWon(settlementSummary?.cumulativePaidCommission)}</dd></div>
-                    <div><dt>이번달 지급 예정 수수료</dt><dd>{displayWon(settlementSummary?.nextMonthScheduledCommission)}</dd>
+                    <div><dt>이번달 지급 예정</dt><dd>{displayWon(settlementSummary?.nextMonthScheduledCommission)}</dd>
                     </div>
                   </>
                 ) : (

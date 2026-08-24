@@ -27,10 +27,15 @@ export interface SelectorSummary {
 export interface SelectorGeneration {
   generationId: number;
   generationName: string;
-  startDate: string;
-  endDate: string;
+  startDate: string | null;
+  endDate: string | null;
+  activityStartDate: string | null;
+  activityEndDate: string | null;
   status: string;
-  joinedAt: string;
+  joinedAt: string | null;
+  totalSales: number;
+  confirmedPurchaseCount: number;
+  paidCommissionAmount: number;
 }
 
 export interface SelectorSnsAccount {

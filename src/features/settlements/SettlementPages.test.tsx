@@ -51,7 +51,7 @@ const SETTLEMENTS = [
     settlementMonth: "2026-08",
     paymentMonth: "2026-09",
     settlementSourceCode: "DAILY_BATCH",
-    status: "PAYMENT_HOLD",
+    status: "PAYMENT_HOLD_INFO",
     updatedAt: "2026-08-01T03:00:00",
   },
   {
@@ -68,15 +68,31 @@ const SETTLEMENTS = [
     settlementMonth: "2026-08",
     paymentMonth: "2026-09",
     settlementSourceCode: "DAILY_BATCH",
+    status: "PAYMENT_HOLD_BLACK",
+    updatedAt: "2026-08-01T03:00:00",
+  },
+  {
+    calculatedAt: "2026-08-01T03:00:00",
+    settlementRate: 10,
+    confirmedPurchaseCount: 20,
+    settlementAmount: 30_000,
+    confirmedSalesAmount: 300_000,
+    selectorsCode: "SEL-0011",
+    selectorsId: 46,
+    selectorsNickname: "초여름셀렉터",
+    settlementId: 105,
+    activityMonth: "2026-07",
+    settlementMonth: "2026-08",
+    paymentMonth: "2026-09",
+    settlementSourceCode: "DAILY_BATCH",
     status: "SETTLED",
     updatedAt: "2026-08-01T03:00:00",
   },
 ] as const;
 
-function previousMonth() {
+function currentMonth() {
   const now = new Date();
-  const date = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function pageResponse({
@@ -107,6 +123,7 @@ function detailResponse() {
   return new Response(JSON.stringify({
     code: "OK",
     data: {
+      accountRegistered: true,
       profile: {
         accountId: "@api_selector",
         followerCount: 12_345,
@@ -125,6 +142,7 @@ function detailResponse() {
         nextMonthScheduledCommission: 75_000,
         nextPaymentMonth: "2026-09",
         nextPaymentSettlementStatus: "PAYMENT_PENDING",
+        cumulativeSalesAmount: 4_400_000,
       },
       histories: {
         content: SETTLEMENTS,
@@ -142,8 +160,73 @@ function detailResponse() {
   });
 }
 
+function selectorDetailResponse() {
+  return new Response(JSON.stringify({
+    code: "OK",
+    data: {
+      id: 42,
+      selectorsCode: "SEL-API-42",
+      nickname: "API 여름셀렉터",
+      roleId: "ACTIVE",
+      roleName: "활성",
+      applicationId: 70,
+      userId: 700,
+      createdAt: "2026-07-01T11:00:00",
+      updatedAt: "2026-08-20T09:00:00",
+      snsVerifiedAt: "2026-07-01T11:00:00",
+      privacyAgreedAt: "2026-07-01T11:05:00",
+      alimtalkAgreed: true,
+      generations: [{
+        generationId: 3,
+        generationName: "3기",
+        startDate: "2026-07-01T00:00:00",
+        endDate: "2026-08-31T23:59:59",
+        activityStartDate: "2026-08-01T00:00:00",
+        activityEndDate: "2026-10-31T23:59:59",
+        status: "ACTIVE",
+        joinedAt: "2026-07-02T12:00:00",
+        totalSales: 1_500_000,
+        confirmedPurchaseCount: 12,
+        paidCommissionAmount: 320000,
+      }],
+      snsAccount: {
+        id: 11,
+        snsCode: "INSTAGRAM",
+        accountId: "@api_selector",
+        followerCount: 12_345,
+        profileImageUrl: "https://cdn.example.com/profile.jpg",
+        lastCollectedAt: "2026-08-14T09:30:00",
+      },
+      totalPenaltyCount: 3,
+      activePenaltyCount: 2,
+      blacklistTarget: false,
+      contents: [],
+      performance: {
+        contentCount: 0,
+        totalViewCount: 0,
+        totalLikeCount: 0,
+        totalCommentCount: 0,
+      },
+    },
+    message: null,
+    success: true,
+  }), {
+    headers: { "Content-Type": "application/json" },
+    status: 200,
+  });
+}
+
 function requestedUrl(call: unknown[]) {
   return new URL(String(call[0]));
+}
+
+function settlementFetchResponse(input: RequestInfo | URL) {
+  const url = String(input);
+  if (url.includes("/api/admin/settlements/selectors/") && url.includes("/detail")) {
+    return detailResponse();
+  }
+  if (/\/api\/admin\/selectors\/\d+(?:\?|$)/.test(url)) return selectorDetailResponse();
+  return pageResponse();
 }
 
 beforeEach(() => {
@@ -160,11 +243,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test("requests and renders the previous-month settlement page", async () => {
+test("requests and renders the current-month settlement page", async () => {
   const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => (
-    new URL(String(input)).pathname.endsWith("/detail")
-      ? Promise.resolve(detailResponse())
-      : Promise.resolve(pageResponse())
+    Promise.resolve(settlementFetchResponse(input))
   ));
   vi.stubGlobal("fetch", fetchMock);
 
@@ -174,11 +255,11 @@ test("requests and renders the previous-month settlement page", async () => {
   expect(await within(results).findByText("SEL-0007")).toBeInTheDocument();
 
   const search = screen.getByRole("search", { name: "검색 조건" });
-  expect(within(search).getByLabelText("활동월")).toHaveValue(previousMonth());
+  expect(within(search).getByLabelText("활동월")).toHaveValue(currentMonth());
   expect(within(search).queryByRole("textbox", { name: "ID 또는 이름" })).not.toBeInTheDocument();
 
   const statusFilter = screen.getByRole("navigation", { name: "지급 상태" });
-  for (const status of ["전체", "계산 중", "지급 대기", "지급 보류", "지급 완료"]) {
+  for (const status of ["전체", "계산 중", "지급 대기", "정산 보류", "지급 완료", "지급 만료"]) {
     expect(within(statusFilter).getByRole("button", { name: status })).toHaveAttribute(
       "type",
       "button",
@@ -202,7 +283,10 @@ test("requests and renders the previous-month settlement page", async () => {
   expect(within(results).getByText("75,000원")).toBeInTheDocument();
   expect(within(results).getByText("계산 중")).toHaveClass("hsas-status-pill--neutral");
   expect(within(results).getByText("지급 대기")).toHaveClass("hsas-status-pill--pending");
-  expect(within(results).getByText("지급 보류")).toHaveClass("hsas-status-pill--danger");
+  expect(within(results).getAllByText("정산 보류")).toHaveLength(2);
+  for (const hold of within(results).getAllByText("정산 보류")) {
+    expect(hold).toHaveClass("hsas-status-pill--danger");
+  }
   expect(within(results).getByText("지급 완료")).toHaveClass("hsas-status-pill--approved");
   expect(screen.getByText("총 42건")).toBeInTheDocument();
 
@@ -210,7 +294,7 @@ test("requests and renders the previous-month settlement page", async () => {
   const [input, init] = fetchMock.mock.calls[0];
   const url = new URL(String(input));
   expect(url.pathname).toBe("/api/admin/settlements/estimates");
-  expect(url.searchParams.get("activityMonth")).toBe(previousMonth());
+  expect(url.searchParams.get("activityMonth")).toBe(currentMonth());
   expect(url.searchParams.get("page")).toBe("0");
   expect(url.searchParams.get("size")).toBe("20");
   expect(url.searchParams.has("status")).toBe(false);
@@ -221,19 +305,33 @@ test("requests and renders the previous-month settlement page", async () => {
 
   fireEvent.click(within(results).getByRole("row", { name: /SEL-0007/ }));
   expect(await screen.findByRole("dialog", { name: "셀렉터스 상세" })).toBeInTheDocument();
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-  const detailUrl = requestedUrl(fetchMock.mock.calls[1]);
-  expect(detailUrl.pathname).toBe("/api/admin/settlements/selectors/42/detail");
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+  const detailPaths = fetchMock.mock.calls.slice(1).map((call) => requestedUrl(call).pathname).sort();
+  expect(detailPaths).toEqual([
+    "/api/admin/selectors/42",
+    "/api/admin/settlements/selectors/42/detail",
+  ]);
+  const detailCall = fetchMock.mock.calls.find((call) => (
+    requestedUrl(call).pathname === "/api/admin/settlements/selectors/42/detail"
+  ));
+  expect(detailCall).toBeDefined();
+  const detailUrl = requestedUrl(detailCall ?? []);
   expect(detailUrl.searchParams.get("page")).toBe("0");
   expect(detailUrl.searchParams.get("size")).toBe("12");
-  const [, detailInit] = fetchMock.mock.calls[1];
+  const [, detailInit] = detailCall ?? [];
   expect(new Headers((detailInit as RequestInit).headers).get("Authorization")).toBe(
     "Bearer admin.jwt",
   );
   const detail = screen.getByRole("dialog", { name: "셀렉터스 상세" });
   expect(within(detail).getByRole("heading", { name: "API 여름셀렉터" })).toBeInTheDocument();
-  expect(within(detail).getByText("12,345")).toBeInTheDocument();
-  expect(within(detail).getByText("321건")).toBeInTheDocument();
+  expect(within(detail).getByRole("heading", { name: "동의 및 수신 정보" })).toBeInTheDocument();
+  expect(within(detail).getByRole("heading", { name: "정산 정보" })).toBeInTheDocument();
+  expect(within(detail).getByRole("link", { name: "@api_selector" })).toHaveAttribute(
+    "href",
+    "https://www.instagram.com/api_selector",
+  );
+  expect(within(detail).getByText("팔로워 1.2만명")).toBeInTheDocument();
+  expect(within(detail).getAllByText("321건").length).toBeGreaterThan(0);
   expect(within(detail).getByText("1,200,000원")).toBeInTheDocument();
   expect(within(detail).getAllByText("75,000원")).not.toHaveLength(0);
   const historyTable = within(detail).getByRole("region", { name: "셀렉터스 정산 내역" });
@@ -276,15 +374,25 @@ test("applies the month on search and requests status and pages immediately", as
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   expect(requestedUrl(fetchMock.mock.calls[1]).searchParams.get("activityMonth")).toBe("2026-06");
 
-  fireEvent.click(screen.getByRole("button", { name: "지급 보류" }));
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-  const statusUrl = requestedUrl(fetchMock.mock.calls[2]);
-  expect(statusUrl.searchParams.get("status")).toBe("PAYMENT_HOLD");
+  fireEvent.click(screen.getByRole("button", { name: "정산 보류" }));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+  const holdStatuses = fetchMock.mock.calls.slice(2, 4)
+    .map((call) => requestedUrl(call).searchParams.get("status"))
+    .sort();
+  expect(holdStatuses).toEqual(["PAYMENT_HOLD_BLACK", "PAYMENT_HOLD_INFO"]);
+  expect(fetchMock.mock.calls.slice(2, 4).every((call) => (
+    requestedUrl(call).searchParams.get("page") === "0"
+  ))).toBe(true);
+
+  fireEvent.click(screen.getByRole("button", { name: "지급 대기" }));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
+  const statusUrl = requestedUrl(fetchMock.mock.calls[4]);
+  expect(statusUrl.searchParams.get("status")).toBe("PAYMENT_PENDING");
   expect(statusUrl.searchParams.get("page")).toBe("0");
 
   fireEvent.click(screen.getByRole("button", { name: "다음 페이지" }));
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
-  expect(requestedUrl(fetchMock.mock.calls[3]).searchParams.get("page")).toBe("1");
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(6));
+  expect(requestedUrl(fetchMock.mock.calls[5]).searchParams.get("page")).toBe("1");
 });
 
 test("shows loading, empty, and error states", async () => {
