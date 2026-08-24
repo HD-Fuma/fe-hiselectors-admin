@@ -1995,6 +1995,8 @@
 }
 
 .fuma-campaign-form-section {
+  display: grid;
+  grid-template-rows: auto 1fr;
   overflow: hidden;
 }
 
@@ -2005,6 +2007,7 @@
 
 .fuma-campaign-form {
   display: grid;
+  align-content: center;
   padding: var(--hsas-space-8) var(--hsas-space-16) var(--hsas-space-12);
 }
 
