@@ -14,7 +14,9 @@ test("keeps annotation targets valid and resolved content free of active violati
     } else if (target.kind === "url") {
       expect(previous.urls[target.targetIndex]).toBeDefined();
     } else {
-      expect(previous.mediaKinds[target.mediaIndex]).toBeDefined();
+      if (target.mediaIndex !== undefined) {
+        expect(previous.mediaKinds[target.mediaIndex]).toBeDefined();
+      }
     }
   }
 

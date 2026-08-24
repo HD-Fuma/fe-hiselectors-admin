@@ -25,11 +25,6 @@ const ProposalComposePage = lazyPage(() =>
 const SelectorOverviewPage = lazyPage(() =>
   import("../features/selectors/SelectorPages").then((module) => module.SelectorOverviewPage),
 );
-const QualificationManagementPage = lazyPage(() =>
-  import("../features/selectors/SelectorPages").then(
-    (module) => module.QualificationManagementPage,
-  ),
-);
 const ExcellentSelectorListPage = lazyPage(() =>
   import("../features/selectors/SelectorPages").then(
     (module) => module.ExcellentSelectorListPage,
@@ -44,20 +39,14 @@ const CohortManagementPage = lazyPage(() =>
 const ApplicantListPage = lazyPage(() =>
   import("../features/applicants/ApplicantPages").then((module) => module.ApplicantListPage),
 );
+const ApplicantTestPage = lazyPage(() =>
+  import("../features/applicants/ApplicantPages").then((module) => module.ApplicantTestPage),
+);
 const ApplicantDetailPage = lazyPage(() =>
   import("../features/applicants/ApplicantPages").then((module) => module.ApplicantDetailPage),
 );
-const CampaignListPage = lazyPage(() =>
-  import("../features/campaigns/CampaignPages").then((module) => module.CampaignListPage),
-);
-const CampaignCreatePage = lazyPage(() =>
-  import("../features/campaigns/CampaignPages").then((module) => module.CampaignCreatePage),
-);
-const CampaignDetailPage = lazyPage(() =>
-  import("../features/campaigns/CampaignPages").then((module) => module.CampaignDetailPage),
-);
-const CampaignEditPage = lazyPage(() =>
-  import("../features/campaigns/CampaignPages").then((module) => module.CampaignEditPage),
+const CampaignWorkspacePage = lazyPage(() =>
+  import("../features/campaigns/CampaignPages").then((module) => module.CampaignWorkspacePage),
 );
 const ContentInspectionListPage = lazyPage(() =>
   import("../features/content/ContentPages").then((module) => module.ContentInspectionListPage),
@@ -151,15 +140,6 @@ export const ADMIN_ROUTE_MANIFEST = [
     workTabLabel: "셀렉터스 목록",
   },
   {
-    path: "/selectors/qualifications",
-    Component: QualificationManagementPage,
-    group: "selectors",
-    menuLabel: "블랙리스트 관리",
-    title: "블랙리스트 관리",
-    screenCode: "SL301",
-    workTabLabel: "블랙리스트 관리",
-  },
-  {
     path: "/selectors/excellent",
     Component: ExcellentSelectorListPage,
     group: "selectors",
@@ -177,11 +157,6 @@ export const ADMIN_ROUTE_MANIFEST = [
     screenCode: "SL202",
     workTabLabel: "셀렉터스 상세",
     workTabParentPath: "/selectors",
-    workTabParentQuery: {
-      parameter: "from",
-      value: "qualifications",
-      path: "/selectors/qualifications",
-    },
   },
   {
     path: "/cohorts",
@@ -202,6 +177,16 @@ export const ADMIN_ROUTE_MANIFEST = [
     workTabLabel: "지원자 심사",
   },
   {
+    path: "/applicants/test",
+    Component: ApplicantTestPage,
+    group: "applicants",
+    menuLabel: "지원자 승인",
+    title: "테스트 지원자 등록",
+    screenCode: "AP103",
+    workTabLabel: "테스트 지원자 등록",
+    workTabParentPath: "/applicants",
+  },
+  {
     path: "/applicants/:applicantId",
     Component: ApplicantDetailPage,
     group: "applicants",
@@ -213,7 +198,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   },
   {
     path: "/campaigns",
-    Component: CampaignListPage,
+    Component: CampaignWorkspacePage,
     group: "campaigns",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
@@ -222,7 +207,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   },
   {
     path: "/campaigns/new",
-    Component: CampaignCreatePage,
+    Component: CampaignWorkspacePage,
     group: "campaigns",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
@@ -232,7 +217,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   },
   {
     path: "/campaigns/:campaignId",
-    Component: CampaignDetailPage,
+    Component: CampaignWorkspacePage,
     group: "campaigns",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
@@ -242,7 +227,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   },
   {
     path: "/campaigns/:campaignId/edit",
-    Component: CampaignEditPage,
+    Component: CampaignWorkspacePage,
     group: "campaigns",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
@@ -318,7 +303,7 @@ export const ADMIN_ROUTE_MANIFEST = [
     path: "/notifications/kakao-recipients",
     Component: KakaoRecipientStatusPage,
     group: "notifications",
-    menuLabel: "카카오 수신 현황",
+    menuLabel: "발송 내역",
     title: "카카오 수신 현황",
     screenCode: "NT102",
     workTabLabel: "카카오 수신 현황",

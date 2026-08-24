@@ -4,6 +4,8 @@ export type NotificationStatus = "REQUESTED" | "SENT" | "FAILED";
 
 export type KakaoRecipientStatus = "READY" | "REAUTH_REQUIRED" | "INACTIVE";
 
+export type NotificationInitiatedByType = "ADMIN" | "SYSTEM";
+
 export interface NotificationHistoryItem {
   notificationId: number;
   purposeCode: string;
@@ -18,6 +20,8 @@ export interface NotificationHistoryItem {
   recipientName: string | null;
   recipientHiId: string | null;
   recipientStatus: KakaoRecipientStatus | null;
+  initiatedByType: NotificationInitiatedByType;
+  initiatedById: number | null;
 }
 
 export interface SpringPage<T> {
@@ -59,4 +63,9 @@ export const NOTIFICATION_STATUSES = [
   { value: "REQUESTED", label: "발송 요청" },
   { value: "SENT", label: "발송 완료" },
   { value: "FAILED", label: "발송 실패" },
+] as const;
+
+export const NOTIFICATION_CHANNELS = [
+  { value: "KAKAO_MESSAGE", label: "카카오 메시지" },
+  { value: "EMAIL", label: "이메일" },
 ] as const;

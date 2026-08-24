@@ -104,6 +104,11 @@ test("requests one content collection run with idempotency and reports accepted 
     { timeout: 3_000 },
   );
   const categoryTabs = await screen.findByRole("navigation", { name: "콘텐츠 처리 구분" });
+  expect(within(categoryTabs).getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
+  expect(within(categoryTabs).getByRole("button", { name: "신규 등록" })).toBeInTheDocument();
+  expect(within(categoryTabs).getByRole("button", { name: "수정 감지" })).toBeInTheDocument();
+  expect(within(categoryTabs).getByRole("button", { name: "위반 확정" })).toBeInTheDocument();
+  expect(within(categoryTabs).getByRole("button", { name: "승인 완료" })).toBeInTheDocument();
   const refreshButton = within(categoryTabs).getByRole("button", { name: "콘텐츠 새로고침" });
   expect(refreshButton.parentElement).toHaveClass("fuma-content-collection-run-actions");
   expect(refreshButton.parentElement?.tagName).toBe("SPAN");
@@ -116,7 +121,7 @@ test("requests one content collection run with idempotency and reports accepted 
   expect(fetchMock).toHaveBeenCalledTimes(requestsBeforeRun + 1);
   expect(within(categoryTabs).getByRole("button", { name: "콘텐츠 새로고침 중" })).toBeDisabled();
   const [input, init] = fetchMock.mock.calls[requestsBeforeRun];
-  expect(String(input)).toBe("https://api.hiselectors.shop/api/admin/content-batch/run");
+  expect(new URL(String(input)).pathname).toBe("/api/admin/content-batch/run");
   expect((init as RequestInit).method).toBe("POST");
   expect(new Headers((init as RequestInit).headers).get("Authorization")).toBe(
     "Bearer admin.jwt",
@@ -193,6 +198,31 @@ test("does not reload contents after an accepted collection request", async () =
 
   await screen.findByRole("status");
   expect(fetchMock).toHaveBeenCalledTimes(requestsBeforeRun + 1);
+});
+
+test("locks the violation-only toggle on decided categories", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(contentsResponse([
+    contentItem(1, "기존 콘텐츠"),
+  ])));
+
+  renderRoute("/content/inspections");
+
+  const categoryTabs = await screen.findByRole("navigation", { name: "콘텐츠 처리 구분" });
+  const toggle = await screen.findByRole("checkbox", { name: "위반 항목만" });
+  expect(toggle).toBeEnabled();
+  expect(toggle).not.toBeChecked();
+
+  fireEvent.click(within(categoryTabs).getByRole("button", { name: "위반 확정" }));
+  expect(toggle).toBeDisabled();
+  expect(toggle).toBeChecked();
+
+  fireEvent.click(within(categoryTabs).getByRole("button", { name: "승인 완료" }));
+  expect(toggle).toBeDisabled();
+  expect(toggle).not.toBeChecked();
+
+  fireEvent.click(within(categoryTabs).getByRole("button", { name: "신규 등록" }));
+  expect(toggle).toBeEnabled();
+  expect(toggle).not.toBeChecked();
 });
 
 test("uses an isolated action layout and a readable success text token", () => {

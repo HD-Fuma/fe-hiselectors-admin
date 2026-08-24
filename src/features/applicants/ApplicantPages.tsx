@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { CircleHelp } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
@@ -8,12 +8,15 @@ import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
+import { FormRow } from "../../components/ui/FormRow";
+import { Modal } from "../../components/ui/Modal";
 import { Pagination } from "../../components/ui/Pagination";
 import { ProfileDetailShell, type ProfileDetailProfile } from "../../components/ui/ProfileDetailShell";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import {
+  createAdminApplicationTest,
   getAdminApplication,
   getAdminApplicationAiReport,
   getAdminApplications,
@@ -22,6 +25,7 @@ import {
   type AdminApplicationDetail,
   type AdminApplicationIdentity,
   type AdminApplicationSummary,
+  type ApplicationContent,
   type ApplicationSnsCode,
   type ApplicationStatus,
   type SpringPage,
@@ -41,6 +45,68 @@ const REVIEW_STATUS_OPTIONS = ["전체", "검토 대기", "승인", "반려", "�
 );
 const DEFAULT_REVIEW_STATUS = "검토 대기";
 const APPLICANT_PAGE_SIZE = 20;
+const TEST_APPLICATION_POLL_INTERVAL_MS = 10_000;
+
+function isTestApplicant(applicant: Pick<AdminApplicationIdentity, "hiId">) {
+  return applicant.hiId.startsWith("test_");
+}
+
+export function ApplicantTestPage() {
+  const navigate = useNavigate();
+  const [profileUrl, setProfileUrl] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const createTestApplicant = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setError("");
+    try {
+      const application = await createAdminApplicationTest(profileUrl.trim());
+      navigate(`/applicants?detail=${application.id}`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "테스트 지원자 생성에 실패했습니다.");
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <section className="fuma-page">
+      <PageHeader title="테스트 지원자 등록" />
+      <div className="fuma-page__body">
+        <section className="fuma-content-section">
+          <header className="fuma-content-section__header">
+            <h2>SNS 계정 등록</h2>
+          </header>
+          <form className="fuma-applicant-review__form" onSubmit={createTestApplicant}>
+            <FormRow
+              help="운영 DB에 테스트 데이터 1건을 생성하고 기존 수집·분석·리포트 흐름을 실행합니다."
+              label="SNS 프로필 URL"
+              required
+            >
+              <TextInput
+                aria-label="SNS 프로필 URL"
+                autoComplete="off"
+                maxLength={500}
+                onChange={(event) => setProfileUrl(event.target.value)}
+                placeholder="https://www.instagram.com/account 또는 YouTube 채널 URL"
+                required
+                type="url"
+                value={profileUrl}
+              />
+            </FormRow>
+            {error ? <p role="alert">{error}</p> : null}
+            <div className="fuma-applicant-section__actions">
+              <Button disabled={isSubmitting} type="submit" variant="primary">
+                {isSubmitting ? "생성 중..." : "테스트 지원자 생성"}
+              </Button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </section>
+  );
+}
 
 function reviewStatusTone(status: ReviewStatus): NonNullable<StatusPillProps["tone"]> {
   if (status === "승인") return "approved";
@@ -95,6 +161,10 @@ function dateTime(value: string | null) {
   return value ? value.replace("T", " ").slice(0, 16).replaceAll("-", ".") : "-";
 }
 
+function displaySnsName(applicant: AdminApplicationIdentity) {
+  return applicant.snsDisplayName || applicant.snsAccountId;
+}
+
 function profileUrl(applicant: AdminApplicationIdentity) {
   if (applicant.snsCode === "INSTAGRAM") {
     return `https://www.instagram.com/${encodeURIComponent(applicant.snsAccountId.replace(/^@/, ""))}/`;
@@ -103,6 +173,14 @@ function profileUrl(applicant: AdminApplicationIdentity) {
     return `https://www.youtube.com/channel/${encodeURIComponent(applicant.snsAccountId)}`;
   }
   return `https://www.youtube.com/@${encodeURIComponent(applicant.snsAccountId.replace(/^@/, ""))}`;
+}
+
+function uniqueContentsByPost(contents: readonly ApplicationContent[]) {
+  const posts = new Map<string, ApplicationContent>();
+  contents.forEach((content) => {
+    if (!posts.has(content.snsContentId)) posts.set(content.snsContentId, content);
+  });
+  return [...posts.values()];
 }
 
 function PlatformLabel({ platform }: { platform: ApplicantPlatform }) {
@@ -136,7 +214,7 @@ function applicantToListRow(
     theHyundaiHiMemberNumber: applicant.hiId,
     name: applicant.applicantName,
     platform: platformFor(applicant.snsCode),
-    channelName: applicant.snsAccountId,
+    channelName: displaySnsName(applicant),
     generationName: applicant.generationName,
     recent90DayContentCount: applicant.recent90DayContentCount,
     followerCount: applicant.followerCount,
@@ -148,11 +226,15 @@ function applicantToListRow(
 
 function ApplicantApprovalToolbar({
   count,
+  hasAiReportOnly,
   minimumCriteriaOnly,
+  onHasAiReportOnlyChange,
   onMinimumCriteriaOnlyChange,
 }: {
   count: number;
+  hasAiReportOnly: boolean;
   minimumCriteriaOnly: boolean;
+  onHasAiReportOnlyChange: (checked: boolean) => void;
   onMinimumCriteriaOnlyChange: (checked: boolean) => void;
 }) {
   return (
@@ -179,6 +261,15 @@ function ApplicantApprovalToolbar({
             팔로워·구독자 500명 이하 또는 최근 3개월 내 활동 콘텐츠가 3건 이하인 지원자를 필터링합니다.
           </span>
         </span>
+        <label className="fuma-applicant-minimum-toggle fuma-applicant-ai-report-toggle">
+          <input
+            checked={hasAiReportOnly}
+            onChange={(event) => onHasAiReportOnlyChange(event.target.checked)}
+            type="checkbox"
+          />
+          <span aria-hidden="true" />
+          <b>AI 리포트 있는 지원자만</b>
+        </label>
       </div>
       <div className="fuma-settlement-result-meta">
         <span>총 {count}건</span>
@@ -205,7 +296,7 @@ function applicantListColumns(): DenseTableColumn<ApplicantListRow>[] {
     },
     {
       id: "account",
-      header: "SNS ID",
+      header: "SNS 계정",
       width: 130,
       align: "center",
       render: (applicant) => applicant.channelName,
@@ -276,6 +367,11 @@ export function ApplicantListPage() {
   const [appliedGenerationId, setAppliedGenerationId] = useState("");
   const [appliedReviewStatus, setAppliedReviewStatus] = useState<string>(DEFAULT_REVIEW_STATUS);
   const [minimumCriteriaOnly, setMinimumCriteriaOnly] = useState(false);
+  const [hasAiReportOnly, setHasAiReportOnly] = useState(false);
+  const [decisionModal, setDecisionModal] = useState<{
+    name: string;
+    status: Exclude<ApplicationStatus, "PENDING">;
+  } | null>(null);
   const [page, setPage] = useState(1);
   const [listRequestVersion, setListRequestVersion] = useState(0);
   const listRequestKey = [
@@ -284,14 +380,13 @@ export function ApplicantListPage() {
     appliedGenerationId,
     appliedReviewStatus,
     minimumCriteriaOnly ? "minimum" : "all",
+    hasAiReportOnly ? "hasAiReport" : "all",
     page,
     listRequestVersion,
   ].join("|");
-  const [listState, setListState] = useState<{
-    key: string;
-    pageData: SpringPage<AdminApplicationSummary> | null;
-    error: string;
-  } | null>(null);
+  const [pageData, setPageData] = useState<SpringPage<AdminApplicationSummary> | null>(null);
+  const [listError, setListError] = useState("");
+  const [resolvedListKey, setResolvedListKey] = useState<string | null>(null);
   const [generations, setGenerations] = useState<SelectorFilterGeneration[]>([]);
 
   useEffect(() => {
@@ -311,20 +406,24 @@ export function ApplicantListPage() {
       snsCode: apiSnsCodeFor(appliedPlatform),
       status: apiStatusFor(appliedReviewStatus),
       generationId: appliedGenerationId ? Number(appliedGenerationId) : undefined,
+      hasAiReport: hasAiReportOnly || undefined,
       minimumCriteriaOnly: apiMinimumCriteriaOnly(appliedReviewStatus, minimumCriteriaOnly),
       page: page - 1,
       size: APPLICANT_PAGE_SIZE,
     }, controller.signal).then((result) => {
       if (!controller.signal.aborted) {
-        setListState({ key: listRequestKey, pageData: result, error: "" });
+        setPageData(result);
+        setListError("");
+        setResolvedListKey(listRequestKey);
+        if (result.totalPages > 0 && page > result.totalPages) {
+          setPage(1);
+        }
       }
     }).catch((reason: unknown) => {
       if (!controller.signal.aborted) {
-        setListState({
-          key: listRequestKey,
-          pageData: null,
-          error: reason instanceof Error ? reason.message : "지원자 목록 조회에 실패했습니다.",
-        });
+        setPageData(null);
+        setListError(reason instanceof Error ? reason.message : "지원자 목록 조회에 실패했습니다.");
+        setResolvedListKey(listRequestKey);
       }
     });
     return () => controller.abort();
@@ -333,14 +432,13 @@ export function ApplicantListPage() {
     appliedPlatform,
     appliedGenerationId,
     appliedReviewStatus,
+    hasAiReportOnly,
     listRequestKey,
     minimumCriteriaOnly,
     page,
   ]);
 
-  const currentListState = listState?.key === listRequestKey ? listState : null;
-  const pageData = currentListState?.pageData ?? null;
-  const listError = currentListState?.error ?? "";
+  const isListFetching = resolvedListKey !== listRequestKey;
   const applicants = (pageData?.content ?? []).map(applicantToListRow);
   const openApplicant = (applicant: ApplicantListRow) => navigate(`/applicants?detail=${applicant.id}`);
   const applySearch = () => {
@@ -360,6 +458,7 @@ export function ApplicantListPage() {
     setAppliedGenerationId("");
     setAppliedReviewStatus(DEFAULT_REVIEW_STATUS);
     setMinimumCriteriaOnly(false);
+    setHasAiReportOnly(false);
     setPage(1);
     navigate("/applicants");
   };
@@ -419,15 +518,23 @@ export function ApplicantListPage() {
           </div>
           <ApplicantApprovalToolbar
             count={pageData?.totalElements ?? 0}
+            hasAiReportOnly={hasAiReportOnly}
             minimumCriteriaOnly={minimumCriteriaOnly}
+            onHasAiReportOnlyChange={(checked) => {
+              setHasAiReportOnly(checked);
+              setPage(1);
+            }}
             onMinimumCriteriaOnlyChange={(checked) => {
               setMinimumCriteriaOnly(checked);
               setPage(1);
             }}
           />
           <div
+            aria-busy={isListFetching}
             aria-label="지원자 목록"
-            className="fuma-wide-table fuma-settlement-table fuma-applicant-list-table"
+            className={`fuma-wide-table fuma-settlement-table fuma-applicant-list-table${
+              isListFetching && pageData ? " fuma-applicant-list-table--refreshing" : ""
+            }`}
             role="region"
           >
             {listError ? (
@@ -461,12 +568,24 @@ export function ApplicantListPage() {
           applicantIdOverride={detailApplicantId}
           embedded
           onClose={() => navigate("/applicants")}
-          onStatusChanged={() => {
-            setPage(1);
-            setListRequestVersion((version) => version + 1);
-          }}
+          onDecisionConfirmed={(name, status) => setDecisionModal({ name, status })}
+          onStatusChanged={() => setListRequestVersion((version) => version + 1)}
         />
       ) : null}
+      <Modal
+        actions={<Button onClick={() => setDecisionModal(null)} variant="primary">확인</Button>}
+        onClose={() => setDecisionModal(null)}
+        open={decisionModal !== null}
+        role="alertdialog"
+        title="심사 처리 완료"
+      >
+        {decisionModal ? (
+          <p>
+            <strong>{decisionModal.name}</strong>님을{" "}
+            {decisionModal.status === "APPROVED" ? "승인" : "반려"} 처리했습니다.
+          </p>
+        ) : null}
+      </Modal>
     </>
   );
 }
@@ -475,6 +594,7 @@ interface ApplicantDetailPageProps {
   applicantIdOverride?: string;
   embedded?: boolean;
   onClose?: () => void;
+  onDecisionConfirmed?: (name: string, status: Exclude<ApplicationStatus, "PENDING">) => void;
   onStatusChanged?: () => void;
 }
 
@@ -482,6 +602,7 @@ export function ApplicantDetailPage({
   applicantIdOverride,
   embedded = false,
   onClose,
+  onDecisionConfirmed,
   onStatusChanged,
 }: ApplicantDetailPageProps = {}) {
   const { applicantId: routeApplicantId } = useParams();
@@ -496,29 +617,38 @@ export function ApplicantDetailPage({
   } | null>(null);
   const [aiReport, setAiReport] = useState<{ id: number; report: AdminApplicationAiReport | null } | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<ApplicationStatus | null>(null);
-  const [confirmedDecision, setConfirmedDecision] = useState<{
-    id: number;
-    status: Exclude<ApplicationStatus, "PENDING">;
-  } | null>(null);
-  const decisionStatusRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (invalidApplicantId) return;
     const controller = new AbortController();
-    getAdminApplication(numericApplicantId, controller.signal).then((applicant) => {
-      if (!controller.signal.aborted) {
+    let pollTimeout: number | undefined;
+    const loadApplication = () => {
+      getAdminApplication(numericApplicantId, controller.signal).then((applicant) => {
+        if (controller.signal.aborted) return;
         setDetailState({ id: numericApplicantId, applicant, error: "" });
-      }
-    }).catch((reason: unknown) => {
-      if (!controller.signal.aborted) {
-        setDetailState({
-          id: numericApplicantId,
-          applicant: null,
-          error: reason instanceof Error ? reason.message : "지원자 상세 조회에 실패했습니다.",
-        });
-      }
-    });
-    return () => controller.abort();
+        const pending = applicant.mediaCollectionStatus === "PENDING"
+          || applicant.analysisStatus === "PENDING"
+          || applicant.analysisStatus === "IN_PROGRESS";
+        const failed = applicant.mediaCollectionStatus === "FAILED"
+          || applicant.analysisStatus === "FAILED";
+        if (isTestApplicant(applicant) && pending && !failed) {
+          pollTimeout = window.setTimeout(loadApplication, TEST_APPLICATION_POLL_INTERVAL_MS);
+        }
+      }).catch((reason: unknown) => {
+        if (!controller.signal.aborted) {
+          setDetailState({
+            id: numericApplicantId,
+            applicant: null,
+            error: reason instanceof Error ? reason.message : "지원자 상세 조회에 실패했습니다.",
+          });
+        }
+      });
+    };
+    loadApplication();
+    return () => {
+      controller.abort();
+      if (pollTimeout !== undefined) window.clearTimeout(pollTimeout);
+    };
   }, [invalidApplicantId, numericApplicantId]);
 
   useEffect(() => {
@@ -532,13 +662,10 @@ export function ApplicantDetailPage({
 
   const currentDetailState = detailState?.id === numericApplicantId ? detailState : null;
   const applicant = currentDetailState?.applicant ?? null;
-  const confirmedStatus = confirmedDecision?.id === numericApplicantId
-    ? confirmedDecision.status
-    : null;
-  const effectiveReviewStatus = confirmedStatus
-    ? confirmedStatus === "APPROVED" ? "승인" : "반려"
-    : applicant ? reviewStatusFor(applicant) : undefined;
+  const testApplicant = applicant ? isTestApplicant(applicant) : false;
+  const effectiveReviewStatus = applicant ? reviewStatusFor(applicant) : undefined;
   const audienceLabel = applicant?.snsCode === "INSTAGRAM" ? "팔로워" : "구독자";
+  const representativeContents = applicant ? uniqueContentsByPost(applicant.contents) : [];
   const detailProfile: ProfileDetailProfile | undefined = applicant && effectiveReviewStatus ? {
     audienceLabel,
     audienceValue: applicant.followerCount === null ? "-" : formatNumber(applicant.followerCount),
@@ -548,15 +675,17 @@ export function ApplicantDetailPage({
     engagementValue: applicant.metrics.engagementRate.value === null
       ? "-"
       : `${applicant.metrics.engagementRate.value.toFixed(2)}%`,
-    gallery: applicant.contents.slice(0, 3).map((content) => ({
-      id: String(content.id),
-      imageUrl: content.mediaUrl ?? "",
-      title: content.snsContentId,
+    gallery: representativeContents.slice(0, 3).map((content) => ({
+      id: content.snsContentId,
+      imageUrl: content.thumbnailUrl
+        ?? (content.mediaType === "IMAGE" ? content.mediaUrl : null)
+        ?? "",
+      title: content.title || content.caption || content.description || content.snsContentId,
     })),
-    handle: applicant.snsAccountId,
+    handle: displaySnsName(applicant),
     infoFields: [
       { label: "지원자 ID", value: applicant.id },
-      { label: "계정 ID", value: applicant.snsAccountId },
+      { label: "SNS 계정", value: displaySnsName(applicant) },
       { label: "이메일", value: applicant.email },
       { label: "기수", value: applicant.generationName },
       { label: "최종 업데이트", value: dateTime(applicant.updatedAt) },
@@ -580,7 +709,7 @@ export function ApplicantDetailPage({
     ],
     name: applicant.applicantName,
     platform: platformFor(applicant.snsCode),
-    profileImageUrl: "",
+    profileImageUrl: applicant.profileImageUrl ?? "",
     profileUrl: profileUrl(applicant),
     status: (
       <StatusPill tone={reviewStatusTone(effectiveReviewStatus)}>
@@ -593,10 +722,6 @@ export function ApplicantDetailPage({
     ? "요청한 지원자 ID가 올바르지 않습니다."
     : currentDetailState?.error;
 
-  useEffect(() => {
-    if (confirmedStatus) decisionStatusRef.current?.focus();
-  }, [confirmedStatus]);
-
   const updateStatus = async (status: Exclude<ApplicationStatus, "PENDING">) => {
     setUpdatingStatus(status);
     try {
@@ -607,39 +732,16 @@ export function ApplicantDetailPage({
       return;
     }
 
-    setConfirmedDecision({ id: numericApplicantId, status });
     onStatusChanged?.();
-    try {
-      const refreshed = await getAdminApplication(numericApplicantId);
-      setDetailState({ id: numericApplicantId, applicant: refreshed, error: "" });
-    } catch {
-      window.alert("심사 처리는 완료됐지만 최신 지원자 정보를 불러오지 못했습니다.");
-    } finally {
-      setUpdatingStatus(null);
-    }
+    onDecisionConfirmed?.(applicant?.applicantName ?? "지원자", status);
+    (onClose ?? (() => navigate("/applicants")))();
   };
 
   return (
     <>
       {embedded ? null : <ApplicantListPage />}
       <ProfileDetailShell
-        actionSection={confirmedStatus && effectiveReviewStatus ? (
-          <section
-            aria-live="polite"
-            className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions"
-            ref={decisionStatusRef}
-            role="status"
-            tabIndex={-1}
-          >
-            <div className="fuma-applicant-detail-actions__heading">
-              <span>심사 처리</span>
-              <StatusPill tone={reviewStatusTone(effectiveReviewStatus)}>
-                {effectiveReviewStatus}
-              </StatusPill>
-            </div>
-            <p>{effectiveReviewStatus} 처리가 완료됐습니다.</p>
-          </section>
-        ) : applicant?.status === "PENDING" && effectiveReviewStatus ? (
+        actionSection={applicant?.status === "PENDING" && effectiveReviewStatus && !testApplicant ? (
           <section className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions">
             <div className="fuma-applicant-detail-actions__heading">
               <span>심사 처리</span>

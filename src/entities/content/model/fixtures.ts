@@ -1,5 +1,5 @@
 export type InspectionType = "NEW" | "VIOLATION_CORRECTION" | "EDITED";
-export type InspectionStatus = "검수 대기" | "수정 요청" | "승인" | "위반 확정";
+export type InspectionStatus = "검수 대기" | "수정 요청" | "승인" | "위반";
 export type ProcessingState = "미처리" | "안내 대기" | "처리 완료";
 export type ContentFormat =
   | "유튜브 롱폼"
@@ -22,14 +22,15 @@ export type ContentAnnotationTarget =
     }
   | {
       kind: "media";
-      mediaIndex: number;
+      mediaIndex?: number;
       quote: string;
-      box: {
+      box?: {
         x: number;
         y: number;
         width: number;
         height: number;
       };
+      boxUnit?: "percent" | "pixel";
       timeRange?: {
         start: string;
         end: string;
@@ -55,6 +56,7 @@ export interface ContentSnapshot {
   mediaCount: number;
   mediaKinds: string[];
   mediaUrls: string[];
+  contentMediaIds?: number[];
   youtubeVideoId?: string;
   capturedAt: string;
   annotations?: ContentAnnotation[];
@@ -69,6 +71,12 @@ export interface ContentInspectionSignal {
   evidence: string;
   guidance?: string;
   tone: InspectionSignalTone;
+  detectorSource?: "RULE" | "AI";
+  locationAvailable?: boolean;
+  violationItemId?: number;
+  violationStatus?: "PENDING" | "VIOLATION_CONFIRMED" | "EDIT_REQUESTED" | "DISMISSED" | "RESOLVED";
+  inspectionPolicyId?: number;
+  violationEvidenceHistoryId?: number;
 }
 
 export interface ContentInspectionExtract {
@@ -88,6 +96,18 @@ export interface ContentInspectionReport {
   signals: ContentInspectionSignal[];
   extracts: ContentInspectionExtract[];
   history: ContentInspectionHistoryItem[];
+  purpose?: string | null;
+  flow?: string | null;
+  overallAssessment?: string | null;
+}
+
+export interface ContentInspectionVersionSummary {
+  contentVersionId: number;
+  creationReason?: "INITIAL" | "SOURCE_CHANGE" | "EXTRACTION_CHANGE";
+  versionNo: number;
+  inspectionStatus: string;
+  createdAt: string;
+  inspectedAt: string | null;
 }
 
 export interface ContentInspectionFixture {
@@ -99,9 +119,11 @@ export interface ContentInspectionFixture {
   duration?: string;
   author: string;
   cohort: string;
+  contentVersionId?: number;
   latestVersionNo?: number;
   profileImageUrl?: string | null;
   selectorsId?: number;
+  versions?: ContentInspectionVersionSummary[];
   sourcePlatform: string;
   submittedAt: string;
   inspectionType: InspectionType;

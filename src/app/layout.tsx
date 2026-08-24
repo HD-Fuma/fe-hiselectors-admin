@@ -45,14 +45,6 @@ function panelParentPathFor(route: AdminRouteMeta, currentPath: string) {
       : pathnameOf(currentPath);
   }
 
-  const queryParent = route.workTabParentQuery;
-  if (
-    queryParent
-    && searchParams.get(queryParent.parameter) === queryParent.value
-  ) {
-    return queryParent.path;
-  }
-
   return route.workTabParentPath;
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { AlertDialog } from "../../components/ui/AlertDialog";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
+import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { FilterField } from "../../components/ui/FilterField";
 import { Modal } from "../../components/ui/Modal";
@@ -11,17 +12,21 @@ import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill } from "../../components/ui/StatusPill";
+import { paginate } from "../../lib/pagination";
 import {
   getNotificationHistory,
+  NOTIFICATION_CHANNELS,
   NOTIFICATION_PURPOSES,
   NOTIFICATION_STATUSES,
   resendNotification,
+  type NotificationChannel,
   type NotificationHistoryItem,
+  type NotificationHistoryRequest,
   type NotificationStatus,
-  type SpringPage,
 } from "../../entities/notifications";
 
 const PAGE_SIZE = 20;
+const LIST_FETCH_SIZE = 100;
 
 interface NotificationFilters {
   purpose: string;
@@ -39,8 +44,26 @@ const EMPTY_FILTERS: NotificationFilters = {
   recipientKeyword: "",
 };
 
-function emptyPage(): SpringPage<NotificationHistoryItem> {
-  return { content: [], number: 0, size: PAGE_SIZE, totalElements: 0, totalPages: 0 };
+async function loadAllNotificationHistory(
+  request: Omit<NotificationHistoryRequest, "page" | "size">,
+  signal?: AbortSignal,
+) {
+  const items: NotificationHistoryItem[] = [];
+  let page = 0;
+  let totalPages = 1;
+
+  while (page < totalPages) {
+    const result = await getNotificationHistory({
+      ...request,
+      page,
+      size: LIST_FETCH_SIZE,
+    }, signal);
+    items.push(...(result.content ?? []));
+    totalPages = result.totalPages > 0 ? result.totalPages : 1;
+    page += 1;
+  }
+
+  return items;
 }
 
 function purposeLabel(value: string) {
@@ -58,7 +81,13 @@ function statusTone(value: NotificationStatus) {
 }
 
 function channelLabel(value: NotificationHistoryItem["channel"]) {
-  return value === "EMAIL" ? "이메일" : "카카오 메시지";
+  return NOTIFICATION_CHANNELS.find((channel) => channel.value === value)?.label ?? value;
+}
+
+function initiatorLabel(item: NotificationHistoryItem) {
+  if (item.initiatedByType === "SYSTEM") return "시스템";
+  if (item.initiatedById == null) return "관리자";
+  return `관리자 ${item.initiatedById}`;
 }
 
 function recipientLabel(item: NotificationHistoryItem) {
@@ -102,7 +131,7 @@ function NotificationFiltersPanel({
   onSearch: () => void;
 }) {
   return (
-    <div className="fuma-notification-search">
+    <div className="fuma-operations-search fuma-settlement-search fuma-notification-search">
       <SearchPanel actions={<SearchActions onReset={onReset} onSearch={onSearch} />}>
         <FilterField htmlFor="notification-purpose" label="발송 목적">
           <Select
@@ -128,23 +157,26 @@ function NotificationFiltersPanel({
             value={filters.status}
           />
         </FilterField>
-        <FilterField htmlFor="notification-from" label="요청일 시작">
-          <TextInput
-            aria-label="요청일 시작"
-            id="notification-from"
-            onChange={(event) => onChange("from", event.target.value)}
-            type="date"
-            value={filters.from}
-          />
-        </FilterField>
-        <FilterField htmlFor="notification-to" label="요청일 종료">
-          <TextInput
-            aria-label="요청일 종료"
-            id="notification-to"
-            onChange={(event) => onChange("to", event.target.value)}
-            type="date"
-            value={filters.to}
-          />
+        <FilterField htmlFor="notification-from" label="발송 요청 기간">
+          <div className="fuma-cohort-date-range">
+            <TextInput
+              aria-label="발송 요청 시작일"
+              id="notification-from"
+              max={filters.to || undefined}
+              onChange={(event) => onChange("from", event.target.value)}
+              type="date"
+              value={filters.from}
+            />
+            <span aria-hidden="true">~</span>
+            <TextInput
+              aria-label="발송 요청 종료일"
+              id="notification-to"
+              min={filters.from || undefined}
+              onChange={(event) => onChange("to", event.target.value)}
+              type="date"
+              value={filters.to}
+            />
+          </div>
         </FilterField>
         <FilterField htmlFor="notification-recipient" label="수신자">
           <TextInput
@@ -188,6 +220,7 @@ function NotificationDetailPanel({
             <div><dt>발송 목적</dt><dd>{purposeLabel(item.purposeCode)}</dd></div>
             <div><dt>발송 상태</dt><dd><StatusPill tone={statusTone(item.status)}>{statusLabel(item.status)}</StatusPill></dd></div>
             <div><dt>채널</dt><dd>{channelLabel(item.channel)}</dd></div>
+            <div><dt>발신자</dt><dd>{initiatorLabel(item)}</dd></div>
             <div><dt>참조 ID</dt><dd>{item.referenceId ?? "-"}</dd></div>
             <div><dt>요청 시각</dt><dd>{formatDateTime(item.requestAt)}</dd></div>
             <div><dt>발송 시각</dt><dd>{formatDateTime(item.sentAt)}</dd></div>
@@ -217,9 +250,10 @@ function NotificationDetailPanel({
 export function NotificationHistoryPage() {
   const [filters, setFilters] = useState<NotificationFilters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<NotificationFilters>(EMPTY_FILTERS);
+  const [channel, setChannel] = useState<NotificationChannel | null>(null);
   const [page, setPage] = useState(1);
   const [requestVersion, setRequestVersion] = useState(0);
-  const [historyPage, setHistoryPage] = useState(emptyPage);
+  const [items, setItems] = useState<NotificationHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [selectedItem, setSelectedItem] = useState<NotificationHistoryItem | null>(null);
@@ -234,10 +268,7 @@ export function NotificationHistoryPage() {
     const requestId = latestRequestId.current + 1;
     latestRequestId.current = requestId;
 
-    getNotificationHistory({
-      ...appliedFilters,
-      page: page - 1,
-      size: PAGE_SIZE,
+    loadAllNotificationHistory({
       purpose: appliedFilters.purpose || undefined,
       status: appliedFilters.status || undefined,
       from: appliedFilters.from || undefined,
@@ -246,14 +277,14 @@ export function NotificationHistoryPage() {
     }, controller.signal)
       .then((result) => {
         if (latestRequestId.current !== requestId) return;
-        setHistoryPage(result);
+        setItems(result);
         setHasError(false);
       })
       .catch((error: unknown) => {
         if (latestRequestId.current !== requestId || (error instanceof Error && error.name === "AbortError")) {
           return;
         }
-        setHistoryPage(emptyPage());
+        setItems([]);
         setHasError(true);
       })
       .finally(() => {
@@ -261,16 +292,41 @@ export function NotificationHistoryPage() {
       });
 
     return () => controller.abort();
-  }, [appliedFilters, page, requestVersion]);
+  }, [appliedFilters, requestVersion]);
 
-  const columns = useMemo<DenseTableColumn<NotificationHistoryItem>[]>(() => [
-    { header: "요청 시각", key: "requestAt", width: "16%", render: (item) => formatDateTime(item.requestAt) },
-    { header: "발송 목적", key: "purposeCode", width: "15%", render: (item) => purposeLabel(item.purposeCode) },
-    { header: "수신자", key: "receiver", width: "22%", render: recipientLabel },
-    { header: "채널", key: "channel", width: "12%", align: "center", render: (item) => channelLabel(item.channel) },
-    { header: "상태", key: "status", width: "13%", align: "center", render: (item) => <StatusPill tone={statusTone(item.status)}>{statusLabel(item.status)}</StatusPill> },
-    { header: "발송 시각", key: "sentAt", width: "16%", render: (item) => formatDateTime(item.sentAt) },
-  ], []);
+  const visibleItems = useMemo(
+    () => (channel ? items.filter((item) => item.channel === channel) : items),
+    [channel, items],
+  );
+  const pageSlice = paginate(visibleItems, page, PAGE_SIZE);
+
+  const columns = useMemo<DenseTableColumn<NotificationHistoryItem>[]>(() => {
+    const start = (pageSlice.currentPage - 1) * PAGE_SIZE;
+    const ordinalById = new Map(
+      pageSlice.pagedItems.map((item, index) => [item.notificationId, start + index + 1]),
+    );
+
+    return [
+      {
+        header: "순번",
+        id: "ordinal",
+        render: (item) => ordinalById.get(item.notificationId) ?? "-",
+        width: 60,
+      },
+      { header: "수신자", key: "receiver", width: "22%", render: recipientLabel },
+      { header: "발송 목적", key: "purposeCode", width: "16%", render: (item) => purposeLabel(item.purposeCode) },
+      { header: "채널", key: "channel", width: "12%", render: (item) => channelLabel(item.channel) },
+      { header: "발신자", key: "initiatedByType", width: "12%", render: initiatorLabel },
+      { header: "요청 시각", key: "requestAt", width: "14%", render: (item) => formatDateTime(item.requestAt) },
+      { header: "발송 시각", key: "sentAt", width: "16%", render: (item) => formatDateTime(item.sentAt) },
+      {
+        header: "상태",
+        key: "status",
+        render: (item) => <StatusPill tone={statusTone(item.status)}>{statusLabel(item.status)}</StatusPill>,
+        width: "13%",
+      },
+    ];
+  }, [pageSlice.currentPage, pageSlice.pagedItems]);
 
   const prepareRequest = () => {
     latestRequestId.current += 1;
@@ -292,12 +348,8 @@ export function NotificationHistoryPage() {
   const resetFilters = () => {
     setFilters(EMPTY_FILTERS);
     setAppliedFilters(EMPTY_FILTERS);
+    setChannel(null);
     setPage(1);
-    prepareRequest();
-  };
-
-  const changePage = (nextPage: number) => {
-    setPage(nextPage);
     prepareRequest();
   };
 
@@ -305,6 +357,18 @@ export function NotificationHistoryPage() {
     setSelectedItem(null);
     setIsResendDialogOpen(false);
     setResendError("");
+  };
+
+  const changeChannel = (nextChannel: NotificationChannel | null) => {
+    setChannel(nextChannel);
+    setPage(1);
+    if (selectedItem && nextChannel && selectedItem.channel !== nextChannel) {
+      closeDetail();
+    }
+  };
+
+  const changePage = (nextPage: number) => {
+    setPage(nextPage);
   };
 
   const confirmResend = async () => {
@@ -339,27 +403,38 @@ export function NotificationHistoryPage() {
           onReset={resetFilters}
           onSearch={applyFilters}
         />
+        <ChoiceTabs
+          ariaLabel="발송 채널"
+          emptyOption={{
+            label: "전체",
+            onSelect: () => changeChannel(null),
+          }}
+          onChange={changeChannel}
+          options={NOTIFICATION_CHANNELS}
+          value={channel}
+        />
         <ResultToolbar
           className="fuma-simple-result-toolbar"
-          meta={<span>총 {historyPage.totalElements.toLocaleString("ko-KR")}건</span>}
+          meta={<span>총 {visibleItems.length.toLocaleString("ko-KR")}건</span>}
           title="알림 및 메시지 발송 내역"
         />
         <section aria-label="알림 및 메시지 발송 내역" className="fuma-notification-table">
           <DenseTable
+            align="center"
             columns={columns}
             emptyMessage={emptyMessage}
             onRowClick={setSelectedItem}
             rowKey={(item) => item.notificationId}
-            rows={historyPage.content}
+            rows={pageSlice.pagedItems}
             selectedRowKeys={selectedItem ? [selectedItem.notificationId] : []}
           />
         </section>
-        {!isLoading && !hasError && historyPage.totalPages > 0 ? (
+        {!isLoading && !hasError && visibleItems.length > 0 ? (
           <Pagination
             onPageChange={changePage}
-            page={historyPage.number + 1}
-            pageSize={historyPage.size}
-            totalPages={historyPage.totalPages}
+            page={pageSlice.currentPage}
+            pageSize={PAGE_SIZE}
+            totalPages={pageSlice.totalPages}
           />
         ) : null}
       </div>

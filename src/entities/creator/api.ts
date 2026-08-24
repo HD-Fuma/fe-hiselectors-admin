@@ -20,6 +20,7 @@ export interface CreatorSearchRequest {
   snsCode?: string;
   minFollower?: number;
   maxFollower?: number;
+  maxBrandScore?: number;
   minEngagementRate?: number;
   minRecent90DayContentCount?: number;
   page: number;
@@ -32,6 +33,10 @@ export interface CreatorPage {
   totalPages: number;
   number: number;
   size: number;
+}
+
+export interface CreatorPoolResetResult {
+  softDeletedCount: number;
 }
 
 export interface CreatorDetail {
@@ -125,6 +130,24 @@ export async function getCreators(input: CreatorSearchRequest, signal?: AbortSig
     throw new Error(body.message || "크리에이터 목록 조회에 실패했습니다.");
   }
   return body.data;
+}
+
+export function runCreatorDiscovery() {
+  return request<unknown>(
+    "/api/admin/discovery/youtube/run",
+    "크리에이터 풀 구축에 실패했습니다.",
+    undefined,
+    { method: "POST" },
+  );
+}
+
+export function resetCreatorPool() {
+  return request<CreatorPoolResetResult>(
+    "/api/admin/creators?confirmation=DELETE_CREATOR_POOL",
+    "크리에이터 풀 초기화에 실패했습니다.",
+    undefined,
+    { method: "DELETE" },
+  );
 }
 
 export function getCreator(id: number, signal?: AbortSignal) {

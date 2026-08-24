@@ -18,11 +18,6 @@ export interface AdminRouteMeta {
   workTabLabel: string;
   workTabSingletonId?: string;
   workTabParentPath?: string;
-  workTabParentQuery?: {
-    parameter: string;
-    value: string;
-    path: string;
-  };
 }
 
 export interface NavGroupMeta {

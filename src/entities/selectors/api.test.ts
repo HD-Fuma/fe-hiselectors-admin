@@ -2,7 +2,6 @@ import {
   createGeneration,
   getSelector,
   getSelectorFilterGenerations,
-  getSelectorPenalties,
   getSelectors,
   updateGeneration,
   updateGenerationStatus,
@@ -55,7 +54,7 @@ describe("selector admin api", () => {
     expect(String(vi.mocked(fetch).mock.calls[1][0])).toMatch(/\/api\/admin\/generations$/);
   });
 
-  test("sends generation mutations and blacklist pagination", async () => {
+  test("sends generation mutations", async () => {
     const generation = {
       id: 3,
       generationName: "3기",
@@ -72,18 +71,14 @@ describe("selector admin api", () => {
       activityStartDate: "2026-09-01T00:00:00",
       activityEndDate: "2026-11-30T23:59:59",
     };
-    const penaltyPage = { content: [], number: 1, size: 20, totalElements: 0, totalPages: 2 };
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce(json(generation))
       .mockResolvedValueOnce(json(generation))
-      .mockResolvedValueOnce(json({ ...generation, status: "ACTIVE" }))
-      .mockResolvedValueOnce(json(penaltyPage)));
+      .mockResolvedValueOnce(json({ ...generation, status: "ACTIVE" })));
 
     await createGeneration(saveRequest);
     await updateGeneration(3, saveRequest);
     await updateGenerationStatus(3, "ACTIVE");
-    await expect(getSelectorPenalties({ generationId: 3, page: 1, size: 20 }))
-      .resolves.toEqual(penaltyPage);
 
     expect(vi.mocked(fetch).mock.calls[0][1]).toMatchObject({
       method: "POST",
@@ -96,8 +91,6 @@ describe("selector admin api", () => {
       method: "PATCH",
       body: JSON.stringify({ status: "ACTIVE" }),
     });
-    expect(String(vi.mocked(fetch).mock.calls[3][0]))
-      .toMatch(/generationId=3.*page=1.*size=20.*blacklistOnly=true/);
   });
 
   test("uses the backend error message", async () => {

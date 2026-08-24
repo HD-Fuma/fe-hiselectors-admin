@@ -4,6 +4,7 @@ import type {
   Campaign,
   CampaignParticipant,
   CampaignSaveRequest,
+  CampaignUpdateRequest,
   CampaignSearchRequest,
   CampaignProduct,
   ProductStatusCode,
@@ -66,7 +67,17 @@ export function createCampaign(body: CampaignSaveRequest) {
   return request<Campaign>("/api/admin/campaigns", { method: "POST", headers: headers(true), body: JSON.stringify(body) }, "캠페인 생성에 실패했습니다.");
 }
 
-export function updateCampaign(id: number, body: CampaignSaveRequest) {
+export function uploadCampaignThumbnail(file: File) {
+  const body = new FormData();
+  body.append("file", file);
+  return request<{ url: string }>(
+    "/api/admin/uploads/campaign-thumbnails",
+    { method: "POST", headers: headers(), body },
+    "캠페인 썸네일 업로드에 실패했습니다.",
+  );
+}
+
+export function updateCampaign(id: number, body: CampaignUpdateRequest) {
   return request<Campaign>(`/api/admin/campaigns/${id}`, { method: "PATCH", headers: headers(true), body: JSON.stringify(body) }, "캠페인 수정에 실패했습니다.");
 }
 

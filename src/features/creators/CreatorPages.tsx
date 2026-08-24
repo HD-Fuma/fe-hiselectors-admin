@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { AlertDialog } from "../../components/ui/AlertDialog";
@@ -8,12 +8,14 @@ import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTabl
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
 import { FormRow } from "../../components/ui/FormRow";
+import { Modal } from "../../components/ui/Modal";
 import { Pagination } from "../../components/ui/Pagination";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { formatNumber } from "../../lib/formatters";
+import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { DiscoverySettingsPanel } from "./DiscoverySettingsPanel";
 import "../../styles/creator-discovery-settings.css";
@@ -23,15 +25,18 @@ import {
   getCreator,
   getCreators,
   postAdminProposal,
+  resetCreatorPool,
+  runCreatorDiscovery,
   type CreatorDetail,
   type CreatorProfileFixture,
   type CreatorSummary,
   type ProposalHistoryEntry,
-  type ProposalHistoryPage as ProposalHistoryPageResult,
 } from "../../entities/creator";
 
 const PROPOSAL_PAGE_SIZE = 20;
+const PROPOSAL_LIST_FETCH_SIZE = 100;
 const CREATOR_LIST_PAGE_SIZE = 20;
+const CREATOR_POOL_RESET_CONFIRMATION = "초기화";
 const PROPOSAL_CHANNEL_OPTIONS = [{ label: "이메일", value: "이메일" }] as const;
 const DEFAULT_PROPOSAL_SUBJECT = "[셀렉터스] ${creatorName}님, 크리에이터 활동을 제안드립니다";
 const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
@@ -60,6 +65,10 @@ const CREATOR_PLATFORM_OPTIONS = [
   { label: "Instagram", value: "INSTAGRAM" },
   { label: "YouTube", value: "YOUTUBE" },
 ] as const;
+const CREATOR_PLATFORM_TABS = CREATOR_PLATFORM_OPTIONS.filter(
+  (option): option is Exclude<(typeof CREATOR_PLATFORM_OPTIONS)[number], { value: "" }> =>
+    option.value !== "",
+);
 
 const CREATOR_CATEGORY_OPTIONS = [
   { label: "전체", value: "" },
@@ -80,10 +89,25 @@ const EMPTY_CREATOR_FILTERS = {
   categoryCode: "",
   minFollower: "",
   maxFollower: "",
+  excludeBrands: false,
 };
 
 function dateTime(value: string) {
   return value.replace("T", " ").slice(0, 16).replaceAll("-", ".");
+}
+
+function matchesSentPeriod(createdAt: string, from: string, to: string) {
+  const sentAt = new Date(createdAt).getTime();
+  if (Number.isNaN(sentAt)) return false;
+  if (from) {
+    const start = new Date(`${from}T00:00:00`).getTime();
+    if (sentAt < start) return false;
+  }
+  if (to) {
+    const end = new Date(`${to}T23:59:59.999`).getTime();
+    if (sentAt > end) return false;
+  }
+  return true;
 }
 
 function numericFilter(value: string) {
@@ -367,12 +391,19 @@ function BatchProposalPanel({
 }
 
 export function CreatorListPage() {
+  const resetDescriptionId = useId();
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [selectedCreators, setSelectedCreators] = useState<Map<number, CreatorSummary>>(new Map());
   const [page, setPage] = useState(1);
   const [pageData, setPageData] = useState<Awaited<ReturnType<typeof getCreators>> | null>(null);
   const [error, setError] = useState("");
+  const [discoveryRunning, setDiscoveryRunning] = useState(false);
+  const [discoveryStatus, setDiscoveryStatus] = useState("");
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetConfirmation, setResetConfirmation] = useState("");
+  const [resetRunning, setResetRunning] = useState(false);
+  const [resetError, setResetError] = useState("");
   const [discoverySettingsOpen, setDiscoverySettingsOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
   const [proposalRequestedCount, setProposalRequestedCount] = useState(0);
@@ -397,6 +428,7 @@ export function CreatorListPage() {
       categoryCode: appliedFilters.categoryCode || undefined,
       minFollower: numericFilter(appliedFilters.minFollower),
       maxFollower: numericFilter(appliedFilters.maxFollower),
+      maxBrandScore: appliedFilters.excludeBrands ? 1 : undefined,
       page: page - 1,
       size: CREATOR_LIST_PAGE_SIZE,
     }, controller.signal).then((result) => {
@@ -435,6 +467,45 @@ export function CreatorListPage() {
     setAppliedFilters(EMPTY_CREATOR_FILTERS);
     setSelectedCreators(new Map());
     setPage(1);
+  };
+  const buildCreatorPool = async () => {
+    setDiscoveryRunning(true);
+    setDiscoveryStatus("크리에이터 풀을 구축하는 중입니다.");
+    try {
+      await runCreatorDiscovery();
+      setDiscoveryStatus("크리에이터 풀 구축을 완료했습니다.");
+      setAppliedFilters((current) => ({ ...current }));
+    } catch (reason: unknown) {
+      setDiscoveryStatus(
+        reason instanceof Error ? reason.message : "크리에이터 풀 구축에 실패했습니다.",
+      );
+    } finally {
+      setDiscoveryRunning(false);
+    }
+  };
+  const closeReset = () => {
+    setResetOpen(false);
+    setResetConfirmation("");
+    setResetError("");
+  };
+  const resetPool = async () => {
+    setResetRunning(true);
+    setResetError("");
+    try {
+      const result = await resetCreatorPool();
+      closeReset();
+      setDiscoveryStatus(`기존 크리에이터 풀 ${result.softDeletedCount}건을 초기화했습니다.`);
+      setPageData(null);
+      setSelectedCreators(new Map());
+      setPage(1);
+      setAppliedFilters((current) => ({ ...current }));
+    } catch (reason: unknown) {
+      setResetError(reason instanceof Error
+        ? reason.message
+        : "크리에이터 풀 초기화에 실패했습니다.");
+    } finally {
+      setResetRunning(false);
+    }
   };
   const selectCategory = (categoryCode: string) => {
     setFilters((current) => ({ ...current, categoryCode }));
@@ -496,7 +567,21 @@ export function CreatorListPage() {
       <PageHeader title="크리에이터 풀" />
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-creator-pool-search">
-          <SearchPanel actions={<SearchActions onReset={resetSearch} onSearch={applySearch} />}>
+          <SearchPanel actions={(
+            <>
+              <Button
+                aria-pressed={filters.excludeBrands}
+                onClick={() => setFilters((current) => ({
+                  ...current,
+                  excludeBrands: !current.excludeBrands,
+                }))}
+                variant={filters.excludeBrands ? "primary" : "secondary"}
+              >
+                브랜드 계정 제외
+              </Button>
+              <SearchActions onReset={resetSearch} onSearch={applySearch} />
+            </>
+          )}>
             <FilterField htmlFor="creator-keyword" label="키워드">
               <TextInput
                 id="creator-keyword"
@@ -531,6 +616,12 @@ export function CreatorListPage() {
           actions={(
             <>
               <Button
+                disabled={discoveryRunning || resetRunning}
+                onClick={() => void buildCreatorPool()}
+              >
+                {discoveryRunning ? "풀 구축 중..." : "크리에이터 풀 구축"}
+              </Button>
+              <Button
                 aria-haspopup="dialog"
                 disabled={selectedCreators.size === 0}
                 onClick={() => setProposalPanelOpen(true)}
@@ -541,9 +632,18 @@ export function CreatorListPage() {
               <Button aria-haspopup="dialog" onClick={() => setDiscoverySettingsOpen(true)}>
                 발굴 설정
               </Button>
+              <Button
+                aria-haspopup="dialog"
+                disabled={discoveryRunning || resetRunning}
+                onClick={() => setResetOpen(true)}
+                variant="danger"
+              >
+                기존 풀 초기화
+              </Button>
             </>
           )}
           className="fuma-simple-result-toolbar"
+          description={discoveryStatus ? <span role="status">{discoveryStatus}</span> : null}
           meta={<span>총 {pageData?.totalElements ?? 0}건</span>}
           title="크리에이터 목록"
         />
@@ -595,6 +695,40 @@ export function CreatorListPage() {
       open={proposalRequestedCount > 0}
       title="제안 발송 요청"
     />
+    <Modal
+      actions={(
+        <>
+          <Button disabled={resetRunning} onClick={closeReset}>취소</Button>
+          <Button
+            disabled={resetRunning || resetConfirmation !== CREATOR_POOL_RESET_CONFIRMATION}
+            onClick={() => void resetPool()}
+            variant="danger"
+          >
+            {resetRunning ? "초기화 중..." : "초기화"}
+          </Button>
+        </>
+      )}
+      ariaDescribedBy={resetDescriptionId}
+      onClose={resetRunning ? undefined : closeReset}
+      open={resetOpen}
+      role="alertdialog"
+      title="기존 크리에이터 풀 초기화"
+    >
+      <div id={resetDescriptionId}>
+        <p>현재 YouTube·Instagram 크리에이터가 목록과 후보에서 모두 숨겨집니다.</p>
+        <p>제안·리포트 이력은 보존되며, 다음 풀 구축에서 조건을 통과한 계정만 복원됩니다.</p>
+      </div>
+      <FormRow label={`계속하려면 “${CREATOR_POOL_RESET_CONFIRMATION}”를 입력하세요.`} required>
+        <TextInput
+          aria-label="초기화 확인 문구"
+          autoComplete="off"
+          disabled={resetRunning}
+          onChange={(event) => setResetConfirmation(event.target.value)}
+          value={resetConfirmation}
+        />
+      </FormRow>
+      {resetError ? <p role="alert">{resetError}</p> : null}
+    </Modal>
     </>
   );
 }
@@ -631,26 +765,31 @@ function ProposalCreatorSummary({ creator }: { creator: CreatorDetail }) {
   );
 }
 
-function proposalHistoryColumns(): DenseTableColumn<ProposalHistoryEntry>[] {
+function proposalHistoryColumns(
+  ordinalById: Map<number, number>,
+): DenseTableColumn<ProposalHistoryEntry>[] {
   return [
-  { key: "creatorName", header: "크리에이터", width: 130, align: "center" },
-  {
-    id: "platform",
-    header: "플랫폼",
-    width: 120,
-    align: "center",
-    render: (proposal) => <PlatformLabel platform={platformFor(proposal.snsCode)} />,
-  },
-  { key: "accountId", header: "SNS 계정", width: 150, align: "center" },
-  { key: "email", header: "이메일 주소", width: 210, align: "center" },
-  { key: "adminName", header: "발송자", width: 130, align: "center" },
-  {
-    id: "sentAt",
-    header: "발송 시각",
-    width: 150,
-    align: "center",
-    render: (proposal) => dateTime(proposal.createdAt),
-  },
+    {
+      header: "순번",
+      id: "ordinal",
+      render: (proposal) => ordinalById.get(proposal.proposalHistoryId) ?? "-",
+      width: 60,
+    },
+    { key: "creatorName", header: "크리에이터", width: 130 },
+    {
+      id: "platform",
+      header: "플랫폼",
+      width: 120,
+      render: (proposal) => <PlatformLabel platform={platformFor(proposal.snsCode)} />,
+    },
+    { key: "accountId", header: "SNS 계정", width: 150 },
+    { key: "email", header: "이메일 주소", width: 210 },
+    {
+      id: "sentAt",
+      header: "발송 시각",
+      width: 150,
+      render: (proposal) => dateTime(proposal.createdAt),
+    },
   ];
 }
 
@@ -810,33 +949,123 @@ export function ProposalComposePage() {
   );
 }
 
+async function loadAllProposalHistory(signal?: AbortSignal) {
+  const items: ProposalHistoryEntry[] = [];
+  let page = 0;
+  let totalPages = 1;
+
+  while (page < totalPages) {
+    const result = await getAdminProposals(page, PROPOSAL_LIST_FETCH_SIZE, signal);
+    items.push(...(result.content ?? []));
+    totalPages = result.totalPages > 0 ? result.totalPages : 1;
+    page += 1;
+  }
+
+  return items;
+}
+
+const EMPTY_PROPOSAL_PERIOD = { from: "", to: "" };
+
 export function ProposalHistoryPage() {
   const [page, setPage] = useState(1);
-  const [pageData, setPageData] = useState<ProposalHistoryPageResult | null>(null);
+  const [items, setItems] = useState<ProposalHistoryEntry[]>([]);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [period, setPeriod] = useState(EMPTY_PROPOSAL_PERIOD);
+  const [appliedPeriod, setAppliedPeriod] = useState(EMPTY_PROPOSAL_PERIOD);
+  const [platform, setPlatform] = useState<ProposalHistoryEntry["snsCode"] | null>(null);
   const [selectedProposal, setSelectedProposal] = useState<ProposalHistoryEntry | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    getAdminProposals(page - 1, PROPOSAL_PAGE_SIZE, controller.signal).then((result) => {
-      setPageData(result);
+    loadAllProposalHistory(controller.signal).then((result) => {
+      setItems(result);
       setError("");
     }).catch((reason: unknown) => {
       if (!controller.signal.aborted) {
         setError(reason instanceof Error ? reason.message : "제안 이력 조회에 실패했습니다.");
+        setItems([]);
       }
+    }).finally(() => {
+      if (!controller.signal.aborted) setIsLoading(false);
     });
     return () => controller.abort();
-  }, [page]);
+  }, []);
+
+  const visibleItems = useMemo(
+    () => items.filter((item) => {
+      if (platform && item.snsCode !== platform) return false;
+      return matchesSentPeriod(item.createdAt, appliedPeriod.from, appliedPeriod.to);
+    }),
+    [appliedPeriod.from, appliedPeriod.to, items, platform],
+  );
+  const pageSlice = paginate(visibleItems, page, PROPOSAL_PAGE_SIZE);
+  const ordinalById = useMemo(() => {
+    const start = (pageSlice.currentPage - 1) * PROPOSAL_PAGE_SIZE;
+    return new Map(
+      pageSlice.pagedItems.map((item, index) => [item.proposalHistoryId, start + index + 1]),
+    );
+  }, [pageSlice.currentPage, pageSlice.pagedItems]);
+
+  const changePlatform = (nextPlatform: ProposalHistoryEntry["snsCode"] | null) => {
+    setPlatform(nextPlatform);
+    setPage(1);
+  };
+
+  const applySearch = () => {
+    setAppliedPeriod(period);
+    setPage(1);
+  };
+
+  const resetSearch = () => {
+    setPeriod(EMPTY_PROPOSAL_PERIOD);
+    setAppliedPeriod(EMPTY_PROPOSAL_PERIOD);
+    setPage(1);
+  };
 
   return (
     <section className="fuma-page">
       <PageHeader title="제안 이력 관리" />
       <div className="fuma-page__body">
+        <div className="fuma-operations-search fuma-settlement-search fuma-proposal-history-search">
+          <SearchPanel actions={<SearchActions onReset={resetSearch} onSearch={applySearch} />}>
+            <FilterField htmlFor="proposal-period-start" label="발송 기간">
+              <div className="fuma-cohort-date-range">
+                <TextInput
+                  aria-label="발송 시작일"
+                  id="proposal-period-start"
+                  max={period.to || undefined}
+                  onChange={(event) => setPeriod((current) => ({ ...current, from: event.target.value }))}
+                  type="date"
+                  value={period.from}
+                />
+                <span aria-hidden="true">~</span>
+                <TextInput
+                  aria-label="발송 종료일"
+                  id="proposal-period-end"
+                  min={period.from || undefined}
+                  onChange={(event) => setPeriod((current) => ({ ...current, to: event.target.value }))}
+                  type="date"
+                  value={period.to}
+                />
+              </div>
+            </FilterField>
+          </SearchPanel>
+        </div>
+        <ChoiceTabs
+          ariaLabel="제안 플랫폼"
+          emptyOption={{
+            label: "전체",
+            onSelect: () => changePlatform(null),
+          }}
+          onChange={changePlatform}
+          options={CREATOR_PLATFORM_TABS}
+          value={platform}
+        />
         <div className="fuma-result-toolbar fuma-simple-result-toolbar">
           <strong>제안 이력 목록</strong>
           <div className="fuma-settlement-result-meta">
-            <span>총 {pageData?.totalElements ?? 0}건</span>
+            <span>총 {visibleItems.length.toLocaleString("ko-KR")}건</span>
           </div>
         </div>
         <div
@@ -848,19 +1077,20 @@ export function ProposalHistoryPage() {
             <EmptyState description={error} title="목록을 불러오지 못했습니다" />
           ) : (
             <DenseTable
-              columns={proposalHistoryColumns()}
-              emptyMessage={pageData ? "등록된 제안 이력이 없습니다." : "제안 이력을 불러오는 중입니다."}
+              align="center"
+              columns={proposalHistoryColumns(ordinalById)}
+              emptyMessage={isLoading ? "제안 이력을 불러오는 중입니다." : "등록된 제안 이력이 없습니다."}
               onRowClick={setSelectedProposal}
               rowKey={(proposal) => proposal.proposalHistoryId}
-              rows={pageData?.content ?? []}
+              rows={pageSlice.pagedItems}
             />
           )}
         </div>
         <Pagination
           onPageChange={setPage}
-          page={page}
+          page={pageSlice.currentPage}
           pageSize={PROPOSAL_PAGE_SIZE}
-          totalPages={Math.max(1, pageData?.totalPages ?? 1)}
+          totalPages={pageSlice.totalPages}
         />
       </div>
       {selectedProposal ? (

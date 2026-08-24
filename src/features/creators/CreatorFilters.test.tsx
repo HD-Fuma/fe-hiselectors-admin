@@ -125,7 +125,9 @@ describe("creator filters", () => {
   }
 
   function creatorRequests(fetchMock: ReturnType<typeof mockCreatorApi>) {
-    return fetchMock.mock.calls.filter(([input]) => String(input).includes("/api/admin/creators?"));
+    return fetchMock.mock.calls.filter(([input, init]) => (
+      String(input).includes("/api/admin/creators?") && init?.method !== "DELETE"
+    ));
   }
 
   function proposalRequests(fetchMock: ReturnType<typeof mockCreatorApi>) {
@@ -285,7 +287,7 @@ describe("creator filters", () => {
     expect(within(panel).getByRole("button", { name: "1명에게 제안 발송" })).toBeEnabled();
   });
 
-  test("sends quantitative filters to the API and reset clears them", async () => {
+  test("sends quantitative and brand filters to the API and reset clears them", async () => {
     const user = userEvent.setup();
     const fetchMock = mockCreatorApi();
     vi.stubGlobal("fetch", fetchMock);
@@ -295,6 +297,8 @@ describe("creator filters", () => {
     const keyword = within(search).getByRole("textbox", { name: "키워드" });
     const minFollowers = within(search).getByRole("textbox", { name: "최소 팔로워·구독자" });
     const maxFollowers = within(search).getByRole("textbox", { name: "최대 팔로워·구독자" });
+    const excludeBrands = within(search).getByRole("button", { name: "브랜드 계정 제외" });
+    expect(excludeBrands).toHaveAttribute("aria-pressed", "false");
     expect(within(search).queryByRole("textbox", { name: "최소 ER" })).not.toBeInTheDocument();
     expect(within(search).queryByRole("textbox", { name: "최근 90일 최소 활동" })).not.toBeInTheDocument();
     const platform = within(search).getByRole("combobox", { name: "플랫폼" });
@@ -310,6 +314,8 @@ describe("creator filters", () => {
     await user.type(minFollowers, "600,000");
     await user.type(maxFollowers, "500,000");
     await user.selectOptions(platform, "INSTAGRAM");
+    await user.click(excludeBrands);
+    expect(excludeBrands).toHaveAttribute("aria-pressed", "true");
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
     expect(creatorRequests(fetchMock)).toHaveLength(2);
@@ -326,6 +332,7 @@ describe("creator filters", () => {
       keyword: "seo",
       minFollower: "100000",
       maxFollower: "500000",
+      maxBrandScore: "1",
       snsCode: "INSTAGRAM",
       categoryCode: "TRAVEL",
       page: "0",
@@ -340,8 +347,165 @@ describe("creator filters", () => {
     expect(minFollowers).toHaveValue("");
     expect(maxFollowers).toHaveValue("");
     expect(platform).toHaveValue("");
+    expect(excludeBrands).toHaveAttribute("aria-pressed", "false");
     expect(within(categories).getByRole("button", { name: "전체" }))
       .toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("runs the combined creator discovery batch and refreshes the list", async () => {
+    const user = userEvent.setup();
+    let resolveYoutube: (() => void) | undefined;
+    const discoveryOk = () => new Response(JSON.stringify({ success: true, data: {} }));
+    const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
+      void _init;
+      const url = String(input);
+      if (url.endsWith("/api/admin/categories")) {
+        return Promise.resolve(new Response(JSON.stringify({ success: true, data: [] })));
+      }
+      if (url.includes("/api/admin/creators?")) return Promise.resolve(ok());
+      if (url.endsWith("/api/admin/discovery/youtube/run")) {
+        return new Promise<Response>((resolve) => {
+          resolveYoutube = () => resolve(discoveryOk());
+        });
+      }
+      return Promise.resolve(discoveryOk());
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderCreatorPage();
+    await screen.findByText("김서연 ↗");
+
+    await user.click(screen.getByRole("button", { name: "크리에이터 풀 구축" }));
+
+    expect(screen.getByRole("button", { name: "풀 구축 중..." })).toBeDisabled();
+    resolveYoutube?.();
+
+    await waitFor(() => expect(screen.getByRole("status"))
+      .toHaveTextContent("크리에이터 풀 구축을 완료했습니다."));
+    const discoveryCalls = fetchMock.mock.calls.filter(([input]) => (
+      String(input).includes("/api/admin/discovery/")
+    ));
+    expect(discoveryCalls.map(([input]) => new URL(String(input)).pathname)).toEqual([
+      "/api/admin/discovery/youtube/run",
+    ]);
+    discoveryCalls.forEach(([, init]) => expect(init).toMatchObject({ method: "POST" }));
+    await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(2));
+    expect(screen.getByRole("button", { name: "크리에이터 풀 구축" })).toBeEnabled();
+  });
+
+  test("shows the combined discovery error", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/api/admin/categories")) {
+        return Promise.resolve(new Response(JSON.stringify({ success: true, data: [] })));
+      }
+      if (url.includes("/api/admin/creators?")) return Promise.resolve(ok());
+      if (url.endsWith("/api/admin/discovery/youtube/run")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          success: false,
+          data: null,
+          message: "YouTube 발굴 실패",
+        }), { status: 502 }));
+      }
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} })));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderCreatorPage();
+    await screen.findByText("김서연 ↗");
+
+    await user.click(screen.getByRole("button", { name: "크리에이터 풀 구축" }));
+
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("YouTube 발굴 실패"));
+    expect(fetchMock.mock.calls.filter(([input]) => (
+      String(input).includes("/api/admin/discovery/")
+    )).map(([input]) => new URL(String(input)).pathname)).toEqual([
+      "/api/admin/discovery/youtube/run",
+    ]);
+  });
+
+  test("requires typed confirmation before resetting the existing pool", async () => {
+    const user = userEvent.setup();
+    let resolveReset: (() => void) | undefined;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/api/admin/categories")) {
+        return Promise.resolve(new Response(JSON.stringify({ success: true, data: [] })));
+      }
+      if (url.includes("confirmation=DELETE_CREATOR_POOL") && init?.method === "DELETE") {
+        return new Promise<Response>((resolve) => {
+          resolveReset = () => resolve(new Response(JSON.stringify({
+            success: true,
+            data: { softDeletedCount: 598 },
+          })));
+        });
+      }
+      if (url.includes("/api/admin/creators?")) return Promise.resolve(ok());
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} })));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderCreatorPage();
+    const table = screen.getByRole("region", { name: "크리에이터 목록" });
+    await within(table).findByText("김서연 ↗");
+    await user.click(within(table).getByRole("checkbox", { name: "김서연 선택" }));
+
+    await user.click(screen.getByRole("button", { name: "기존 풀 초기화" }));
+    const dialog = screen.getByRole("alertdialog", { name: "기존 크리에이터 풀 초기화" });
+    expect(dialog).toHaveAttribute("aria-describedby");
+    expect(document.getElementById(dialog.getAttribute("aria-describedby") || ""))
+      .toHaveTextContent("현재 YouTube·Instagram 크리에이터가 목록과 후보에서 모두 숨겨집니다.");
+    const confirm = within(dialog).getByRole("button", { name: "초기화" });
+    expect(confirm).toBeDisabled();
+
+    await user.type(within(dialog).getByRole("textbox", { name: "초기화 확인 문구" }), "초기화");
+    expect(confirm).toBeEnabled();
+    await user.click(confirm);
+
+    expect(within(dialog).getByRole("button", { name: "초기화 중..." })).toBeDisabled();
+    const resetRequests = fetchMock.mock.calls.filter(([input, requestInit]) => (
+      String(input).endsWith("/api/admin/creators?confirmation=DELETE_CREATOR_POOL")
+      && requestInit?.method === "DELETE"
+    ));
+    expect(resetRequests).toHaveLength(1);
+
+    resolveReset?.();
+    await waitFor(() => expect(screen.queryByRole("alertdialog", {
+      name: "기존 크리에이터 풀 초기화",
+    })).not.toBeInTheDocument());
+    expect(screen.getByRole("status"))
+      .toHaveTextContent("기존 크리에이터 풀 598건을 초기화했습니다.");
+    expect(screen.getByRole("button", { name: "선택 0명 제안 발송" })).toBeDisabled();
+    await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(2));
+  });
+
+  test("keeps the reset dialog open when the API fails", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/api/admin/categories")) {
+        return Promise.resolve(new Response(JSON.stringify({ success: true, data: [] })));
+      }
+      if (url.includes("confirmation=DELETE_CREATOR_POOL") && init?.method === "DELETE") {
+        return Promise.resolve(new Response(JSON.stringify({
+          success: false,
+          data: null,
+          message: "초기화 실패",
+        }), { status: 500 }));
+      }
+      if (url.includes("/api/admin/creators?")) return Promise.resolve(ok());
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} })));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderCreatorPage();
+    await screen.findByText("김서연 ↗");
+
+    await user.click(screen.getByRole("button", { name: "기존 풀 초기화" }));
+    const dialog = screen.getByRole("alertdialog", { name: "기존 크리에이터 풀 초기화" });
+    await user.type(within(dialog).getByRole("textbox", { name: "초기화 확인 문구" }), "초기화");
+    await user.click(within(dialog).getByRole("button", { name: "초기화" }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("초기화 실패");
+    expect(dialog).toBeInTheDocument();
+    expect(creatorRequests(fetchMock)).toHaveLength(1);
   });
 });
 
@@ -412,16 +576,26 @@ describe("proposal history", () => {
     };
   }
 
-  test("requests server pagination and renders the API result as a read-only table", async () => {
+  test("filters proposal history by platform tab without calling the API again", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       success: true,
       data: {
-        content: [proposalEntry()],
-        totalElements: 21,
-        totalPages: 2,
+        content: [
+          proposalEntry(),
+          proposalEntry({
+            proposalHistoryId: 2,
+            creatorId: 114,
+            creatorName: "Clevr TV",
+            snsCode: "YOUTUBE",
+            accountId: "UCnMBn-PNx1M9TLF0s-sEDeQ",
+            email: "clevr@example.com",
+          }),
+        ],
+        totalElements: 2,
+        totalPages: 1,
         number: 0,
-        size: 20,
+        size: 100,
       },
     })));
     vi.stubGlobal("fetch", fetchMock);
@@ -429,12 +603,104 @@ describe("proposal history", () => {
 
     const table = screen.getByRole("region", { name: "제안 이력 목록" });
     expect(await within(table).findByText("김서연")).toBeInTheDocument();
-    expect(within(table).getByText("seoyeon@example.com")).toBeInTheDocument();
+    expect(within(table).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
+      "순번",
+      "크리에이터",
+      "플랫폼",
+      "SNS 계정",
+      "이메일 주소",
+      "발송 시각",
+    ]);
+    expect(within(table).queryByRole("columnheader", { name: "발송자" })).not.toBeInTheDocument();
+    expect(within(table).getByText("Clevr TV")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "제안 플랫폼" })).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "YouTube" }));
+    expect(within(table).queryByText("김서연")).not.toBeInTheDocument();
+    expect(within(table).getByText("Clevr TV")).toBeInTheDocument();
+    expect(resultCount(1)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Instagram" }));
+    expect(within(table).getByText("김서연")).toBeInTheDocument();
+    expect(within(table).queryByText("Clevr TV")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "전체" }));
+    expect(within(table).getByText("김서연")).toBeInTheDocument();
+    expect(within(table).getByText("Clevr TV")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("paginates loaded proposal history on the client", async () => {
+    const user = userEvent.setup();
+    const content = Array.from({ length: 21 }, (_, index) => proposalEntry({
+      proposalHistoryId: index + 1,
+      creatorName: index === 0 ? "김서연" : `크리에이터 ${index + 1}`,
+      accountId: `creator-${index + 1}`,
+      email: `creator-${index + 1}@example.com`,
+    }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      success: true,
+      data: {
+        content,
+        totalElements: 21,
+        totalPages: 1,
+        number: 0,
+        size: 100,
+      },
+    })));
+    vi.stubGlobal("fetch", fetchMock);
+    renderProposalPage();
+
+    const table = screen.getByRole("region", { name: "제안 이력 목록" });
+    expect(await within(table).findByText("김서연")).toBeInTheDocument();
     expect(resultCount(21)).toBeInTheDocument();
     expect(screen.getByText("1 / 2 페이지")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "다음 페이지" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(String(fetchMock.mock.calls[1][0])).toContain("page=1");
+    expect(screen.getByText("2 / 2 페이지")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("filters proposal history by sent period from the search panel", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      success: true,
+      data: {
+        content: [
+          proposalEntry(),
+          proposalEntry({
+            proposalHistoryId: 2,
+            creatorName: "Clevr TV",
+            createdAt: "2026-08-20T10:24:00",
+            email: "clevr@example.com",
+          }),
+        ],
+        totalElements: 2,
+        totalPages: 1,
+        number: 0,
+        size: 100,
+      },
+    })));
+    vi.stubGlobal("fetch", fetchMock);
+    renderProposalPage();
+
+    const table = screen.getByRole("region", { name: "제안 이력 목록" });
+    expect(await within(table).findByText("Clevr TV")).toBeInTheDocument();
+
+    const search = screen.getByRole("search", { name: "검색 조건" });
+    await user.type(within(search).getByLabelText("발송 시작일"), "2026-08-10");
+    await user.type(within(search).getByLabelText("발송 종료일"), "2026-08-31");
+    await user.click(within(search).getByRole("button", { name: "조회" }));
+
+    expect(within(table).queryByText("김서연")).not.toBeInTheDocument();
+    expect(within(table).getByText("Clevr TV")).toBeInTheDocument();
+    expect(resultCount(1)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await user.click(within(search).getByRole("button", { name: "초기화" }));
+    expect(within(table).getByText("김서연")).toBeInTheDocument();
+    expect(within(table).getByText("Clevr TV")).toBeInTheDocument();
   });
 });

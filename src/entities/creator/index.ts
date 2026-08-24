@@ -17,10 +17,18 @@ export {
 } from "./model/analysis";
 export { CreatorContentPhoto, CreatorProfilePhoto } from "./ui/CreatorArtwork";
 export { CreatorCardProfileHeader } from "../../components/ui/CreatorCardProfileHeader";
-export { getCreator, getCreators, getAdminProposals, postAdminProposal } from "./api";
+export {
+  getAdminProposals,
+  getCreator,
+  getCreators,
+  postAdminProposal,
+  resetCreatorPool,
+  runCreatorDiscovery,
+} from "./api";
 export type {
   CreatorDetail,
   CreatorPage,
+  CreatorPoolResetResult,
   CreatorSearchRequest,
   CreatorSummary,
   ProposalHistoryEntry,
