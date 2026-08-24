@@ -83,6 +83,12 @@ function channelLabel(value: NotificationHistoryItem["channel"]) {
   return NOTIFICATION_CHANNELS.find((channel) => channel.value === value)?.label ?? value;
 }
 
+function initiatorLabel(item: NotificationHistoryItem) {
+  if (item.initiatedByType === "SYSTEM") return "시스템";
+  if (item.initiatedById == null) return "관리자";
+  return `관리자 ${item.initiatedById}`;
+}
+
 function recipientLabel(item: NotificationHistoryItem) {
   if (item.receiver.startsWith("ME:")) return "관리자 테스트 발송";
   if (!item.recipientName) return "연결된 사용자 없음";
@@ -213,6 +219,7 @@ function NotificationDetailPanel({
             <div><dt>발송 목적</dt><dd>{purposeLabel(item.purposeCode)}</dd></div>
             <div><dt>발송 상태</dt><dd><StatusPill tone={statusTone(item.status)}>{statusLabel(item.status)}</StatusPill></dd></div>
             <div><dt>채널</dt><dd>{channelLabel(item.channel)}</dd></div>
+            <div><dt>발신자</dt><dd>{initiatorLabel(item)}</dd></div>
             <div><dt>참조 ID</dt><dd>{item.referenceId ?? "-"}</dd></div>
             <div><dt>요청 시각</dt><dd>{formatDateTime(item.requestAt)}</dd></div>
             <div><dt>발송 시각</dt><dd>{formatDateTime(item.sentAt)}</dd></div>
@@ -307,7 +314,8 @@ export function NotificationHistoryPage() {
       { header: "수신자", key: "receiver", width: "22%", render: recipientLabel },
       { header: "발송 목적", key: "purposeCode", width: "16%", render: (item) => purposeLabel(item.purposeCode) },
       { header: "채널", key: "channel", width: "12%", render: (item) => channelLabel(item.channel) },
-      { header: "요청 시각", key: "requestAt", width: "16%", render: (item) => formatDateTime(item.requestAt) },
+      { header: "발신자", key: "initiatedByType", width: "12%", render: initiatorLabel },
+      { header: "요청 시각", key: "requestAt", width: "14%", render: (item) => formatDateTime(item.requestAt) },
       { header: "발송 시각", key: "sentAt", width: "16%", render: (item) => formatDateTime(item.sentAt) },
       {
         header: "상태",

@@ -4,6 +4,8 @@ export type NotificationStatus = "REQUESTED" | "SENT" | "FAILED";
 
 export type KakaoRecipientStatus = "READY" | "REAUTH_REQUIRED" | "INACTIVE";
 
+export type NotificationInitiatedByType = "ADMIN" | "SYSTEM";
+
 export interface NotificationHistoryItem {
   notificationId: number;
   purposeCode: string;
@@ -18,6 +20,8 @@ export interface NotificationHistoryItem {
   recipientName: string | null;
   recipientHiId: string | null;
   recipientStatus: KakaoRecipientStatus | null;
+  initiatedByType: NotificationInitiatedByType;
+  initiatedById: number | null;
 }
 
 export interface SpringPage<T> {

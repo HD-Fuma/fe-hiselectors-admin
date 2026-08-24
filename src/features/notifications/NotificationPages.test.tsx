@@ -4,6 +4,8 @@ import { renderRoute } from "../../test/renderRoute";
 const HISTORY_ITEM = {
   body: "안녕하세요. 선정 결과를 확인해 주세요.",
   channel: "KAKAO_MESSAGE",
+  initiatedById: 3,
+  initiatedByType: "ADMIN",
   notificationId: 35,
   purposeCode: "SELECTION_APPROVED",
   receiver: "kakao-message-uuid",
@@ -21,6 +23,8 @@ const EMAIL_ITEM = {
   ...HISTORY_ITEM,
   body: "정산 계좌를 등록해 주세요.",
   channel: "EMAIL",
+  initiatedById: null,
+  initiatedByType: "SYSTEM",
   notificationId: 36,
   purposeCode: "SETTLEMENT_MISSING",
   receiver: "creator@example.com",
@@ -80,6 +84,7 @@ test("filters notification history and resends a failed message after confirmati
     "수신자",
     "발송 목적",
     "채널",
+    "발신자",
     "요청 시각",
     "발송 시각",
     "상태",
@@ -90,6 +95,7 @@ test("filters notification history and resends a failed message after confirmati
     "김하이 (hi-selector)",
     "선정 승인",
     "카카오 메시지",
+    "관리자 3",
     "2026. 8. 15. 오전 9:00",
     "-",
     "발송 실패",
@@ -125,6 +131,7 @@ test("filters notification history and resends a failed message after confirmati
 
   fireEvent.click(within(results).getByRole("row", { name: /선정 승인/ }));
   const detail = await screen.findByRole("dialog", { name: "발송 내역 상세" });
+  expect(within(detail).getByText("관리자 3")).toBeInTheDocument();
   expect(within(detail).getByText(HISTORY_ITEM.body)).toBeInTheDocument();
   fireEvent.click(within(detail).getByRole("button", { name: "재발송" }));
 
@@ -155,6 +162,7 @@ test("filters loaded history by channel tab without calling the API again", asyn
   fireEvent.click(screen.getByRole("button", { name: "이메일" }));
   expect(within(results).queryByText("김하이 (hi-selector)")).not.toBeInTheDocument();
   expect(within(results).getByText("이메이 (hi-creator)")).toBeInTheDocument();
+  expect(within(results).getByText("시스템")).toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledTimes(1);
 
   fireEvent.click(screen.getByRole("button", { name: "카카오 메시지" }));
