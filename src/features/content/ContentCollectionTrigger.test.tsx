@@ -11,6 +11,7 @@ function collectionResponse(overrides: Record<string, unknown> = {}) {
       failedCount: 0,
       finishedAt: null,
       processedCount: 0,
+      progressMessage: null,
       progressPercent: null,
       runId: "run-content-1",
       skippedCount: 0,

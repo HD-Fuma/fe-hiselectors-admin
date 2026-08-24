@@ -40,10 +40,13 @@ test("requests an asynchronous content batch with authentication and idempotency
     data: {
       currentStep: null,
       failedCount: 0,
+      finishedAt: null,
       processedCount: 0,
+      progressMessage: null,
       progressPercent: null,
       runId: "run-content-1",
       skippedCount: 0,
+      startedAt: null,
       startedBy: { adminId: 1, name: "관리자" },
       status: "QUEUED",
       succeededCount: 0,

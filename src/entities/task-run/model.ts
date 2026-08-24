@@ -30,10 +30,20 @@ export interface TaskRun {
   readonly failedCount: number;
   readonly skippedCount: number;
   readonly progressPercent: number | null;
-  readonly startedBy: { readonly adminId: number; readonly name: string } | null;
+  readonly startedBy: { readonly adminId: number; readonly name: string | null } | null;
+  readonly startedAt: string | null;
+  readonly finishedAt: string | null;
 }
 
 export interface TaskRunPanel {
   readonly items: readonly TaskRun[];
   readonly serverTime: string;
+}
+
+export interface SpringPage<T> {
+  readonly content: T[];
+  readonly number: number;
+  readonly size: number;
+  readonly totalElements: number;
+  readonly totalPages: number;
 }

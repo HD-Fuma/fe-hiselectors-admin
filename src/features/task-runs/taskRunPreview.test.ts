@@ -38,6 +38,8 @@ describe("mixed task-run preview", () => {
       skippedCount: 0,
       progressPercent: 100,
       startedBy: { adminId: 1, name: "김관리자" },
+      startedAt: "2026-08-23T00:00:00Z",
+      finishedAt: "2026-08-23T00:01:00Z",
     });
     expect(runningCreator).toMatchObject<Partial<TaskRun>>({
       taskType: "CREATOR_SYNC",
@@ -49,6 +51,8 @@ describe("mixed task-run preview", () => {
       skippedCount: 0,
       progressPercent: 70,
       startedBy: { adminId: 1, name: "김관리자" },
+      startedAt: "2026-08-23T00:00:00Z",
+      finishedAt: null,
     });
     expect(runningReport).toMatchObject<Partial<TaskRun>>({
       taskType: "APPLICATION_REPORT_GENERATION",
@@ -61,6 +65,8 @@ describe("mixed task-run preview", () => {
       skippedCount: 0,
       progressPercent: null,
       startedBy: null,
+      startedAt: "2026-08-23T00:00:00Z",
+      finishedAt: null,
     });
     expect(partialEmail).toMatchObject<Partial<TaskRun>>({
       taskType: "PROPOSAL_EMAIL_SEND",
@@ -71,6 +77,8 @@ describe("mixed task-run preview", () => {
       skippedCount: 0,
       progressPercent: 100,
       startedBy: null,
+      startedAt: "2026-08-23T00:00:00Z",
+      finishedAt: "2026-08-23T00:01:00Z",
     });
     expect(succeededContent).toMatchObject<Partial<TaskRun>>({
       taskType: "CONTENT_SYNC",
@@ -81,6 +89,8 @@ describe("mixed task-run preview", () => {
       skippedCount: 0,
       progressPercent: 100,
       startedBy: null,
+      startedAt: "2026-08-23T00:00:00Z",
+      finishedAt: "2026-08-23T00:01:00Z",
     });
   });
 

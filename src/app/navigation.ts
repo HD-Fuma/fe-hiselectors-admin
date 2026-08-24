@@ -95,6 +95,11 @@ const KakaoRecipientStatusPage = lazyPage(() =>
     (module) => module.KakaoRecipientStatusPage,
   ),
 );
+const TaskRunHistoryPage = lazyPage(() =>
+  import("../features/task-runs/TaskRunHistoryPage").then(
+    (module) => module.TaskRunHistoryPage,
+  ),
+);
 
 const NAV_GROUPS: readonly NavGroupMeta[] = [
   { id: "creators", label: "크리에이터" },
@@ -105,6 +110,7 @@ const NAV_GROUPS: readonly NavGroupMeta[] = [
   { id: "performance", label: "성과" },
   { id: "settlements", label: "정산" },
   { id: "notifications", label: "알림 및 메시지" },
+  { id: "tasks", label: "작업" },
 ];
 
 export const ADMIN_ROUTE_MANIFEST = [
@@ -316,6 +322,15 @@ export const ADMIN_ROUTE_MANIFEST = [
     title: "카카오 수신 현황",
     screenCode: "NT102",
     workTabLabel: "카카오 수신 현황",
+  },
+  {
+    path: "/task-runs",
+    Component: TaskRunHistoryPage,
+    group: "tasks",
+    menuLabel: "실행 이력",
+    title: "작업 실행 이력",
+    screenCode: "TR101",
+    workTabLabel: "실행 이력",
   },
 ] as const satisfies readonly AdminRouteManifestEntry[];
 

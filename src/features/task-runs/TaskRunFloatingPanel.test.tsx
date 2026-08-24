@@ -27,6 +27,8 @@ const runningCreatorSync: TaskRun = {
   skippedCount: 0,
   progressPercent: 70,
   startedBy: { adminId: 1, name: "김관리자" },
+  startedAt: "2026-08-23T00:00:00Z",
+  finishedAt: null,
 };
 
 const runningContentSync: TaskRun = {
@@ -123,6 +125,8 @@ test("shows an accessible loading status for a scheduled task with an unknown to
     skippedCount: 0,
     progressPercent: null,
     startedBy: null,
+    startedAt: "2026-08-23T00:00:00Z",
+    finishedAt: null,
   };
 
   render(<TaskRunFloatingPanel runs={[scheduledReport]} />);

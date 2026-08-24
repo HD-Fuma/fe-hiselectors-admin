@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ClipboardList,
   FileSearch,
+  History,
   LogOut,
   Megaphone,
   UsersRound,
@@ -34,6 +35,7 @@ const GROUP_ICONS: Record<NavGroup, LucideIcon> = {
   performance: BarChart3,
   settlements: WalletCards,
   notifications: Bell,
+  tasks: History,
 };
 
 interface AdminSidebarProps {

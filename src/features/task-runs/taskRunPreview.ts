@@ -15,6 +15,8 @@ export const MIXED_TASK_RUN_PREVIEW: readonly TaskRun[] = [
     skippedCount: 0,
     progressPercent: 100,
     startedBy: { adminId: 1, name: "김관리자" },
+    startedAt: "2026-08-23T00:00:00Z",
+    finishedAt: "2026-08-23T00:01:00Z",
   },
   {
     runId: "preview-creator-running",
@@ -30,6 +32,8 @@ export const MIXED_TASK_RUN_PREVIEW: readonly TaskRun[] = [
     skippedCount: 0,
     progressPercent: 70,
     startedBy: { adminId: 1, name: "김관리자" },
+    startedAt: "2026-08-23T00:00:00Z",
+    finishedAt: null,
   },
   {
     runId: "preview-report-running",
@@ -45,6 +49,8 @@ export const MIXED_TASK_RUN_PREVIEW: readonly TaskRun[] = [
     skippedCount: 0,
     progressPercent: null,
     startedBy: null,
+    startedAt: "2026-08-23T00:00:00Z",
+    finishedAt: null,
   },
   {
     runId: "preview-email-partial",
@@ -60,6 +66,8 @@ export const MIXED_TASK_RUN_PREVIEW: readonly TaskRun[] = [
     skippedCount: 0,
     progressPercent: 100,
     startedBy: null,
+    startedAt: "2026-08-23T00:00:00Z",
+    finishedAt: "2026-08-23T00:01:00Z",
   },
   {
     runId: "preview-content-succeeded",
@@ -75,6 +83,8 @@ export const MIXED_TASK_RUN_PREVIEW: readonly TaskRun[] = [
     skippedCount: 0,
     progressPercent: 100,
     startedBy: null,
+    startedAt: "2026-08-23T00:00:00Z",
+    finishedAt: "2026-08-23T00:01:00Z",
   },
 ];
 

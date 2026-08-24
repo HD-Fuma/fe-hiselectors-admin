@@ -52,7 +52,8 @@ export const STEP_LABELS: Record<string, string> = {
 
 export function triggerLabel(run: TaskRun) {
   if (run.triggerType === "SCHEDULED") return "자동 실행";
-  return `${run.startedBy?.name ?? "관리자"} 실행`;
+  const administratorName = run.startedBy?.name?.trim();
+  return administratorName ? `${administratorName} 실행` : "관리자 실행";
 }
 
 export function determinateProgress(run: TaskRun) {
@@ -72,9 +73,8 @@ export function isActiveTaskRun(run: TaskRun) {
 }
 
 export function terminalSummary(run: TaskRun) {
-  if (run.taskType === "CREATOR_SYNC" && run.progressMessage != null) {
-    return run.progressMessage;
-  }
+  const progressMessage = run.progressMessage?.trim();
+  if (progressMessage) return progressMessage;
 
   if (run.totalCount == null) {
     switch (run.status) {

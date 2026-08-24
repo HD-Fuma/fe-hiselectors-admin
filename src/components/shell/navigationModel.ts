@@ -6,7 +6,8 @@ export type NavGroup =
   | "content"
   | "performance"
   | "settlements"
-  | "notifications";
+  | "notifications"
+  | "tasks";
 
 export interface AdminRouteMeta {
   path: string;

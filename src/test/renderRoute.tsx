@@ -3,6 +3,13 @@ import { RouterProvider } from "react-router-dom";
 import { createAppRouter } from "../app/router";
 
 const taskRunPanelApiMock = vi.hoisted(() => ({
+  getRecentTaskRuns: vi.fn().mockResolvedValue({
+    content: [],
+    number: 0,
+    size: 20,
+    totalElements: 0,
+    totalPages: 0,
+  }),
   getTaskRunPanel: vi.fn().mockResolvedValue({
     items: [],
     serverTime: "2026-08-23T00:00:00Z",

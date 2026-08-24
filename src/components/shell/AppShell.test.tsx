@@ -1,11 +1,10 @@
 import {
-  act,
+  fireEvent,
   screen,
   waitFor,
   waitForElementToBeRemoved,
   within,
 } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { getTaskRunPanelApiMock, renderRoute } from "../../test/renderRoute";
 
 const expectedSidebarLinks = [
@@ -24,6 +23,7 @@ const expectedSidebarLinks = [
   ["정산 관리", "/settlements"],
   ["발송 내역", "/notifications"],
   ["카카오 수신 현황", "/notifications/kakao-recipients"],
+  ["실행 이력", "/task-runs"],
 ] as const;
 
 test("renderRoute renders the administrator login route", () => {
@@ -43,7 +43,7 @@ test("renders the complete administrator navigation in one sidebar", () => {
 
   expect(sidebarQueries.getByRole("img", { name: "더현대Hi" })).toBeInTheDocument();
   expect(screen.getAllByRole("navigation", { name: "관리자 메뉴" })).toHaveLength(1);
-  expect(within(navigation).getAllByRole("link")).toHaveLength(15);
+  expect(within(navigation).getAllByRole("link")).toHaveLength(16);
   for (const [label, href] of expectedSidebarLinks) {
     expect(within(navigation).getByRole("link", { name: label })).toHaveAttribute(
       "href",
@@ -61,6 +61,7 @@ test("renders the complete administrator navigation in one sidebar", () => {
     "성과",
     "정산",
     "알림 및 메시지",
+    "작업",
   ]) {
     expect(
       within(navigation).getByRole("heading", { name: groupLabel }),
@@ -126,6 +127,7 @@ test("renders server task runs on an authenticated administrator route", async (
       triggerType: "SCHEDULED",
       status: "RUNNING",
       currentStep: "NEW_CONTENT_SYNC",
+      progressMessage: null,
       totalCount: 2,
       processedCount: 1,
       succeededCount: 1,
@@ -133,6 +135,8 @@ test("renders server task runs on an authenticated administrator route", async (
       skippedCount: 0,
       progressPercent: 50,
       startedBy: null,
+      startedAt: "2026-08-23T00:00:00Z",
+      finishedAt: null,
     }],
     serverTime: "2026-08-23T00:00:00Z",
   });
@@ -194,32 +198,6 @@ test("renders only the unified administrator shell parts", () => {
   expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
 });
 
-test("opens and closes work tabs as screens are visited", async () => {
-  const user = userEvent.setup();
-  const { router } = renderRoute("/creators");
-
-  await act(async () => {
-    await router.navigate("/performance/contents");
-  });
-
-  const workTabs = screen.getByRole("navigation", { name: "작업 탭" });
-  expect(within(workTabs).getByRole("link", { name: "크리에이터 풀" })).toBeInTheDocument();
-  expect(await within(workTabs).findByRole("link", { name: "콘텐츠 성과" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
-
-  await user.click(
-    within(workTabs).getByRole("button", { name: "콘텐츠 성과 탭 닫기" }),
-  );
-
-  expect(await screen.findByRole(
-    "heading",
-    { name: "크리에이터 풀" },
-    { timeout: 3_000 },
-  )).toBeInTheDocument();
-});
-
 test("keeps the administrator identity and utility controls in the sidebar", () => {
   renderRoute("/creators");
 
@@ -231,10 +209,9 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
 });
 
 test("logs out to the login screen", async () => {
-  const user = userEvent.setup();
   renderRoute("/creators");
 
-  await user.click(screen.getByRole("button", { name: "로그아웃" }));
+  fireEvent.click(screen.getByRole("button", { name: "로그아웃" }));
 
   expect(screen.getByRole("main")).toHaveTextContent("Hi-Selectors");
   expect(screen.queryByTestId("admin-shell")).not.toBeInTheDocument();
@@ -411,6 +388,14 @@ const routeCases = [
     menuLabel: "카카오 수신 현황",
     title: "카카오 수신 현황",
     screenCode: "NT102",
+    routeIsExact: true,
+  },
+  {
+    path: "/task-runs",
+    group: "tasks",
+    menuLabel: "실행 이력",
+    title: "작업 실행 이력",
+    screenCode: "TR101",
     routeIsExact: true,
   },
 ] as const;

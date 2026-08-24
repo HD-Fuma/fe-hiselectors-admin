@@ -32,6 +32,8 @@ function taskRun(runId: string): TaskRun {
     skippedCount: 0,
     progressPercent: 0,
     startedBy: { adminId: 1, name: "김관리자" },
+    startedAt: "2026-08-23T00:00:00Z",
+    finishedAt: null,
   };
 }
 
@@ -56,7 +58,7 @@ describe("useTaskRunPanel", () => {
     unmount();
   });
 
-  test("waits for each request before scheduling the next two-second poll", async () => {
+  test("waits for each request before scheduling the next one-second poll", async () => {
     let resolveFirst!: (value: TaskRunPanel) => void;
     const first = new Promise<TaskRunPanel>((resolve) => {
       resolveFirst = resolve;
@@ -68,14 +70,14 @@ describe("useTaskRunPanel", () => {
 
     expect(getTaskRunPanel).toHaveBeenCalledTimes(1);
     await act(async () => resolveFirst({ items: [], serverTime: "now" }));
-    await act(async () => vi.advanceTimersByTime(1999));
+    await act(async () => vi.advanceTimersByTime(999));
     expect(getTaskRunPanel).toHaveBeenCalledTimes(1);
     await act(async () => vi.advanceTimersByTime(1));
     expect(getTaskRunPanel).toHaveBeenCalledTimes(2);
     unmount();
   });
 
-  test("keeps the last successful result after an error and retries after two seconds", async () => {
+  test("keeps the last successful result after an error and retries after one second", async () => {
     vi.mocked(getTaskRunPanel)
       .mockResolvedValueOnce(panel("successful-run"))
       .mockRejectedValueOnce(new Error("temporary failure"))
@@ -85,12 +87,12 @@ describe("useTaskRunPanel", () => {
     await act(async () => undefined);
     expect(screen.getByRole("status")).toHaveTextContent("successful-run");
 
-    await act(async () => vi.advanceTimersByTime(2000));
+    await act(async () => vi.advanceTimersByTime(1000));
     expect(getTaskRunPanel).toHaveBeenCalledTimes(2);
     await act(async () => undefined);
     expect(screen.getByRole("status")).toHaveTextContent("successful-run");
 
-    await act(async () => vi.advanceTimersByTime(2000));
+    await act(async () => vi.advanceTimersByTime(1000));
     expect(getTaskRunPanel).toHaveBeenCalledTimes(3);
     await act(async () => undefined);
     expect(screen.getByRole("status")).toHaveTextContent("retried-run");
@@ -107,7 +109,7 @@ describe("useTaskRunPanel", () => {
 
     rerender(<Probe enabled={false} />);
     expect(vi.getTimerCount()).toBe(0);
-    await act(async () => vi.advanceTimersByTime(2000));
+    await act(async () => vi.advanceTimersByTime(1000));
     expect(getTaskRunPanel).toHaveBeenCalledTimes(1);
 
     unmount();

@@ -38,7 +38,7 @@ export function useTaskRunPanel({ enabled = true }: UseTaskRunPanelOptions = {})
       } catch {
         if (controller.signal.aborted) return;
       }
-      if (!stopped) timeout = window.setTimeout(poll, 2000);
+      if (!stopped) timeout = window.setTimeout(poll, 1000);
     };
 
     void poll();

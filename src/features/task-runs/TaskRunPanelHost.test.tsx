@@ -16,6 +16,8 @@ const liveRun: TaskRun = {
   skippedCount: 0,
   progressPercent: 40,
   startedBy: null,
+  startedAt: "2026-08-23T00:00:00Z",
+  finishedAt: null,
 };
 
 const useTaskRunPanelMock = vi.hoisted(() => ({
