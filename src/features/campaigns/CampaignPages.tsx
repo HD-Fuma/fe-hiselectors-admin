@@ -378,51 +378,58 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
       </header>
 
       <div className="fuma-campaign-editor__layout">
-        <div className="fuma-campaign-thumbnail-upload">
-          <span className="fuma-campaign-thumbnail-upload__label">캠페인 썸네일</span>
-          <span className="fuma-campaign-thumbnail-upload__preview">
-            {thumbnailPreviewUrl ? (
-              <img alt="선택한 캠페인 썸네일 미리보기" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = assetUrl("/brand/thehyundai-hi.svg"); }} src={thumbnailPreviewUrl} />
-            ) : (
-              <span>
-                <strong>이미지 미선택</strong>
-                <small>16:9 비율 권장</small>
-              </span>
-            )}
-          </span>
-          <input
-            accept="image/jpeg,image/png,image/webp"
-            aria-label="캠페인 썸네일 파일"
-            id={thumbnailInputId}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (!file) return;
-              if (!CAMPAIGN_THUMBNAIL_TYPES.has(file.type)) {
-                setValidationError("썸네일은 JPG, PNG 또는 WEBP 파일만 선택할 수 있습니다.");
-                event.target.value = "";
-                return;
-              }
-              if (file.size > CAMPAIGN_THUMBNAIL_MAX_BYTES) {
-                setValidationError("썸네일 파일은 5MB 이하만 선택할 수 있습니다.");
-                event.target.value = "";
-                return;
-              }
-              if (thumbnailObjectUrlRef.current) URL.revokeObjectURL(thumbnailObjectUrlRef.current);
-              const objectUrl = URL.createObjectURL(file);
-              thumbnailObjectUrlRef.current = objectUrl;
-              setThumbnailFile(file);
-              setThumbnailPreviewUrl(objectUrl);
-              setValidationError("");
-            }}
-            type="file"
-          />
-          <label className="fuma-campaign-thumbnail-upload__action" htmlFor={thumbnailInputId}>
-            {thumbnailFile || campaign?.thumbnailUrl ? "이미지 변경" : "이미지 선택"}
-          </label>
-          <small className="fuma-campaign-thumbnail-upload__help">
-            {thumbnailFile ? thumbnailFile.name : "JPG, PNG, WEBP · 최대 5MB"}
-          </small>
-        </div>
+        <section className="fuma-campaign-thumbnail-upload">
+          <header>
+            <h3>캠페인 썸네일</h3>
+          </header>
+          <div className="fuma-campaign-thumbnail-upload__body">
+            <span className="fuma-campaign-thumbnail-upload__preview">
+              {thumbnailPreviewUrl ? (
+                <img alt="선택한 캠페인 썸네일 미리보기" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = assetUrl("/brand/thehyundai-hi.svg"); }} src={thumbnailPreviewUrl} />
+              ) : (
+                <span>
+                  <strong>이미지 미선택</strong>
+                  <small>1:1 비율 권장</small>
+                </span>
+              )}
+            </span>
+            <input
+              accept="image/jpeg,image/png,image/webp"
+              aria-label="캠페인 썸네일 파일"
+              id={thumbnailInputId}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (!CAMPAIGN_THUMBNAIL_TYPES.has(file.type)) {
+                  setValidationError("썸네일은 JPG, PNG 또는 WEBP 파일만 선택할 수 있습니다.");
+                  event.target.value = "";
+                  return;
+                }
+                if (file.size > CAMPAIGN_THUMBNAIL_MAX_BYTES) {
+                  setValidationError("썸네일 파일은 5MB 이하만 선택할 수 있습니다.");
+                  event.target.value = "";
+                  return;
+                }
+                if (thumbnailObjectUrlRef.current) URL.revokeObjectURL(thumbnailObjectUrlRef.current);
+                const objectUrl = URL.createObjectURL(file);
+                thumbnailObjectUrlRef.current = objectUrl;
+                setThumbnailFile(file);
+                setThumbnailPreviewUrl(objectUrl);
+                setValidationError("");
+              }}
+              type="file"
+            />
+            <label
+              className={buttonClassNames("secondary", "fuma-campaign-thumbnail-upload__action")}
+              htmlFor={thumbnailInputId}
+            >
+              {thumbnailFile || campaign?.thumbnailUrl ? "이미지 변경" : "이미지 선택"}
+            </label>
+            <small className="fuma-campaign-thumbnail-upload__help">
+              {thumbnailFile ? thumbnailFile.name : "JPG, PNG, WEBP · 최대 5MB"}
+            </small>
+          </div>
+        </section>
 
         <section className="fuma-campaign-form-section">
           <header>

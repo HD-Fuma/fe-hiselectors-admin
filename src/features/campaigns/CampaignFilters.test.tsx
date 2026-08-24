@@ -91,6 +91,7 @@ describe("campaign filter behavior", () => {
     renderRoute("/campaigns/new");
     const editor = await screen.findByRole("dialog", { name: "새 캠페인 생성" });
     expect(editor).toHaveAttribute("data-visual-contract", "detail-side-panel");
+    expect(within(editor).getByText("1:1 비율 권장")).toBeInTheDocument();
     fireEvent.click(within(editor).getByRole("button", { name: "상품 선택" }));
     const dialog = await screen.findByRole("dialog", { name: "해당 상품 선택", hidden: true });
     const productList = within(dialog).getByRole("region", { name: "상품 목록", hidden: true });
