@@ -22,11 +22,13 @@ export {
   getCreator,
   getCreators,
   postAdminProposal,
+  resetCreatorPool,
   runCreatorDiscovery,
 } from "./api";
 export type {
   CreatorDetail,
   CreatorPage,
+  CreatorPoolResetResult,
   CreatorSearchRequest,
   CreatorSummary,
   ProposalHistoryEntry,

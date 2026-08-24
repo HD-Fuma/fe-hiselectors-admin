@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { AlertDialog } from "../../components/ui/AlertDialog";
@@ -8,6 +8,7 @@ import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTabl
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
 import { FormRow } from "../../components/ui/FormRow";
+import { Modal } from "../../components/ui/Modal";
 import { Pagination } from "../../components/ui/Pagination";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
@@ -23,6 +24,7 @@ import {
   getCreator,
   getCreators,
   postAdminProposal,
+  resetCreatorPool,
   runCreatorDiscovery,
   type CreatorDetail,
   type CreatorProfileFixture,
@@ -33,6 +35,7 @@ import {
 
 const PROPOSAL_PAGE_SIZE = 20;
 const CREATOR_LIST_PAGE_SIZE = 20;
+const CREATOR_POOL_RESET_CONFIRMATION = "초기화";
 const PROPOSAL_CHANNEL_OPTIONS = [{ label: "이메일", value: "이메일" }] as const;
 const DEFAULT_PROPOSAL_SUBJECT = "[셀렉터스] ${creatorName}님, 크리에이터 활동을 제안드립니다";
 const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
@@ -369,6 +372,7 @@ function BatchProposalPanel({
 }
 
 export function CreatorListPage() {
+  const resetDescriptionId = useId();
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [selectedCreators, setSelectedCreators] = useState<Map<number, CreatorSummary>>(new Map());
@@ -377,6 +381,10 @@ export function CreatorListPage() {
   const [error, setError] = useState("");
   const [discoveryRunning, setDiscoveryRunning] = useState(false);
   const [discoveryStatus, setDiscoveryStatus] = useState("");
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetConfirmation, setResetConfirmation] = useState("");
+  const [resetRunning, setResetRunning] = useState(false);
+  const [resetError, setResetError] = useState("");
   const [discoverySettingsOpen, setDiscoverySettingsOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
   const [proposalCompletedCount, setProposalCompletedCount] = useState(0);
@@ -454,6 +462,30 @@ export function CreatorListPage() {
       );
     } finally {
       setDiscoveryRunning(false);
+    }
+  };
+  const closeReset = () => {
+    setResetOpen(false);
+    setResetConfirmation("");
+    setResetError("");
+  };
+  const resetPool = async () => {
+    setResetRunning(true);
+    setResetError("");
+    try {
+      const result = await resetCreatorPool();
+      closeReset();
+      setDiscoveryStatus(`기존 크리에이터 풀 ${result.softDeletedCount}건을 초기화했습니다.`);
+      setPageData(null);
+      setSelectedCreators(new Map());
+      setPage(1);
+      setAppliedFilters((current) => ({ ...current }));
+    } catch (reason: unknown) {
+      setResetError(reason instanceof Error
+        ? reason.message
+        : "크리에이터 풀 초기화에 실패했습니다.");
+    } finally {
+      setResetRunning(false);
     }
   };
   const selectCategory = (categoryCode: string) => {
@@ -564,7 +596,10 @@ export function CreatorListPage() {
         <ResultToolbar
           actions={(
             <>
-              <Button disabled={discoveryRunning} onClick={() => void buildCreatorPool()}>
+              <Button
+                disabled={discoveryRunning || resetRunning}
+                onClick={() => void buildCreatorPool()}
+              >
                 {discoveryRunning ? "풀 구축 중..." : "크리에이터 풀 구축"}
               </Button>
               <Button
@@ -577,6 +612,14 @@ export function CreatorListPage() {
               </Button>
               <Button aria-haspopup="dialog" onClick={() => setDiscoverySettingsOpen(true)}>
                 발굴 설정
+              </Button>
+              <Button
+                aria-haspopup="dialog"
+                disabled={discoveryRunning || resetRunning}
+                onClick={() => setResetOpen(true)}
+                variant="danger"
+              >
+                기존 풀 초기화
               </Button>
             </>
           )}
@@ -633,6 +676,40 @@ export function CreatorListPage() {
       open={proposalCompletedCount > 0}
       title="제안 발송 완료"
     />
+    <Modal
+      actions={(
+        <>
+          <Button disabled={resetRunning} onClick={closeReset}>취소</Button>
+          <Button
+            disabled={resetRunning || resetConfirmation !== CREATOR_POOL_RESET_CONFIRMATION}
+            onClick={() => void resetPool()}
+            variant="danger"
+          >
+            {resetRunning ? "초기화 중..." : "초기화"}
+          </Button>
+        </>
+      )}
+      ariaDescribedBy={resetDescriptionId}
+      onClose={resetRunning ? undefined : closeReset}
+      open={resetOpen}
+      role="alertdialog"
+      title="기존 크리에이터 풀 초기화"
+    >
+      <div id={resetDescriptionId}>
+        <p>현재 YouTube·Instagram 크리에이터가 목록과 후보에서 모두 숨겨집니다.</p>
+        <p>제안·리포트 이력은 보존되며, 다음 풀 구축에서 조건을 통과한 계정만 복원됩니다.</p>
+      </div>
+      <FormRow label={`계속하려면 “${CREATOR_POOL_RESET_CONFIRMATION}”를 입력하세요.`} required>
+        <TextInput
+          aria-label="초기화 확인 문구"
+          autoComplete="off"
+          disabled={resetRunning}
+          onChange={(event) => setResetConfirmation(event.target.value)}
+          value={resetConfirmation}
+        />
+      </FormRow>
+      {resetError ? <p role="alert">{resetError}</p> : null}
+    </Modal>
     </>
   );
 }
