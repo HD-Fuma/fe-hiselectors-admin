@@ -316,7 +316,7 @@ export const ADMIN_ROUTE_MANIFEST = [
     path: "/notifications/kakao-recipients",
     Component: KakaoRecipientStatusPage,
     group: "notifications",
-    menuLabel: "카카오 수신 현황",
+    menuLabel: "발송 내역",
     title: "카카오 수신 현황",
     screenCode: "NT102",
     workTabLabel: "카카오 수신 현황",

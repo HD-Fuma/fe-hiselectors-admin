@@ -17,7 +17,6 @@ const expectedSidebarLinks = [
   ["캠페인 성과", "/performance/products"],
   ["정산 관리", "/settlements"],
   ["발송 내역", "/notifications"],
-  ["카카오 수신 현황", "/notifications/kakao-recipients"],
 ] as const;
 
 test("renderRoute renders the administrator login route", () => {
@@ -37,7 +36,7 @@ test("renders the complete administrator navigation in one sidebar", () => {
 
   expect(sidebarQueries.getByRole("img", { name: "더현대Hi" })).toBeInTheDocument();
   expect(screen.getAllByRole("navigation", { name: "관리자 메뉴" })).toHaveLength(1);
-  expect(within(navigation).getAllByRole("link")).toHaveLength(15);
+  expect(within(navigation).getAllByRole("link")).toHaveLength(14);
   for (const [label, href] of expectedSidebarLinks) {
     expect(within(navigation).getByRole("link", { name: label })).toHaveAttribute(
       "href",
@@ -331,10 +330,10 @@ const routeCases = [
   {
     path: "/notifications/kakao-recipients",
     group: "notifications",
-    menuLabel: "카카오 수신 현황",
+    menuLabel: "발송 내역",
     title: "카카오 수신 현황",
     screenCode: "NT102",
-    routeIsExact: true,
+    routeIsExact: false,
   },
 ] as const;
 
