@@ -2244,14 +2244,99 @@
   gap: 0;
 }
 
+.fuma-campaign-detail-panel .fuma-campaign-detail {
+  gap: 0;
+}
+
 .fuma-campaign-detail-panel .fuma-campaign-detail-overview {
-  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 154px;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
   gap: var(--hsas-space-20);
-  padding-top: 0;
+  padding: var(--hsas-space-22);
+  border: 1px solid #d9e3de;
+  border-radius: 10px;
+  background: var(--hsas-color-white);
+  box-shadow: 0 8px 22px rgb(30 61 48 / 6%);
+}
+
+.fuma-campaign-detail-panel .fuma-campaign-detail-preview {
+  width: 88px;
+  overflow: hidden;
+  border: 1px solid #dce5e0;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.fuma-campaign-detail-panel .fuma-campaign-detail-preview > .fuma-campaign-thumbnail {
+  width: 88px;
+  height: 88px;
 }
 
 .fuma-campaign-detail-panel .fuma-campaign-detail-overview__info > header {
   flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hsas-space-9);
+}
+
+.fuma-campaign-detail-panel .fuma-campaign-detail-overview__info > header > div:first-child > span {
+  display: block;
+  margin: 0 0 var(--hsas-space-4);
+  color: #7c8982;
+  font-size: var(--hsas-font-10);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.fuma-campaign-detail-panel .fuma-campaign-detail-overview__info h2 {
+  margin: 0;
+  color: #22342d;
+  font-size: var(--hsas-font-23);
+  letter-spacing: -0.045em;
+}
+
+.fuma-campaign-detail-panel .fuma-campaign-detail-overview__info > p {
+  margin: var(--hsas-space-6) 0 0;
+  color: #637168;
+  font-size: var(--hsas-font-14);
+}
+
+.fuma-campaign-detail-panel .fuma-campaign-detail-overview__info dl {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: var(--hsas-space-15) 0 0;
+}
+
+.fuma-campaign-detail-panel .fuma-campaign-detail-overview__info dl > div {
+  min-width: 0;
+  padding: var(--hsas-space-7) var(--hsas-space-12) 0;
+  border: 0;
+  border-top: 1px solid #e3ebe6;
+  border-left: 1px solid #e3ebe6;
+  border-radius: 0;
+  background: transparent;
+}
+
+.fuma-campaign-detail-panel .fuma-campaign-detail-overview__info dl > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.fuma-campaign-detail-panel .fuma-campaign-detail-overview__info dt {
+  color: #7c8982;
+  font-size: var(--hsas-font-9);
+}
+
+.fuma-campaign-detail-panel .fuma-campaign-detail-overview__info dd {
+  margin-top: var(--hsas-space-3);
+  overflow: visible;
+  color: #263e33;
+  font-size: var(--hsas-font-16);
+  font-weight: 800;
+}
+
+.fuma-campaign-detail-panel .fuma-campaign-detail-overview__info dl > div:nth-child(3) dd {
+  font-weight: 400;
 }
 
 .fuma-campaign-detail-list-toolbar {
@@ -2265,7 +2350,7 @@
 .fuma-campaign-detail-list-section {
   display: grid;
   gap: var(--hsas-space-10);
-  padding-top: var(--hsas-space-18);
+  padding-top: var(--hsas-space-40);
 }
 
 .fuma-campaign-detail-list-section .hsas-dense-table th,
@@ -2274,8 +2359,7 @@
 }
 
 .fuma-campaign-detail-list-section + .fuma-campaign-detail-list-section {
-  margin-top: var(--hsas-space-18);
-  border-top: 1px solid var(--hsas-color-line-100);
+  margin-top: var(--hsas-space-12);
 }
 
 .fuma-campaign-detail-load-more {
@@ -4332,7 +4416,7 @@
 }
 
 .fuma-selector-detail-panel {
-  gap: var(--hsas-space-16);
+  gap: 0;
 }
 
 .fuma-selector-detail-profile {
@@ -9508,7 +9592,7 @@
 
 /* Keep selector details visually aligned with applicant details without splitting sections. */
 .fuma-detail-panel__content.fuma-selector-detail-panel {
-  gap: var(--hsas-space-14);
+  gap: 0;
 }
 
 .fuma-selector-detail-hero {
@@ -9523,30 +9607,19 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.fuma-selector-detail-hero .fuma-creator-detail-hero__metrics dd {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .fuma-selector-detail-hero .fuma-creator-detail-hero__metrics div:last-child dd {
   font-size: var(--hsas-font-15);
   letter-spacing: -0.03em;
 }
 
-.fuma-selector-detail-panel .fuma-selector-detail-section {
-  border-color: #dde6e1;
-  border-radius: 10px;
-  box-shadow: none;
-}
-
-.fuma-selector-detail-section .fuma-key-value-grid dd {
+.fuma-selector-detail-panel .fuma-key-value-grid dd {
   gap: var(--hsas-space-7);
-}
-
-.fuma-selector-detail-panel .fuma-selector-detail-section > header {
-  min-height: 42px;
-  padding: var(--hsas-space-8) var(--hsas-space-14);
-  background: #f5f7f6;
-}
-
-.fuma-selector-detail-panel .fuma-selector-detail-section > header h3 {
-  color: #2d4338;
-  font-size: var(--hsas-font-13);
 }
 
 .fuma-notification-table {

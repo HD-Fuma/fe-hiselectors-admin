@@ -324,8 +324,8 @@ test("requests and renders the current-month settlement page", async () => {
   );
   const detail = screen.getByRole("dialog", { name: "셀렉터스 상세" });
   expect(within(detail).getByRole("heading", { name: "API 여름셀렉터" })).toBeInTheDocument();
-  expect(within(detail).getByRole("heading", { name: "동의 및 수신 정보" })).toBeInTheDocument();
-  expect(within(detail).getByRole("heading", { name: "정산 정보" })).toBeInTheDocument();
+  expect(within(detail).getByText("동의 및 수신 정보")).toBeInTheDocument();
+  expect(within(detail).getByText("정산 정보")).toBeInTheDocument();
   expect(within(detail).getByRole("link", { name: "@api_selector" })).toHaveAttribute(
     "href",
     "https://www.instagram.com/api_selector",

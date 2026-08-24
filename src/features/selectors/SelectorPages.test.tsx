@@ -210,7 +210,7 @@ describe("selector api pages", () => {
     expect(within(panel).queryByText(/등록 2026-/)).not.toBeInTheDocument();
     expect(within(panel).queryByRole("region", { name: "셀렉터스 SNS 계정" })).not.toBeInTheDocument();
     expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("3기");
-    expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("2026-08-01 ~ 2026-10-31");
+    expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("2026-07-02 ~ 2026-10-31");
     expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("12건");
     expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("1,500,000원");
     expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("320,000원");
@@ -220,12 +220,12 @@ describe("selector api pages", () => {
     expect(within(panel).getByText("셀렉터스명").parentElement).toHaveTextContent("홍길동");
     expect(within(panel).getByText("누적 구매수").parentElement).toHaveTextContent("12건");
     expect(within(panel).getByText("누적 매출").parentElement).toHaveTextContent("1,500,000원");
-    const consent = within(panel).getByRole("heading", { name: "동의 및 수신 정보" }).closest("section")!;
+    const consent = within(panel).getByRole("region", { name: "셀렉터스 동의 및 수신 정보" });
     expect(consent).toHaveTextContent("2026-07-01 11:00");
     expect(consent).toHaveTextContent("2026-07-01 11:05");
-    expect(within(consent).getByText("광고성 정보 수신동의").parentElement).toHaveTextContent("동의");
+    expect(within(consent).getByText("광고성 정보 수신동의")).toBeInTheDocument();
     expect(within(consent).getByText("동의")).toHaveClass("hsas-status-pill");
-    expect(within(consent).getByText("최종 정보 갱신일").parentElement).toHaveTextContent("2026-08-20 09:00");
+    expect(consent).toHaveTextContent("2026-08-20 09:00");
     const performance = within(panel).getByRole("region", { name: "셀렉터스 성과" });
     expect(within(panel).getByText("3기 기준")).toBeInTheDocument();
     expect(performance).toHaveTextContent("12건");
@@ -241,60 +241,13 @@ describe("selector api pages", () => {
     const settlements = within(panel).getByRole("region", { name: "셀렉터스 정산 내역" });
     expect(settlements).toHaveTextContent("75,000원");
     expect(within(panel).getByText("누적 지급 수수료").parentElement).toHaveTextContent("320,000원");
-    expect(within(panel).getAllByText("지급 상태")[0].parentElement).toHaveTextContent("정상");
-    expect(within(panel).getByText("정상")).toHaveClass("hsas-status-pill");
-    expect(within(panel).getByText("정산정보 등록 여부").parentElement).toHaveTextContent("등록 완료");
+    expect(within(panel).queryByText("정산정보 등록 여부")).not.toBeInTheDocument();
     expect(within(panel).queryByText("현재 활동월")).not.toBeInTheDocument();
     expect(within(panel).queryByText("다음 지급월")).not.toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(
       expect.stringMatching(/\/api\/admin\/settlements\/selectors\/7\/detail\?page=0&size=12$/),
       expect.anything(),
     );
-  });
-
-  test("shows payment hold status with the hold reason", async () => {
-    const currentFetch = vi.mocked(fetch);
-    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-      if (String(input).includes("/api/admin/settlements/selectors/7/detail")) {
-        return json({
-          ...settlementDetail,
-          settlementSummary: {
-            ...settlementDetail.settlementSummary,
-            nextPaymentSettlementStatus: "PAYMENT_HOLD_BLACK",
-          },
-          histories: {
-            ...settlementDetail.histories,
-            content: [{
-              ...settlementDetail.histories.content[0],
-              status: "PAYMENT_HOLD_BLACK",
-            }],
-          },
-        });
-      }
-      return currentFetch(input, init);
-    }));
-
-    renderRoute("/selectors/7");
-    const panel = await screen.findByRole("dialog", { name: "셀렉터스 상세" });
-    const settlement = within(panel).getByRole("heading", { name: "정산 정보" }).closest("section")!;
-
-    expect(within(settlement).getByText("지급 보류")).toHaveClass("hsas-status-pill");
-    expect(within(settlement).getByText("블랙리스트")).toBeInTheDocument();
-  });
-
-  test("shows unregistered settlement account status", async () => {
-    const currentFetch = vi.mocked(fetch);
-    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-      if (String(input).includes("/api/admin/settlements/selectors/7/detail")) {
-        return json({ ...settlementDetail, accountRegistered: false });
-      }
-      return currentFetch(input, init);
-    }));
-
-    renderRoute("/selectors/7");
-    const panel = await screen.findByRole("dialog", { name: "셀렉터스 상세" });
-
-    expect(within(panel).getByText("정산정보 등록 여부").parentElement).toHaveTextContent("미등록");
   });
 
   test("keeps selector detail visible when settlement lookup fails", async () => {

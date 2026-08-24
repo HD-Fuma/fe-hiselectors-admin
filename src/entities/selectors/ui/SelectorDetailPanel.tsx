@@ -2,12 +2,11 @@ import type { ReactNode } from "react";
 import { PlatformIcon } from "../../../components/social/PlatformIcon";
 import { CreatorProfilePhoto } from "../../../components/ui/CreatorProfilePhoto";
 import { DenseTable, type DenseTableColumn } from "../../../components/ui/DenseTable";
+import { ResultToolbar } from "../../../components/ui/ResultToolbar";
 import { SidePanel } from "../../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../../components/ui/StatusPill";
 import { formatCompactCount, formatNumber, formatWon } from "../../../lib/formatters";
 import {
-  primarySettlementPaymentStatus,
-  settlementHoldReason,
   settlementStatusLabel,
   type SettlementSelectorDetail,
   type SettlementStatus,
@@ -215,12 +214,12 @@ function apiPlatform(snsCode: SelectorSnsCode | null) {
 }
 
 const GENERATION_COLUMNS: DenseTableColumn<SelectorGeneration>[] = [
-  { key: "generationName", header: "기수", width: 80, align: "center" },
+  { key: "generationName", header: "기수", align: "center" },
   {
     id: "activityPeriod",
     header: "활동 기간",
     align: "center",
-    render: (generation) => displayDateRange(generation.activityStartDate, generation.activityEndDate),
+    render: (generation) => displayDateRange(generation.joinedAt, generation.activityEndDate),
   },
   {
     key: "status",
@@ -236,30 +235,20 @@ const GENERATION_COLUMNS: DenseTableColumn<SelectorGeneration>[] = [
   {
     key: "confirmedPurchaseCount",
     header: "구매확정",
-    width: 90,
     align: "center",
     render: (generation) => displayCount(generation.confirmedPurchaseCount),
   },
   {
     key: "totalSales",
     header: "총 매출",
-    width: 110,
     align: "center",
     render: (generation) => displayWon(generation.totalSales),
   },
   {
     key: "paidCommissionAmount",
     header: "지급 수수료",
-    width: 110,
     align: "center",
     render: (generation) => displayWon(generation.paidCommissionAmount),
-  },
-  {
-    key: "joinedAt",
-    header: "참여 등록일",
-    width: 135,
-    align: "center",
-    render: (generation) => displayDateTime(generation.joinedAt),
   },
 ];
 
@@ -287,6 +276,44 @@ const ACTIVE_GENERATION_PERFORMANCE_COLUMNS: DenseTableColumn<SelectorGeneration
     header: "활동 기간",
     align: "center",
     render: (generation) => displayDateRange(generation.activityStartDate, generation.activityEndDate),
+  },
+];
+
+interface SelectorConsentRow {
+  alimtalkAgreed: boolean;
+  privacyAgreedAt: string | null | undefined;
+  snsVerifiedAt: string | null | undefined;
+  updatedAt: string | null | undefined;
+}
+
+const CONSENT_COLUMNS: DenseTableColumn<SelectorConsentRow>[] = [
+  {
+    id: "snsVerifiedAt",
+    header: "SNS 수집 동의",
+    align: "center",
+    render: (row) => displayDateTime(row.snsVerifiedAt),
+  },
+  {
+    id: "privacyAgreedAt",
+    header: "개인정보 활용 동의",
+    align: "center",
+    render: (row) => displayDateTime(row.privacyAgreedAt),
+  },
+  {
+    id: "alimtalkAgreed",
+    header: "광고성 정보 수신동의",
+    align: "center",
+    render: (row) => (
+      <StatusPill tone={row.alimtalkAgreed ? "approved" : "neutral"}>
+        {row.alimtalkAgreed ? "동의" : "미동의"}
+      </StatusPill>
+    ),
+  },
+  {
+    id: "updatedAt",
+    header: "최종 정보 갱신일",
+    align: "center",
+    render: (row) => displayDateTime(row.updatedAt),
   },
 ];
 
@@ -342,14 +369,36 @@ const CONTENT_COLUMNS: DenseTableColumn<SelectorContent>[] = [
   { key: "commentCount", header: "댓글", width: 78, align: "center", render: (content) => displayNumber(content.commentCount) },
 ];
 
+function SelectorDetailListSection({
+  children,
+  meta,
+  title,
+  titleId,
+}: {
+  children: ReactNode;
+  meta?: ReactNode;
+  title: string;
+  titleId: string;
+}) {
+  return (
+    <section aria-labelledby={titleId} className="fuma-campaign-detail-list-section">
+      <ResultToolbar
+        className="fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar"
+        meta={meta}
+        title={title}
+        titleId={titleId}
+      />
+      {children}
+    </section>
+  );
+}
+
 function SelectorApiDetailContent({
-  accountRegistered,
   detail,
   settlementEmptyMessage,
   settlementRows,
   settlementSummary,
 }: {
-  accountRegistered: boolean;
   detail: SelectorDetail;
   settlementEmptyMessage: ReactNode;
   settlementRows: SelectorSettlementTableRow[];
@@ -364,11 +413,6 @@ function SelectorApiDetailContent({
   const handle = accountId ? accountHandle(accountId) : null;
   const channelHref = snsAccountHref(platform, accountId || null);
   const audienceLabel = audienceCountLabel(platform, primaryAccount?.followerCount);
-  const paymentHoldReason = settlementHoldReason(primarySettlementPaymentStatus([
-    settlementSummary?.nextPaymentSettlementStatus,
-    ...settlementRows.map((row) => row.statusCode),
-  ]));
-  const paymentHeld = paymentHoldReason != null;
 
   return (
     <div className="fuma-detail-panel__content fuma-selector-detail-panel">
@@ -408,143 +452,115 @@ function SelectorApiDetailContent({
           </div>
           <dl className="fuma-creator-detail-hero__metrics">
             <div><dt>셀렉터스 코드</dt><dd>{displayText(detail.selectorsCode)}</dd></div>
-            <div><dt>셀렉터스명</dt><dd>{displayText(detail.nickname)}</dd></div>
+            <div>
+              <dt>셀렉터스명</dt>
+              <dd title={detail.nickname || undefined}>{displayText(detail.nickname)}</dd>
+            </div>
             <div><dt>누적 구매수</dt><dd>{displayCount(settlementSummary?.cumulativePurchaseConversionCount)}</dd></div>
             <div><dt>누적 매출</dt><dd>{displayWon(settlementSummary?.cumulativeSalesAmount)}</dd></div>
           </dl>
         </div>
       </section>
 
-      <section aria-labelledby="selector-consent-title" className="fuma-content-section fuma-selector-detail-section">
-        <header className="fuma-content-section__header">
-          <h3 id="selector-consent-title">동의 및 수신 정보</h3>
-        </header>
-        <dl className="fuma-key-value-grid">
-          <div className="fuma-key-value-grid__item">
-            <dt>SNS 수집 동의</dt>
-            <dd>{displayDateTime(detail.snsVerifiedAt)}</dd>
-          </div>
-          <div className="fuma-key-value-grid__item">
-            <dt>개인정보 활용 동의</dt>
-            <dd>{displayDateTime(detail.privacyAgreedAt)}</dd>
-          </div>
-          <div className="fuma-key-value-grid__item">
-            <dt>광고성 정보 수신동의</dt>
-            <dd>
-              <StatusPill tone={detail.alimtalkAgreed ? "approved" : "neutral"}>
-                {detail.alimtalkAgreed ? "동의" : "미동의"}
-              </StatusPill>
-            </dd>
-          </div>
-          <div className="fuma-key-value-grid__item">
-            <dt>최종 정보 갱신일</dt>
-            <dd>{displayDateTime(detail.updatedAt)}</dd>
-          </div>
-        </dl>
-      </section>
+      <SelectorDetailListSection title="동의 및 수신 정보" titleId="selector-consent-title">
+        <div aria-label="셀렉터스 동의 및 수신 정보" className="fuma-wide-table fuma-settlement-table" role="region">
+          <DenseTable
+            align="center"
+            columns={CONSENT_COLUMNS}
+            rowKey={() => "consent"}
+            rows={[{
+              alimtalkAgreed: detail.alimtalkAgreed,
+              privacyAgreedAt: detail.privacyAgreedAt,
+              snsVerifiedAt: detail.snsVerifiedAt,
+              updatedAt: detail.updatedAt,
+            }]}
+          />
+        </div>
+      </SelectorDetailListSection>
 
-      <div className="fuma-selector-detail-columns">
-        <section aria-labelledby="selector-performance-title" className="fuma-content-section fuma-selector-detail-section">
-          <header className="fuma-content-section__header">
-            <h3 id="selector-performance-title">간략 성과</h3>
-            <span>{activeGeneration ? `${activeGeneration.generationName} 기준` : "활성 기수 없음"}</span>
-          </header>
-          <div aria-label="셀렉터스 성과" className="fuma-wide-table fuma-settlement-table" role="region">
-            <DenseTable
-              align="center"
-              columns={ACTIVE_GENERATION_PERFORMANCE_COLUMNS}
-              emptyMessage="활성 기수 성과가 없습니다."
-              rowKey={(generation) => generation.generationId}
-              rows={activeGeneration ? [activeGeneration] : []}
-            />
-          </div>
-        </section>
+      <SelectorDetailListSection
+        meta={<span>{activeGeneration ? `${activeGeneration.generationName} 기준` : "활성 기수 없음"}</span>}
+        title="간략 성과"
+        titleId="selector-performance-title"
+      >
+        <div aria-label="셀렉터스 성과" className="fuma-wide-table fuma-settlement-table" role="region">
+          <DenseTable
+            align="center"
+            columns={ACTIVE_GENERATION_PERFORMANCE_COLUMNS}
+            emptyMessage="활성 기수 성과가 없습니다."
+            rowKey={(generation) => generation.generationId}
+            rows={activeGeneration ? [activeGeneration] : []}
+          />
+        </div>
+      </SelectorDetailListSection>
 
-        <section aria-labelledby="selector-api-contents-title" className="fuma-content-section fuma-selector-detail-section">
-          <header className="fuma-content-section__header">
-            <h3 id="selector-api-contents-title">등록 콘텐츠</h3>
-            <span>최근 {detail.contents.length}건 · 전체 {displayCount(detail.performance.contentCount)}</span>
-          </header>
-          <div aria-label="셀렉터스 콘텐츠" className="fuma-wide-table fuma-settlement-table" role="region">
-            <DenseTable
-              columns={CONTENT_COLUMNS}
-              emptyMessage={detail.performance.contentCount == null
-                ? "콘텐츠 수집 전입니다."
-                : "등록된 콘텐츠가 없습니다."}
-              rowKey={(content) => content.id}
-              rows={detail.contents}
-            />
-          </div>
-        </section>
+      <SelectorDetailListSection
+        meta={<span>최근 {detail.contents.length}건 · 전체 {displayCount(detail.performance.contentCount)}</span>}
+        title="등록 콘텐츠"
+        titleId="selector-api-contents-title"
+      >
+        <div aria-label="셀렉터스 콘텐츠" className="fuma-wide-table fuma-settlement-table" role="region">
+          <DenseTable
+            columns={CONTENT_COLUMNS}
+            emptyMessage={detail.performance.contentCount == null
+              ? "콘텐츠 수집 전입니다."
+              : "등록된 콘텐츠가 없습니다."}
+            rowKey={(content) => content.id}
+            rows={detail.contents}
+          />
+        </div>
+      </SelectorDetailListSection>
 
-        <section aria-labelledby="selector-generation-history-title" className="fuma-content-section fuma-selector-detail-section">
-          <header className="fuma-content-section__header">
-            <h3 id="selector-generation-history-title">참여 기수 이력</h3>
-            <span>총 {generations.length}건</span>
-          </header>
-          <div aria-label="셀렉터스 참여 기수 이력" className="fuma-wide-table fuma-settlement-table" role="region">
-            <DenseTable
-              align="center"
-              columns={GENERATION_COLUMNS}
-              emptyMessage="참여 기수 이력이 없습니다."
-              rowKey={(generation) => generation.generationId}
-              rows={generations}
-            />
-          </div>
-        </section>
+      <SelectorDetailListSection
+        meta={<span>총 {generations.length}건</span>}
+        title="참여 기수 이력"
+        titleId="selector-generation-history-title"
+      >
+        <div aria-label="셀렉터스 참여 기수 이력" className="fuma-wide-table fuma-settlement-table" role="region">
+          <DenseTable
+            align="center"
+            columns={GENERATION_COLUMNS}
+            emptyMessage="참여 기수 이력이 없습니다."
+            rowKey={(generation) => generation.generationId}
+            rows={generations}
+          />
+        </div>
+      </SelectorDetailListSection>
 
-        <section aria-labelledby="selector-api-settlement-title" className="fuma-content-section fuma-selector-detail-section">
-          <header className="fuma-content-section__header">
-            <h3 id="selector-api-settlement-title">정산 정보</h3>
-            <span>마지막 갱신 {displayDateTime(latestTimestamp(settlementRows.map((row) => row.updatedAt)))}</span>
-          </header>
-          {settlementSummary ? (
-            <dl className="fuma-key-value-grid">
-              <div className="fuma-key-value-grid__item">
-                <dt>누적 구매 전환</dt>
-                <dd>{displayCount(settlementSummary.cumulativePurchaseConversionCount)}</dd>
-              </div>
-              <div className="fuma-key-value-grid__item">
-                <dt>이번달 구매 전환</dt>
-                <dd>{displayCount(settlementSummary.currentMonthPurchaseConversionCount)}</dd>
-              </div>
-              <div className="fuma-key-value-grid__item">
-                <dt>누적 지급 수수료</dt>
-                <dd>{displayWon(settlementSummary.cumulativePaidCommission)}</dd>
-              </div>
-              <div className="fuma-key-value-grid__item">
-                <dt>이번달 지급 예정</dt>
-                <dd>{displayWon(settlementSummary.nextMonthScheduledCommission)}</dd>
-              </div>
-              <div className="fuma-key-value-grid__item">
-                <dt>지급 상태</dt>
-                <dd>
-                  <StatusPill tone={paymentHeld ? "danger" : "approved"}>
-                    {paymentHeld ? "지급 보류" : "정상"}
-                  </StatusPill>
-                  {paymentHoldReason ? <span>{paymentHoldReason}</span> : null}
-                </dd>
-              </div>
-              <div className="fuma-key-value-grid__item">
-                <dt>정산정보 등록 여부</dt>
-                <dd>
-                  <StatusPill tone={accountRegistered ? "approved" : "danger"}>
-                    {accountRegistered ? "등록 완료" : "미등록"}
-                  </StatusPill>
-                </dd>
-              </div>
-            </dl>
-          ) : null}
-          <div aria-label="셀렉터스 정산 내역" className="fuma-wide-table fuma-settlement-table" role="region">
-            <DenseTable
-              columns={SETTLEMENT_COLUMNS}
-              emptyMessage={settlementEmptyMessage}
-              rowKey={(settlement) => settlement.id}
-              rows={settlementRows}
-            />
-          </div>
-        </section>
-      </div>
+      <SelectorDetailListSection
+        meta={<span>마지막 갱신 {displayDateTime(latestTimestamp(settlementRows.map((row) => row.updatedAt)))}</span>}
+        title="정산 정보"
+        titleId="selector-api-settlement-title"
+      >
+        {settlementSummary ? (
+          <dl className="fuma-key-value-grid">
+            <div className="fuma-key-value-grid__item">
+              <dt>누적 구매 전환</dt>
+              <dd>{displayCount(settlementSummary.cumulativePurchaseConversionCount)}</dd>
+            </div>
+            <div className="fuma-key-value-grid__item">
+              <dt>이번달 구매 전환</dt>
+              <dd>{displayCount(settlementSummary.currentMonthPurchaseConversionCount)}</dd>
+            </div>
+            <div className="fuma-key-value-grid__item">
+              <dt>누적 지급 수수료</dt>
+              <dd>{displayWon(settlementSummary.cumulativePaidCommission)}</dd>
+            </div>
+            <div className="fuma-key-value-grid__item">
+              <dt>이번달 지급 예정</dt>
+              <dd>{displayWon(settlementSummary.nextMonthScheduledCommission)}</dd>
+            </div>
+          </dl>
+        ) : null}
+        <div aria-label="셀렉터스 정산 내역" className="fuma-wide-table fuma-settlement-table" role="region">
+          <DenseTable
+            columns={SETTLEMENT_COLUMNS}
+            emptyMessage={settlementEmptyMessage}
+            rowKey={(settlement) => settlement.id}
+            rows={settlementRows}
+          />
+        </div>
+      </SelectorDetailListSection>
     </div>
   );
 }
@@ -630,7 +646,6 @@ export function SelectorDetailPanel({
         </div>
       ) : selectorDetail ? (
         <SelectorApiDetailContent
-          accountRegistered={settlementDetail?.accountRegistered === true}
           detail={selectorDetail}
           settlementEmptyMessage={settlementEmptyMessage}
           settlementRows={settlementRows}
@@ -705,11 +720,11 @@ export function SelectorDetailPanel({
             </div>
           </section>
 
-          <section aria-labelledby="selector-contents-title" className="fuma-content-section fuma-selector-detail-section">
-            <header className="fuma-content-section__header">
-              <h3 id="selector-contents-title">업로드 콘텐츠</h3>
-              <span>최근 {fixtureDetail.contents.length}건</span>
-            </header>
+          <SelectorDetailListSection
+            meta={<span>최근 {fixtureDetail.contents.length}건</span>}
+            title="업로드 콘텐츠"
+            titleId="selector-contents-title"
+          >
             <div className="fuma-selector-content-list">
               {fixtureDetail.contents.map((content) => (
                 <article key={content.id}>
@@ -730,14 +745,13 @@ export function SelectorDetailPanel({
                 </article>
               ))}
             </div>
-          </section>
+          </SelectorDetailListSection>
 
-          <div className="fuma-selector-detail-columns">
-            <section aria-labelledby="selector-cohort-history-title" className="fuma-content-section fuma-selector-detail-section">
-              <header className="fuma-content-section__header">
-                <h3 id="selector-cohort-history-title">이전 기수 활동 내역</h3>
-                <span>{fixtureDetail.cohortHistory.length}개 기수</span>
-              </header>
+          <SelectorDetailListSection
+            meta={<span>{fixtureDetail.cohortHistory.length}개 기수</span>}
+            title="이전 기수 활동 내역"
+            titleId="selector-cohort-history-title"
+          >
               <div className="fuma-selector-cohort-history">
                 {fixtureDetail.cohortHistory.length > 0 ? fixtureDetail.cohortHistory.map((activity) => (
                   <article key={activity.cohort}>
@@ -761,13 +775,13 @@ export function SelectorDetailPanel({
                   <p className="fuma-selector-detail-empty">이전 기수 활동 내역이 없습니다.</p>
                 )}
               </div>
-            </section>
+          </SelectorDetailListSection>
 
-            <section aria-labelledby="selector-settlement-history-title" className="fuma-content-section fuma-selector-detail-section">
-              <header className="fuma-content-section__header">
-                <h3 id="selector-settlement-history-title">정산 내역</h3>
-                <span>총 {settlementCount.toLocaleString("ko-KR")}건</span>
-              </header>
+          <SelectorDetailListSection
+            meta={<span>총 {settlementCount.toLocaleString("ko-KR")}건</span>}
+            title="정산 내역"
+            titleId="selector-settlement-history-title"
+          >
               <div
                 aria-label="셀렉터스 정산 내역"
                 className="fuma-wide-table fuma-settlement-table"
@@ -780,8 +794,7 @@ export function SelectorDetailPanel({
                   rows={settlementRows}
                 />
               </div>
-            </section>
-          </div>
+          </SelectorDetailListSection>
         </div>
       ) : (
         <div className="fuma-detail-panel__content">

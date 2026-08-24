@@ -95,9 +95,17 @@ describe("campaign filter behavior", () => {
     expect(card).toHaveClass("fuma-campaign-card");
     expect(card).toHaveAttribute("data-content-format", "instagram-image");
     expect(card.querySelector(".fuma-campaign-card__status")).toBeInTheDocument();
+    expect(card.querySelector(".fuma-campaign-card__overlay")).toBeInTheDocument();
+    expect(card.querySelector(".fuma-content-collection__media")?.contains(
+      card.querySelector(".fuma-campaign-card__status"),
+    )).toBe(true);
+    expect(card.querySelector(".fuma-content-collection__media")?.contains(
+      card.querySelector(".fuma-campaign-card__period"),
+    )).toBe(true);
     expect(within(card).queryByText("캠페인")).not.toBeInTheDocument();
     expect(within(card).queryByText("ID 3")).not.toBeInTheDocument();
-    expect(within(card).getByText("상품 1개")).toBeInTheDocument();
+    expect(card.querySelector(".fuma-content-collection__copy")).not.toBeInTheDocument();
+    expect(card.querySelector(".fuma-content-collection__meta")).not.toBeInTheDocument();
 
     const viewToggle = screen.getByRole("switch", { name: "보기 방식" });
     fireEvent.click(viewToggle);

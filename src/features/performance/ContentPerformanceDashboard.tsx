@@ -548,7 +548,6 @@ function ContentPerformanceCard({
     >
       <ContentCollectionCard
         author={author}
-        badgeLabel={contentCohort(content)}
         caption={content.caption}
         footerEnd={<span className="fuma-content-performance-card__hint">상세 보기</span>}
         footerStart={content.publishedAt}
