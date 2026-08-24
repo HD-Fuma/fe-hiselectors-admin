@@ -28,6 +28,7 @@ export interface AdminApplicationIdentity {
   generationName: string;
   snsCode: ApplicationSnsCode;
   snsAccountId: string;
+  snsDisplayName: string | null;
   followerCount: number | null;
   status: ApplicationStatus;
   mediaCollectionStatus: ApplicationMediaCollectionStatus;

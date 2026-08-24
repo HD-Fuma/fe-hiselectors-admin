@@ -15,6 +15,7 @@ const applicants = [
     generationName: "3기",
     snsCode: "INSTAGRAM",
     snsAccountId: "minji.daily",
+    snsDisplayName: "minji.daily",
     followerCount: 58_420,
     engagementRate: 2.55,
     totalContentCount: 126,
@@ -35,7 +36,8 @@ const applicants = [
     generationId: 3,
     generationName: "3기",
     snsCode: "YOUTUBE",
-    snsAccountId: "harin-lab",
+    snsAccountId: "UC1111111111111111111111",
+    snsDisplayName: "하린의 생활연구소",
     followerCount: 83_100,
     engagementRate: 3.1,
     totalContentCount: 94,
@@ -57,6 +59,7 @@ const applicants = [
     generationName: "3기",
     snsCode: "INSTAGRAM",
     snsAccountId: "sora.daily",
+    snsDisplayName: "sora.daily",
     followerCount: 400,
     engagementRate: null,
     totalContentCount: null,
@@ -106,6 +109,11 @@ const applicantDetail = {
     commentCount: 0,
     collectedAt: "2026-08-05T10:00:00",
   }],
+};
+
+const youtubeApplicantDetail = {
+  ...applicantDetail,
+  ...applicants[1],
 };
 
 const pendingApplicantDetail = {
@@ -172,6 +180,7 @@ function mockApi() {
       return json([{ id: 3, generationName: "3기" }]);
     }
     if (/\/api\/admin\/applications\/1$/.test(url.pathname)) return json(applicantDetail);
+    if (/\/api\/admin\/applications\/2$/.test(url.pathname)) return json(youtubeApplicantDetail);
     if (url.searchParams.get("minimumCriteriaOnly") === "true") return json(page([applicants[2]]));
     if (url.searchParams.get("keyword") === "하린") return json(page([applicants[1]]));
     return json(page(applicants));
@@ -193,12 +202,22 @@ describe("applicant api pages", () => {
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
     expect(await screen.findByText("정하린")).toBeInTheDocument();
+    const applicantList = screen.getByRole("region", { name: "지원자 목록" });
+    expect(within(applicantList).getByText("하린의 생활연구소")).toBeInTheDocument();
+    expect(within(applicantList).queryByText("UC1111111111111111111111"))
+      .not.toBeInTheDocument();
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
       expect.stringMatching(/keyword=.*snsCode=YOUTUBE.*status=APPROVED.*generationId=3.*page=0.*size=20/),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     ));
     expect(screen.getByText("총 1건")).toBeInTheDocument();
     expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
+
+    await user.click(screen.getByText("정하린"));
+    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
+    expect(await within(panel).findByRole("link", { name: "하린의 생활연구소 ↗" }))
+      .toHaveAttribute("href", "https://www.youtube.com/channel/UC1111111111111111111111");
+    expect(panel).not.toHaveTextContent("UC1111111111111111111111");
   });
 
   test("uses the server minimum-criteria query and derives automatic rejection", async () => {

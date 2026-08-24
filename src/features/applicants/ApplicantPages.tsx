@@ -96,6 +96,10 @@ function dateTime(value: string | null) {
   return value ? value.replace("T", " ").slice(0, 16).replaceAll("-", ".") : "-";
 }
 
+function displaySnsName(applicant: AdminApplicationIdentity) {
+  return applicant.snsDisplayName || applicant.snsAccountId;
+}
+
 function profileUrl(applicant: AdminApplicationIdentity) {
   if (applicant.snsCode === "INSTAGRAM") {
     return `https://www.instagram.com/${encodeURIComponent(applicant.snsAccountId.replace(/^@/, ""))}/`;
@@ -137,7 +141,7 @@ function applicantToListRow(
     theHyundaiHiMemberNumber: applicant.hiId,
     name: applicant.applicantName,
     platform: platformFor(applicant.snsCode),
-    channelName: applicant.snsAccountId,
+    channelName: displaySnsName(applicant),
     generationName: applicant.generationName,
     recent90DayContentCount: applicant.recent90DayContentCount,
     followerCount: applicant.followerCount,
@@ -219,7 +223,7 @@ function applicantListColumns(): DenseTableColumn<ApplicantListRow>[] {
     },
     {
       id: "account",
-      header: "SNS ID",
+      header: "SNS 계정",
       width: 130,
       align: "center",
       render: (applicant) => applicant.channelName,
@@ -587,10 +591,10 @@ export function ApplicantDetailPage({
       imageUrl: content.mediaUrl ?? "",
       title: content.snsContentId,
     })),
-    handle: applicant.snsAccountId,
+    handle: displaySnsName(applicant),
     infoFields: [
       { label: "지원자 ID", value: applicant.id },
-      { label: "계정 ID", value: applicant.snsAccountId },
+      { label: "SNS 계정", value: displaySnsName(applicant) },
       { label: "이메일", value: applicant.email },
       { label: "기수", value: applicant.generationName },
       { label: "최종 업데이트", value: dateTime(applicant.updatedAt) },
