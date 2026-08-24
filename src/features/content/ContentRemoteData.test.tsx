@@ -30,6 +30,27 @@ function contentItem(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function versionMedia(texts: string[]) {
+  return [
+    ...texts.map((text, index) => ({
+      contentMediaId: 90100 + index,
+      mediaType: "TEXT",
+      mediaUrl: null,
+      sequenceNo: index,
+      snsMediaId: null,
+      text,
+    })),
+    {
+      contentMediaId: 90999,
+      mediaType: "IMAGE",
+      mediaUrl: "https://cdn.example.com/api-901.jpg",
+      sequenceNo: texts.length,
+      snsMediaId: "image-901",
+      text: null,
+    },
+  ];
+}
+
 function pageResponse(contents: ReturnType<typeof contentItem>[]) {
   return new Response(JSON.stringify({
     code: "OK",
@@ -58,10 +79,11 @@ function detailResponse(overrides: Record<string, unknown> = {}) {
       selectedVersion: {
         contentReport: null,
         contentVersionId: 9010,
+        creationReason: "SOURCE_CHANGE",
         createdAt: "2026-08-18T02:05:00.847815Z",
         inspectedAt: null,
         inspectionStatus: "PENDING",
-        texts: ["API 수정 콘텐츠", "욕설 검증용 문구 #광고"],
+        media: versionMedia(["API 수정 콘텐츠", "욕설 검증용 문구 #광고"]),
         violations: [],
         versionNo: 2,
       },
@@ -103,9 +125,19 @@ function mockContentApis(
   contents: ReturnType<typeof contentItem>[],
   detail: Response | (() => Response) = () => detailResponse(),
   versionDetail?: Response | ((contentVersionId: number) => Response),
+  inspection?: Response | (() => Response),
+  confirmation?: Response | (() => Response),
 ) {
   const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
     const pathname = requestPathname(input);
+    if (/\/api\/admin\/contents\/\d+\/versions\/\d+\/inspection$/.test(pathname)) {
+      if (!confirmation) return Promise.reject(new Error(`unexpected confirmation ${pathname}`));
+      return Promise.resolve(typeof confirmation === "function" ? confirmation() : confirmation);
+    }
+    if (/\/api\/admin\/content-versions\/\d+\/inspect$/.test(pathname)) {
+      if (!inspection) return Promise.reject(new Error(`unexpected inspection ${pathname}`));
+      return Promise.resolve(typeof inspection === "function" ? inspection() : inspection);
+    }
     const versionMatch = pathname.match(/\/api\/admin\/contents\/\d+\/versions\/(\d+)$/);
     if (versionMatch) {
       if (!versionDetail) {
@@ -198,9 +230,8 @@ test("loads a direct detail route and keeps pending analysis and decisions hones
   expect(screen.queryByText(/조회수 [\d,]+회/)).not.toBeInTheDocument();
 });
 
-test("loads the latest version report and active violations on a direct detail route", async () => {
-  const fetchMock = mockContentApis([contentItem()], detailResponse({
-    selectedVersion: {
+test("loads violations and submits the final judgment in one request", async () => {
+  const selectedVersion = {
       contentReport: {
         contentReportId: 11,
         flow: "본문에서 상품을 소개한 뒤 링크를 안내합니다.",
@@ -209,16 +240,17 @@ test("loads the latest version report and active violations on a direct detail r
         summary: "광고 표기는 확인됐고 최저가 단정 표현이 있습니다.",
       },
       contentVersionId: 9010,
+      creationReason: "SOURCE_CHANGE",
       createdAt: "2026-08-18T11:05:00",
       inspectedAt: "2026-08-18T11:06:00",
       inspectionStatus: "COMPLETED",
-      texts: ["API 수정 콘텐츠", "지금 가장 저렴한 가격 #광고"],
+      media: versionMedia(["API 수정 콘텐츠", "지금 가장 저렴한 가격 #광고"]),
       violations: [{
         evidence: {
           confidence: 0.9,
           locations: [{
             bbox: null,
-            contentMediaId: null,
+            contentMediaId: 90101,
             endIndex: 11,
             endTime: null,
             excerpt: "가장 저렴한",
@@ -227,15 +259,38 @@ test("loads the latest version report and active violations on a direct detail r
             startTime: null,
           }],
           reason: "비교 근거 없이 최저가를 단정했습니다.",
+          source: "AI",
         },
-        status: "PENDING",
+        currentStatus: "PENDING",
+        detectedAt: "2026-08-18T11:06:00",
+        inspectionPolicyId: 9,
+        violationEvidenceHistoryId: 31,
         violationItemId: 21,
         violationType: "FALSE_EXAGGERATED_CLAIM",
         violationTypeDescription: "허위·과장 표현",
       }],
       versionNo: 2,
+  };
+  const selectedDetail = () => detailResponse({ selectedVersion });
+  const confirmedDetail = () => detailResponse({
+    selectedVersion: {
+      ...selectedVersion,
+      inspectionDecision: "REJECTED",
+      violations: selectedVersion.violations.map((violation) => ({
+        ...violation,
+        currentStatus: "VIOLATION_CONFIRMED",
+      })),
     },
-  }));
+  });
+  const confirmationResponse = () => new Response(JSON.stringify({
+    code: "OK",
+    data: { updatedCount: 1 },
+    message: null,
+    success: true,
+  }), { headers: { "Content-Type": "application/json" }, status: 200 });
+  const fetchMock = mockContentApis(
+    [contentItem()], selectedDetail, confirmedDetail, undefined, confirmationResponse,
+  );
 
   renderRoute("/content/inspections/901");
 
@@ -271,6 +326,9 @@ test("loads the latest version report and active violations on a direct detail r
   fireEvent.click(within(report).getByRole("button", { name: /① 허위·과장 표현/ }));
   expect(document.querySelector('[data-violation-anchor="1"][data-focused="true"]')).not.toBeNull();
 
+  fireEvent.click(within(report).getByRole("button", { name: /① 허위·과장 표현/ }));
+  expect(document.querySelector('[data-violation-anchor="1"][data-focused="true"]')).toBeNull();
+
   fireEvent.click(markViolation);
   expect(markViolation).toHaveAttribute("aria-pressed", "true");
   expect(within(finalInspection).getByText("1 / 1")).toBeInTheDocument();
@@ -281,6 +339,29 @@ test("loads the latest version report and active violations on a direct detail r
   expect(markNormal).toHaveAttribute("aria-pressed", "true");
   expect(approve).toBeEnabled();
   expect(reject).toBeDisabled();
+
+  fireEvent.click(markNormal);
+  expect(markNormal).toHaveAttribute("aria-pressed", "false");
+  expect(markViolation).toHaveAttribute("aria-pressed", "false");
+  expect(within(finalInspection).getByText("0 / 1")).toBeInTheDocument();
+  expect(approve).toBeDisabled();
+  expect(reject).toBeDisabled();
+
+  fireEvent.click(markViolation);
+  fireEvent.click(reject);
+
+  await waitFor(() => expect(within(finalInspection).getByRole("status"))
+    .toHaveTextContent("반려 처리했습니다. 위반 항목 1건을 갱신했습니다."));
+  expect(within(finalInspection).queryByText("① 허위·과장 표현")).not.toBeInTheDocument();
+  expect(within(report).getByText("① 허위·과장 표현")).toBeInTheDocument();
+  const confirmationCall = fetchMock.mock.calls.find(([input]) => (
+    requestPathname(input) === "/api/admin/contents/901/versions/9010/inspection"
+  ));
+  expect(confirmationCall).toBeDefined();
+  expect(JSON.parse(String((confirmationCall?.[1] as RequestInit).body))).toEqual({
+    decision: "REJECTED",
+    violations: [{ status: "VIOLATION_CONFIRMED", violationItemId: 21 }],
+  });
 });
 
 test("shows an accessible fallback when a fetched detail has no profile image", async () => {
@@ -307,6 +388,7 @@ test("loads a past content version when the version select changes", async () =>
     },
     {
       contentVersionId: 9010,
+      creationReason: "SOURCE_CHANGE",
       createdAt: "2026-08-18T11:05:00",
       inspectedAt: "2026-08-18T11:06:00",
       inspectionStatus: "COMPLETED",
@@ -326,7 +408,7 @@ test("loads a past content version when the version select changes", async () =>
       createdAt: "2026-08-18T11:05:00",
       inspectedAt: "2026-08-18T11:06:00",
       inspectionStatus: "COMPLETED",
-      texts: ["지금 가장 저렴한 가격 #광고"],
+      media: versionMedia(["지금 가장 저렴한 가격 #광고"]),
       violations: [],
       versionNo: 2,
     },
@@ -344,10 +426,11 @@ test("loads a past content version when the version select changes", async () =>
           summary: "이전 버전 요약",
         },
         contentVersionId: 9001,
+        creationReason: "INITIAL",
         createdAt: "2026-08-17T09:00:00",
         inspectedAt: "2026-08-17T09:10:00",
         inspectionStatus: "COMPLETED",
-        texts: ["이전 버전 본문"],
+        media: versionMedia(["이전 버전 본문"]),
         violations: [],
         versionNo: 1,
       },
@@ -362,7 +445,7 @@ test("loads a past content version when the version select changes", async () =>
     { timeout: 3_000 },
   );
   const versionSelect = screen.getByRole("combobox", { name: "버전" });
-  expect(versionSelect).toHaveDisplayValue("v2 · 최신 버전");
+  expect(versionSelect).toHaveDisplayValue("v2 · 콘텐츠 수정 · 최신 버전");
 
   fireEvent.change(versionSelect, { target: { value: "9001" } });
 
@@ -380,4 +463,82 @@ test("loads a past content version when the version select changes", async () =>
   expect(fetchMock.mock.calls.filter(([input]) => (
     requestPathname(input) === "/api/admin/contents/901/versions/9001"
   ))).toHaveLength(1);
+});
+
+test("moves to the actual extraction-change version after one inspection", async () => {
+  const inspectionResponse = new Response(JSON.stringify({
+    code: "OK",
+    data: {
+      creationReason: "EXTRACTION_CHANGE",
+      inspectedContentVersionId: 9011,
+      requestedContentVersionId: 9010,
+      versionCreated: true,
+      violationCount: 0,
+    },
+    message: null,
+    success: true,
+  }), { headers: { "Content-Type": "application/json" }, status: 200 });
+  const fetchMock = mockContentApis(
+    [contentItem()],
+    detailResponse(),
+    (contentVersionId) => {
+      expect(contentVersionId).toBe(9011);
+      return detailResponse({
+        selectedVersion: {
+          contentReport: {
+            contentReportId: 12,
+            flow: "새 추출 흐름",
+            overallAssessment: "정상",
+            purpose: "상품 소개",
+            summary: "새 추출 버전 분석",
+          },
+          contentVersionId: 9011,
+          creationReason: "EXTRACTION_CHANGE",
+          createdAt: "2026-08-18T12:00:00",
+          inspectedAt: "2026-08-18T12:01:00",
+          inspectionStatus: "COMPLETED",
+          media: versionMedia(["새 추출 본문"]),
+          violations: [],
+          versionNo: 3,
+        },
+        versions: [
+          {
+            contentVersionId: 9011,
+            creationReason: "EXTRACTION_CHANGE",
+            createdAt: "2026-08-18T12:00:00",
+            inspectedAt: "2026-08-18T12:01:00",
+            inspectionStatus: "COMPLETED",
+            versionNo: 3,
+          },
+          {
+            contentVersionId: 9010,
+            creationReason: "SOURCE_CHANGE",
+            createdAt: "2026-08-18T02:05:00.847815Z",
+            inspectedAt: null,
+            inspectionStatus: "PENDING",
+            versionNo: 2,
+          },
+        ],
+      });
+    },
+    inspectionResponse,
+  );
+
+  renderRoute("/content/inspections/901");
+  await waitFor(() => expect(screen.getByRole("button", { name: "자동 검수 실행" })).toBeEnabled());
+
+  fireEvent.click(screen.getByRole("button", { name: "자동 검수 실행" }));
+
+  await waitFor(() => expect(screen.getAllByText("새 추출 본문").length).toBeGreaterThan(0));
+  expect(screen.getByRole("combobox", { name: "버전" }))
+    .toHaveDisplayValue("v3 · 추출 변경 · 최신 버전");
+  expect(screen.getByRole("status")).toHaveTextContent(
+    "추출 정책 변경으로 v3을 생성해 검수했습니다.",
+  );
+  expect(fetchMock.mock.calls.map(([input]) => requestPathname(input))).toEqual(
+    expect.arrayContaining([
+      "/api/admin/content-versions/9010/inspect",
+      "/api/admin/contents/901/versions/9011",
+    ]),
+  );
 });

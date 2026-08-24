@@ -22,14 +22,15 @@ export type ContentAnnotationTarget =
     }
   | {
       kind: "media";
-      mediaIndex: number;
+      mediaIndex?: number;
       quote: string;
-      box: {
+      box?: {
         x: number;
         y: number;
         width: number;
         height: number;
       };
+      boxUnit?: "percent" | "pixel";
       timeRange?: {
         start: string;
         end: string;
@@ -55,6 +56,7 @@ export interface ContentSnapshot {
   mediaCount: number;
   mediaKinds: string[];
   mediaUrls: string[];
+  contentMediaIds?: number[];
   youtubeVideoId?: string;
   capturedAt: string;
   annotations?: ContentAnnotation[];
@@ -69,6 +71,12 @@ export interface ContentInspectionSignal {
   evidence: string;
   guidance?: string;
   tone: InspectionSignalTone;
+  detectorSource?: "RULE" | "AI";
+  locationAvailable?: boolean;
+  violationItemId?: number;
+  violationStatus?: "PENDING" | "VIOLATION_CONFIRMED" | "EDIT_REQUESTED" | "DISMISSED" | "RESOLVED";
+  inspectionPolicyId?: number;
+  violationEvidenceHistoryId?: number;
 }
 
 export interface ContentInspectionExtract {
@@ -95,6 +103,7 @@ export interface ContentInspectionReport {
 
 export interface ContentInspectionVersionSummary {
   contentVersionId: number;
+  creationReason?: "INITIAL" | "SOURCE_CHANGE" | "EXTRACTION_CHANGE";
   versionNo: number;
   inspectionStatus: string;
   createdAt: string;

@@ -53,14 +53,17 @@ import {
   INSPECTION_TYPE_LABELS,
   adaptContentInspection,
   adaptContentInspectionDetail,
+  confirmContentInspection,
   getContentDetail,
   getContentVersionDetail,
   getCurrentGenerationContents,
+  inspectContentVersion,
   runContentBatch,
   type ContentAnnotation,
   type ContentAnnotationTarget,
   type ContentBatchRunResponse,
   type ContentInspectionFixture,
+  type ContentInspectionConfirmationRequest,
   type ContentSnapshot,
   type InspectionStatus,
 } from "../../entities/content";
@@ -100,6 +103,7 @@ function latestContentVersion(content: ContentInspectionFixture) {
   if (versions.length === 0) {
     return {
       contentVersionId: content.contentVersionId ?? 0,
+      creationReason: undefined,
       versionNo: content.latestVersionNo ?? 1,
     };
   }
@@ -147,6 +151,19 @@ function issueOrdinalLabel(ordinal: number) {
 function currentDisplayedVersionNo(content: ContentInspectionFixture) {
   const matched = content.versions?.find((version) => version.contentVersionId === content.contentVersionId);
   return matched?.versionNo ?? content.latestVersionNo ?? 1;
+}
+
+function pendingInspectionCandidates(content: ContentInspectionFixture): InspectionIssueSignal[] {
+  return inspectionIssueSignals(content).filter((signal) => (
+    signal.violationStatus == null || signal.violationStatus === "PENDING"
+  ));
+}
+
+function versionCreationReasonLabel(reason?: string) {
+  if (reason === "INITIAL") return "최초 수집";
+  if (reason === "SOURCE_CHANGE") return "콘텐츠 수정";
+  if (reason === "EXTRACTION_CHANGE") return "추출 변경";
+  return null;
 }
 
 function showsInspectionGuideline(signal: { guidance?: string; title: string }) {
@@ -801,7 +818,8 @@ function indexedViolationAnnotations(
 
   if (snapshot === content.currentSnapshot) {
     candidates.forEach((signal) => {
-      if (!annotations.some((annotation) => annotationMatchesSignal(annotation, signal))) {
+      if (signal.locationAvailable !== false
+        && !annotations.some((annotation) => annotationMatchesSignal(annotation, signal))) {
         annotations.push(annotationFromSignal(signal, snapshot, signal.ordinal));
       }
     });
@@ -907,9 +925,12 @@ function MinimalVersionCard({
   );
   const firstAnnotatedMediaIndex = annotations.find((annotation) => annotation.target.kind === "media")?.target;
   const [activeMediaIndex, setActiveMediaIndex] = useState(
-    firstAnnotatedMediaIndex?.kind === "media" ? firstAnnotatedMediaIndex.mediaIndex : 0,
+    firstAnnotatedMediaIndex?.kind === "media" ? firstAnnotatedMediaIndex.mediaIndex ?? 0 : 0,
   );
   const [mediaAspectRatios, setMediaAspectRatios] = useState<Record<number, number>>({});
+  const [mediaNaturalSizes, setMediaNaturalSizes] = useState<
+    Record<number, { height: number; width: number }>
+  >({});
   const mediaItems = Array.from({ length: snapshot.mediaCount }, (_, index) => ({
     kind: snapshot.mediaKinds[index] ?? "이미지",
     url: snapshot.mediaUrls[index] ?? snapshot.mediaUrls[0],
@@ -922,6 +943,9 @@ function MinimalVersionCard({
   const isVerticalVideo = content.contentFormat === "인스타 릴스" || content.contentFormat === "유튜브 쇼츠";
   const activeMediaAnnotations = annotations.filter((annotation) => (
     annotation.target.kind === "media" && annotation.target.mediaIndex === visibleIndex
+  ));
+  const headerAnnotations = annotations.filter((annotation) => (
+    annotation.target.kind === "media" && annotation.target.mediaIndex === undefined
   ));
   const frameAspectRatio = isVerticalVideo ? 9 / 16 : isInstagram ? 4 / 5 : 16 / 9;
   const mediaAspectRatio = embedUrl
@@ -942,7 +966,9 @@ function MinimalVersionCard({
     const annotation = annotations.find(({ ordinal }) => ordinal === focusedViolation.ordinal);
     if (!annotation) return;
     const animationFrame = window.requestAnimationFrame(() => {
-      if (annotation.target.kind === "media" && visibleIndex !== annotation.target.mediaIndex) {
+      if (annotation.target.kind === "media"
+        && annotation.target.mediaIndex !== undefined
+        && visibleIndex !== annotation.target.mediaIndex) {
         setActiveMediaIndex(annotation.target.mediaIndex);
         return;
       }
@@ -963,7 +989,21 @@ function MinimalVersionCard({
       data-platform={platform.toLowerCase()}
       ref={cardRef}
     >
-      <header><strong>{label}</strong><time>{snapshot.capturedAt}</time></header>
+      <header>
+        <strong>{label}</strong>
+        {headerAnnotations.map((annotation) => (
+          <button
+            aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
+            className="fuma-minimal-version-card__media-warning"
+            key={annotation.id}
+            onClick={() => onSelectViolation?.(annotation.ordinal)}
+            type="button"
+          >
+            {annotation.ordinal} {annotation.title}
+          </button>
+        ))}
+        <time>{snapshot.capturedAt}</time>
+      </header>
       <div className="fuma-platform-inspection-frame">
         {isInstagram ? (
           <div className="fuma-platform-inspection-frame__instagram-header">
@@ -1001,6 +1041,10 @@ function MinimalVersionCard({
                       ...current,
                       [visibleIndex]: naturalWidth / naturalHeight,
                     }));
+                    setMediaNaturalSizes((current) => ({
+                      ...current,
+                      [visibleIndex]: { height: naturalHeight, width: naturalWidth },
+                    }));
                   }
                 }}
                 src={activeMedia.url}
@@ -1013,23 +1057,36 @@ function MinimalVersionCard({
                 {activeMediaAnnotations.map((annotation) => {
                   if (annotation.target.kind !== "media") return null;
                   const { box, timeRange } = annotation.target;
+                  const naturalSize = mediaNaturalSizes[visibleIndex];
+                  const displayedBox = box && annotation.target.boxUnit === "pixel"
+                    ? naturalSize
+                      ? {
+                          height: box.height / naturalSize.height * 100,
+                          left: box.x / naturalSize.width * 100,
+                          top: box.y / naturalSize.height * 100,
+                          width: box.width / naturalSize.width * 100,
+                        }
+                      : null
+                    : box
+                      ? { height: box.height, left: box.x, top: box.y, width: box.width }
+                      : null;
                   return (
                     <button
                       aria-current={focusedViolation?.ordinal === annotation.ordinal}
                       aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
-                      className="fuma-platform-inspection-frame__violation-box"
+                      className={`fuma-platform-inspection-frame__violation-box${displayedBox ? "" : " is-marker-only"}`}
                       data-focused={focusedViolation?.ordinal === annotation.ordinal}
                       data-severity={annotation.severity}
                       data-violation-anchor={annotation.ordinal}
                       id={focusedViolation != null ? `${content.id}-violation-${annotation.ordinal}` : undefined}
                       key={annotation.id}
                       onClick={() => onSelectViolation?.(annotation.ordinal)}
-                      style={{
-                        height: `${box.height}%`,
-                        left: `${box.x}%`,
-                        top: `${box.y}%`,
-                        width: `${box.width}%`,
-                      }}
+                      style={displayedBox ? {
+                        height: `${displayedBox.height}%`,
+                        left: `${displayedBox.left}%`,
+                        top: `${displayedBox.top}%`,
+                        width: `${displayedBox.width}%`,
+                      } : undefined}
                       type="button"
                     >
                       <span className="fuma-inspection-annotation-pin">{annotation.ordinal}</span>
@@ -1187,7 +1244,8 @@ function MinimalAiAnalysis({
               {issues.length > 0 ? (
                 <ul>
                   {issues.map((issue) => (
-                    <li key={`${issue.ordinal}-${issue.title}`}>
+                    <li key={issue.violationEvidenceHistoryId
+                      ?? `${issue.ordinal}-${issue.title}`}>
                       <button
                         aria-current={focusedOrdinal === issue.ordinal}
                         className="fuma-content-inspection-evidence__item"
@@ -1195,7 +1253,17 @@ function MinimalAiAnalysis({
                         onClick={() => onSelectViolation(issue.ordinal)}
                         type="button"
                       >
-                        <strong>{issueOrdinalLabel(issue.ordinal)} {issue.title}</strong>
+                        <strong>
+                          {issueOrdinalLabel(issue.ordinal)} {issue.title}
+                          {issue.detectorSource ? (
+                            <span className="fuma-content-inspection-evidence__source">
+                              {issue.detectorSource}
+                              {issue.inspectionPolicyId != null
+                                ? ` · 정책 #${issue.inspectionPolicyId}`
+                                : ""}
+                            </span>
+                          ) : null}
+                        </strong>
                         <p>{issue.detail}</p>
                         <dl>
                           <div>
@@ -1264,14 +1332,21 @@ function MinimalFinalInspection({
   content,
   focusedOrdinal,
   onNavigateToViolation,
+  onConfirm,
+  readOnly,
 }: {
   content: ContentInspectionFixture;
   focusedOrdinal?: number;
   onNavigateToViolation: (ordinal: number) => void;
+  onConfirm: (request: ContentInspectionConfirmationRequest) => Promise<number>;
+  readOnly: boolean;
 }) {
   const [decision, setDecision] = useState<"승인" | "반려" | null>(null);
+  const [confirmationError, setConfirmationError] = useState<string | null>(null);
+  const [confirmationFeedback, setConfirmationFeedback] = useState<string | null>(null);
+  const [confirmationPending, setConfirmationPending] = useState(false);
   const analysisPending = content.aiStatus === "pending";
-  const candidates = inspectionIssueSignals(content);
+  const candidates = readOnly ? [] : pendingInspectionCandidates(content);
   const [judgments, setJudgments] = useState<Partial<Record<number, InspectionJudgment>>>({});
   const judgedCount = candidates.filter((candidate) => judgments[candidate.ordinal]).length;
   const allJudged = candidates.length === 0 || judgedCount === candidates.length;
@@ -1280,8 +1355,51 @@ function MinimalFinalInspection({
   const rejectEnabled = !analysisPending && allJudged && hasViolationJudgment;
 
   const setJudgment = (ordinal: number, judgment: InspectionJudgment) => {
-    setJudgments((current) => ({ ...current, [ordinal]: judgment }));
+    setJudgments((current) => {
+      if (current[ordinal] === judgment) {
+        const next = { ...current };
+        delete next[ordinal];
+        return next;
+      }
+      return { ...current, [ordinal]: judgment };
+    });
     setDecision(null);
+    setConfirmationError(null);
+    setConfirmationFeedback(null);
+  };
+
+  const submitDecision = async (selected: "승인" | "반려") => {
+    if (confirmationPending) return;
+    const missingViolationId = candidates.some((candidate) => candidate.violationItemId == null);
+    if (missingViolationId) {
+      setConfirmationError("확정할 위반 항목 ID가 없습니다.");
+      return;
+    }
+    const violations = candidates.map((candidate) => {
+      return {
+        status: judgments[candidate.ordinal] === "위반"
+          ? "VIOLATION_CONFIRMED" as const
+          : "DISMISSED" as const,
+        violationItemId: candidate.violationItemId as number,
+      };
+    });
+    setConfirmationPending(true);
+    setConfirmationError(null);
+    setConfirmationFeedback(null);
+    try {
+      const updatedCount = await onConfirm({
+        decision: selected === "승인" ? "APPROVED" : "REJECTED",
+        violations,
+      });
+      setDecision(selected);
+      setConfirmationFeedback(`${selected} 처리했습니다. 위반 항목 ${updatedCount}건을 갱신했습니다.`);
+    } catch (error: unknown) {
+      setConfirmationError(error instanceof Error
+        ? error.message
+        : "콘텐츠 검수 확정에 실패했습니다.");
+    } finally {
+      setConfirmationPending(false);
+    }
   };
 
   return (
@@ -1304,7 +1422,8 @@ function MinimalFinalInspection({
             <article
               data-focused={focusedOrdinal === candidate.ordinal}
               data-judgment={judgment ?? "pending"}
-              key={`${candidate.source}-${candidate.title}`}
+              key={candidate.violationEvidenceHistoryId
+                ?? `${candidate.source}-${candidate.title}`}
             >
               <button
                 aria-current={focusedOrdinal === candidate.ordinal}
@@ -1336,30 +1455,34 @@ function MinimalFinalInspection({
             </article>
           );
         }) : (
-          <p><CheckCircle2 aria-hidden="true" size={15} /> 판정할 위반 후보가 없습니다.</p>
+            <p><CheckCircle2 aria-hidden="true" size={15} /> {readOnly
+              ? "과거 버전은 위반 이력 조회만 가능합니다."
+              : "판정할 위반 후보가 없습니다."}</p>
         )}
       </section>
       <div className="fuma-minimal-final-inspection__actions">
         <Button
           aria-pressed={decision === "반려"}
           className={decision === "반려" ? "is-rejected" : undefined}
-          disabled={!rejectEnabled}
-          onClick={() => setDecision("반려")}
+          disabled={!rejectEnabled || confirmationPending}
+          onClick={() => void submitDecision("반려")}
         >
           반려
         </Button>
         <Button
           aria-pressed={decision === "승인"}
           className={decision === "승인" ? "is-approved" : undefined}
-          disabled={!approveEnabled}
-          onClick={() => setDecision("승인")}
+          disabled={!approveEnabled || confirmationPending}
+          onClick={() => void submitDecision("승인")}
         >
           승인
         </Button>
       </div>
       {analysisPending
         ? <p>분석이 완료된 후 최종 검수를 진행할 수 있습니다.</p>
-        : decision ? <p>{decision}으로 선택했습니다.</p> : null}
+        : confirmationError ? <p role="alert">{confirmationError}</p>
+          : confirmationFeedback ? <p role="status">{confirmationFeedback}</p>
+            : decision ? <p>{decision}으로 선택했습니다.</p> : null}
     </section>
   );
 }
@@ -1383,28 +1506,38 @@ function ContentInspectionDetailContent({
   } | null>(null);
   const [versionOverride, setVersionOverride] = useState<ContentInspectionFixture | null>(null);
   const [versionError, setVersionError] = useState<string | null>(null);
+  const [inspectionFeedback, setInspectionFeedback] = useState<string | null>(null);
+  const [inspectionPending, setInspectionPending] = useState(false);
   const versionRequestRef = useRef<AbortController | null>(null);
   const displayed = versionOverride?.id === content.id ? versionOverride : content;
-  const latestVersion = latestContentVersion(content);
-  const versions = [...(content.versions ?? [])].sort((left, right) => right.versionNo - left.versionNo);
+  const versionSource = versionOverride?.versions?.length ? versionOverride : content;
+  const latestVersion = latestContentVersion(versionSource);
+  const versions = [...(versionSource.versions ?? [])]
+    .sort((left, right) => right.versionNo - left.versionNo);
   const versionOptions = (versions.length > 0 ? versions : [latestVersion]).map((version) => ({
-    label: version.contentVersionId === latestVersion.contentVersionId
-      ? `v${version.versionNo} · 최신 버전`
-      : `v${version.versionNo}`,
+    label: [
+      `v${version.versionNo}`,
+      versionCreationReasonLabel(version.creationReason),
+      version.contentVersionId === latestVersion.contentVersionId ? "최신 버전" : null,
+    ].filter(Boolean).join(" · "),
     value: String(version.contentVersionId),
   }));
 
   const navigateToViolation = (ordinal: number) => {
-    setFocusedViolation((current) => ({
-      ordinal,
-      requestId: (current?.requestId ?? 0) + 1,
-    }));
+    setFocusedViolation((current) => (
+      current?.ordinal === ordinal
+        ? null
+        : {
+            ordinal,
+            requestId: (current?.requestId ?? 0) + 1,
+          }
+    ));
   };
 
   const selectVersion = (contentVersionId: number) => {
     versionRequestRef.current?.abort();
     setVersionError(null);
-    if (contentVersionId === latestVersion.contentVersionId) {
+    if (contentVersionId === content.contentVersionId) {
       setVersionOverride(null);
       return;
     }
@@ -1421,6 +1554,44 @@ function ContentInspectionDetailContent({
       });
   };
 
+  const runInspection = async () => {
+    versionRequestRef.current?.abort();
+    const controller = new AbortController();
+    versionRequestRef.current = controller;
+    setInspectionPending(true);
+    setInspectionFeedback(null);
+    setVersionError(null);
+    try {
+      const result = await inspectContentVersion(
+        latestVersion.contentVersionId, controller.signal,
+      );
+      const detail = await getContentVersionDetail(
+        Number(content.id), result.inspectedContentVersionId, controller.signal,
+      );
+      setVersionOverride(adaptContentInspectionDetail(detail, content));
+      setFocusedViolation(null);
+      setInspectionFeedback(result.versionCreated
+        ? `추출 정책 변경으로 v${detail.selectedVersion.versionNo}을 생성해 검수했습니다.`
+        : `v${detail.selectedVersion.versionNo} 검수를 완료했습니다.`);
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      setVersionError(error instanceof Error ? error.message : "콘텐츠 검수 실행에 실패했습니다.");
+    } finally {
+      setInspectionPending(false);
+    }
+  };
+
+  const confirmInspection = async (request: ContentInspectionConfirmationRequest) => {
+    const contentVersionId = displayed.contentVersionId ?? latestVersion.contentVersionId;
+    const result = await confirmContentInspection(
+      Number(content.id), contentVersionId, request,
+    );
+    const detail = await getContentVersionDetail(Number(content.id), contentVersionId);
+    setVersionOverride(adaptContentInspectionDetail(detail, content));
+    setFocusedViolation(null);
+    return result.updatedCount;
+  };
+
   useEffect(() => () => versionRequestRef.current?.abort(), []);
 
   return (
@@ -1432,6 +1603,13 @@ function ContentInspectionDetailContent({
         </button>
         <div className="fuma-minimal-inspection-toolbar__next">
           <span><strong>{remainingCount}건</strong>의 콘텐츠가 남았습니다.</span>
+          <Button
+            disabled={inspectionPending}
+            onClick={() => void runInspection()}
+            variant="secondary"
+          >
+            {inspectionPending ? "검수 중" : "자동 검수 실행"}
+          </Button>
           <Button
             className="fuma-content-inspection-next-button"
             disabled={!nextContent}
@@ -1448,6 +1626,11 @@ function ContentInspectionDetailContent({
           role="alert"
         >
           {versionError}
+        </p>
+      ) : null}
+      {inspectionFeedback ? (
+        <p className="fuma-content-inspection-collection-feedback" role="status">
+          {inspectionFeedback}
         </p>
       ) : null}
       <div className="fuma-minimal-inspection-layout">
@@ -1527,7 +1710,9 @@ function ContentInspectionDetailContent({
             content={displayed}
             focusedOrdinal={focusedViolation?.ordinal}
             key={`${displayed.id}-${displayed.contentVersionId ?? "latest"}`}
+            onConfirm={confirmInspection}
             onNavigateToViolation={navigateToViolation}
+            readOnly={currentDisplayedVersionNo(displayed) < latestVersion.versionNo}
           />
         </aside>
       </div>

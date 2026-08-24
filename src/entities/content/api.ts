@@ -86,6 +86,7 @@ export type ContentViolationItemStatus =
   | "RESOLVED";
 
 export type ContentEvidenceMediaType = "TEXT" | "IMAGE" | "VIDEO";
+export type ContentEvidenceSource = "RULE" | "AI";
 
 export interface ContentBoundingBox {
   x: number;
@@ -109,14 +110,32 @@ export interface ContentViolationEvidence {
   confidence: number;
   locations: ContentEvidenceLocation[];
   reason: string;
+  source: ContentEvidenceSource;
 }
 
 export interface ContentViolation {
+  currentStatus: ContentViolationItemStatus;
+  detectedAt: string;
   evidence: ContentViolationEvidence | null;
-  status: ContentViolationItemStatus;
+  inspectionPolicyId: number;
+  violationEvidenceHistoryId: number;
   violationItemId: number;
   violationType: ContentViolationType;
   violationTypeDescription: string;
+}
+
+export type ContentVersionCreationReason =
+  | "INITIAL"
+  | "SOURCE_CHANGE"
+  | "EXTRACTION_CHANGE";
+
+export interface ContentVersionMedia {
+  contentMediaId: number;
+  mediaType: ContentEvidenceMediaType;
+  mediaUrl: string | null;
+  sequenceNo: number;
+  snsMediaId: string | null;
+  text: string | null;
 }
 
 export interface ContentReport {
@@ -129,7 +148,9 @@ export interface ContentReport {
 
 export interface ContentVersionSummary {
   contentVersionId: number;
+  creationReason: ContentVersionCreationReason;
   createdAt: string;
+  inspectionDecision?: ContentInspectionDecision | null;
   inspectedAt: string | null;
   inspectionStatus: ContentVersionInspectionStatus;
   versionNo: number;
@@ -137,8 +158,31 @@ export interface ContentVersionSummary {
 
 export interface ContentVersionDetail extends ContentVersionSummary {
   contentReport: ContentReport | null;
-  texts: string[];
+  media: ContentVersionMedia[];
   violations: ContentViolation[];
+}
+
+export interface ContentInspectionRunResponse {
+  creationReason: ContentVersionCreationReason;
+  inspectedContentVersionId: number;
+  requestedContentVersionId: number;
+  versionCreated: boolean;
+  violationCount: number;
+}
+
+export type ContentInspectionDecision = "APPROVED" | "REJECTED";
+export type ContentInspectionTargetStatus = "VIOLATION_CONFIRMED" | "DISMISSED";
+
+export interface ContentInspectionConfirmationRequest {
+  decision: ContentInspectionDecision;
+  violations: Array<{
+    violationItemId: number;
+    status: ContentInspectionTargetStatus;
+  }>;
+}
+
+export interface ContentInspectionConfirmationResponse {
+  updatedCount: number;
 }
 
 export interface ContentDetail {
@@ -271,4 +315,55 @@ export function getContentVersionDetail(
     `/api/admin/contents/${contentId}/versions/${contentVersionId}`,
     signal,
   );
+}
+
+export async function inspectContentVersion(
+  contentVersionId: number,
+  signal?: AbortSignal,
+): Promise<ContentInspectionRunResponse> {
+  const headers = new Headers();
+  const authorization = authorizationHeader();
+  if (authorization) headers.set("Authorization", authorization);
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/admin/content-versions/${contentVersionId}/inspect`,
+    { headers, method: "POST", signal },
+  );
+  if (!response.ok) {
+    throw new Error(await errorMessage(response, "콘텐츠 검수 실행에 실패했습니다."));
+  }
+  const result = await response.json() as ApiResult<ContentInspectionRunResponse>;
+  if (!result.success || !result.data) {
+    throw new Error(result.message || "콘텐츠 검수 실행에 실패했습니다.");
+  }
+  return result.data;
+}
+
+export async function confirmContentInspection(
+  contentId: number,
+  contentVersionId: number,
+  request: ContentInspectionConfirmationRequest,
+  signal?: AbortSignal,
+): Promise<ContentInspectionConfirmationResponse> {
+  const headers = new Headers({ "Content-Type": "application/json" });
+  const authorization = authorizationHeader();
+  if (authorization) headers.set("Authorization", authorization);
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/admin/contents/${contentId}/versions/${contentVersionId}/inspection`,
+    {
+      body: JSON.stringify(request),
+      headers,
+      method: "PATCH",
+      signal,
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await errorMessage(response, "콘텐츠 검수 확정에 실패했습니다."));
+  }
+  const result = await response.json() as ApiResult<ContentInspectionConfirmationResponse>;
+  if (!result.success || !result.data) {
+    throw new Error(result.message || "콘텐츠 검수 확정에 실패했습니다.");
+  }
+  return result.data;
 }

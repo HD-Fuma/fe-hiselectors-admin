@@ -30,10 +30,23 @@
 
 ## 위치 주석 계약
 
-- media 위반은 백분율 좌표 box와 번호 pin으로 표시합니다.
-- text 위반은 `quote + occurrence`로 정확한 문구를 찾습니다.
+- API evidence의 `contentMediaId`로 선택 버전의 `media`와 위치를 연결합니다.
+- image bbox는 원본 이미지 픽셀 좌표이며 로드된 원본 크기로 화면 비율을 계산합니다.
+- video의 초 단위 `startTime/endTime`은 시간 라벨이 있는 미디어 마커로 표시합니다.
+- text 위반은 해당 미디어 `body.text` 기준 UTF-16 `[startIndex, endIndex)`를 사용합니다.
+- 좌표가 없는 media-level location은 해당 미디어 또는 콘텐츠 카드 헤더 경고 배지로 표시합니다.
+- locations가 비어 있으면 콘텐츠 전체 위반으로 근거 패널에만 표시합니다.
+- 검수 출처는 evidence의 `RULE`/`AI` 값을 배지로 구분합니다.
 - URL 위반은 `targetIndex`로 해당 link row와 연결합니다.
-- `state: "active"`인 annotation만 원본 표시와 안내 rail을 만듭니다. 해결된 현재 수정본에는 과거 표시를 남기지 않습니다.
+- `state: "active"`인 annotation만 원본 표시와 안내 rail을 만듭니다. 다만 과거 버전을 선택하면 현재 해결·기각 상태와 별개로 당시 evidence 위치를 표시합니다.
 - 번호가 같은 원본 mark와 안내문을 연결하고, 색상 외에도 번호·아이콘·텍스트로 구분합니다.
 - quote나 index가 원본과 맞지 않으면 잘못된 위치를 추정하지 않습니다. 원본 강조는 생략하고 안내문은 해당 section에 유지합니다.
 - annotation은 `detectedIssues`나 분석 문장에서 UI가 추론하지 않고 typed fixture/API data로 받습니다.
+
+## 관리자 확정 계약
+
+- 모든 후보를 판정한 뒤 `PATCH /api/admin/contents/{contentId}/versions/{contentVersionId}/inspection`을 한 번 호출합니다.
+- 승인은 `APPROVED`, 반려는 `REJECTED`로 보내며 후보에는 실제 `violationItemId`와 목표 상태만 담습니다.
+- 위반 판정은 `VIOLATION_CONFIRMED`, 정상 판정은 `DISMISSED`를 사용합니다.
+- 화면 번호, 한국어 판정명, 중간 `PENDING` 상태는 요청에 포함하지 않습니다.
+- 성공 후 선택 버전 상세를 다시 조회해 서버가 확정한 상태를 화면에 반영합니다.
