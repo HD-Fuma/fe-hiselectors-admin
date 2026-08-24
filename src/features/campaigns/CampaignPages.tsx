@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import "../../styles/content-inspection.css";
 import { PageHeader } from "../../components/shell/PageHeader";
 import {
   Button,
@@ -16,6 +17,7 @@ import {
   TextInput,
 } from "../../components/ui/Controls";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
+import { ContentCollectionCard } from "../../components/ui/ContentCollectionCard";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
@@ -26,6 +28,7 @@ import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { ViewModeToggle, type ViewMode } from "../../components/ui/ViewModeToggle";
 import { assetUrl } from "../../lib/assetUrl";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import {
@@ -81,6 +84,58 @@ function CampaignThumbnail({ campaign }: { campaign: Campaign }) {
       onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = assetUrl("/brand/thehyundai-hi.svg"); }}
       src={campaign.thumbnailUrl || assetUrl("/brand/thehyundai-hi.svg")}
     />
+  );
+}
+
+function CampaignCard({ campaign, onOpen }: {
+  campaign: Campaign;
+  onOpen: (campaignId: number) => void;
+}) {
+  return (
+    <button
+      aria-label={`${campaign.title} 캠페인 상세 보기`}
+      className="fuma-content-collection__card fuma-creator-card"
+      data-content-format="youtube-long"
+      onClick={() => onOpen(campaign.id)}
+      type="button"
+    >
+      <ContentCollectionCard
+        caption={campaign.description || "등록된 캠페인 설명이 없습니다."}
+        footerEnd={<span>상품 {campaign.productIds.length}개</span>}
+        footerStart={(
+          <>
+            <time dateTime={campaign.startDate}>{campaign.startDate}</time>
+            {" ~ "}
+            <time dateTime={campaign.endDate}>{campaign.endDate}</time>
+          </>
+        )}
+        header={(
+          <header className="fuma-creator-card__header">
+            <div className="fuma-creator-card__identity">
+              <div className="fuma-creator-card__badges">
+                <span>캠페인</span>
+              </div>
+              <h2 className="fuma-creator-card__name">
+                ID {campaign.id} <span aria-hidden="true">›</span>
+              </h2>
+            </div>
+          </header>
+        )}
+        mediaAlt={`${campaign.title} 썸네일`}
+        mediaFallbackUrl="/brand/thehyundai-hi.svg"
+        mediaUrl={campaign.thumbnailUrl || "/brand/thehyundai-hi.svg"}
+        status={(
+          <StatusPill
+            className="fuma-content-collection__inspection-status"
+            tone={statusTone(campaign.status)}
+          >
+            {campaignStatusLabel(campaign.status)}
+          </StatusPill>
+        )}
+        title={campaign.title}
+        variant="custom"
+      />
+    </button>
   );
 }
 
@@ -155,6 +210,8 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
   const [pageData, setPageData] = useState<SpringPage<Campaign> | null>(null);
   const [listError, setListError] = useState("");
   const currentPage = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const viewMode: ViewMode = searchParams.get("view") === "list" ? "list" : "grid";
+  const campaigns = pageData?.content ?? [];
 
   useEffect(() => {
     const controller = new AbortController();
@@ -216,6 +273,13 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
     setSearchParams(nextParams);
   };
 
+  const changeViewMode = (nextViewMode: ViewMode) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextViewMode === "grid") nextParams.delete("view");
+    else nextParams.set("view", nextViewMode);
+    setSearchParams(nextParams, { replace: true });
+  };
+
   return (
     <>
     <section className="fuma-page">
@@ -259,26 +323,45 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
           options={CAMPAIGN_STATUS_CATEGORIES}
           value={selectedStatus}
         />
-        <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-result-toolbar">
-          <strong>캠페인 목록</strong>
-          <div className="fuma-settlement-result-meta">
-            <span>{selectedStatus ? campaignStatusLabel(selectedStatus) : "전체"}</span>
-            <span>총 {pageData?.totalElements ?? 0}건</span>
+        <section aria-label="캠페인 목록" className="fuma-content-collection">
+          <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-applicant-result-toolbar fuma-campaign-result-toolbar">
+            <strong>캠페인 목록</strong>
+            <div className="fuma-settlement-result-meta">
+              <span>{selectedStatus ? campaignStatusLabel(selectedStatus) : "전체"}</span>
+              <span>총 {pageData?.totalElements ?? 0}건</span>
+            </div>
+            <div className="fuma-creator-toolbar fuma-creator-toolbar__controls">
+              <span aria-hidden="true" className="fuma-creator-toolbar__divider" />
+              <ViewModeToggle onChange={changeViewMode} value={viewMode} />
+            </div>
           </div>
-        </div>
-        <div
-          aria-label="캠페인 목록"
-          className="fuma-wide-table fuma-settlement-table fuma-campaign-list-table"
-          role="region"
-        >
-          {listError ? <EmptyState description={listError} title="목록을 불러오지 못했습니다" /> : <DenseTable
-            columns={CAMPAIGN_COLUMNS}
-            emptyMessage={pageData ? "캠페인이 없습니다." : "캠페인을 불러오는 중입니다."}
-            onRowClick={(campaign) => openDetail(campaign.id)}
-            rowKey={(campaign) => campaign.id}
-            rows={pageData?.content ?? []}
-          />}
-        </div>
+          {listError ? (
+            <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
+          ) : !pageData ? (
+            <EmptyState title="캠페인을 불러오는 중입니다." />
+          ) : campaigns.length === 0 ? (
+            <EmptyState title="캠페인이 없습니다." />
+          ) : viewMode === "grid" ? (
+            <div className="fuma-content-collection__track is-grid">
+              {campaigns.map((campaign) => (
+                <CampaignCard campaign={campaign} key={campaign.id} onOpen={openDetail} />
+              ))}
+            </div>
+          ) : (
+            <div
+              aria-label="캠페인 리스트"
+              className="fuma-wide-table fuma-content-collection__list fuma-campaign-list-table"
+              role="region"
+            >
+              <DenseTable
+                columns={CAMPAIGN_COLUMNS}
+                onRowClick={(campaign) => openDetail(campaign.id)}
+                rowKey={(campaign) => campaign.id}
+                rows={campaigns}
+              />
+            </div>
+          )}
+        </section>
         <Pagination
           onPageChange={(page) => {
             const nextParams = new URLSearchParams(searchParams);

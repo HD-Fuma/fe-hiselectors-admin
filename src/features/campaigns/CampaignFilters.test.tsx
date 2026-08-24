@@ -83,6 +83,28 @@ describe("campaign filter behavior", () => {
     expect(screen.getByText("총 1건")).toBeInTheDocument();
   });
 
+  test("uses the shared content collection card and view toggle", async () => {
+    renderRoute("/campaigns");
+    const results = await screen.findByRole("region", { name: "캠페인 목록" });
+    const card = await within(results).findByRole("button", {
+      name: "초여름 패션 리뷰 캠페인 상세 보기",
+    });
+
+    expect(within(card).getByText("캠페인")).toBeInTheDocument();
+    expect(within(card).getByText("ID 3")).toBeInTheDocument();
+    expect(within(card).getByText("상품 1개")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "목록" }));
+    expect(within(results).getByRole("region", { name: "캠페인 리스트" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "카드" }));
+    fireEvent.click(await within(results).findByRole("button", {
+      name: "초여름 패션 리뷰 캠페인 상세 보기",
+    }));
+
+    expect(await screen.findByRole("dialog", { name: "캠페인 상세" })).toBeInTheDocument();
+  });
+
   test("shows included products above participants without detail tabs", async () => {
     renderRoute("/campaigns/3");
     const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
