@@ -372,6 +372,57 @@ function BatchProposalPanel({
   );
 }
 
+export function CreatorTestPage() {
+  const navigate = useNavigate();
+  const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState("");
+
+  const buildTestPool = async () => {
+    setIsRunning(true);
+    setError("");
+    try {
+      await runCreatorDiscovery(true);
+      navigate("/creators");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "테스트 크리에이터 풀 구축에 실패했습니다.");
+      setIsRunning(false);
+    }
+  };
+
+  return (
+    <section className="fuma-page">
+      <PageHeader title="테스트 크리에이터 풀 구축" />
+      <div className="fuma-page__body">
+        <section className="fuma-content-section">
+          <header className="fuma-content-section__header">
+            <h2>빠른 구축</h2>
+          </header>
+          <FormRow
+            help="활성 카테고리마다 우선순위가 가장 높은 키워드 1개만 실행합니다."
+            label="구축 범위"
+          >
+            카테고리별 키워드 1개
+          </FormRow>
+          <FormRow label="플랫폼">Instagram · YouTube</FormRow>
+          <FormRow label="실행">
+            <div>
+              <Button
+                disabled={isRunning}
+                onClick={() => void buildTestPool()}
+                type="button"
+                variant="primary"
+              >
+                {isRunning ? "구축 중..." : "테스트 풀 구축"}
+              </Button>
+              {error ? <p role="alert">{error}</p> : null}
+            </div>
+          </FormRow>
+        </section>
+      </div>
+    </section>
+  );
+}
+
 export function CreatorListPage() {
   const resetDescriptionId = useId();
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);

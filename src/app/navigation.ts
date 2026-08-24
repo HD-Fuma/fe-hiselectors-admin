@@ -16,6 +16,9 @@ function lazyPage(loader: () => Promise<ComponentType>) {
 const CreatorListPage = lazyPage(() =>
   import("../features/creators/CreatorPages").then((module) => module.CreatorListPage),
 );
+const CreatorTestPage = lazyPage(() =>
+  import("../features/creators/CreatorPages").then((module) => module.CreatorTestPage),
+);
 const ProposalHistoryPage = lazyPage(() =>
   import("../features/creators/CreatorPages").then((module) => module.ProposalHistoryPage),
 );
@@ -106,6 +109,16 @@ export const ADMIN_ROUTE_MANIFEST = [
     title: "크리에이터 풀",
     screenCode: "CR101",
     workTabLabel: "크리에이터 풀",
+  },
+  {
+    path: "/creators/test",
+    Component: CreatorTestPage,
+    group: "creators",
+    menuLabel: "크리에이터 풀",
+    title: "테스트 크리에이터 풀 구축",
+    screenCode: "CR102",
+    workTabLabel: "테스트 크리에이터 풀 구축",
+    workTabParentPath: "/creators",
   },
   {
     path: "/proposals",
