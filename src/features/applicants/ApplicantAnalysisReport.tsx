@@ -1,4 +1,5 @@
 import { ProfileAnalysisReport } from "../../components/ui/ProfileAnalysisReport";
+import { categoryLabel } from "../../entities/creator";
 import type {
   AdminApplicationAiReport,
   AdminApplicationDetail,
@@ -28,7 +29,7 @@ function formatLabel(format: ApplicationContentFormat) {
   return "미분류";
 }
 
-const MAX_KEYWORDS = 20;
+const MAX_KEYWORDS = 5;
 
 const BRACKET_OPEN = new Set(["(", "[", "{"]);
 const BRACKET_CLOSE = new Set([")", "]", "}"]);
@@ -64,6 +65,15 @@ const CONTENT_TYPE_TOKENS = new Set(["SHORT_FORM", "LONG_FORM", "SHORTS", "FEED"
 /** 톤앤매너 응답에 콘텐츠 유형 원시값(예: LONG_FORM)이 섞여 나오는 백엔드 이슈 방어. */
 function excludeContentTypeTokens(values: string[]) {
   return values.filter((value) => !CONTENT_TYPE_TOKENS.has(value.toUpperCase()));
+}
+
+const GENERIC_UI_TOKENS = new Set([
+  "게시물", "게시글", "미디어", "팔로우", "팔로워", "팔로잉", "보기", "가입", "좋아요", "댓글", "공유", "저장", "더보기", "프로필", "편집", "메시지",
+]);
+
+/** 키워드 응답에 SNS 화면의 버튼/메뉴 라벨(예: 팔로우, 가입)이 섞여 나오는 백엔드 이슈 방어. */
+function excludeGenericUiTokens(values: readonly string[]) {
+  return values.filter((value) => !GENERIC_UI_TOKENS.has(value.trim()));
 }
 
 function narrativeValues(raw: string | undefined, fallback: string) {
@@ -162,15 +172,12 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
     ? {
       basisBars: basis.bars,
       basisInsight: basis.insight,
-      category: aiReport.representativeCategory || aiReport.category || null,
+      category: categoryLabel(aiReport.representativeCategory || aiReport.category || null),
       contentTypeLabel: representativeContentTypeLabel(aiReport.representativeContentType),
       isVideo: aiReport.representativeContentType !== "FEED",
-      keywords: aiReport.representativeKeywords?.length
-        ? aiReport.representativeKeywords
-        : aiReport.keywords,
-      layout: aiReport.representativeContentType === "LONG_FORM"
-        ? "landscape" as const
-        : "portrait" as const,
+      keywords: excludeGenericUiTokens(
+        aiReport.representativeKeywords?.length ? aiReport.representativeKeywords : aiReport.keywords,
+      ),
       mediaAlt: `${applicant.applicantName} 대표 콘텐츠`,
       mediaUrl: (() => {
         const matched = applicant.contents.find(
@@ -290,8 +297,8 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
       riskNarrative={riskNarrative}
       summary={aiReport?.summary || reportSummary(applicant)}
       tagGroups={[
-        { label: "카테고리", values: aiReport?.category ? [aiReport.category] : [] },
-        { label: "키워드", values: aiReport?.keywords?.slice(0, MAX_KEYWORDS) ?? [] },
+        { label: "카테고리", values: aiReport?.category ? [categoryLabel(aiReport.category) ?? aiReport.category] : [] },
+        { label: "키워드", values: excludeGenericUiTokens(aiReport?.keywords ?? []).slice(0, MAX_KEYWORDS) },
         { label: "협업 이력", values: splitCsv(aiReport?.brandHistory) },
         { label: "콘텐츠 유형", values: formatSegments.map((format) => format.label) },
         {

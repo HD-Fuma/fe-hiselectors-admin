@@ -3,6 +3,7 @@ export {
   CREATOR_CATEGORIES,
   PENDING_AI_REPORT,
 } from "./model/fixtures";
+export { CREATOR_CATEGORY_OPTIONS, categoryLabel } from "./categoryLabels";
 export type {
   CreatorCategory,
   CreatorFeaturedContentFixture,
