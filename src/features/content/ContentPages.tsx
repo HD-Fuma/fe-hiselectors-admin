@@ -40,9 +40,9 @@ import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
+import { ListSearchPanel } from "../../components/ui/ListSearchPanel";
 import { Pagination } from "../../components/ui/Pagination";
 import { SearchActions } from "../../components/ui/SearchActions";
-import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { ViewModeToggle, type ViewMode } from "../../components/ui/ViewModeToggle";
 import { paginate } from "../../lib/pagination";
@@ -256,28 +256,26 @@ function QueueFilters({
   };
 
   return (
-    <div className="fuma-operations-search fuma-settlement-search fuma-content-inspection-search">
-      <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
-        <FilterField htmlFor="content-inspection-keyword" label="콘텐츠/작성자">
-          <TextInput
-            aria-label="콘텐츠/작성자"
-            id="content-inspection-keyword"
-            onChange={(event) => setKeyword(event.target.value)}
-            onKeyDown={applyOnEnter}
-            placeholder="콘텐츠 ID 또는 작성자"
-            value={keyword}
-          />
-        </FilterField>
-        <FilterField htmlFor="content-inspection-platform" label="플랫폼">
-          <Select
-            id="content-inspection-platform"
-            onChange={(event) => setPlatform(event.target.value)}
-            options={SOCIAL_PLATFORM_FILTER_OPTIONS}
-            value={platform}
-          />
-        </FilterField>
-      </SearchPanel>
-    </div>
+    <ListSearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
+      <FilterField htmlFor="content-inspection-keyword" label="콘텐츠/작성자">
+        <TextInput
+          aria-label="콘텐츠/작성자"
+          id="content-inspection-keyword"
+          onChange={(event) => setKeyword(event.target.value)}
+          onKeyDown={applyOnEnter}
+          placeholder="콘텐츠 ID 또는 작성자"
+          value={keyword}
+        />
+      </FilterField>
+      <FilterField htmlFor="content-inspection-platform" label="플랫폼">
+        <Select
+          id="content-inspection-platform"
+          onChange={(event) => setPlatform(event.target.value)}
+          options={SOCIAL_PLATFORM_FILTER_OPTIONS}
+          value={platform}
+        />
+      </FilterField>
+    </ListSearchPanel>
   );
 }
 

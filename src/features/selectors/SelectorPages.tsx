@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
@@ -36,11 +36,8 @@ import {
   getSettlementSelectorDetail,
   type SettlementSelectorDetail,
 } from "../../entities/settlement";
-import { formatNumber, formatWon } from "../../lib/formatters";
+import { formatNumber } from "../../lib/formatters";
 import { paginate } from "../../lib/pagination";
-import {
-  SELECTORS,
-} from "../../entities/selectors";
 
 const COHORT_STATUS_CATEGORIES = [
   { label: "활성", value: "ACTIVE" },
@@ -756,163 +753,5 @@ export function SelectorDetailPage() {
         settlementDetailLoading={!invalidSelectorId && !currentDetailState}
       />
     </>
-  );
-}
-
-interface ExcellentActivityFixture {
-  cohort: string;
-  id: string;
-  name: string;
-  totalSales: number;
-  type: string;
-}
-
-const EXCELLENT_ACTIVITY_COHORTS = ["2기", "3기", "4기"] as const;
-const EXCELLENT_ACTIVITY_RANKS = [1, 2, 3] as const;
-
-const EXCELLENT_ACTIVITIES: readonly ExcellentActivityFixture[] = SELECTORS
-  .filter((selector) => selector.status !== "박탈")
-  .slice(0, 12)
-  .map((selector, index) => {
-    const cohort = EXCELLENT_ACTIVITY_COHORTS[Math.floor(index / 4)];
-    const typeIndex = index % 4;
-    const rank = EXCELLENT_ACTIVITY_RANKS[typeIndex - 1];
-
-    return {
-      cohort,
-      id: selector.id,
-      name: selector.name,
-      totalSales: 21_000_000
-        + Math.floor(index / 4) * 2_500_000
-        + [1_500_000, 18_000_000, 12_000_000, 7_000_000][typeIndex],
-      type: typeIndex === 0
-        ? "누적 매출 1,000만원 이상 달성"
-        : `${cohort} 활동 누적 ${rank}위`,
-    };
-  })
-  .sort((left, right) => right.totalSales - left.totalSales);
-
-const EXCELLENT_ACTIVITY_COHORT_OPTIONS = [
-  { label: "전체", value: "" },
-  ...EXCELLENT_ACTIVITY_COHORTS.map((cohort) => ({ label: cohort, value: cohort })),
-];
-
-const EXCELLENT_SELECTOR_COLUMNS: DenseTableColumn<ExcellentActivityFixture>[] = [
-  { key: "id", header: "셀렉터스 ID", width: 130, align: "center" },
-  { key: "name", header: "이름", width: 110, align: "center" },
-  { key: "cohort", header: "기수", width: 100, align: "center" },
-  { key: "type", header: "종류", width: 250, align: "center" },
-  {
-    key: "totalSales",
-    header: "총 매출액",
-    width: 160,
-    align: "right",
-    render: (activity) => formatWon(activity.totalSales),
-  },
-];
-
-const EXCELLENT_SELECTOR_PAGE_SIZE = 20;
-
-export function ExcellentSelectorListPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [keyword, setKeyword] = useState("");
-  const [cohort, setCohort] = useState("");
-  const [appliedKeyword, setAppliedKeyword] = useState("");
-  const [appliedCohort, setAppliedCohort] = useState("");
-  const [page, setPage] = useState(1);
-  const excellentSelectors = EXCELLENT_ACTIVITIES
-    .filter((selector) => (
-      (!appliedKeyword || [selector.name, selector.id].some((value) => (
-        value.toLowerCase().includes(appliedKeyword.toLowerCase())
-      )))
-      && (!appliedCohort || selector.cohort === appliedCohort)
-    ));
-  const {
-    currentPage,
-    pagedItems: pagedSelectors,
-    totalPages,
-  } = paginate(excellentSelectors, page, EXCELLENT_SELECTOR_PAGE_SIZE);
-  const detailSelector = SELECTORS.find((selector) => selector.id === searchParams.get("detail"));
-
-  const applyFilters = () => {
-    setAppliedKeyword(keyword);
-    setAppliedCohort(cohort);
-    setPage(1);
-  };
-
-  const openDetail = (selectorId: string) => {
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("detail", selectorId);
-    setSearchParams(nextParams);
-  };
-
-  const closeDetail = () => {
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("detail");
-    setSearchParams(nextParams);
-  };
-
-  const resetFilters = () => {
-    setKeyword("");
-    setCohort("");
-    setAppliedKeyword("");
-    setAppliedCohort("");
-    setPage(1);
-  };
-
-  return (
-    <section className="fuma-page">
-      <PageHeader title="우수 활동자" />
-      <div className="fuma-page__body">
-        <div className="fuma-operations-search fuma-settlement-search fuma-excellent-selector-search">
-          <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
-            <FilterField htmlFor="excellent-selector-name" label="이름 / ID">
-              <TextInput
-                id="excellent-selector-name"
-                name="selectorName"
-                onChange={(event) => setKeyword(event.target.value)}
-                placeholder="이름 / ID 검색"
-                value={keyword}
-              />
-            </FilterField>
-            <FilterField htmlFor="excellent-selector-cohort" label="기수">
-              <Select
-                id="excellent-selector-cohort"
-                name="cohort"
-                onChange={(event) => setCohort(event.target.value)}
-                options={EXCELLENT_ACTIVITY_COHORT_OPTIONS}
-                value={cohort}
-              />
-            </FilterField>
-          </SearchPanel>
-        </div>
-        <ResultToolbar
-          className="fuma-simple-result-toolbar"
-          description="매출 및 활동 성과가 우수한 셀렉터스입니다."
-          meta={
-            <>
-              <span>{appliedCohort || "전체"}</span>
-              <span>총 {excellentSelectors.length}건</span>
-            </>
-          }
-          title="우수 활동자 목록"
-        />
-        <div aria-label="우수 활동자 목록" className="fuma-wide-table fuma-settlement-table" role="region">
-          <DenseTable
-            columns={EXCELLENT_SELECTOR_COLUMNS}
-            onRowClick={(selector) => openDetail(selector.id)}
-            rowKey={(selector) => selector.id}
-            rows={pagedSelectors}
-          />
-        </div>
-        <Pagination
-          onPageChange={setPage}
-          page={currentPage}
-          pageSize={EXCELLENT_SELECTOR_PAGE_SIZE}
-          totalPages={totalPages}
-        />
-      </div>
-      {detailSelector ? <SelectorDetailPanel onClose={closeDetail} selector={detailSelector} /> : null}
-    </section>
   );
 }
