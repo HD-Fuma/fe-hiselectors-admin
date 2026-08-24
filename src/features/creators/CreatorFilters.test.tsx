@@ -52,7 +52,7 @@ describe("creator filters", () => {
     ...creator,
     id: 115,
     accountId: "17841400602400210",
-    creatorName: "숫자형 인스타 계정",
+    creatorName: "numeric.instagram",
     followerCount: 12_345,
     engagementRate: 1.23,
     recent90DayContentCount: 4,
@@ -71,22 +71,39 @@ describe("creator filters", () => {
     }));
   }
 
-  function mockCreatorApi(totalPages = 1) {
-    return vi.fn((input: RequestInfo | URL) => Promise.resolve(
-      String(input).endsWith("/api/admin/categories")
-        ? new Response(JSON.stringify({
-            success: true,
-            data: [
-              { id: 1, code: "TRAVEL", name: "여행", displayOrder: 1, enabled: true, keywords: [] },
-              { id: 2, code: "SKINCARE", name: "스킨케어", displayOrder: 2, enabled: true, keywords: [] },
-            ],
-          }))
-        : ok(totalPages),
-    ));
+  function mockCreatorApi(totalPages = 1, failedProposalIds: ReadonlySet<number> = new Set()) {
+    return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/api/admin/proposals") && init?.method === "POST") {
+        const { creatorId } = JSON.parse(String(init.body)) as { creatorId: number };
+        const failed = failedProposalIds.has(creatorId);
+        return Promise.resolve(new Response(JSON.stringify({
+          success: !failed,
+          data: failed ? null : { proposalHistoryId: creatorId },
+          message: failed ? "발송 실패" : null,
+        }), { status: failed ? 502 : 201 }));
+      }
+      return Promise.resolve(
+        String(input).endsWith("/api/admin/categories")
+          ? new Response(JSON.stringify({
+              success: true,
+              data: [
+                { id: 1, code: "TRAVEL", name: "여행", displayOrder: 1, enabled: true, keywords: [] },
+                { id: 2, code: "SKINCARE", name: "스킨케어", displayOrder: 2, enabled: true, keywords: [] },
+              ],
+            }))
+          : ok(totalPages),
+      );
+    });
   }
 
   function creatorRequests(fetchMock: ReturnType<typeof mockCreatorApi>) {
     return fetchMock.mock.calls.filter(([input]) => String(input).includes("/api/admin/creators?"));
+  }
+
+  function proposalRequests(fetchMock: ReturnType<typeof mockCreatorApi>) {
+    return fetchMock.mock.calls.filter(([input, init]) => (
+      String(input).endsWith("/api/admin/proposals") && init?.method === "POST"
+    ));
   }
 
   test("renders the API result as a read-only table and requests server pagination", async () => {
@@ -96,26 +113,141 @@ describe("creator filters", () => {
     renderCreatorPage();
 
     const table = screen.getByRole("region", { name: "크리에이터 목록" });
-    expect(await within(table).findByText("김서연")).toBeInTheDocument();
-    expect(within(table).getAllByText("채널 열기 ↗")).toHaveLength(2);
+    expect(await within(table).findByText("김서연 ↗")).toBeInTheDocument();
+    expect(within(table).getByText("Clevr TV ↗")).toBeInTheDocument();
     expect(within(table).getByText("82,400")).toBeInTheDocument();
     expect(within(table).getByText("4.25%")).toBeInTheDocument();
     expect(within(table).getByText("14건")).toBeInTheDocument();
     expect(within(table).getByText("25+건")).toBeInTheDocument();
     expect(await within(table).findByText("스킨케어")).toBeInTheDocument();
-    expect(within(table).getByRole("link", { name: "김서연 채널 열기 (새 창)" }))
+    expect(within(table).queryByRole("columnheader", { name: "SNS 계정" }))
+      .not.toBeInTheDocument();
+    const seoLink = within(table).getByRole("link", { name: "김서연 SNS 계정 열기 (새 창)" });
+    expect(seoLink)
       .toHaveAttribute("href", "https://www.instagram.com/seo.yeon");
-    expect(within(table).getByRole("link", { name: "Clevr TV 채널 열기 (새 창)" }))
+    expect(seoLink).not.toHaveClass("hsas-button");
+    expect(within(table).getByRole("link", { name: "Clevr TV SNS 계정 열기 (새 창)" }))
       .toHaveAttribute("href", "https://www.youtube.com/channel/UCnMBn-PNx1M9TLF0s-sEDeQ");
     expect(within(table).queryByText("UCnMBn-PNx1M9TLF0s-sEDeQ")).not.toBeInTheDocument();
-    const numericInstagramRow = within(table).getByText("숫자형 인스타 계정").closest("tr");
-    expect(numericInstagramRow).not.toBeNull();
-    expect(within(numericInstagramRow!).queryByRole("link")).not.toBeInTheDocument();
+    expect(within(table).getByRole("link", { name: "numeric.instagram SNS 계정 열기 (새 창)" }))
+      .toHaveAttribute("href", "https://www.instagram.com/numeric.instagram");
     expect(screen.queryByRole("button", { name: "카드" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "선택 0명 제안 발송" })).toBeDisabled();
+
+    const seoRow = within(table).getByText("김서연 ↗").closest("tr");
+    const seoCheckbox = within(table).getByRole("checkbox", { name: "김서연 선택" });
+    const selectAll = within(table).getByRole("checkbox", { name: "현재 페이지 전체 선택" });
+    await user.click(seoCheckbox);
+    expect(seoRow).toHaveAttribute("aria-selected", "true");
+    expect(selectAll).toBePartiallyChecked();
+    expect(screen.getByRole("button", { name: "선택 1명 제안 발송" })).toBeEnabled();
+
+    await user.click(selectAll);
+    expect(within(table).getAllByRole("checkbox")).toHaveLength(4);
+    within(table).getAllByRole("checkbox").forEach((checkbox) => expect(checkbox).toBeChecked());
+    expect(screen.getByRole("button", { name: "선택 3명 제안 발송" })).toBeEnabled();
+
+    await user.click(selectAll);
+    within(table).getAllByRole("checkbox").forEach((checkbox) => expect(checkbox).not.toBeChecked());
+    expect(screen.getByRole("button", { name: "선택 0명 제안 발송" })).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: "다음 페이지" }));
     await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(2));
     expect(String(creatorRequests(fetchMock)[1][0])).toContain("page=1");
+  });
+
+  test("sends proposals to every selected creator from the side panel", async () => {
+    const user = userEvent.setup();
+    const fetchMock = mockCreatorApi();
+    vi.stubGlobal("fetch", fetchMock);
+    renderCreatorPage();
+    const table = screen.getByRole("region", { name: "크리에이터 목록" });
+    await within(table).findByText("김서연 ↗");
+
+    await user.click(within(table).getByRole("checkbox", { name: "김서연 선택" }));
+    await user.click(within(table).getByRole("checkbox", { name: "Clevr TV 선택" }));
+    await user.click(screen.getByRole("button", { name: "선택 2명 제안 발송" }));
+
+    const panel = await screen.findByRole("dialog", { name: "제안 발송" });
+    expect(panel).toHaveAttribute("data-visual-contract", "detail-side-panel");
+    expect(within(panel).getByText("CREATOR OUTREACH")).toBeInTheDocument();
+    expect(within(panel).getByRole("heading", {
+      name: "2명의 크리에이터에게 보낼 제안을 작성합니다.",
+    })).toBeInTheDocument();
+    expect(within(panel).getByRole("heading", { name: "제안 내용" })).toBeInTheDocument();
+    const target = within(panel).getByRole("complementary", { name: "제안 대상" });
+    expect(target).toHaveTextContent("2명 선택됨");
+    expect(within(target).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(panel).getByText("김서연")).toBeInTheDocument();
+    expect(within(panel).getByText("Clevr TV")).toBeInTheDocument();
+    expect(target).toHaveTextContent("82,400");
+    expect(target).toHaveTextContent("830,000");
+    expect(target).toHaveTextContent("뷰티");
+    await waitFor(() => expect(target).toHaveTextContent("스킨케어"));
+    expect(within(panel).getByRole("combobox", { name: "제안 채널" }))
+      .toBeDisabled();
+    expect(within(panel).getByText("이메일 자동 발송")).toBeInTheDocument();
+    const subject = within(panel).getByRole("textbox", { name: "제목" });
+    const message = within(panel).getByRole("textbox", { name: "제안 메시지" });
+    expect(subject).toHaveAttribute("maxlength", "200");
+    expect(message).toHaveAttribute("maxlength", "10000");
+    expect((subject as HTMLInputElement).value).toContain("${creatorName}");
+    expect((message as HTMLTextAreaElement).value).toContain("${proposalLink}");
+    await user.clear(subject);
+    await user.type(subject, "   ");
+    expect(within(panel).getByRole("button", { name: "2명에게 제안 발송" }))
+      .toBeDisabled();
+    expect(proposalRequests(fetchMock)).toHaveLength(0);
+    await user.clear(subject);
+    await user.type(subject, "맞춤 제목");
+    await user.clear(message);
+    await user.type(message, "맞춤 메시지");
+    await user.click(within(panel).getByRole("button", { name: "2명에게 제안 발송" }));
+
+    await waitFor(() => expect(proposalRequests(fetchMock)).toHaveLength(2));
+    expect(proposalRequests(fetchMock).map(([, init]) => JSON.parse(String(init?.body))))
+      .toEqual([
+        { creatorId: 113, subject: "맞춤 제목", body: "맞춤 메시지" },
+        { creatorId: 114, subject: "맞춤 제목", body: "맞춤 메시지" },
+      ]);
+    const completed = await screen.findByRole("alertdialog", { name: "제안 발송 완료" });
+    expect(completed).toHaveTextContent("2명에게 제안을 발송했습니다.");
+    await user.click(within(completed).getByRole("button", { name: "확인" }));
+    expect(screen.getByRole("button", { name: "선택 0명 제안 발송" })).toBeDisabled();
+  });
+
+  test("continues after a failed proposal and leaves only failures selected", async () => {
+    const user = userEvent.setup();
+    const fetchMock = mockCreatorApi(1, new Set([114]));
+    vi.stubGlobal("fetch", fetchMock);
+    renderCreatorPage();
+    const table = screen.getByRole("region", { name: "크리에이터 목록" });
+    await within(table).findByText("김서연 ↗");
+
+    await user.click(within(table).getByRole("checkbox", { name: "현재 페이지 전체 선택" }));
+    await user.click(screen.getByRole("button", { name: "선택 3명 제안 발송" }));
+    const panel = await screen.findByRole("dialog", { name: "제안 발송" });
+    const subject = within(panel).getByRole("textbox", { name: "제목" });
+    const message = within(panel).getByRole("textbox", { name: "제안 메시지" });
+    await user.clear(subject);
+    await user.type(subject, "재시도 제목");
+    await user.clear(message);
+    await user.type(message, "재시도 메시지");
+    await user.click(within(panel).getByRole("button", { name: "3명에게 제안 발송" }));
+
+    expect(await within(panel).findByRole("alert"))
+      .toHaveTextContent("2명 발송 완료, 1명 발송에 실패했습니다. 발송 실패");
+    expect(proposalRequests(fetchMock).map(([, init]) => JSON.parse(String(init?.body))))
+      .toEqual([113, 114, 115].map((creatorId) => ({
+        creatorId,
+        subject: "재시도 제목",
+        body: "재시도 메시지",
+      })));
+    expect(within(panel).getByText("Clevr TV")).toBeInTheDocument();
+    expect(within(panel).queryByText("김서연")).not.toBeInTheDocument();
+    expect(subject).toHaveValue("재시도 제목");
+    expect(message).toHaveValue("재시도 메시지");
+    expect(within(panel).getByRole("button", { name: "1명에게 제안 발송" })).toBeEnabled();
   });
 
   test("sends quantitative filters to the API and reset clears them", async () => {
@@ -123,13 +255,13 @@ describe("creator filters", () => {
     const fetchMock = mockCreatorApi();
     vi.stubGlobal("fetch", fetchMock);
     renderCreatorPage();
-    await screen.findByText("김서연");
+    await screen.findByText("김서연 ↗");
     const search = screen.getByRole("search", { name: "검색 조건" });
     const keyword = within(search).getByRole("textbox", { name: "키워드" });
-    const followers = within(search).getByRole("textbox", { name: "최소 팔로워·구독자" });
-    const engagement = within(search).getByRole("textbox", { name: "최소 ER" });
-    const activity = within(search).getByRole("textbox", { name: "최근 90일 최소 활동" });
-    expect(activity).toHaveAttribute("max", "25");
+    const minFollowers = within(search).getByRole("textbox", { name: "최소 팔로워·구독자" });
+    const maxFollowers = within(search).getByRole("textbox", { name: "최대 팔로워·구독자" });
+    expect(within(search).queryByRole("textbox", { name: "최소 ER" })).not.toBeInTheDocument();
+    expect(within(search).queryByRole("textbox", { name: "최근 90일 최소 활동" })).not.toBeInTheDocument();
     const platform = within(search).getByRole("combobox", { name: "플랫폼" });
     const categories = screen.getByRole("navigation", { name: "크리에이터 카테고리" });
     const travel = await within(categories).findByRole("button", { name: "여행" });
@@ -140,18 +272,17 @@ describe("creator filters", () => {
     expect(travel).toHaveAttribute("aria-pressed", "true");
 
     await user.type(keyword, "seo");
-    await user.type(followers, "100,000");
-    await user.type(engagement, "2.5");
-    await user.type(activity, "26");
+    await user.type(minFollowers, "600,000");
+    await user.type(maxFollowers, "500,000");
     await user.selectOptions(platform, "INSTAGRAM");
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
     expect(creatorRequests(fetchMock)).toHaveLength(2);
-    expect(screen.getByText("최근 90일 최소 활동은 0~25 사이의 숫자로 입력해 주세요."))
+    expect(screen.getByText("팔로워·구독자 범위를 올바르게 입력해 주세요."))
       .toBeInTheDocument();
 
-    await user.clear(activity);
-    await user.type(activity, "3");
+    await user.clear(minFollowers);
+    await user.type(minFollowers, "100,000");
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
     await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(3));
@@ -159,20 +290,20 @@ describe("creator filters", () => {
     expect(Object.fromEntries(requestUrl.searchParams)).toMatchObject({
       keyword: "seo",
       minFollower: "100000",
-      minEngagementRate: "2.5",
-      minRecent90DayContentCount: "3",
+      maxFollower: "500000",
       snsCode: "INSTAGRAM",
       categoryCode: "TRAVEL",
       page: "0",
       size: "20",
     });
+    expect(requestUrl.searchParams.has("minEngagementRate")).toBe(false);
+    expect(requestUrl.searchParams.has("minRecent90DayContentCount")).toBe(false);
 
     await user.click(within(search).getByRole("button", { name: "초기화" }));
 
     expect(keyword).toHaveValue("");
-    expect(followers).toHaveValue("");
-    expect(engagement).toHaveValue("");
-    expect(activity).toHaveValue("");
+    expect(minFollowers).toHaveValue("");
+    expect(maxFollowers).toHaveValue("");
     expect(platform).toHaveValue("");
     expect(within(categories).getByRole("button", { name: "전체" }))
       .toHaveAttribute("aria-pressed", "true");
@@ -196,7 +327,7 @@ describe("proposal history", () => {
 
   test("requests server pagination and renders the API result as a read-only table", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn((_input: RequestInfo | URL) => Promise.resolve(new Response(JSON.stringify({
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       success: true,
       data: {
         content: [proposalEntry()],
@@ -205,7 +336,7 @@ describe("proposal history", () => {
         number: 0,
         size: 20,
       },
-    }))));
+    })));
     vi.stubGlobal("fetch", fetchMock);
     renderProposalPage();
 

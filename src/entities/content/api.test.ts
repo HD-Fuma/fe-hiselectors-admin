@@ -93,6 +93,38 @@ test("retrieves every current-generation content page with authentication and ca
   });
 });
 
+test("retrieves every page when Spring Boot wraps pagination metadata", async () => {
+  const getCurrentGenerationContents = (
+    contentEntity as unknown as { getCurrentGenerationContents?: GetCurrentGenerationContents }
+  ).getCurrentGenerationContents;
+  expect(getCurrentGenerationContents).toBeTypeOf("function");
+  if (!getCurrentGenerationContents) return;
+
+  const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+    const page = Number(new URL(String(input)).searchParams.get("page"));
+    return Promise.resolve(new Response(JSON.stringify({
+      code: "OK",
+      data: {
+        content: page === 0 ? [{ contentId: 3 }, { contentId: 2 }] : [{ contentId: 1 }],
+        page: { number: page, size: 100, totalElements: 3, totalPages: 2 },
+      },
+      message: null,
+      success: true,
+    }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    }));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+
+  await expect(getCurrentGenerationContents()).resolves.toEqual([
+    { contentId: 3 },
+    { contentId: 2 },
+    { contentId: 1 },
+  ]);
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
 test("retrieves a content detail with authentication and cancellation", async () => {
   const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
     code: "OK",

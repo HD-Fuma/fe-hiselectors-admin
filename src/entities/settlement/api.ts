@@ -1,3 +1,5 @@
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
 import type {
   ApiResult,
   SettlementEstimate,
@@ -6,8 +8,6 @@ import type {
   SpringPage,
 } from "./model";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop")
-  .replace(/\/$/, "");
 const AUTH_STORAGE_KEY = "selectors-auth";
 
 interface StoredAuthSession {
@@ -59,7 +59,7 @@ export async function getSettlementEstimates(
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
 
-  const response = await fetch(
+  const response = await adminFetch(
     `${API_BASE_URL}/api/admin/settlements/estimates?${searchParams.toString()}`,
     { headers, signal },
   );
@@ -85,7 +85,7 @@ export async function getSettlementSelectorDetail(
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
 
-  const response = await fetch(
+  const response = await adminFetch(
     `${API_BASE_URL}/api/admin/settlements/selectors/${selectorsId}/detail?${searchParams.toString()}`,
     { headers, signal },
   );

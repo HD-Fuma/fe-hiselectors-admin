@@ -105,6 +105,25 @@ describe("administrator login", () => {
     expect(screen.getByText("김관리")).toBeInTheDocument();
   });
 
+  test("redirects to login without showing an authentication error when an administrator request returns 401", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      code: "UNAUTHORIZED",
+      data: null,
+      message: "인증이 필요합니다.",
+      success: false,
+    }), {
+      headers: { "Content-Type": "application/json" },
+      status: 401,
+    })));
+
+    const { router } = renderRoute("/creators");
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
+    expect(screen.getByRole("heading", { name: "Hi-Selectors" })).toBeInTheDocument();
+    expect(screen.queryByText("인증이 필요합니다.")).not.toBeInTheDocument();
+    expect(localStorage.getItem("selectors-auth")).toBeNull();
+  });
+
   test("requires both credentials before requesting login", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn();

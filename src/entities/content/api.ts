@@ -1,5 +1,6 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop")
-  .replace(/\/$/, "");
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
+
 const AUTH_STORAGE_KEY = "selectors-auth";
 
 interface StoredAuthSession {
@@ -46,11 +47,17 @@ export interface CollectedContent {
 }
 
 interface SpringPage<T> {
-  content: T[];
-  number: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
+  content?: T[];
+  number?: number;
+  page?: {
+    number?: number;
+    size?: number;
+    totalElements?: number;
+    totalPages?: number;
+  };
+  size?: number;
+  totalElements?: number;
+  totalPages?: number;
 }
 
 export interface ContentBatchRunResponse {
@@ -230,7 +237,7 @@ export async function runContentBatch(): Promise<ContentBatchRunResponse> {
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
 
-  const response = await fetch(`${API_BASE_URL}/api/admin/content-batch/run`, {
+  const response = await adminFetch(`${API_BASE_URL}/api/admin/content-batch/run`, {
     headers,
     method: "POST",
   });
@@ -255,7 +262,7 @@ async function getCurrentGenerationContentPage(page: number, signal?: AbortSigna
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
 
-  const response = await fetch(
+  const response = await adminFetch(
     `${API_BASE_URL}/api/admin/contents?${searchParams.toString()}`,
     { headers, signal },
   );
@@ -264,10 +271,15 @@ async function getCurrentGenerationContentPage(page: number, signal?: AbortSigna
   }
 
   const result = await response.json() as ApiResult<SpringPage<CollectedContent>>;
-  if (!result.success || !result.data) {
+  if (!result.success || !result.data || !Array.isArray(result.data.content)) {
     throw new Error(result.message || "콘텐츠 목록 조회에 실패했습니다.");
   }
   return result.data;
+}
+
+function pageTotalPages(page: SpringPage<unknown>) {
+  const totalPages = page.totalPages ?? page.page?.totalPages;
+  return typeof totalPages === "number" && totalPages > 0 ? totalPages : 1;
 }
 
 export async function getCurrentGenerationContents(signal?: AbortSignal) {
@@ -277,8 +289,8 @@ export async function getCurrentGenerationContents(signal?: AbortSignal) {
 
   while (page < totalPages) {
     const result = await getCurrentGenerationContentPage(page, signal);
-    contents.push(...result.content);
-    totalPages = result.totalPages;
+    contents.push(...(result.content ?? []));
+    totalPages = pageTotalPages(result);
     page += 1;
   }
 
@@ -290,7 +302,7 @@ async function fetchContentDetail(path: string, signal?: AbortSignal) {
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
 
-  const response = await fetch(`${API_BASE_URL}${path}`, { headers, signal });
+  const response = await adminFetch(`${API_BASE_URL}${path}`, { headers, signal });
   if (!response.ok) {
     throw new Error(await errorMessage(response, "콘텐츠 상세 조회에 실패했습니다."));
   }
@@ -325,7 +337,7 @@ export async function inspectContentVersion(
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
 
-  const response = await fetch(
+  const response = await adminFetch(
     `${API_BASE_URL}/api/admin/content-versions/${contentVersionId}/inspect`,
     { headers, method: "POST", signal },
   );
@@ -349,7 +361,7 @@ export async function confirmContentInspection(
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
 
-  const response = await fetch(
+  const response = await adminFetch(
     `${API_BASE_URL}/api/admin/contents/${contentId}/versions/${contentVersionId}/inspection`,
     {
       body: JSON.stringify(request),

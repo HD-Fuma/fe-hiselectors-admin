@@ -4,9 +4,9 @@ import type {
   KakaoRecipientRequest,
   SpringPage,
 } from "./model";
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080")
-  .replace(/\/$/, "");
 const AUTH_STORAGE_KEY = "selectors-auth";
 
 interface StoredAuthSession {
@@ -60,7 +60,7 @@ export async function getKakaoRecipients(
   if (request.keyword) searchParams.set("keyword", request.keyword);
   if (request.status) searchParams.set("status", request.status);
 
-  const response = await fetch(
+  const response = await adminFetch(
     `${API_BASE_URL}/api/admin/kakao/recipients?${searchParams.toString()}`,
     { headers: authenticatedHeaders(), signal },
   );

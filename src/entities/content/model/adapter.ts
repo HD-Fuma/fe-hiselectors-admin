@@ -246,7 +246,7 @@ function historyFromVersions(
 
 export function adaptContentInspection(content: CollectedContent): ContentInspectionFixture {
   const texts = trimmedTexts(content.texts);
-  const media = [...content.media].sort((left, right) => left.sequenceNo - right.sequenceNo);
+  const media = [...(content.media ?? [])].sort((left, right) => left.sequenceNo - right.sequenceNo);
   const status = inspectionStatus(content.inspectionStatus);
   const contentFormat = CONTENT_FORMATS[content.contentType];
   const youtubeVideoId = content.snsCode === "YOUTUBE"

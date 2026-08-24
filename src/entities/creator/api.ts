@@ -1,3 +1,6 @@
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
+
 export interface CreatorSummary {
   id: number;
   snsCode: "INSTAGRAM" | "YOUTUBE";
@@ -15,6 +18,7 @@ export interface CreatorSearchRequest {
   categoryCode?: string;
   snsCode?: string;
   minFollower?: number;
+  maxFollower?: number;
   minEngagementRate?: number;
   minRecent90DayContentCount?: number;
   page: number;
@@ -60,9 +64,6 @@ export interface ProposalHistoryPage {
   size: number;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080")
-  .replace(/\/$/, "");
-
 function headers() {
   const result = new Headers();
   const stored = localStorage.getItem("selectors-auth");
@@ -95,7 +96,7 @@ async function request<T>(
   signal?: AbortSignal,
   init?: RequestInit,
 ) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await adminFetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: init?.body !== undefined
       ? (() => { const h = headers(); h.set("Content-Type", "application/json"); return h; })()
@@ -108,7 +109,7 @@ async function request<T>(
 }
 
 export async function getCreators(input: CreatorSearchRequest, signal?: AbortSignal) {
-  const response = await fetch(
+  const response = await adminFetch(
     `${API_BASE_URL}/api/admin/creators?${query(input)}`,
     { headers: headers(), signal },
   );
@@ -140,11 +141,14 @@ export function getAdminProposals(page: number, size: number, signal?: AbortSign
   );
 }
 
-export function postAdminProposal(creatorId: number) {
+export function postAdminProposal(
+  creatorId: number,
+  content?: { subject: string; body: string },
+) {
   return request<ProposalHistoryEntry>(
     "/api/admin/proposals",
     "제안 메일 발송에 실패했습니다.",
     undefined,
-    { method: "POST", body: JSON.stringify({ creatorId }) },
+    { method: "POST", body: JSON.stringify({ creatorId, ...content }) },
   );
 }

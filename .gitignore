@@ -10,4 +10,8 @@ vite-dev*.log
 .DS_Store
 .idea/
 .serena/
+<<<<<<< HEAD
 .env*
+=======
+.env*.local
+>>>>>>> 555dae39c651735a42de484d9c6ba19ff605a4a8

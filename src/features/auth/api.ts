@@ -1,6 +1,7 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop")
-  .replace(/\/$/, "");
-export const AUTH_STORAGE_KEY = "selectors-auth";
+import { AUTH_STORAGE_KEY } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
+
+export { AUTH_STORAGE_KEY };
 
 export interface AdminLoginRequest {
   loginId: string;

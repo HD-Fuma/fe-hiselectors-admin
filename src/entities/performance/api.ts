@@ -1,7 +1,7 @@
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
 import type { ContentInfluence, ContentPerformanceFormat } from "./model/fixtures";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop")
-  .replace(/\/$/, "");
 const AUTH_STORAGE_KEY = "selectors-auth";
 
 interface ApiResult<T> {
@@ -90,7 +90,7 @@ async function getContentPerformancePage(page: number, signal?: AbortSignal) {
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
   const params = new URLSearchParams({ page: String(page), size: "100" });
-  const response = await fetch(
+  const response = await adminFetch(
     `${API_BASE_URL}/api/admin/content-performance?${params.toString()}`,
     { headers, signal },
   );
@@ -123,7 +123,7 @@ export async function getContentPerformanceSummary(signal?: AbortSignal) {
   const headers = new Headers();
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
-  const response = await fetch(`${API_BASE_URL}/api/admin/content-performance/summary`, {
+  const response = await adminFetch(`${API_BASE_URL}/api/admin/content-performance/summary`, {
     headers,
     signal,
   });

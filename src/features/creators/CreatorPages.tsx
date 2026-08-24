@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { AlertDialog } from "../../components/ui/AlertDialog";
-import { Button, buttonClassNames, Select, TextInput } from "../../components/ui/Controls";
+import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
+import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
@@ -31,6 +32,28 @@ import {
 
 const PROPOSAL_PAGE_SIZE = 20;
 const CREATOR_LIST_PAGE_SIZE = 20;
+const PROPOSAL_CHANNEL_OPTIONS = [{ label: "이메일", value: "이메일" }] as const;
+const DEFAULT_PROPOSAL_SUBJECT = "[셀렉터스] ${creatorName}님, 크리에이터 활동을 제안드립니다";
+const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
+셀렉터스 운영팀입니다.
+
+\${creatorName}님의 콘텐츠를 관심 있게 보고, 셀렉터스 활동을 제안드리고자 연락드립니다.
+
+셀렉터스는 크리에이터의 개성과 전문성을 바탕으로 다양한 상품과 브랜드를 소개하는 크리에이터 파트너 프로그램입니다.
+
+[제안 내용]
+- 주요 캠페인 및 콘텐츠 협업
+- 채널 특성에 맞춘 상품과 캠페인 제안
+- 캠페인별 활동 조건 및 상세 가이드 별도 안내
+
+참여 의향이 있으시다면 본 메일에 회신하거나 아래 링크에서 신청해 주세요.
+\${proposalLink}
+
+감사합니다.
+셀렉터스 운영팀 드림
+
+담당자: \${adminName} \${adminPosition}
+이메일: \${adminEmail}`;
 
 const CREATOR_PLATFORM_OPTIONS = [
   { label: "전체", value: "" },
@@ -56,8 +79,7 @@ const EMPTY_CREATOR_FILTERS = {
   snsCode: "",
   categoryCode: "",
   minFollower: "",
-  minEngagementRate: "",
-  minRecent90DayContentCount: "",
+  maxFollower: "",
 };
 
 function dateTime(value: string) {
@@ -82,28 +104,33 @@ function platformFor(code: CreatorSummary["snsCode"]): CreatorProfileFixture["pl
 }
 
 function CreatorAccountLink({ creator }: { creator: CreatorSummary }) {
-  const instagramUsername = /^\d+$/.test(creator.accountId)
-    ? null
+  const instagramUsernameCandidate = /^\d+$/.test(creator.accountId)
+    ? creator.creatorName?.replace(/^@/, "")
     : creator.accountId.replace(/^@/, "");
+  const instagramUsername = instagramUsernameCandidate
+    && /^[A-Za-z0-9._]{1,30}$/.test(instagramUsernameCandidate)
+    ? instagramUsernameCandidate
+    : null;
   const href = creator.snsCode === "YOUTUBE"
     ? `https://www.youtube.com/channel/${encodeURIComponent(creator.accountId)}`
     : instagramUsername
       ? `https://www.instagram.com/${encodeURIComponent(instagramUsername)}`
       : null;
-  const label = "채널 열기";
-  const linkText = `${label} ↗`;
+  const accountName = creator.creatorName
+    || (creator.snsCode === "INSTAGRAM" && instagramUsername
+      ? `@${instagramUsername}`
+      : creator.accountId);
 
   return href ? (
     <a
-      aria-label={`${creator.creatorName || creator.accountId} ${label} (새 창)`}
-      className={buttonClassNames("secondary", "fuma-table-link")}
+      aria-label={`${accountName} SNS 계정 열기 (새 창)`}
       href={href}
       rel="noreferrer"
       target="_blank"
     >
-      {linkText}
+      {accountName} ↗
     </a>
-  ) : "-";
+  ) : accountName;
 }
 
 function PlatformLabel({ platform }: { platform: CreatorProfileFixture["platform"] }) {
@@ -117,7 +144,6 @@ function PlatformLabel({ platform }: { platform: CreatorProfileFixture["platform
 
 function creatorColumns(
   categoryOptions: readonly { label: string; value: string }[],
-  onPropose: (creator: CreatorSummary) => void,
 ): DenseTableColumn<CreatorSummary>[] {
   return [
   { key: "id", header: "크리에이터 ID", width: 92, align: "center" },
@@ -125,13 +151,6 @@ function creatorColumns(
     key: "creatorName",
     header: "계정명",
     width: 150,
-    align: "center",
-    render: (creator) => creator.creatorName || "-",
-  },
-  {
-    id: "account",
-    header: "SNS 계정",
-    width: 110,
     align: "center",
     render: (creator) => <CreatorAccountLink creator={creator} />,
   },
@@ -181,33 +200,182 @@ function creatorColumns(
     align: "center",
     render: (creator) => creator.lastContentAt?.slice(0, 10) ?? "-",
   },
-  {
-    id: "propose",
-    header: "제안",
-    width: 96,
-    align: "center",
-    render: (creator) => (
-      <Button
-        onClick={(event) => {
-          event.stopPropagation();
-          onPropose(creator);
-        }}
-      >
-        제안 보내기
-      </Button>
-    ),
-  },
   ];
 }
 
+function resizeProposalMessage(textarea: HTMLTextAreaElement) {
+  textarea.style.height = "auto";
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
+function BatchProposalPanel({
+  categoryOptions,
+  creators,
+  onClose,
+  onComplete,
+  onFailed,
+}: {
+  categoryOptions: readonly { label: string; value: string }[];
+  creators: CreatorSummary[];
+  onClose: () => void;
+  onComplete: (count: number) => void;
+  onFailed: (creators: CreatorSummary[]) => void;
+}) {
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [subject, setSubject] = useState(DEFAULT_PROPOSAL_SUBJECT);
+  const [message, setMessage] = useState(DEFAULT_PROPOSAL_MESSAGE);
+  const proposalInvalid = !subject.trim() || !message.trim();
+
+  const sendProposals = async () => {
+    if (sending || creators.length === 0) return;
+    if (proposalInvalid) {
+      setError("제목과 제안 메시지를 입력해 주세요.");
+      return;
+    }
+    setSending(true);
+    setError("");
+    const failed: CreatorSummary[] = [];
+    let succeeded = 0;
+    let firstFailure = "";
+
+    for (const creator of creators) {
+      try {
+        await postAdminProposal(creator.id, { subject: subject.trim(), body: message.trim() });
+        succeeded += 1;
+      } catch (reason) {
+        failed.push(creator);
+        if (!firstFailure) {
+          firstFailure = reason instanceof Error ? reason.message : "제안 메일 발송에 실패했습니다.";
+        }
+      }
+    }
+
+    setSending(false);
+    if (failed.length > 0) {
+      onFailed(failed);
+      setError(`${succeeded > 0 ? `${succeeded}명 발송 완료, ` : ""}${failed.length}명 발송에 실패했습니다. ${firstFailure}`);
+      return;
+    }
+    onComplete(succeeded);
+  };
+
+  return (
+    <SidePanel
+      actions={(
+        <Button
+          disabled={sending || proposalInvalid}
+          form="batch-proposal-form"
+          type="submit"
+          variant="primary"
+        >
+          {sending ? "발송 중..." : `${creators.length}명에게 제안 발송`}
+        </Button>
+      )}
+      onClose={() => { if (!sending) onClose(); }}
+      title="제안 발송"
+    >
+      <div className="fuma-detail-panel__content fuma-proposal-compose">
+        <div className="fuma-proposal-compose__intro">
+          <div>
+            <p>CREATOR OUTREACH</p>
+            <h2>{creators.length}명의 크리에이터에게 보낼 제안을 작성합니다.</h2>
+          </div>
+          <span>발송 전 내용을 다시 확인해 주세요.</span>
+        </div>
+        {error ? <p role="alert">{error}</p> : null}
+        <div className="fuma-proposal-compose__layout fuma-proposal-compose__layout--panel">
+          <aside aria-label="제안 대상" className="fuma-proposal-compose__creator fuma-proposal-compose__creator--batch">
+            <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
+            <strong>{creators.length}명 선택됨</strong>
+            <ul>
+              {creators.map((creator) => {
+                const platform = platformFor(creator.snsCode);
+                const audienceLabel = platform === "Instagram" ? "팔로워" : "구독자";
+                return (
+                  <li key={creator.id}>
+                    <strong>{creator.creatorName || creator.accountId}</strong>
+                    <span>
+                      {platform} · {audienceLabel}{" "}
+                      {creator.followerCount === null ? "-" : formatNumber(creator.followerCount)} ·{" "}
+                      {categoryLabel(creator.category, categoryOptions)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="fuma-proposal-compose__creator-note">
+              템플릿 변수는 대상별 정보로 바뀌어 순차 발송됩니다.
+            </p>
+          </aside>
+          <form
+            aria-busy={sending}
+            aria-label="제안 작성"
+            className="fuma-proposal-compose__form"
+            id="batch-proposal-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void sendProposals();
+            }}
+          >
+            <div className="fuma-proposal-compose__form-heading">
+              <h2>제안 내용</h2>
+              <span>필수 항목을 입력해 주세요.</span>
+            </div>
+            <FormRow label="제안 채널" required>
+              <Select aria-label="제안 채널" defaultValue="이메일" disabled options={PROPOSAL_CHANNEL_OPTIONS} />
+            </FormRow>
+            <FormRow label="발송 방식">
+              <div className="fuma-proposal-compose__delivery">
+                <strong>이메일 자동 발송</strong>
+                <span>선택한 {creators.length}명에게 개별 메일로 순차 발송합니다.</span>
+              </div>
+            </FormRow>
+            <FormRow label="제목" required>
+              <TextInput
+                aria-label="제목"
+                disabled={sending}
+                maxLength={200}
+                onChange={(event) => setSubject(event.target.value)}
+                required
+                value={subject}
+              />
+            </FormRow>
+            <FormRow label="제안 메시지" required>
+              <textarea
+                aria-label="제안 메시지"
+                className="hsas-control fuma-proposal-compose__textarea"
+                disabled={sending}
+                maxLength={10_000}
+                onChange={(event) => setMessage(event.target.value)}
+                onInput={(event) => resizeProposalMessage(event.currentTarget)}
+                ref={(textarea) => {
+                  if (textarea) resizeProposalMessage(textarea);
+                }}
+                required
+                value={message}
+              />
+            </FormRow>
+            <footer className="fuma-proposal-compose__footer">
+              <span>발송 후 제안 이력에서 상태를 확인할 수 있습니다.</span>
+            </footer>
+          </form>
+        </div>
+      </div>
+    </SidePanel>
+  );
+}
+
 export function CreatorListPage() {
-  const navigate = useNavigate();
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_CREATOR_FILTERS);
+  const [selectedCreators, setSelectedCreators] = useState<Map<number, CreatorSummary>>(new Map());
   const [page, setPage] = useState(1);
   const [pageData, setPageData] = useState<Awaited<ReturnType<typeof getCreators>> | null>(null);
   const [error, setError] = useState("");
   const [discoverySettingsOpen, setDiscoverySettingsOpen] = useState(false);
+  const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
+  const [proposalCompletedCount, setProposalCompletedCount] = useState(0);
   const [categoryOptions, setCategoryOptions] = useState<readonly { label: string; value: string }[]>(
     CREATOR_CATEGORY_OPTIONS,
   );
@@ -228,8 +396,7 @@ export function CreatorListPage() {
       snsCode: appliedFilters.snsCode || undefined,
       categoryCode: appliedFilters.categoryCode || undefined,
       minFollower: numericFilter(appliedFilters.minFollower),
-      minEngagementRate: numericFilter(appliedFilters.minEngagementRate),
-      minRecent90DayContentCount: numericFilter(appliedFilters.minRecent90DayContentCount),
+      maxFollower: numericFilter(appliedFilters.maxFollower),
       page: page - 1,
       size: CREATOR_LIST_PAGE_SIZE,
     }, controller.signal).then((result) => {
@@ -250,26 +417,78 @@ export function CreatorListPage() {
   }, [refreshCategoryOptions]);
 
   const applySearch = () => {
-    const minRecentActivity = numericFilter(filters.minRecent90DayContentCount);
-    if (filters.minRecent90DayContentCount.trim()
-      && (minRecentActivity === undefined || minRecentActivity > 25)) {
-      setError("최근 90일 최소 활동은 0~25 사이의 숫자로 입력해 주세요.");
+    const minFollower = numericFilter(filters.minFollower);
+    const maxFollower = numericFilter(filters.maxFollower);
+    if ((filters.minFollower.trim() && minFollower === undefined)
+      || (filters.maxFollower.trim() && maxFollower === undefined)
+      || (minFollower !== undefined && maxFollower !== undefined && minFollower > maxFollower)) {
+      setError("팔로워·구독자 범위를 올바르게 입력해 주세요.");
       return;
     }
     setError("");
     setAppliedFilters({ ...filters, keyword: filters.keyword.trim() });
+    setSelectedCreators(new Map());
     setPage(1);
   };
   const resetSearch = () => {
     setFilters(EMPTY_CREATOR_FILTERS);
     setAppliedFilters(EMPTY_CREATOR_FILTERS);
+    setSelectedCreators(new Map());
     setPage(1);
   };
   const selectCategory = (categoryCode: string) => {
     setFilters((current) => ({ ...current, categoryCode }));
     setAppliedFilters((current) => ({ ...current, categoryCode }));
+    setSelectedCreators(new Map());
     setPage(1);
   };
+  const listedCreators = pageData?.content ?? [];
+  const selectedOnPage = listedCreators.filter((creator) => selectedCreators.has(creator.id)).length;
+  const allListedCreatorsSelected = listedCreators.length > 0
+    && selectedOnPage === listedCreators.length;
+  const toggleSelected = (creator: CreatorSummary) => setSelectedCreators((current) => {
+    const next = new Map(current);
+    if (next.has(creator.id)) next.delete(creator.id);
+    else next.set(creator.id, creator);
+    return next;
+  });
+  const toggleAll = () => setSelectedCreators((current) => {
+    const next = new Map(current);
+    const shouldClearPage = listedCreators.every((creator) => next.has(creator.id));
+    listedCreators.forEach((creator) => {
+      if (shouldClearPage) next.delete(creator.id);
+      else next.set(creator.id, creator);
+    });
+    return next;
+  });
+  const columns: DenseTableColumn<CreatorSummary>[] = [
+    {
+      id: "select",
+      header: (
+        <input
+          aria-label="현재 페이지 전체 선택"
+          checked={allListedCreatorsSelected}
+          disabled={listedCreators.length === 0}
+          onChange={toggleAll}
+          ref={(input) => {
+            if (input) input.indeterminate = selectedOnPage > 0 && !allListedCreatorsSelected;
+          }}
+          type="checkbox"
+        />
+      ),
+      width: 40,
+      align: "center",
+      render: (creator) => (
+        <input
+          aria-label={`${creator.creatorName || creator.accountId} 선택`}
+          checked={selectedCreators.has(creator.id)}
+          onChange={() => toggleSelected(creator)}
+          type="checkbox"
+        />
+      ),
+    },
+    ...creatorColumns(categoryOptions),
+  ];
 
   return (
     <>
@@ -290,15 +509,15 @@ export function CreatorListPage() {
             <FilterField htmlFor="creator-platform" label="플랫폼">
               <Select id="creator-platform" onChange={(event) => setFilters((current) => ({ ...current, snsCode: event.target.value }))} options={CREATOR_PLATFORM_OPTIONS} value={filters.snsCode} />
             </FilterField>
-            <FilterField htmlFor="creator-min-follower" label="최소 팔로워·구독자">
-              <TextInput id="creator-min-follower" inputMode="numeric" min="0" onChange={(event) => setFilters((current) => ({ ...current, minFollower: event.target.value }))} placeholder="0" value={filters.minFollower} />
-            </FilterField>
-            <FilterField htmlFor="creator-min-er" label="최소 ER">
-              <TextInput id="creator-min-er" inputMode="decimal" min="0" onChange={(event) => setFilters((current) => ({ ...current, minEngagementRate: event.target.value }))} placeholder="0" value={filters.minEngagementRate} />
-            </FilterField>
-            <FilterField htmlFor="creator-min-activity" label="최근 90일 최소 활동">
-              <TextInput id="creator-min-activity" inputMode="numeric" max="25" min="0" onChange={(event) => setFilters((current) => ({ ...current, minRecent90DayContentCount: event.target.value }))} placeholder="0~25" value={filters.minRecent90DayContentCount} />
-            </FilterField>
+            <div className="fuma-follower-range">
+              <span>팔로워·구독자</span>
+              <div className="fuma-follower-range__inputs">
+                <TextInput aria-label="최소 팔로워·구독자" id="creator-followers-min" inputMode="numeric" min="0" onChange={(event) => setFilters((current) => ({ ...current, minFollower: event.target.value }))} placeholder="최소" value={filters.minFollower} />
+                <i aria-hidden="true" />
+                <TextInput aria-label="최대 팔로워·구독자" id="creator-followers-max" inputMode="numeric" min="0" onChange={(event) => setFilters((current) => ({ ...current, maxFollower: event.target.value }))} placeholder="최대" value={filters.maxFollower} />
+                <em>명</em>
+              </div>
+            </div>
           </SearchPanel>
         </div>
         <ChoiceTabs
@@ -310,9 +529,19 @@ export function CreatorListPage() {
         />
         <ResultToolbar
           actions={(
-            <Button aria-haspopup="dialog" onClick={() => setDiscoverySettingsOpen(true)}>
-              발굴 설정
-            </Button>
+            <>
+              <Button
+                aria-haspopup="dialog"
+                disabled={selectedCreators.size === 0}
+                onClick={() => setProposalPanelOpen(true)}
+                variant="primary"
+              >
+                선택 {selectedCreators.size}명 제안 발송
+              </Button>
+              <Button aria-haspopup="dialog" onClick={() => setDiscoverySettingsOpen(true)}>
+                발굴 설정
+              </Button>
+            </>
           )}
           className="fuma-simple-result-toolbar"
           meta={<span>총 {pageData?.totalElements ?? 0}건</span>}
@@ -323,10 +552,11 @@ export function CreatorListPage() {
             <EmptyState description={error} title="목록을 불러오지 못했습니다" />
           ) : (
             <DenseTable
-              columns={creatorColumns(categoryOptions, (creator) => navigate(`/proposals/new?creator=${creator.id}`))}
+              columns={columns}
               emptyMessage={pageData ? "검색 결과가 없습니다." : "크리에이터를 불러오는 중입니다."}
               rowKey={(creator) => creator.id}
-              rows={pageData?.content ?? []}
+              rows={listedCreators}
+              selectedRowKeys={[...selectedCreators.keys()]}
             />
           )}
         </div>
@@ -344,6 +574,27 @@ export function CreatorListPage() {
         refreshCategoryOptions().catch(() => undefined);
       }} />
     ) : null}
+    {proposalPanelOpen ? (
+      <BatchProposalPanel
+        categoryOptions={[...categoryOptions, ...CREATOR_CATEGORY_OPTIONS]}
+        creators={[...selectedCreators.values()]}
+        onClose={() => setProposalPanelOpen(false)}
+        onComplete={(count) => {
+          setSelectedCreators(new Map());
+          setProposalPanelOpen(false);
+          setProposalCompletedCount(count);
+        }}
+        onFailed={(failed) => setSelectedCreators(
+          new Map(failed.map((creator) => [creator.id, creator])),
+        )}
+      />
+    ) : null}
+    <AlertDialog
+      message={`${proposalCompletedCount}명에게 제안을 발송했습니다.`}
+      onClose={() => setProposalCompletedCount(0)}
+      open={proposalCompletedCount > 0}
+      title="제안 발송 완료"
+    />
     </>
   );
 }
