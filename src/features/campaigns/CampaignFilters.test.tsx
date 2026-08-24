@@ -83,7 +83,9 @@ describe("campaign filter behavior", () => {
 
     fireEvent.click(within(detail).getByRole("button", { name: "포함 상품" }));
 
-    expect(within(detail).getByRole("region", { name: "포함 상품" })).toBeInTheDocument();
+    const productList = within(detail).getByRole("region", { name: "포함 상품" });
+    expect(productList).toBeInTheDocument();
+    expect(within(productList).getByRole("img", { name: "골프 재킷 썸네일" })).toBeInTheDocument();
     expect(within(detail).queryByRole("region", { name: "참여 셀렉터스" })).not.toBeInTheDocument();
   });
 

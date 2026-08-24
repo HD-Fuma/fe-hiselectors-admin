@@ -653,7 +653,7 @@ export function CampaignWorkspacePage() {
 
 const CAMPAIGN_DETAIL_PRODUCT_COLUMNS: DenseTableColumn<CampaignProduct>[] = [
   { key: "code", header: "상품코드", width: 118, align: "center" },
-  { id: "name", header: "상품명", render: (product) => product.productName || "-" },
+  { id: "name", header: "상품명", render: (product) => <CampaignProductIdentity product={product} /> },
   {
     id: "saleStatus",
     header: "판매 상태",
