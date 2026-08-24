@@ -6,6 +6,7 @@ export type ApplicationStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type ApplicationMediaCollectionStatus = "PENDING" | "DONE" | "FAILED";
 export type ApplicationAnalysisStatus = "PENDING" | "IN_PROGRESS" | "DONE" | "FAILED";
 export type ApplicationContentType = "SHORT_FORM" | "LONG_FORM" | "SHORTS" | "FEED";
+export type ApplicationMediaType = "IMAGE" | "VIDEO";
 export type ApplicationContentFormat = ApplicationContentType | "UNKNOWN";
 export type ApplicationRepresentativeContentType = "SHORT_FORM" | "FEED" | "LONG_FORM";
 
@@ -83,7 +84,12 @@ export interface ApplicationContent {
   snsContentId: string;
   contentUrl: string | null;
   mediaUrl: string | null;
+  thumbnailUrl: string | null;
   contentType: ApplicationContentType | null;
+  mediaType: ApplicationMediaType;
+  title: string | null;
+  caption: string | null;
+  description: string | null;
   sequenceNo: number;
   publishedAt: string | null;
   viewCount: number | null;
@@ -94,6 +100,7 @@ export interface ApplicationContent {
 
 export interface AdminApplicationDetail extends AdminApplicationIdentity {
   analysisStatus: ApplicationAnalysisStatus;
+  profileImageUrl: string | null;
   metrics: ApplicationMetrics;
   contents: ApplicationContent[];
 }

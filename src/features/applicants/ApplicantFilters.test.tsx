@@ -74,6 +74,7 @@ const applicants = [
 
 const applicantDetail = {
   ...applicants[0],
+  profileImageUrl: "https://cdn.example.com/minji-profile.jpg",
   metrics: {
     analysisWindowDays: 90,
     totalContentCount: 126,
@@ -100,8 +101,32 @@ const applicantDetail = {
     snsCode: "INSTAGRAM",
     snsContentId: "post-11",
     contentUrl: "https://www.instagram.com/p/post-11",
-    mediaUrl: null,
+    mediaUrl: "https://cdn.example.com/post-11-image.jpg",
+    thumbnailUrl: "https://cdn.example.com/post-11-thumbnail.jpg",
     contentType: "FEED",
+    mediaType: "IMAGE",
+    title: null,
+    caption: "대표 피드 캡션",
+    description: null,
+    sequenceNo: 0,
+    publishedAt: "2026-08-02T12:00:00",
+    viewCount: null,
+    likeCount: 120,
+    commentCount: 0,
+    collectedAt: "2026-08-05T10:00:00",
+  }, {
+    id: 12,
+    applicationId: 1,
+    snsCode: "INSTAGRAM",
+    snsContentId: "post-11",
+    contentUrl: "https://www.instagram.com/p/post-11",
+    mediaUrl: "https://cdn.example.com/post-11-second-image.jpg",
+    thumbnailUrl: "https://cdn.example.com/post-11-second-thumbnail.jpg",
+    contentType: "FEED",
+    mediaType: "IMAGE",
+    title: "중복 미디어",
+    caption: null,
+    description: null,
     sequenceNo: 0,
     publishedAt: "2026-08-02T12:00:00",
     viewCount: null,
@@ -348,6 +373,13 @@ describe("applicant api pages", () => {
 
     await act(async () => pendingDetail.resolve(await json(applicantDetail)));
     expect(await within(panel).findByRole("heading", { name: "김민지" })).toBeInTheDocument();
+    expect(within(panel).getByRole("img", { name: "김민지 프로필 이미지" }))
+      .toHaveAttribute("src", "https://cdn.example.com/minji-profile.jpg");
+    const representativeContents = within(panel).getByLabelText("대표 콘텐츠");
+    expect(within(representativeContents).getByRole("img", {
+      name: "김민지 대표 게시글: 대표 피드 캡션",
+    })).toHaveAttribute("src", "https://cdn.example.com/post-11-thumbnail.jpg");
+    expect(representativeContents.children).toHaveLength(1);
     const report = within(panel).getByRole("region", { name: "지원자 분석 리포트" });
     expect(within(report).queryByText("평균 조회")).not.toBeInTheDocument();
     expect(within(report).getByText("평균 좋아요").parentElement).toHaveTextContent("120.5건");

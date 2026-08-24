@@ -17,6 +17,7 @@ export type {
   ApplicationContentFormatCount,
   ApplicationContentType,
   ApplicationMediaCollectionStatus,
+  ApplicationMediaType,
   ApplicationMetrics,
   ApplicationMetricValue,
   ApplicationRepresentativeContentType,

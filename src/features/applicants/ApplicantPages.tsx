@@ -23,6 +23,7 @@ import {
   type AdminApplicationDetail,
   type AdminApplicationIdentity,
   type AdminApplicationSummary,
+  type ApplicationContent,
   type ApplicationSnsCode,
   type ApplicationStatus,
   type SpringPage,
@@ -108,6 +109,14 @@ function profileUrl(applicant: AdminApplicationIdentity) {
     return `https://www.youtube.com/channel/${encodeURIComponent(applicant.snsAccountId)}`;
   }
   return `https://www.youtube.com/@${encodeURIComponent(applicant.snsAccountId.replace(/^@/, ""))}`;
+}
+
+function uniqueContentsByPost(contents: readonly ApplicationContent[]) {
+  const posts = new Map<string, ApplicationContent>();
+  contents.forEach((content) => {
+    if (!posts.has(content.snsContentId)) posts.set(content.snsContentId, content);
+  });
+  return [...posts.values()];
 }
 
 function PlatformLabel({ platform }: { platform: ApplicantPlatform }) {
@@ -577,6 +586,7 @@ export function ApplicantDetailPage({
   const applicant = currentDetailState?.applicant ?? null;
   const effectiveReviewStatus = applicant ? reviewStatusFor(applicant) : undefined;
   const audienceLabel = applicant?.snsCode === "INSTAGRAM" ? "팔로워" : "구독자";
+  const representativeContents = applicant ? uniqueContentsByPost(applicant.contents) : [];
   const detailProfile: ProfileDetailProfile | undefined = applicant && effectiveReviewStatus ? {
     audienceLabel,
     audienceValue: applicant.followerCount === null ? "-" : formatNumber(applicant.followerCount),
@@ -586,10 +596,12 @@ export function ApplicantDetailPage({
     engagementValue: applicant.metrics.engagementRate.value === null
       ? "-"
       : `${applicant.metrics.engagementRate.value.toFixed(2)}%`,
-    gallery: applicant.contents.slice(0, 3).map((content) => ({
-      id: String(content.id),
-      imageUrl: content.mediaUrl ?? "",
-      title: content.snsContentId,
+    gallery: representativeContents.slice(0, 3).map((content) => ({
+      id: content.snsContentId,
+      imageUrl: content.thumbnailUrl
+        ?? (content.mediaType === "IMAGE" ? content.mediaUrl : null)
+        ?? "",
+      title: content.title || content.caption || content.description || content.snsContentId,
     })),
     handle: displaySnsName(applicant),
     infoFields: [
@@ -618,7 +630,7 @@ export function ApplicantDetailPage({
     ],
     name: applicant.applicantName,
     platform: platformFor(applicant.snsCode),
-    profileImageUrl: "",
+    profileImageUrl: applicant.profileImageUrl ?? "",
     profileUrl: profileUrl(applicant),
     status: (
       <StatusPill tone={reviewStatusTone(effectiveReviewStatus)}>
