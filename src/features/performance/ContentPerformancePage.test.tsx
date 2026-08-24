@@ -86,6 +86,8 @@ test("content performance opens card and list details in a side panel", async ()
     { name: "콘텐츠 성과 및 추이" },
     { timeout: 3_000 },
   );
+  expect(screen.getByRole("search", { name: "검색 조건" }).parentElement)
+    .toHaveAttribute("data-visual-contract", "list-search-panel");
   expect(within(results).getByText("콘텐츠 성과 및 추이")).toBeInTheDocument();
   const sort = within(results).getByRole("combobox", { name: "콘텐츠 성과 정렬" });
   expect(sort).toHaveValue("latest");

@@ -85,6 +85,26 @@ export interface SelectorSearchRequest {
   size: number;
 }
 
+export interface SelectorSalesPerformance {
+  confirmedOrderCount: number;
+  excellentActivityType: string | null;
+  excellentGenerationName: string | null;
+  excellentGenerationSales: number | null;
+  generationName: string | null;
+  isExcellent: boolean;
+  nickname: string;
+  roleId: string;
+  selectorCode: string;
+  selectorId: number;
+  totalSales: number;
+}
+
+export interface SelectorSalesPerformanceRequest {
+  endDate?: string;
+  keyword?: string;
+  startDate?: string;
+}
+
 export interface SelectorFilterGeneration {
   id: number;
   generationName: string;
@@ -210,5 +230,22 @@ export function updateGenerationStatus(id: number, status: GenerationStatus) {
     `/api/admin/generations/${id}/status`,
     "기수 상태 변경에 실패했습니다.",
     { method: "PATCH", headers: headers(true), body: JSON.stringify({ status }) },
+  );
+}
+
+export function getSelectorSalesPerformance(
+  input: SelectorSalesPerformanceRequest = {},
+  signal?: AbortSignal,
+) {
+  const search = query({
+    endDate: input.endDate,
+    keyword: input.keyword,
+    startDate: input.startDate,
+  });
+
+  return request<SelectorSalesPerformance[]>(
+    `/api/admin/selector-performance${search ? `?${search}` : ""}`,
+    "셀렉터스 성과 목록 조회에 실패했습니다.",
+    { signal },
   );
 }

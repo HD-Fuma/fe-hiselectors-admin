@@ -3192,20 +3192,6 @@
   grid-template-columns: 42px minmax(0, 1fr);
 }
 
-.fuma-excellent-selector-search .hsas-search-panel__fields {
-  grid-template-columns: 260px 190px;
-  column-gap: var(--hsas-space-20);
-  justify-content: start;
-}
-
-.fuma-excellent-selector-search .fuma-filter-field:first-child {
-  grid-template-columns: 52px minmax(0, 1fr);
-}
-
-.fuma-excellent-selector-search .fuma-filter-field:nth-child(2) {
-  grid-template-columns: 42px minmax(0, 1fr);
-}
-
 .fuma-settlement-search.fuma-creator-pool-search .hsas-search-panel {
   align-items: stretch;
   gap: var(--hsas-space-20);

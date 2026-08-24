@@ -8,6 +8,7 @@ import { DenseTable, type DenseTableColumn, type DenseTableProps } from "./Dense
 import { EmptyState } from "./EmptyState";
 import { FilterField } from "./FilterField";
 import { FormRow, type FormRowProps } from "./FormRow";
+import { ListSearchPanel } from "./ListSearchPanel";
 import { Modal } from "./Modal";
 import { Pagination } from "./Pagination";
 import { ResultToolbar } from "./ResultToolbar";
@@ -165,11 +166,11 @@ test("composes shared list filters, search actions, and result metadata", async 
 
   render(
     <>
-      <SearchPanel actions={<SearchActions onReset={onReset} onSearch={onSearch} />}>
+      <ListSearchPanel actions={<SearchActions onReset={onReset} onSearch={onSearch} />}>
         <FilterField htmlFor="shared-keyword" label="검색어">
           <TextInput id="shared-keyword" />
         </FilterField>
-      </SearchPanel>
+      </ListSearchPanel>
       <ResultToolbar
         actions={<Button>새 항목</Button>}
         description="목록 설명"
@@ -180,6 +181,8 @@ test("composes shared list filters, search actions, and result metadata", async 
   );
 
   expect(screen.getByLabelText("검색어")).toBeInTheDocument();
+  expect(screen.getByRole("search", { name: "검색 조건" }).parentElement)
+    .toHaveAttribute("data-visual-contract", "list-search-panel");
   expect(screen.getByText("공통 목록")).toBeInTheDocument();
   expect(screen.getByText("목록 설명")).toHaveClass("fuma-result-toolbar__description");
   expect(screen.getByText("총 12건")).toBeInTheDocument();

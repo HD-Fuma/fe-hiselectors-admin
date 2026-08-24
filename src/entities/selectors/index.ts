@@ -11,6 +11,7 @@ export {
   getGenerations,
   getSelector,
   getSelectorFilterGenerations,
+  getSelectorSalesPerformance,
   getSelectors,
   updateGeneration,
   updateGenerationStatus,
@@ -25,9 +26,15 @@ export type {
   SelectorGeneration,
   SelectorPerformance,
   SelectorSearchRequest,
+  SelectorSalesPerformance,
+  SelectorSalesPerformanceRequest,
   SelectorSnsAccount,
   SelectorSnsCode,
   SelectorSummary,
   SpringPage,
 } from "./api";
 export { SelectorDetailPanel } from "./ui/SelectorDetailPanel";
+export {
+  ExcellentSelectorTable,
+  SelectorSalesPerformanceTable,
+} from "./ui/SelectorPerformanceTables";

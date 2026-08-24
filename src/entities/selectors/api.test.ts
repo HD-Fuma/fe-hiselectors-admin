@@ -2,6 +2,7 @@ import {
   createGeneration,
   getSelector,
   getSelectorFilterGenerations,
+  getSelectorSalesPerformance,
   getSelectors,
   updateGeneration,
   updateGenerationStatus,
@@ -91,6 +92,36 @@ describe("selector admin api", () => {
       method: "PATCH",
       body: JSON.stringify({ status: "ACTIVE" }),
     });
+  });
+
+  test("loads sales performance with its applied period and keyword", async () => {
+    const rows = [{
+      confirmedOrderCount: 8,
+      excellentActivityType: "3기 활동 누적 1위",
+      excellentGenerationName: "3기",
+      excellentGenerationSales: 11_000_000,
+      generationName: "3기",
+      isExcellent: true,
+      nickname: "김서연",
+      roleId: "ACTIVE",
+      selectorCode: "SEL0001",
+      selectorId: 1,
+      totalSales: 12_000_000,
+    }];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(rows)));
+
+    await expect(getSelectorSalesPerformance({
+      endDate: "2026-08-31",
+      keyword: "김서연",
+      startDate: "2026-08-01",
+    })).resolves.toEqual(rows);
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toContain("/api/admin/selector-performance?");
+    expect(String(url)).toContain("startDate=2026-08-01");
+    expect(String(url)).toContain("endDate=2026-08-31");
+    expect(String(url)).toContain("keyword=%EA%B9%80%EC%84%9C%EC%97%B0");
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer token");
   });
 
   test("uses the backend error message", async () => {

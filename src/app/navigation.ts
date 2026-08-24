@@ -25,11 +25,6 @@ const ProposalComposePage = lazyPage(() =>
 const SelectorOverviewPage = lazyPage(() =>
   import("../features/selectors/SelectorPages").then((module) => module.SelectorOverviewPage),
 );
-const ExcellentSelectorListPage = lazyPage(() =>
-  import("../features/selectors/SelectorPages").then(
-    (module) => module.ExcellentSelectorListPage,
-  ),
-);
 const SelectorDetailPage = lazyPage(() =>
   import("../features/selectors/SelectorPages").then((module) => module.SelectorDetailPage),
 );
@@ -138,15 +133,6 @@ export const ADMIN_ROUTE_MANIFEST = [
     title: "셀렉터스 목록",
     screenCode: "SL201",
     workTabLabel: "셀렉터스 목록",
-  },
-  {
-    path: "/selectors/excellent",
-    Component: ExcellentSelectorListPage,
-    group: "selectors",
-    menuLabel: "우수 활동자",
-    title: "우수 활동자",
-    screenCode: "SL302",
-    workTabLabel: "우수 활동자",
   },
   {
     path: "/selectors/:selectorId",

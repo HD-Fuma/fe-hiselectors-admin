@@ -32,7 +32,7 @@ describe("campaign admin api", () => {
   });
 
   test("uses the backend message on failure", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: "종료된 캠페인만 삭제할 수 있습니다." }), { status: 409 })));
-    await expect(deleteCampaign(1)).rejects.toThrow("종료된 캠페인만 삭제할 수 있습니다.");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: "시작 전 캠페인만 삭제할 수 있습니다." }), { status: 409 })));
+    await expect(deleteCampaign(1)).rejects.toThrow("시작 전 캠페인만 삭제할 수 있습니다.");
   });
 });
