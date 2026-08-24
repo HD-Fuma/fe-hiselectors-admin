@@ -8,19 +8,19 @@ import {
 import { getTaskRunPanelApiMock, renderRoute } from "../../test/renderRoute";
 
 const expectedSidebarLinks = [
+  ["기수 관리", "/cohorts"],
   ["크리에이터 풀", "/creators"],
   ["제안 이력", "/proposals"],
-  ["기수 관리", "/cohorts"],
-  ["셀렉터스 목록", "/selectors"],
   ["지원자 승인", "/applicants"],
+  ["셀렉터스 목록", "/selectors"],
   ["캠페인 관리", "/campaigns"],
   ["콘텐츠 검수", "/content/inspections"],
+  ["실행 이력", "/task-runs"],
   ["셀렉터스 성과", "/performance/selectors"],
   ["콘텐츠 성과", "/performance/contents"],
   ["캠페인 성과", "/performance/products"],
   ["정산 관리", "/settlements"],
   ["발송 내역", "/notifications"],
-  ["실행 이력", "/task-runs"],
 ] as const;
 
 test("renderRoute renders the administrator login route", () => {
@@ -40,7 +40,11 @@ test("renders the complete administrator navigation in one sidebar", () => {
 
   expect(sidebarQueries.getByRole("img", { name: "더현대Hi" })).toBeInTheDocument();
   expect(screen.getAllByRole("navigation", { name: "관리자 메뉴" })).toHaveLength(1);
-  expect(within(navigation).getAllByRole("link")).toHaveLength(13);
+  const sidebarLinks = within(navigation).getAllByRole("link");
+  expect(sidebarLinks).toHaveLength(13);
+  expect(sidebarLinks.map((link) => [link.textContent, link.getAttribute("href")])).toEqual(
+    expectedSidebarLinks,
+  );
   for (const [label, href] of expectedSidebarLinks) {
     expect(within(navigation).getByRole("link", { name: label })).toHaveAttribute(
       "href",
@@ -50,15 +54,10 @@ test("renders the complete administrator navigation in one sidebar", () => {
   expect(within(navigation).queryByRole("link", { name: "위반 관리" })).not.toBeInTheDocument();
 
   for (const groupLabel of [
-    "크리에이터",
-    "셀렉터스",
-    "지원자",
-    "캠페인",
-    "콘텐츠",
-    "성과",
-    "정산",
-    "알림 및 메시지",
-    "작업",
+    "모집·선발",
+    "운영",
+    "성과·정산",
+    "알림·메시지",
   ]) {
     expect(
       within(navigation).getByRole("heading", { name: groupLabel }),
@@ -237,7 +236,7 @@ test("does not render a favorite control for the current screen", () => {
 const routeCases = [
   {
     path: "/creators",
-    group: "creators",
+    group: "recruitment",
     menuLabel: "크리에이터 풀",
     title: "크리에이터 풀",
     screenCode: "CR101",
@@ -245,7 +244,7 @@ const routeCases = [
   },
   {
     path: "/proposals",
-    group: "creators",
+    group: "recruitment",
     menuLabel: "제안 이력",
     title: "제안 이력 관리",
     screenCode: "CR201",
@@ -253,7 +252,7 @@ const routeCases = [
   },
   {
     path: "/cohorts",
-    group: "selectors",
+    group: "recruitment",
     menuLabel: "기수 관리",
     title: "셀렉터스 기수 관리",
     screenCode: "SL101",
@@ -261,7 +260,7 @@ const routeCases = [
   },
   {
     path: "/selectors",
-    group: "selectors",
+    group: "operations",
     menuLabel: "셀렉터스 목록",
     title: "셀렉터스 목록",
     screenCode: "SL201",
@@ -269,7 +268,7 @@ const routeCases = [
   },
   {
     path: "/applicants",
-    group: "applicants",
+    group: "recruitment",
     menuLabel: "지원자 승인",
     title: "지원자 심사",
     screenCode: "AP101",
@@ -277,7 +276,7 @@ const routeCases = [
   },
   {
     path: "/applicants/ap-001",
-    group: "applicants",
+    group: "recruitment",
     menuLabel: "지원자 승인",
     title: "지원자 상세 심사",
     screenCode: "AP102",
@@ -285,7 +284,7 @@ const routeCases = [
   },
   {
     path: "/campaigns",
-    group: "campaigns",
+    group: "operations",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
     screenCode: "CP101",
@@ -293,7 +292,7 @@ const routeCases = [
   },
   {
     path: "/campaigns/new",
-    group: "campaigns",
+    group: "operations",
     menuLabel: "캠페인 관리",
     title: "캠페인 등록",
     screenCode: "CP102",
@@ -301,7 +300,7 @@ const routeCases = [
   },
   {
     path: "/campaigns/cp-001/edit",
-    group: "campaigns",
+    group: "operations",
     menuLabel: "캠페인 관리",
     title: "캠페인 수정",
     screenCode: "CP103",
@@ -309,7 +308,7 @@ const routeCases = [
   },
   {
     path: "/content/inspections",
-    group: "content",
+    group: "operations",
     menuLabel: "콘텐츠 검수",
     title: "콘텐츠 검수",
     screenCode: "CT101",
@@ -317,7 +316,7 @@ const routeCases = [
   },
   {
     path: "/content/inspections/ct-001",
-    group: "content",
+    group: "operations",
     menuLabel: "콘텐츠 검수",
     title: "콘텐츠 검수 상세",
     screenCode: "CT102",
@@ -349,7 +348,7 @@ const routeCases = [
   },
   {
     path: "/settlements",
-    group: "settlements",
+    group: "performance",
     menuLabel: "정산 관리",
     title: "정산 지급 관리",
     screenCode: "ST101",
@@ -373,7 +372,7 @@ const routeCases = [
   },
   {
     path: "/task-runs",
-    group: "tasks",
+    group: "operations",
     menuLabel: "실행 이력",
     title: "작업 실행 이력",
     screenCode: "TR101",
