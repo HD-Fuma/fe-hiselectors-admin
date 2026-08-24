@@ -85,6 +85,14 @@ export async function getTaskRunPanel(signal?: AbortSignal): Promise<TaskRunPane
   return data;
 }
 
+export async function getTaskRun(runId: string, signal?: AbortSignal): Promise<TaskRun> {
+  const response = await adminFetch(
+    `${API_BASE_URL}/api/admin/task-runs/${encodeURIComponent(runId)}`,
+    { headers: requestHeaders(), signal },
+  );
+  return readApiResult<TaskRun>(response, "작업 상태를 불러오지 못했습니다.");
+}
+
 export async function getRecentTaskRuns(
   page: number,
   signal?: AbortSignal,

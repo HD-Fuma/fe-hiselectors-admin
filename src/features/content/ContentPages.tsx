@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -60,12 +61,12 @@ import {
   runContentBatch,
   type ContentAnnotation,
   type ContentAnnotationTarget,
-  type ContentBatchRunResponse,
   type ContentInspectionFixture,
   type ContentInspectionConfirmationRequest,
   type ContentSnapshot,
   type InspectionStatus,
 } from "../../entities/content";
+import { getTaskRun } from "../../entities/task-run";
 
 const CONTENT_INSPECTION_PAGE_SIZE = 20;
 type ContentInspectionCategory =
@@ -294,7 +295,10 @@ function CollectionCard({
   onSelect: (content: ContentInspectionFixture) => void;
 }) {
   const snapshot = content.currentSnapshot;
-  const mainMedia = snapshot.mediaUrls.find(Boolean);
+  const mainMedia = snapshot.mediaUrls.find(Boolean)
+    ?? (snapshot.youtubeVideoId
+      ? `https://i.ytimg.com/vi/${encodeURIComponent(snapshot.youtubeVideoId)}/hqdefault.jpg`
+      : undefined);
   const issueCount = content.report.signals.filter((signal) => signal.tone !== "pass").length;
   const hasVideo = snapshot.mediaKinds[0] === "동영상";
 
@@ -408,35 +412,50 @@ function ContentInspectionCollection({
 }
 
 function ContentInspectionCategoryTabs({
+  onCollectionComplete,
   onStartInspection,
   pendingCount,
   selectedCategory,
   onSelect,
 }: {
+  onCollectionComplete: () => Promise<void>;
   onStartInspection: () => void;
   pendingCount: number;
   selectedCategory: ContentInspectionCategory;
   onSelect: (category: ContentInspectionCategory) => void;
 }) {
   const [isCollecting, setIsCollecting] = useState(false);
-  const [collectionResult, setCollectionResult] = useState<ContentBatchRunResponse | null>(
-    null,
-  );
   const [collectionError, setCollectionError] = useState<string | null>(null);
+  const collectionRequestRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => collectionRequestRef.current?.abort(), []);
 
   const runContentCollection = async () => {
+    const controller = new AbortController();
+    collectionRequestRef.current = controller;
     setIsCollecting(true);
-    setCollectionResult(null);
     setCollectionError(null);
     try {
       const result = await runContentBatch();
-      setCollectionResult(result);
+      while (!controller.signal.aborted) {
+        const run = await getTaskRun(result.runId, controller.signal);
+        if (run.status === "SUCCEEDED" || run.status === "PARTIAL_FAILED") {
+          await onCollectionComplete();
+          break;
+        }
+        if (run.status === "FAILED" || run.status === "STALE") {
+          throw new Error("콘텐츠 동기화에 실패했습니다.");
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
+      }
     } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
       setCollectionError(
         error instanceof Error ? error.message : "콘텐츠 배치 실행에 실패했습니다.",
       );
     } finally {
-      setIsCollecting(false);
+      if (!controller.signal.aborted) setIsCollecting(false);
+      if (collectionRequestRef.current === controller) collectionRequestRef.current = null;
     }
   };
 
@@ -470,11 +489,7 @@ function ContentInspectionCategoryTabs({
         options={CONTENT_INSPECTION_CATEGORIES}
         value={selectedCategory}
       />
-      {collectionResult ? (
-        <p className="fuma-content-inspection-collection-feedback" role="status">
-          작업 요청됨 · 작업 ID {collectionResult.runId} · 진행상황에서 확인
-        </p>
-      ) : collectionError ? (
+      {collectionError ? (
         <p
           className="fuma-content-inspection-collection-feedback fuma-content-inspection-collection-feedback--error"
           role="alert"
@@ -537,13 +552,17 @@ export function ContentInspectionListPage() {
   const [contents, setContents] = useState<ContentInspectionFixture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const fetchContents = useCallback(async (signal?: AbortSignal) => (
+    (await getCurrentGenerationContents(signal)).map(adaptContentInspection)
+  ), []);
+
   useEffect(() => {
     const controller = new AbortController();
-
-    void getCurrentGenerationContents(controller.signal)
+    void fetchContents(controller.signal)
       .then((result) => {
         if (controller.signal.aborted) return;
-        setContents(result.map(adaptContentInspection));
+        setContents(result);
+        setLoadError(null);
       })
       .catch((error: unknown) => {
         if (
@@ -557,7 +576,7 @@ export function ContentInspectionListPage() {
       });
 
     return () => controller.abort();
-  }, []);
+  }, [fetchContents]);
   const selectedCategory = CONTENT_INSPECTION_CATEGORIES.find(
     (category) => category === searchParams.get("category"),
   ) ?? DEFAULT_CONTENT_INSPECTION_CATEGORY;
@@ -645,6 +664,18 @@ export function ContentInspectionListPage() {
           onReset={resetQueueFilters}
         />
         <ContentInspectionCategoryTabs
+          onCollectionComplete={async () => {
+            try {
+              setContents(await fetchContents());
+              setLoadError(null);
+            } catch (error) {
+              const message = error instanceof Error
+                ? error.message
+                : "콘텐츠 목록 조회에 실패했습니다.";
+              setLoadError(message);
+              throw new Error(message, { cause: error });
+            }
+          }}
           onStartInspection={() => {
             const firstPendingContent = pendingContents[0];
             if (!firstPendingContent) return;

@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import adminStyles from "../../styles/admin.css?raw";
 import contentInspectionStyles from "../../styles/content-inspection.css?raw";
-import { renderRoute } from "../../test/renderRoute";
+import { getTaskRunPanelApiMock, renderRoute } from "../../test/renderRoute";
 
 function collectionResponse(overrides: Record<string, unknown> = {}) {
   return new Response(JSON.stringify({
@@ -82,13 +82,17 @@ beforeEach(() => {
     role: "ADMIN",
     tokenType: "Bearer",
   }));
+  getTaskRunPanelApiMock().getTaskRun.mockClear().mockResolvedValue({
+    runId: "run-content-1",
+    status: "SUCCEEDED",
+  });
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test("requests one content collection run with idempotency and reports accepted status", async () => {
+test("requests one content collection run with idempotency and hides the accepted request copy", async () => {
   const fetchMock = vi.fn().mockImplementation((_input: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === "POST") {
       return Promise.resolve(collectionResponse());
@@ -118,7 +122,6 @@ test("requests one content collection run with idempotency and reports accepted 
   const requestsBeforeRun = fetchMock.mock.calls.length;
   fireEvent.click(refreshButton);
 
-  expect(fetchMock).toHaveBeenCalledTimes(requestsBeforeRun + 1);
   expect(within(categoryTabs).getByRole("button", { name: "콘텐츠 새로고침 중" })).toBeDisabled();
   const [input, init] = fetchMock.mock.calls[requestsBeforeRun];
   expect(new URL(String(input)).pathname).toBe("/api/admin/content-batch/run");
@@ -129,12 +132,15 @@ test("requests one content collection run with idempotency and reports accepted 
   const idempotencyKey = new Headers((init as RequestInit).headers).get("Idempotency-Key");
   expect(idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
 
-  const status = await screen.findByRole("status");
-  expect(status).toHaveTextContent("작업 요청됨");
-  expect(status).toHaveTextContent("진행상황에서 확인");
-  expect(status).toHaveTextContent("run-content-1");
-  expect(fetchMock).toHaveBeenCalledTimes(requestsBeforeRun + 1);
-  expect(within(categoryTabs).getByRole("button", { name: "콘텐츠 새로고침" })).toBeEnabled();
+  await waitFor(() => expect(
+    within(categoryTabs).getByRole("button", { name: "콘텐츠 새로고침" }),
+  ).toBeEnabled());
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.queryByText(/작업 요청됨|작업 ID|진행상황에서 확인/)).not.toBeInTheDocument();
+  expect(getTaskRunPanelApiMock().getTaskRun).toHaveBeenCalledWith(
+    "run-content-1",
+    expect.any(AbortSignal),
+  );
 });
 
 test("shows the backend conflict message when a collection is already running", async () => {
@@ -182,22 +188,25 @@ test("shows a collection failure as an inline alert", async () => {
   expect(screen.getByRole("button", { name: "콘텐츠 새로고침" })).toBeEnabled();
 });
 
-test("does not reload contents after an accepted collection request", async () => {
+test("reloads contents as soon as collection succeeds", async () => {
+  let contentRequests = 0;
   const fetchMock = vi.fn().mockImplementation((_input: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === "POST") {
       return Promise.resolve(collectionResponse());
     }
-    return Promise.resolve(contentsResponse([]));
+    contentRequests += 1;
+    return Promise.resolve(contentsResponse(
+      contentRequests === 1 ? [] : [contentItem(2, "새 콘텐츠")],
+    ));
   });
   vi.stubGlobal("fetch", fetchMock);
 
   renderRoute("/content/inspections");
   await screen.findByText("검색 결과가 없습니다.");
-  const requestsBeforeRun = fetchMock.mock.calls.length;
   fireEvent.click(screen.getByRole("button", { name: "콘텐츠 새로고침" }));
 
-  await screen.findByRole("status");
-  expect(fetchMock).toHaveBeenCalledTimes(requestsBeforeRun + 1);
+  expect(await screen.findAllByText("새 콘텐츠")).not.toHaveLength(0);
+  expect(contentRequests).toBe(2);
 });
 
 test("locks the violation-only toggle on decided categories", async () => {
