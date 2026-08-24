@@ -82,6 +82,20 @@ function CampaignThumbnail({ campaign }: { campaign: Campaign }) {
   );
 }
 
+function CampaignProductIdentity({ product }: { product: CampaignProduct }) {
+  const productName = product.productName || product.code || String(product.id);
+  return (
+    <div className="fuma-campaign-product-identity">
+      <img
+        alt={`${productName} 썸네일`}
+        onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = assetUrl("/brand/thehyundai-hi.svg"); }}
+        src={product.thumbnailUrl || assetUrl("/brand/thehyundai-hi.svg")}
+      />
+      <span>{product.productName || "-"}</span>
+    </div>
+  );
+}
+
 const CAMPAIGN_COLUMNS: DenseTableColumn<Campaign>[] = [
   {
     id: "campaign",
@@ -299,7 +313,7 @@ function selectedProductColumns(
 ): DenseTableColumn<CampaignProduct>[] {
   const columns: DenseTableColumn<CampaignProduct>[] = [
     { key: "code", header: "상품코드", width: 118 },
-    { id: "name", header: "상품명", render: (product) => product.productName || "-" },
+    { id: "name", header: "상품명", render: (product) => <CampaignProductIdentity product={product} /> },
     {
       id: "saleStatus",
       header: "판매 상태",
@@ -875,7 +889,7 @@ function ProductSearchModal({
       },
     },
     { key: "code", header: "상품코드", width: 118 },
-    { id: "name", header: "상품명", render: (product) => product.productName || "-" },
+    { id: "name", header: "상품명", render: (product) => <CampaignProductIdentity product={product} /> },
     {
       id: "saleStatus",
       header: "판매 상태",

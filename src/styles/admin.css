@@ -379,7 +379,7 @@
 
 .hsas-modal-backdrop {
   position: fixed;
-  z-index: 1000;
+  z-index: 1300;
   inset: 0;
   display: grid;
   place-items: center;
@@ -2622,6 +2622,29 @@
 .fuma-campaign-product-modal {
   display: grid;
   gap: var(--hsas-space-8);
+}
+
+.fuma-campaign-product-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--hsas-space-8);
+}
+
+.fuma-campaign-product-identity img {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border: 1px solid var(--hsas-border);
+  border-radius: var(--hsas-radius);
+  background: var(--hsas-surface-muted);
+  object-fit: cover;
+}
+
+.fuma-campaign-product-identity span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fuma-campaign-modal-table {

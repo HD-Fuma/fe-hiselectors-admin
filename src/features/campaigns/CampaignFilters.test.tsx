@@ -108,6 +108,8 @@ describe("campaign filter behavior", () => {
     const productList = within(dialog).getByRole("region", { name: "상품 목록", hidden: true });
     const query = within(dialog).getByRole("textbox", { name: "상품 검색", hidden: true });
 
+    expect(within(productList).getByRole("img", { name: "골프 재킷 썸네일", hidden: true })).toBeInTheDocument();
+
     fireEvent.click(within(dialog).getByRole("checkbox", {
       name: /골프 재킷.*선택/,
       hidden: true,
