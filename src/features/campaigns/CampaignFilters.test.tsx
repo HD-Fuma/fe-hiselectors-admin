@@ -74,19 +74,63 @@ describe("campaign filter behavior", () => {
     expect(screen.getByText("총 1건")).toBeInTheDocument();
   });
 
-  test("switches the campaign detail dataset with its tabs", async () => {
+  test("shows included products above participants without detail tabs", async () => {
     renderRoute("/campaigns/3");
     const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
 
-    expect(await within(detail).findByRole("region", { name: "참여 셀렉터스" })).toBeInTheDocument();
-    expect(within(detail).queryByRole("region", { name: "포함 상품" })).not.toBeInTheDocument();
-
-    fireEvent.click(within(detail).getByRole("button", { name: "포함 상품" }));
-
     const productList = within(detail).getByRole("region", { name: "포함 상품" });
+    const participantList = await within(detail).findByRole("region", { name: "참여 셀렉터스" });
     expect(productList).toBeInTheDocument();
+    expect(participantList).toBeInTheDocument();
     expect(within(productList).getByRole("img", { name: "골프 재킷 썸네일" })).toBeInTheDocument();
-    expect(within(detail).queryByRole("region", { name: "참여 셀렉터스" })).not.toBeInTheDocument();
+    expect(productList.compareDocumentPosition(participantList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(detail).queryByRole("button", { name: "포함 상품" })).not.toBeInTheDocument();
+  });
+
+  test("reveals products by ten and appends participants by twenty", async () => {
+    const products = Array.from({ length: 11 }, (_, index) => ({
+      ...campaign.products[0],
+      id: index + 1,
+      code: `P-${index + 1}`,
+      productName: `상품 ${index + 1}`,
+    }));
+    const participantRows = Array.from({ length: 21 }, (_, index) => ({
+      selectorId: index + 1,
+      nickname: `셀렉터 ${index + 1}`,
+      platform: "INSTAGRAM",
+      accountId: `selector-${index + 1}`,
+      followerCount: 100,
+    }));
+    const expandedCampaign = { ...campaign, productIds: products.map(({ id }) => id), products };
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/participants")) {
+        const page = Number(new URL(url, "http://localhost").searchParams.get("page") ?? 0);
+        return json({
+          content: page === 0 ? participantRows.slice(0, 20) : participantRows.slice(20),
+          number: page,
+          size: 20,
+          totalElements: 21,
+          totalPages: 2,
+        });
+      }
+      if (/\/campaigns\/3(?:\?|$)/.test(url)) return json(expandedCampaign);
+      return json({ content: [expandedCampaign], number: 0, size: 20, totalElements: 1, totalPages: 1 });
+    });
+
+    renderRoute("/campaigns/3");
+    const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
+    const productList = within(detail).getByRole("region", { name: "포함 상품" });
+    const participantList = await within(detail).findByRole("region", { name: "참여 셀렉터스" });
+
+    expect(within(productList).queryByText("상품 11")).not.toBeInTheDocument();
+    fireEvent.click(within(detail).getByRole("button", { name: "포함 상품 더보기" }));
+    expect(within(productList).getByText("상품 11")).toBeInTheDocument();
+
+    expect(within(participantList).queryByText("셀렉터 21")).not.toBeInTheDocument();
+    fireEvent.click(within(detail).getByRole("button", { name: "참여 셀렉터스 더보기" }));
+    expect(await within(participantList).findByText("셀렉터 21")).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("page=1&size=20"), expect.anything());
   });
 
   test("transitions from campaign detail to editing without replaying the panel animation", async () => {

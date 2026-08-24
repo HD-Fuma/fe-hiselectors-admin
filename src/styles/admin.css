@@ -2266,11 +2266,28 @@
 }
 
 .fuma-campaign-detail-list-toolbar {
-  margin-block: var(--hsas-space-10);
+  margin: 0;
 }
 
-.fuma-campaign-detail-panel .hsas-pagination {
-  margin-top: var(--hsas-space-12);
+.fuma-campaign-detail-list-section {
+  display: grid;
+  gap: var(--hsas-space-10);
+  padding-top: var(--hsas-space-18);
+}
+
+.fuma-campaign-detail-list-section + .fuma-campaign-detail-list-section {
+  margin-top: var(--hsas-space-18);
+  border-top: 1px solid var(--hsas-color-line-100);
+}
+
+.fuma-campaign-detail-load-more {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--hsas-space-2);
+}
+
+.fuma-campaign-detail-load-more .hsas-button {
+  min-width: 148px;
 }
 
 .fuma-campaign-detail-overview {

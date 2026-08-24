@@ -50,6 +50,7 @@ import {
 
 const CAMPAIGN_STATUS_CATEGORIES = CAMPAIGN_STATUS_OPTIONS;
 const CAMPAIGN_PAGE_SIZE = 20;
+const CAMPAIGN_DETAIL_PRODUCT_BATCH_SIZE = 10;
 const CAMPAIGN_THUMBNAIL_MAX_BYTES = 5 * 1024 * 1024;
 const CAMPAIGN_THUMBNAIL_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -711,22 +712,17 @@ export function CampaignDetailPage({
   embedded = false,
   onClose,
 }: CampaignDetailPageProps = {}) {
-  const { hash } = useLocation();
   const { campaignId: routeCampaignId } = useParams();
   const navigate = useNavigate();
   const campaignId = Number(campaignIdOverride ?? routeCampaignId);
   const [campaign, setCampaign] = useState<Campaign | null>();
   const [participants, setParticipants] = useState<SpringPage<CampaignParticipant> | null>(null);
-  const [participantPage, setParticipantPage] = useState(1);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
+  const [visibleProductCount, setVisibleProductCount] = useState(CAMPAIGN_DETAIL_PRODUCT_BATCH_SIZE);
   const [error, setError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const closePanel = onClose ?? (() => navigate("/campaigns"));
-  const [activeDetailTab, setActiveDetailTab] = useState<"participants" | "products">(
-    hash === "#campaign-products"
-      ? "products"
-      : "participants",
-  );
   useEffect(() => {
     const controller = new AbortController();
     getCampaign(campaignId, controller.signal).then(setCampaign).catch((reason: unknown) => {
@@ -736,11 +732,30 @@ export function CampaignDetailPage({
   }, [campaignId]);
   useEffect(() => {
     const controller = new AbortController();
-    getCampaignParticipants(campaignId, participantPage - 1, CAMPAIGN_PAGE_SIZE, controller.signal).then(setParticipants).catch((reason: unknown) => {
+    getCampaignParticipants(campaignId, 0, CAMPAIGN_PAGE_SIZE, controller.signal).then(setParticipants).catch((reason: unknown) => {
       if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "참여 셀렉터스 조회에 실패했습니다.");
     });
     return () => controller.abort();
-  }, [campaignId, participantPage]);
+  }, [campaignId]);
+  const loadMoreParticipants = async () => {
+    if (!participants || participantsLoading || participants.number + 1 >= participants.totalPages) return;
+    setParticipantsLoading(true); setError("");
+    try {
+      const nextPage = await getCampaignParticipants(
+        campaignId,
+        participants.number + 1,
+        CAMPAIGN_PAGE_SIZE,
+      );
+      setParticipants((current) => current ? {
+        ...nextPage,
+        content: [...current.content, ...nextPage.content],
+      } : nextPage);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "참여 셀렉터스 조회에 실패했습니다.");
+    } finally {
+      setParticipantsLoading(false);
+    }
+  };
   const removeCampaign = async () => {
     setDeleting(true); setError("");
     try { await deleteCampaign(campaignId); setDeleteOpen(false); closePanel(); }
@@ -792,31 +807,43 @@ export function CampaignDetailPage({
               </div>
             </section>
 
-            <ChoiceTabs
-              ariaLabel="캠페인 상세 메뉴"
-              className="fuma-campaign-detail-tabs"
-              onChange={setActiveDetailTab}
-              options={[
-                { label: "참여 셀렉터스", value: "participants" },
-                { label: "포함 상품", value: "products" },
-              ]}
-              value={activeDetailTab}
-            />
-
-            <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar">
-              <strong>{activeDetailTab === "participants" ? "셀렉터스 목록" : "포함 상품 목록"}</strong>
-              <div className="fuma-settlement-result-meta">
-                <span>총 {activeDetailTab === "participants" ? participants?.totalElements ?? 0 : campaign.products.length}건</span>
+            <section aria-labelledby="campaign-products-title" className="fuma-campaign-detail-list-section">
+              <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar">
+                <strong id="campaign-products-title">포함 상품</strong>
+                <div className="fuma-settlement-result-meta">
+                  <span>총 {campaign.products.length}건</span>
+                </div>
               </div>
-            </div>
-
-            {activeDetailTab === "participants" ? (
-              <>
               <div
-                aria-label="참여 셀렉터스"
+                className="fuma-wide-table fuma-settlement-table fuma-selector-list-table fuma-campaign-product-table"
+                id="campaign-products"
+              >
+                <DenseTable
+                  columns={CAMPAIGN_DETAIL_PRODUCT_COLUMNS}
+                  emptyMessage="포함된 상품이 없습니다."
+                  rowKey={(product) => product.id}
+                  rows={campaign.products.slice(0, visibleProductCount)}
+                />
+              </div>
+              {visibleProductCount < campaign.products.length ? (
+                <div className="fuma-campaign-detail-load-more">
+                  <Button onClick={() => setVisibleProductCount((current) => current + CAMPAIGN_DETAIL_PRODUCT_BATCH_SIZE)}>
+                    포함 상품 더보기
+                  </Button>
+                </div>
+              ) : null}
+            </section>
+
+            <section aria-labelledby="campaign-participants-title" className="fuma-campaign-detail-list-section">
+              <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar">
+                <strong id="campaign-participants-title">참여 셀렉터스</strong>
+                <div className="fuma-settlement-result-meta">
+                  <span>총 {participants?.totalElements ?? 0}건</span>
+                </div>
+              </div>
+              <div
                 className="fuma-wide-table fuma-settlement-table fuma-selector-list-table fuma-campaign-participant-table"
                 id="campaign-participants"
-                role="region"
               >
                 <DenseTable
                   columns={CAMPAIGN_PARTICIPANT_COLUMNS}
@@ -825,24 +852,14 @@ export function CampaignDetailPage({
                   rows={participants?.content ?? []}
                 />
               </div>
-              <Pagination onPageChange={setParticipantPage} page={participantPage} pageSize={CAMPAIGN_PAGE_SIZE} totalPages={Math.max(1, participants?.totalPages ?? 1)} />
-              </>
-            ) : null}
-
-            {activeDetailTab === "products" ? (
-              <div
-                aria-label="포함 상품"
-                className="fuma-wide-table fuma-settlement-table fuma-selector-list-table fuma-campaign-product-table"
-                id="campaign-products"
-                role="region"
-              >
-                <DenseTable
-                  columns={CAMPAIGN_DETAIL_PRODUCT_COLUMNS}
-                  rowKey={(product) => product.id}
-                  rows={[...campaign.products]}
-                />
-              </div>
-            ) : null}
+              {participants && participants.content.length < participants.totalElements ? (
+                <div className="fuma-campaign-detail-load-more">
+                  <Button disabled={participantsLoading} onClick={loadMoreParticipants}>
+                    {participantsLoading ? "불러오는 중..." : "참여 셀렉터스 더보기"}
+                  </Button>
+                </div>
+              ) : null}
+            </section>
           </div>
         ) : (
           <EmptyState
