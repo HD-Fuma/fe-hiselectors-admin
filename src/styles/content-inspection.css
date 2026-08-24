@@ -2912,8 +2912,10 @@ body:has(.fuma-content-inspection-detail) .hsas-admin-shell__content {
   background: var(--hsas-color-line-100);
 }
 
-.fuma-campaign-card .fuma-content-collection__media {
-  margin-top: var(--hsas-space-14);
+.fuma-campaign-card__status {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--hsas-space-14) var(--hsas-space-16) var(--hsas-space-8);
 }
 
 .fuma-content-collection__card[data-content-format="youtube-long"] .fuma-content-collection__media {

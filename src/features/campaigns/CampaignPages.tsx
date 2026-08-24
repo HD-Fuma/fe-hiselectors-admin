@@ -109,18 +109,16 @@ function CampaignCard({ campaign, onOpen }: {
             <time dateTime={campaign.endDate}>{campaign.endDate}</time>
           </>
         )}
-        header={null}
+        header={(
+          <header className="fuma-campaign-card__status">
+            <StatusPill tone={statusTone(campaign.status)}>
+              {campaignStatusLabel(campaign.status)}
+            </StatusPill>
+          </header>
+        )}
         mediaAlt={`${campaign.title} 썸네일`}
         mediaFallbackUrl="/brand/thehyundai-hi.svg"
         mediaUrl={campaign.thumbnailUrl || "/brand/thehyundai-hi.svg"}
-        status={(
-          <StatusPill
-            className="fuma-content-collection__inspection-status"
-            tone={statusTone(campaign.status)}
-          >
-            {campaignStatusLabel(campaign.status)}
-          </StatusPill>
-        )}
         title={campaign.title}
         variant="custom"
       />
