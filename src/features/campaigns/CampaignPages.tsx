@@ -2,6 +2,7 @@ import {
   useId,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
   type KeyboardEvent,
@@ -37,6 +38,7 @@ import {
   getCampaigns,
   getProducts,
   productStatusLabel,
+  uploadCampaignThumbnail,
   updateCampaign,
   type Campaign,
   type CampaignParticipant,
@@ -48,6 +50,8 @@ import {
 
 const CAMPAIGN_STATUS_CATEGORIES = CAMPAIGN_STATUS_OPTIONS;
 const CAMPAIGN_PAGE_SIZE = 20;
+const CAMPAIGN_THUMBNAIL_MAX_BYTES = 5 * 1024 * 1024;
+const CAMPAIGN_THUMBNAIL_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function statusTone(status: CampaignStatusCode): NonNullable<StatusPillProps["tone"]> {
   if (status === "SCHEDULED") {
@@ -287,7 +291,7 @@ interface CampaignFormProps {
   campaign?: Campaign;
   formId: string;
   mode: "create" | "edit";
-  onSubmit: (body: CampaignSaveRequest) => void;
+  onSubmit: (body: CampaignSaveRequest, thumbnailFile: File | null) => void;
 }
 
 function selectedProductColumns(
@@ -328,6 +332,8 @@ function selectedProductColumns(
 }
 
 function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
+  const thumbnailInputId = useId();
+  const thumbnailObjectUrlRef = useRef<string | null>(null);
   const [isProductModalOpen, setProductModalOpen] = useState(false);
   const [products, setProducts] = useState<CampaignProduct[]>(
     campaign ? [...campaign.products] : [],
@@ -336,23 +342,24 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
   const [description, setDescription] = useState(campaign?.description ?? "");
   const [startDate, setStartDate] = useState(campaign?.startDate ?? "");
   const [endDate, setEndDate] = useState(campaign?.endDate ?? "");
-  const [thumbnailUrl, setThumbnailUrl] = useState(campaign?.thumbnailUrl ?? "");
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState(campaign?.thumbnailUrl ?? "");
   const [validationError, setValidationError] = useState("");
+
+  useEffect(() => () => {
+    if (thumbnailObjectUrlRef.current) URL.revokeObjectURL(thumbnailObjectUrlRef.current);
+  }, []);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedTitle = title.trim();
     const normalizedDescription = description.trim();
-    const normalizedThumbnailUrl = thumbnailUrl.trim();
     if (!normalizedTitle || !normalizedDescription || !startDate || !endDate) {
       setValidationError("필수 항목을 모두 입력해주세요."); return;
     }
     if (startDate > endDate) { setValidationError("종료일은 시작일보다 빠를 수 없습니다."); return; }
-    if (normalizedThumbnailUrl && !/^https?:\/\//i.test(normalizedThumbnailUrl)) {
-      setValidationError("썸네일은 http 또는 https URL을 입력해주세요."); return;
-    }
     setValidationError("");
-    onSubmit({ title: normalizedTitle, description: normalizedDescription, startDate, endDate, thumbnailUrl: normalizedThumbnailUrl || null, productIds: products.map((product) => product.id) });
+    onSubmit({ title: normalizedTitle, description: normalizedDescription, startDate, endDate, thumbnailUrl: campaign?.thumbnailUrl ?? null, productIds: products.map((product) => product.id) }, thumbnailFile);
   }
 
   return (
@@ -371,20 +378,51 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
       </header>
 
       <div className="fuma-campaign-editor__layout">
-        <label className="fuma-campaign-thumbnail-upload">
+        <div className="fuma-campaign-thumbnail-upload">
           <span className="fuma-campaign-thumbnail-upload__label">캠페인 썸네일</span>
           <span className="fuma-campaign-thumbnail-upload__preview">
-            {thumbnailUrl ? (
-              <img alt="선택한 캠페인 썸네일 미리보기" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = assetUrl("/brand/thehyundai-hi.svg"); }} src={thumbnailUrl} />
+            {thumbnailPreviewUrl ? (
+              <img alt="선택한 캠페인 썸네일 미리보기" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = assetUrl("/brand/thehyundai-hi.svg"); }} src={thumbnailPreviewUrl} />
             ) : (
               <span>
-                <strong>URL 미입력</strong>
+                <strong>이미지 미선택</strong>
                 <small>16:9 비율 권장</small>
               </span>
             )}
           </span>
-          <TextInput aria-label="썸네일 URL" maxLength={400} onChange={(event) => setThumbnailUrl(event.target.value)} placeholder="https://..." type="url" value={thumbnailUrl} />
-        </label>
+          <input
+            accept="image/jpeg,image/png,image/webp"
+            aria-label="캠페인 썸네일 파일"
+            id={thumbnailInputId}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              if (!CAMPAIGN_THUMBNAIL_TYPES.has(file.type)) {
+                setValidationError("썸네일은 JPG, PNG 또는 WEBP 파일만 선택할 수 있습니다.");
+                event.target.value = "";
+                return;
+              }
+              if (file.size > CAMPAIGN_THUMBNAIL_MAX_BYTES) {
+                setValidationError("썸네일 파일은 5MB 이하만 선택할 수 있습니다.");
+                event.target.value = "";
+                return;
+              }
+              if (thumbnailObjectUrlRef.current) URL.revokeObjectURL(thumbnailObjectUrlRef.current);
+              const objectUrl = URL.createObjectURL(file);
+              thumbnailObjectUrlRef.current = objectUrl;
+              setThumbnailFile(file);
+              setThumbnailPreviewUrl(objectUrl);
+              setValidationError("");
+            }}
+            type="file"
+          />
+          <label className="fuma-campaign-thumbnail-upload__action" htmlFor={thumbnailInputId}>
+            {thumbnailFile || campaign?.thumbnailUrl ? "이미지 변경" : "이미지 선택"}
+          </label>
+          <small className="fuma-campaign-thumbnail-upload__help">
+            {thumbnailFile ? thumbnailFile.name : "JPG, PNG, WEBP · 최대 5MB"}
+          </small>
+        </div>
 
         <section className="fuma-campaign-form-section">
           <header>
@@ -468,22 +506,26 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
   );
 }
 
-interface CampaignEditorModalProps {
+interface CampaignEditorPanelProps {
   campaign?: Campaign;
   mode: "create" | "edit";
   onClose: () => void;
 }
 
-function CampaignEditorModal({ campaign, mode, onClose }: CampaignEditorModalProps) {
+function CampaignEditorPanel({ campaign, mode, onClose }: CampaignEditorPanelProps) {
   const formId = useId();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
-  const save = async (body: CampaignSaveRequest) => {
+  const save = async (body: CampaignSaveRequest, thumbnailFile: File | null) => {
     setPending(true); setError("");
     try {
-      if (mode === "create") await createCampaign(body);
-      else await updateCampaign(campaign!.id, body);
+      const thumbnailUrl = thumbnailFile
+        ? (await uploadCampaignThumbnail(thumbnailFile)).url
+        : body.thumbnailUrl;
+      const saveBody = { ...body, thumbnailUrl };
+      if (mode === "create") await createCampaign(saveBody);
+      else await updateCampaign(campaign!.id, saveBody);
       onClose();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "저장에 실패했습니다.");
@@ -491,7 +533,7 @@ function CampaignEditorModal({ campaign, mode, onClose }: CampaignEditorModalPro
   };
 
   return (
-    <Modal
+    <SidePanel
       actions={
         <>
           <Button disabled={pending} onClick={onClose}>취소</Button>
@@ -501,17 +543,19 @@ function CampaignEditorModal({ campaign, mode, onClose }: CampaignEditorModalPro
         </>
       }
       onClose={onClose}
-      open
       title={mode === "create" ? "새 캠페인 생성" : "캠페인 수정"}
     >
-      {error ? <p role="alert">{error}</p> : null}<CampaignForm
-        campaign={campaign}
-        formId={formId}
-        key={campaign?.id ?? "new"}
-        mode={mode}
-        onSubmit={save}
-      />
-    </Modal>
+      <div className="fuma-detail-panel__content fuma-campaign-editor-panel">
+        {error ? <p role="alert">{error}</p> : null}
+        <CampaignForm
+          campaign={campaign}
+          formId={formId}
+          key={campaign?.id ?? "new"}
+          mode={mode}
+          onSubmit={save}
+        />
+      </div>
+    </SidePanel>
   );
 }
 
@@ -521,7 +565,7 @@ export function CampaignCreatePage() {
   return (
     <>
       <CampaignListPage />
-      <CampaignEditorModal mode="create" onClose={() => navigate("/campaigns")} />
+      <CampaignEditorPanel mode="create" onClose={() => navigate("/campaigns")} />
     </>
   );
 }
@@ -541,7 +585,7 @@ export function CampaignEditPage() {
     <>
       <CampaignListPage />
       {campaign === undefined ? null : campaign ? (
-        <CampaignEditorModal
+        <CampaignEditorPanel
           campaign={campaign}
           mode="edit"
           onClose={() => navigate(`/campaigns?detail=${campaign.id}`)}

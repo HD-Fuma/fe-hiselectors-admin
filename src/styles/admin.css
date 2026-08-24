@@ -1903,7 +1903,6 @@
   align-content: start;
   gap: var(--hsas-space-9);
   padding: var(--hsas-space-14);
-  cursor: pointer;
 }
 
 .fuma-campaign-thumbnail-upload__label,
@@ -1955,14 +1954,6 @@
   clip: rect(0 0 0 0);
 }
 
-.fuma-campaign-thumbnail-upload > input[type="url"] {
-  position: static;
-  width: 100%;
-  height: auto;
-  overflow: visible;
-  clip: auto;
-}
-
 .fuma-campaign-description-input {
   width: 100%;
   resize: vertical;
@@ -1978,6 +1969,19 @@
   color: var(--hsas-teal-dark);
   font-size: var(--hsas-font-12);
   font-weight: 700;
+  cursor: pointer;
+}
+
+.fuma-campaign-thumbnail-upload__help {
+  overflow: hidden;
+  color: #7d8882;
+  font-size: var(--hsas-font-10);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-campaign-editor-panel {
+  gap: var(--hsas-space-14);
 }
 
 .fuma-campaign-form-section {

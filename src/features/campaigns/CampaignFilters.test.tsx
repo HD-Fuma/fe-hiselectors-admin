@@ -13,8 +13,22 @@ function json(data: unknown, status = 200) {
 }
 
 beforeEach(() => {
-  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+  Object.defineProperty(URL, "createObjectURL", {
+    configurable: true,
+    value: vi.fn(() => "blob:campaign-thumbnail"),
+  });
+  Object.defineProperty(URL, "revokeObjectURL", {
+    configurable: true,
+    value: vi.fn(),
+  });
+  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
+    if (url.includes("/api/admin/uploads/campaign-thumbnails")) {
+      return json({ url: "https://media.example.com/campaigns/uploaded.webp" }, 201);
+    }
+    if (url.endsWith("/api/admin/campaigns") && init?.method === "POST") {
+      return json({ ...campaign, thumbnailUrl: "https://media.example.com/campaigns/uploaded.webp" }, 201);
+    }
     if (url.includes("/participants")) return json({ content: [{ selectorId: 7, nickname: "셀렉터", platform: "INSTAGRAM", accountId: "selector", followerCount: 100 }], number: 0, size: 20, totalElements: 1, totalPages: 1 });
     if (url.includes("/api/admin/products")) return json({ content: campaign.products, number: 0, size: 20, totalElements: 1, totalPages: 1 });
     if (/\/campaigns\/3(?:\?|$)/.test(url)) return json(campaign);
@@ -76,6 +90,7 @@ describe("campaign filter behavior", () => {
   test("filters the product picker without losing hidden selections", async () => {
     renderRoute("/campaigns/new");
     const editor = await screen.findByRole("dialog", { name: "새 캠페인 생성" });
+    expect(editor).toHaveAttribute("data-visual-contract", "detail-side-panel");
     fireEvent.click(within(editor).getByRole("button", { name: "상품 선택" }));
     const dialog = await screen.findByRole("dialog", { name: "해당 상품 선택", hidden: true });
     const productList = within(dialog).getByRole("region", { name: "상품 목록", hidden: true });
@@ -94,5 +109,48 @@ describe("campaign filter behavior", () => {
       name: "선택 완료 (1)",
       hidden: true,
     })).toBeInTheDocument();
+  });
+
+  test("uploads a selected thumbnail before creating the campaign", async () => {
+    renderRoute("/campaigns/new");
+    const editor = await screen.findByRole("dialog", { name: "새 캠페인 생성" });
+    const thumbnail = new File(["thumbnail"], "summer.png", { type: "image/png" });
+
+    fireEvent.change(within(editor).getByLabelText("캠페인 썸네일 파일"), {
+      target: { files: [thumbnail] },
+    });
+    expect(within(editor).getByRole("img", { name: "선택한 캠페인 썸네일 미리보기" })).toHaveAttribute(
+      "src",
+      "blob:campaign-thumbnail",
+    );
+    expect(within(editor).getByText("summer.png")).toBeInTheDocument();
+
+    fireEvent.change(within(editor).getByRole("textbox", { name: "캠페인명" }), {
+      target: { value: "여름 캠페인" },
+    });
+    fireEvent.change(within(editor).getByRole("textbox", { name: "설명" }), {
+      target: { value: "여름 캠페인 설명" },
+    });
+    fireEvent.change(within(editor).getByLabelText("시작일"), {
+      target: { value: "2026-08-01" },
+    });
+    fireEvent.change(within(editor).getByLabelText("종료일"), {
+      target: { value: "2026-08-31" },
+    });
+    fireEvent.click(within(editor).getByRole("button", { name: "캠페인 생성" }));
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/admin/uploads/campaign-thumbnails"),
+      expect.objectContaining({ method: "POST", body: expect.any(FormData) }),
+    ));
+    await waitFor(() => {
+      const createCall = vi.mocked(fetch).mock.calls.find(([input, init]) =>
+        String(input).endsWith("/api/admin/campaigns") && init?.method === "POST");
+      expect(createCall).toBeDefined();
+      expect(JSON.parse(String(createCall?.[1]?.body))).toMatchObject({
+        title: "여름 캠페인",
+        thumbnailUrl: "https://media.example.com/campaigns/uploaded.webp",
+      });
+    });
   });
 });
