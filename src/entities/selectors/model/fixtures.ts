@@ -25,20 +25,6 @@ export interface SelectorFixture {
   recentActivity: string;
 }
 
-export interface QualificationFixture {
-  selectorId: string;
-  name: string;
-  cohort: string;
-  currentStatus: SelectorFixture["status"];
-  proposedStatus: SelectorFixture["status"];
-  penaltyCount: number;
-  revocationReason: string;
-  blacklisted: boolean;
-  blacklistedAt: string;
-  nextCohortRestricted: boolean;
-  changeReason: string;
-}
-
 function formatFixtureDate(date: Date) {
   return [
     date.getFullYear(),
@@ -504,50 +490,3 @@ export const SELECTORS: SelectorFixture[] = [
   })),
   ...GENERATED_BLACKLIST_FIXTURES,
 ];
-
-export const SELECTED_QUALIFICATION: QualificationFixture = {
-  selectorId: "sl-003",
-  name: "이지아",
-  cohort: "테스트기수53",
-  currentStatus: "박탈",
-  proposedStatus: "박탈",
-  penaltyCount: 3,
-  revocationReason: "콘텐츠 운영 기준 위반 3회 누적",
-  blacklisted: true,
-  blacklistedAt: "2026-07-18",
-  nextCohortRestricted: true,
-  changeReason: "누적 위반 확정으로 블랙리스트 등록",
-};
-
-const BLACKLIST_REVOCATION_REASONS = [
-  "콘텐츠 운영 기준 위반 3회 누적",
-  "필수 광고 표기 누락 반복",
-  "허위·과장 정보 게시 반복",
-  "승인되지 않은 공동구매 진행",
-  "타인 콘텐츠 무단 사용 누적",
-  "정산 및 주문 처리 기준 위반",
-  "금지 품목 홍보 콘텐츠 게시",
-  "운영진 시정 요청 불이행",
-] as const;
-
-export const QUALIFICATIONS: QualificationFixture[] = SELECTORS.filter(
-  (selector) => selector.status === "박탈",
-).map((selector, index) => {
-  if (selector.id === SELECTED_QUALIFICATION.selectorId) {
-    return SELECTED_QUALIFICATION;
-  }
-
-  return {
-    selectorId: selector.id,
-    name: selector.name,
-    cohort: selector.cohort,
-    currentStatus: "박탈",
-    proposedStatus: "박탈",
-    penaltyCount: Math.max(3, selector.violationCount),
-    revocationReason: BLACKLIST_REVOCATION_REASONS[index % BLACKLIST_REVOCATION_REASONS.length],
-    blacklisted: true,
-    blacklistedAt: `2026-${String(7 - (index % 4)).padStart(2, "0")}-${String(28 - (index % 20)).padStart(2, "0")}`,
-    nextCohortRestricted: true,
-    changeReason: "누적 운영 기준 위반으로 블랙리스트 등록",
-  };
-});

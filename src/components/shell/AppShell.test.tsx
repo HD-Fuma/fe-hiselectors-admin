@@ -7,7 +7,6 @@ const expectedSidebarLinks = [
   ["제안 이력", "/proposals"],
   ["기수 관리", "/cohorts"],
   ["셀렉터스 목록", "/selectors"],
-  ["블랙리스트 관리", "/selectors/qualifications"],
   ["우수 활동자", "/selectors/excellent"],
   ["지원자 승인", "/applicants"],
   ["캠페인 관리", "/campaigns"],
@@ -36,7 +35,7 @@ test("renders the complete administrator navigation in one sidebar", () => {
 
   expect(sidebarQueries.getByRole("img", { name: "더현대Hi" })).toBeInTheDocument();
   expect(screen.getAllByRole("navigation", { name: "관리자 메뉴" })).toHaveLength(1);
-  expect(within(navigation).getAllByRole("link")).toHaveLength(14);
+  expect(within(navigation).getAllByRole("link")).toHaveLength(13);
   for (const [label, href] of expectedSidebarLinks) {
     expect(within(navigation).getByRole("link", { name: label })).toHaveAttribute(
       "href",
@@ -213,14 +212,6 @@ const routeCases = [
     menuLabel: "셀렉터스 목록",
     title: "셀렉터스 목록",
     screenCode: "SL201",
-    routeIsExact: true,
-  },
-  {
-    path: "/selectors/qualifications",
-    group: "selectors",
-    menuLabel: "블랙리스트 관리",
-    title: "블랙리스트 관리",
-    screenCode: "SL301",
     routeIsExact: true,
   },
   {
