@@ -98,6 +98,19 @@ describe("campaign filter behavior", () => {
     expect(within(editor).getByRole("textbox", { name: "캠페인명" })).toHaveValue(campaign.title);
   });
 
+  test("keeps the campaign list mounted while the create panel opens and closes", async () => {
+    renderRoute("/campaigns");
+    const campaignList = await screen.findByRole("region", { name: "캠페인 목록" });
+
+    fireEvent.click(screen.getByRole("link", { name: "캠페인 생성" }));
+    const editor = await screen.findByRole("dialog", { name: "새 캠페인 생성" });
+    expect(screen.getByRole("region", { name: "캠페인 목록", hidden: true })).toBe(campaignList);
+
+    fireEvent.click(within(editor).getByRole("button", { name: "취소" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "새 캠페인 생성" })).not.toBeInTheDocument());
+    expect(screen.getByRole("region", { name: "캠페인 목록" })).toBe(campaignList);
+  });
+
   test("filters the product picker without losing hidden selections", async () => {
     renderRoute("/campaigns/new");
     const editor = await screen.findByRole("dialog", { name: "새 캠페인 생성" });
@@ -128,6 +141,7 @@ describe("campaign filter behavior", () => {
   test("uploads a selected thumbnail before creating the campaign", async () => {
     renderRoute("/campaigns/new");
     const editor = await screen.findByRole("dialog", { name: "새 캠페인 생성" });
+    const campaignList = screen.getByRole("region", { name: "캠페인 목록", hidden: true });
     const thumbnail = new File(["thumbnail"], "summer.png", { type: "image/png" });
 
     fireEvent.change(within(editor).getByLabelText("캠페인 썸네일 파일"), {
@@ -166,5 +180,7 @@ describe("campaign filter behavior", () => {
         thumbnailUrl: "https://media.example.com/campaigns/uploaded.webp",
       });
     });
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "새 캠페인 생성" })).not.toBeInTheDocument());
+    expect(screen.getByRole("region", { name: "캠페인 목록" })).toBe(campaignList);
   });
 });

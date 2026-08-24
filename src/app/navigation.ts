@@ -47,17 +47,8 @@ const ApplicantListPage = lazyPage(() =>
 const ApplicantDetailPage = lazyPage(() =>
   import("../features/applicants/ApplicantPages").then((module) => module.ApplicantDetailPage),
 );
-const CampaignListPage = lazyPage(() =>
-  import("../features/campaigns/CampaignPages").then((module) => module.CampaignListPage),
-);
-const CampaignCreatePage = lazyPage(() =>
-  import("../features/campaigns/CampaignPages").then((module) => module.CampaignCreatePage),
-);
-const CampaignDetailPage = lazyPage(() =>
-  import("../features/campaigns/CampaignPages").then((module) => module.CampaignDetailPage),
-);
-const CampaignEditPage = lazyPage(() =>
-  import("../features/campaigns/CampaignPages").then((module) => module.CampaignEditPage),
+const CampaignWorkspacePage = lazyPage(() =>
+  import("../features/campaigns/CampaignPages").then((module) => module.CampaignWorkspacePage),
 );
 const ContentInspectionListPage = lazyPage(() =>
   import("../features/content/ContentPages").then((module) => module.ContentInspectionListPage),
@@ -207,7 +198,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   },
   {
     path: "/campaigns",
-    Component: CampaignListPage,
+    Component: CampaignWorkspacePage,
     group: "campaigns",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
@@ -216,7 +207,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   },
   {
     path: "/campaigns/new",
-    Component: CampaignCreatePage,
+    Component: CampaignWorkspacePage,
     group: "campaigns",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
@@ -226,7 +217,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   },
   {
     path: "/campaigns/:campaignId",
-    Component: CampaignDetailPage,
+    Component: CampaignWorkspacePage,
     group: "campaigns",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
@@ -236,7 +227,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   },
   {
     path: "/campaigns/:campaignId/edit",
-    Component: CampaignEditPage,
+    Component: CampaignWorkspacePage,
     group: "campaigns",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",

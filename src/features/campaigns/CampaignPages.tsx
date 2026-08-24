@@ -142,7 +142,7 @@ const CAMPAIGN_COLUMNS: DenseTableColumn<Campaign>[] = [
   },
 ];
 
-export function CampaignListPage() {
+export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: number } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const detailCampaignId = searchParams.get("detail");
   const [keyword, setKeyword] = useState("");
@@ -167,7 +167,7 @@ export function CampaignListPage() {
       if (!controller.signal.aborted) setListError(reason instanceof Error ? reason.message : "캠페인 목록 조회에 실패했습니다.");
     });
     return () => controller.abort();
-  }, [appliedFilters, currentPage, selectedStatus]);
+  }, [appliedFilters, currentPage, refreshRevision, selectedStatus]);
 
   const resetPage = () => {
     if (!searchParams.has("page")) return;
@@ -531,9 +531,10 @@ interface CampaignEditorPanelProps {
   campaign?: Campaign;
   mode: "create" | "edit";
   onClose: () => void;
+  onSaved?: () => void;
 }
 
-function CampaignEditorPanel({ campaign, mode, onClose }: CampaignEditorPanelProps) {
+function CampaignEditorPanel({ campaign, mode, onClose, onSaved = onClose }: CampaignEditorPanelProps) {
   const formId = useId();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -547,7 +548,7 @@ function CampaignEditorPanel({ campaign, mode, onClose }: CampaignEditorPanelPro
       const saveBody = { ...body, thumbnailUrl };
       if (mode === "create") await createCampaign(saveBody);
       else await updateCampaign(campaign!.id, saveBody);
-      onClose();
+      onSaved();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "저장에 실패했습니다.");
     } finally { setPending(false); }
@@ -581,18 +582,21 @@ function CampaignEditorPanel({ campaign, mode, onClose }: CampaignEditorPanelPro
   );
 }
 
-export function CampaignCreatePage() {
-  const navigate = useNavigate();
-
-  return (
-    <>
-      <CampaignListPage />
-      <CampaignEditorPanel mode="create" onClose={() => navigate("/campaigns")} />
-    </>
-  );
+interface CampaignPanelRouteProps {
+  onSaved?: () => void;
 }
 
-export function CampaignEditPage() {
+export function CampaignCreatePage({ onSaved }: CampaignPanelRouteProps = {}) {
+  const navigate = useNavigate();
+
+  return <CampaignEditorPanel
+    mode="create"
+    onClose={() => navigate("/campaigns")}
+    onSaved={() => { onSaved?.(); navigate("/campaigns"); }}
+  />;
+}
+
+export function CampaignEditPage({ onSaved }: CampaignPanelRouteProps = {}) {
   const { campaignId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -607,13 +611,12 @@ export function CampaignEditPage() {
   }, [campaignId]);
 
   return (
-    <>
-      <CampaignListPage />
-      {campaign === undefined ? null : campaign ? (
+    campaign === undefined ? null : campaign ? (
         <CampaignEditorPanel
           campaign={campaign}
           mode="edit"
           onClose={() => navigate(`/campaigns?detail=${campaign.id}`)}
+          onSaved={() => { onSaved?.(); navigate(`/campaigns?detail=${campaign.id}`); }}
         />
       ) : (
         <Modal
@@ -627,7 +630,23 @@ export function CampaignEditPage() {
             title="대상을 찾을 수 없습니다"
           />
         </Modal>
-      )}
+      )
+  );
+}
+
+export function CampaignWorkspacePage() {
+  const { pathname } = useLocation();
+  const [refreshRevision, setRefreshRevision] = useState(0);
+  const editMatch = pathname.match(/^\/campaigns\/(\d+)\/edit$/);
+  const detailMatch = pathname.match(/^\/campaigns\/(\d+)$/);
+  const refreshCampaigns = () => setRefreshRevision((current) => current + 1);
+
+  return (
+    <>
+      <CampaignListPage refreshRevision={refreshRevision} />
+      {pathname === "/campaigns/new" ? <CampaignCreatePage onSaved={refreshCampaigns} /> : null}
+      {editMatch ? <CampaignEditPage onSaved={refreshCampaigns} /> : null}
+      {detailMatch ? <CampaignDetailPage campaignIdOverride={detailMatch[1]} embedded /> : null}
     </>
   );
 }
