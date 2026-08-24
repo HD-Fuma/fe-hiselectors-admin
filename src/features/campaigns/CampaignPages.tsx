@@ -94,7 +94,7 @@ function CampaignCard({ campaign, onOpen }: {
   return (
     <button
       aria-label={`${campaign.title} 캠페인 상세 보기`}
-      className="fuma-content-collection__card fuma-creator-card"
+      className="fuma-content-collection__card fuma-creator-card fuma-campaign-card"
       data-content-format="youtube-long"
       onClick={() => onOpen(campaign.id)}
       type="button"

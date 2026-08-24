@@ -90,6 +90,7 @@ describe("campaign filter behavior", () => {
       name: "초여름 패션 리뷰 캠페인 상세 보기",
     });
 
+    expect(card).toHaveClass("fuma-campaign-card");
     expect(within(card).queryByText("캠페인")).not.toBeInTheDocument();
     expect(within(card).queryByText("ID 3")).not.toBeInTheDocument();
     expect(within(card).getByText("상품 1개")).toBeInTheDocument();
