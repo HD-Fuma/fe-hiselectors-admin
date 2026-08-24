@@ -3491,7 +3491,7 @@
 }
 
 .fuma-notification-search .hsas-search-panel__fields {
-  grid-template-columns: repeat(5, minmax(160px, 1fr));
+  grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(320px, 1.4fr) minmax(160px, 1fr);
   column-gap: var(--hsas-space-14);
 }
 
@@ -3499,7 +3499,11 @@
   grid-template-columns: 76px minmax(0, 1fr);
 }
 
-.fuma-notification-search .fuma-filter-field:nth-child(5) {
+.fuma-notification-search .fuma-filter-field:nth-child(3) {
+  grid-template-columns: 108px minmax(0, 1fr);
+}
+
+.fuma-notification-search .fuma-filter-field:nth-child(4) {
   grid-template-columns: 52px minmax(0, 1fr);
 }
 

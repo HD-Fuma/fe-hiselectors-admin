@@ -97,8 +97,16 @@ test("filters notification history and resends a failed message after confirmati
 
   const search = screen.getByRole("search", { name: "검색 조건" });
   expect(search.closest(".fuma-operations-search.fuma-settlement-search")).not.toBeNull();
+  expect(within(search).getByText("발송 요청 기간")).toBeInTheDocument();
+  expect(within(search).queryByLabelText("요청일 시작")).not.toBeInTheDocument();
   fireEvent.change(within(search).getByLabelText("발송 목적"), {
     target: { value: "SELECTION_APPROVED" },
+  });
+  fireEvent.change(within(search).getByLabelText("발송 요청 시작일"), {
+    target: { value: "2026-08-01" },
+  });
+  fireEvent.change(within(search).getByLabelText("발송 요청 종료일"), {
+    target: { value: "2026-08-31" },
   });
   fireEvent.change(within(search).getByLabelText("수신자 이름 또는 Hi ID"), {
     target: { value: "김하이" },
@@ -110,6 +118,8 @@ test("filters notification history and resends a failed message after confirmati
   const url = new URL(String(request));
   expect(url.pathname).toBe("/api/admin/notifications");
   expect(url.searchParams.get("purpose")).toBe("SELECTION_APPROVED");
+  expect(url.searchParams.get("from")).toBe("2026-08-01");
+  expect(url.searchParams.get("to")).toBe("2026-08-31");
   expect(url.searchParams.get("recipientKeyword")).toBe("김하이");
   expect(new Headers((options as RequestInit).headers).get("Authorization")).toBe("Bearer admin.jwt");
 

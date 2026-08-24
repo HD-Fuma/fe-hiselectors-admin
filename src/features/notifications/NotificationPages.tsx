@@ -150,23 +150,26 @@ function NotificationFiltersPanel({
             value={filters.status}
           />
         </FilterField>
-        <FilterField htmlFor="notification-from" label="요청일 시작">
-          <TextInput
-            aria-label="요청일 시작"
-            id="notification-from"
-            onChange={(event) => onChange("from", event.target.value)}
-            type="date"
-            value={filters.from}
-          />
-        </FilterField>
-        <FilterField htmlFor="notification-to" label="요청일 종료">
-          <TextInput
-            aria-label="요청일 종료"
-            id="notification-to"
-            onChange={(event) => onChange("to", event.target.value)}
-            type="date"
-            value={filters.to}
-          />
+        <FilterField htmlFor="notification-from" label="발송 요청 기간">
+          <div className="fuma-cohort-date-range">
+            <TextInput
+              aria-label="발송 요청 시작일"
+              id="notification-from"
+              max={filters.to || undefined}
+              onChange={(event) => onChange("from", event.target.value)}
+              type="date"
+              value={filters.from}
+            />
+            <span aria-hidden="true">~</span>
+            <TextInput
+              aria-label="발송 요청 종료일"
+              id="notification-to"
+              min={filters.from || undefined}
+              onChange={(event) => onChange("to", event.target.value)}
+              type="date"
+              value={filters.to}
+            />
+          </div>
         </FilterField>
         <FilterField htmlFor="notification-recipient" label="수신자">
           <TextInput
