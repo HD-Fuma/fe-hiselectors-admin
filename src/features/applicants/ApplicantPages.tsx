@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { CircleHelp } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
@@ -8,6 +8,7 @@ import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
+import { FormRow } from "../../components/ui/FormRow";
 import { Modal } from "../../components/ui/Modal";
 import { Pagination } from "../../components/ui/Pagination";
 import { ProfileDetailShell, type ProfileDetailProfile } from "../../components/ui/ProfileDetailShell";
@@ -15,6 +16,7 @@ import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import {
+  createAdminApplicationTest,
   getAdminApplication,
   getAdminApplicationAiReport,
   getAdminApplications,
@@ -43,6 +45,68 @@ const REVIEW_STATUS_OPTIONS = ["전체", "검토 대기", "승인", "반려", "�
 );
 const DEFAULT_REVIEW_STATUS = "검토 대기";
 const APPLICANT_PAGE_SIZE = 20;
+const TEST_APPLICATION_POLL_INTERVAL_MS = 10_000;
+
+function isTestApplicant(applicant: Pick<AdminApplicationIdentity, "hiId">) {
+  return applicant.hiId.startsWith("test_");
+}
+
+export function ApplicantTestPage() {
+  const navigate = useNavigate();
+  const [profileUrl, setProfileUrl] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const createTestApplicant = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setError("");
+    try {
+      const application = await createAdminApplicationTest(profileUrl.trim());
+      navigate(`/applicants?detail=${application.id}`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "테스트 지원자 생성에 실패했습니다.");
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <section className="fuma-page">
+      <PageHeader title="테스트 지원자 등록" />
+      <div className="fuma-page__body">
+        <section className="fuma-content-section">
+          <header className="fuma-content-section__header">
+            <h2>SNS 계정 등록</h2>
+          </header>
+          <form className="fuma-applicant-review__form" onSubmit={createTestApplicant}>
+            <FormRow
+              help="운영 DB에 테스트 데이터 1건을 생성하고 기존 수집·분석·리포트 흐름을 실행합니다."
+              label="SNS 프로필 URL"
+              required
+            >
+              <TextInput
+                aria-label="SNS 프로필 URL"
+                autoComplete="off"
+                maxLength={500}
+                onChange={(event) => setProfileUrl(event.target.value)}
+                placeholder="https://www.instagram.com/account 또는 YouTube 채널 URL"
+                required
+                type="url"
+                value={profileUrl}
+              />
+            </FormRow>
+            {error ? <p role="alert">{error}</p> : null}
+            <div className="fuma-applicant-section__actions">
+              <Button disabled={isSubmitting} type="submit" variant="primary">
+                {isSubmitting ? "생성 중..." : "테스트 지원자 생성"}
+              </Button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </section>
+  );
+}
 
 function reviewStatusTone(status: ReviewStatus): NonNullable<StatusPillProps["tone"]> {
   if (status === "승인") return "approved";
@@ -557,20 +621,34 @@ export function ApplicantDetailPage({
   useEffect(() => {
     if (invalidApplicantId) return;
     const controller = new AbortController();
-    getAdminApplication(numericApplicantId, controller.signal).then((applicant) => {
-      if (!controller.signal.aborted) {
+    let pollTimeout: number | undefined;
+    const loadApplication = () => {
+      getAdminApplication(numericApplicantId, controller.signal).then((applicant) => {
+        if (controller.signal.aborted) return;
         setDetailState({ id: numericApplicantId, applicant, error: "" });
-      }
-    }).catch((reason: unknown) => {
-      if (!controller.signal.aborted) {
-        setDetailState({
-          id: numericApplicantId,
-          applicant: null,
-          error: reason instanceof Error ? reason.message : "지원자 상세 조회에 실패했습니다.",
-        });
-      }
-    });
-    return () => controller.abort();
+        const pending = applicant.mediaCollectionStatus === "PENDING"
+          || applicant.analysisStatus === "PENDING"
+          || applicant.analysisStatus === "IN_PROGRESS";
+        const failed = applicant.mediaCollectionStatus === "FAILED"
+          || applicant.analysisStatus === "FAILED";
+        if (isTestApplicant(applicant) && pending && !failed) {
+          pollTimeout = window.setTimeout(loadApplication, TEST_APPLICATION_POLL_INTERVAL_MS);
+        }
+      }).catch((reason: unknown) => {
+        if (!controller.signal.aborted) {
+          setDetailState({
+            id: numericApplicantId,
+            applicant: null,
+            error: reason instanceof Error ? reason.message : "지원자 상세 조회에 실패했습니다.",
+          });
+        }
+      });
+    };
+    loadApplication();
+    return () => {
+      controller.abort();
+      if (pollTimeout !== undefined) window.clearTimeout(pollTimeout);
+    };
   }, [invalidApplicantId, numericApplicantId]);
 
   useEffect(() => {
@@ -584,6 +662,7 @@ export function ApplicantDetailPage({
 
   const currentDetailState = detailState?.id === numericApplicantId ? detailState : null;
   const applicant = currentDetailState?.applicant ?? null;
+  const testApplicant = applicant ? isTestApplicant(applicant) : false;
   const effectiveReviewStatus = applicant ? reviewStatusFor(applicant) : undefined;
   const audienceLabel = applicant?.snsCode === "INSTAGRAM" ? "팔로워" : "구독자";
   const representativeContents = applicant ? uniqueContentsByPost(applicant.contents) : [];
@@ -662,7 +741,7 @@ export function ApplicantDetailPage({
     <>
       {embedded ? null : <ApplicantListPage />}
       <ProfileDetailShell
-        actionSection={applicant?.status === "PENDING" && effectiveReviewStatus ? (
+        actionSection={applicant?.status === "PENDING" && effectiveReviewStatus && !testApplicant ? (
           <section className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions">
             <div className="fuma-applicant-detail-actions__heading">
               <span>심사 처리</span>

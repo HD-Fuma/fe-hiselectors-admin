@@ -1,4 +1,5 @@
 export {
+  createAdminApplicationTest,
   getAdminApplication,
   getAdminApplicationAiReport,
   getAdminApplications,
@@ -10,6 +11,7 @@ export type {
   AdminApplicationIdentity,
   AdminApplicationSearchRequest,
   AdminApplicationSummary,
+  AdminApplicationTestCreateResponse,
   ApplicationAnalysisStatus,
   ApplicationCadence,
   ApplicationContent,

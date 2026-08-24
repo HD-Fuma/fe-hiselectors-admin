@@ -354,7 +354,7 @@ describe("applicant api pages", () => {
     expect(await screen.findByText("정하린")).toBeInTheDocument();
     await act(async () => initial.resolve(await json(page([applicants[0]]))));
 
-    expect(screen.getByText("정하린")).toBeInTheDocument();
+    expect(await screen.findByText("정하린")).toBeInTheDocument();
     expect(screen.queryByText("김민지")).not.toBeInTheDocument();
   });
 
@@ -388,6 +388,51 @@ describe("applicant api pages", () => {
     expect(within(report).getByText("전체 공개 콘텐츠").parentElement).toHaveTextContent("126건");
     expect(within(panel).getByText("최종 업데이트").parentElement)
       .toHaveTextContent("2026.08.05 10:00");
+  });
+
+  test("polls a pending test applicant until analysis completes", async () => {
+    vi.useFakeTimers();
+    const pendingTestApplicant = {
+      ...pendingApplicantDetail,
+      analysisStatus: "PENDING",
+      hiId: "test_polling",
+    };
+    const completedTestApplicant = {
+      ...applicantDetail,
+      analysisStatus: "DONE",
+      hiId: "test_polling",
+    };
+    let detailRequests = 0;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith("/api/admin/generations")) return json([]);
+      if (path.endsWith("/api/admin/applications/1/ai-report")) {
+        return new Promise<Response>(() => {});
+      }
+      if (path.endsWith("/api/admin/applications/1")) {
+        detailRequests += 1;
+        return json(detailRequests === 1 ? pendingTestApplicant : completedTestApplicant);
+      }
+      return json(page(applicants));
+    }));
+
+    try {
+      renderApplicantPage("/applicants?detail=1");
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      const panel = screen.getByRole("dialog", { name: "지원자 상세" });
+      expect(within(panel).getByText("SNS 정량 지표 수집을 기다리고 있습니다."))
+        .toBeInTheDocument();
+      expect(within(panel).queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
+      expect(within(panel).queryByRole("button", { name: "반려" })).not.toBeInTheDocument();
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+
+      expect(detailRequests).toBe(2);
+      expect(within(panel).getByText("최근 90일 콘텐츠 3건의 공개 정량 지표입니다."))
+        .toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test.each([
