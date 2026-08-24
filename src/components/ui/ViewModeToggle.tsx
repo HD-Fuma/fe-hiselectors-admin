@@ -15,8 +15,6 @@ export function ViewModeToggle({
 }: ViewModeToggleProps) {
   const tooltipId = useId();
   const [showTooltip, setShowTooltip] = useState(true);
-  const toggleView = () => onChange(value === "grid" ? "list" : "grid");
-
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setShowTooltip(false), 2000);
     return () => window.clearTimeout(timeoutId);
@@ -36,14 +34,14 @@ export function ViewModeToggle({
         <span aria-hidden="true" className="hsas-view-mode-toggle__slider" />
         <button
           aria-pressed={value === "grid"}
-          onClick={toggleView}
+          onClick={() => onChange("grid")}
           type="button"
         >
           카드
         </button>
         <button
           aria-pressed={value === "list"}
-          onClick={toggleView}
+          onClick={() => onChange("list")}
           type="button"
         >
           목록

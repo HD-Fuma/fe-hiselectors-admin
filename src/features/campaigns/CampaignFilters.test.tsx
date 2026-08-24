@@ -57,7 +57,9 @@ describe("campaign filter behavior", () => {
     fireEvent.keyDown(within(search).getByRole("textbox", { name: "검색어" }), {
       key: "Enter",
     });
-    await waitFor(() => expect(within(results).getByText("초여름 패션 리뷰")).toBeInTheDocument());
+    await waitFor(() => expect(within(results).getByRole("button", {
+      name: "초여름 패션 리뷰 캠페인 상세 보기",
+    })).toBeInTheDocument());
 
     fireEvent.click(screen.getByRole("button", { name: "종료" }));
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("status=ENDED"), expect.anything()));
@@ -101,9 +103,11 @@ describe("campaign filter behavior", () => {
     expect(within(results).getByRole("region", { name: "캠페인 리스트" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "카드" }));
-    fireEvent.click(await within(results).findByRole("button", {
+    const restoredCard = await within(results).findByRole("button", {
       name: "초여름 패션 리뷰 캠페인 상세 보기",
-    }));
+    });
+    expect(restoredCard).toBe(card);
+    fireEvent.click(restoredCard);
 
     expect(await screen.findByRole("dialog", { name: "캠페인 상세" })).toBeInTheDocument();
   });

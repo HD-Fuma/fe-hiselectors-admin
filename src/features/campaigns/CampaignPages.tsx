@@ -328,25 +328,27 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
             <EmptyState title="캠페인을 불러오는 중입니다." />
           ) : campaigns.length === 0 ? (
             <EmptyState title="캠페인이 없습니다." />
-          ) : viewMode === "grid" ? (
-            <div className="fuma-content-collection__track is-grid">
-              {campaigns.map((campaign) => (
-                <CampaignCard campaign={campaign} key={campaign.id} onOpen={openDetail} />
-              ))}
-            </div>
           ) : (
-            <div
-              aria-label="캠페인 리스트"
-              className="fuma-wide-table fuma-content-collection__list fuma-campaign-list-table"
-              role="region"
-            >
-              <DenseTable
-                columns={CAMPAIGN_COLUMNS}
-                onRowClick={(campaign) => openDetail(campaign.id)}
-                rowKey={(campaign) => campaign.id}
-                rows={campaigns}
-              />
-            </div>
+            <>
+              <div className="fuma-content-collection__track is-grid" hidden={viewMode !== "grid"}>
+                {campaigns.map((campaign) => (
+                  <CampaignCard campaign={campaign} key={campaign.id} onOpen={openDetail} />
+                ))}
+              </div>
+              <div
+                aria-label="캠페인 리스트"
+                className="fuma-wide-table fuma-content-collection__list fuma-campaign-list-table"
+                hidden={viewMode !== "list"}
+                role="region"
+              >
+                <DenseTable
+                  columns={CAMPAIGN_COLUMNS}
+                  onRowClick={(campaign) => openDetail(campaign.id)}
+                  rowKey={(campaign) => campaign.id}
+                  rows={campaigns}
+                />
+              </div>
+            </>
           )}
         </section>
         <Pagination

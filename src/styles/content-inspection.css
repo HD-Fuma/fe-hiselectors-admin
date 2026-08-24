@@ -2776,6 +2776,11 @@ body:has(.fuma-content-inspection-detail) .hsas-admin-shell__content {
   overflow: visible;
 }
 
+.fuma-content-collection__track[hidden],
+.fuma-content-collection__list[hidden] {
+  display: none;
+}
+
 .fuma-content-collection__track.is-grid .fuma-content-collection__card {
   width: 100%;
 }

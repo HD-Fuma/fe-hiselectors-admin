@@ -33,13 +33,13 @@ describe("HSAS controls", () => {
     fireEvent.mouseEnter(toggle.parentElement!);
     expect(screen.getByRole("tooltip")).not.toHaveClass("is-visible");
 
-    await userEvent.click(screen.getByRole("button", { name: "카드" }));
+    await userEvent.click(screen.getByRole("button", { name: "목록" }));
     expect(onChange).toHaveBeenCalledWith("list");
 
     rerender(<ViewModeToggle onChange={onChange} value="list" />);
     expect(toggle).toHaveClass("is-list");
 
-    await userEvent.click(screen.getByRole("button", { name: "목록" }));
+    await userEvent.click(screen.getByRole("button", { name: "카드" }));
     expect(onChange).toHaveBeenLastCalledWith("grid");
   });
 
