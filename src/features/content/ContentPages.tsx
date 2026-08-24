@@ -69,7 +69,12 @@ import {
 } from "../../entities/content";
 
 const CONTENT_INSPECTION_PAGE_SIZE = 20;
-type ContentInspectionCategory = "신규" | "수정" | "검수 완료";
+type ContentInspectionCategory =
+  | "전체"
+  | "신규 등록"
+  | "수정 감지"
+  | "위반 확정"
+  | "승인 완료";
 
 function formatInspectionDate(value: string) {
   const zoned = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value.trim());
@@ -187,27 +192,42 @@ interface QueueFilterValues {
 }
 
 const CONTENT_INSPECTION_CATEGORIES: readonly ContentInspectionCategory[] = [
-  "신규",
-  "수정",
-  "검수 완료",
+  "전체",
+  "신규 등록",
+  "수정 감지",
+  "위반 확정",
+  "승인 완료",
 ];
+const DEFAULT_CONTENT_INSPECTION_CATEGORY: ContentInspectionCategory = "전체";
 
-function contentInspectionCategory(content: ContentInspectionFixture): ContentInspectionCategory {
-  if (content.inspectionStatus === "승인" || content.inspectionStatus === "위반 확정") return "검수 완료";
-  if (content.inspectionType !== "NEW") return "수정";
-  return "신규";
+function contentInspectionCategory(content: ContentInspectionFixture): Exclude<
+  ContentInspectionCategory,
+  "전체"
+> {
+  if (content.inspectionStatus === "승인") return "승인 완료";
+  if (content.inspectionStatus === "위반") return "위반 확정";
+  if (content.inspectionType !== "NEW") return "수정 감지";
+  return "신규 등록";
+}
+
+function lockedViolationOnly(category: ContentInspectionCategory) {
+  if (category === "위반 확정") return true;
+  if (category === "승인 완료") return false;
+  return null;
 }
 
 function contentInspectionCategoryTone(
   category: ContentInspectionCategory,
 ): NonNullable<StatusPillProps["tone"]> {
-  if (category === "검수 완료") return "approved";
-  if (category === "수정") return "pending";
+  if (category === "승인 완료") return "approved";
+  if (category === "위반 확정") return "rejected";
+  if (category === "수정 감지") return "pending";
   return "neutral";
 }
 
 function inspectionStatusTone(status: InspectionStatus): NonNullable<StatusPillProps["tone"]> {
   if (status === "승인") return "approved";
+  if (status === "위반") return "rejected";
   if (status === "검수 대기") return "pending";
   return "rejected";
 }
@@ -338,6 +358,7 @@ function ContentInspectionCollection({
   onSelect,
   totalCount,
   violationOnly,
+  violationOnlyLocked,
   viewMode,
 }: {
   contents: readonly ContentInspectionFixture[];
@@ -346,6 +367,7 @@ function ContentInspectionCollection({
   onSelect: (content: ContentInspectionFixture) => void;
   totalCount: number;
   violationOnly: boolean;
+  violationOnlyLocked: boolean;
   viewMode: ViewMode;
 }) {
   return (
@@ -355,6 +377,7 @@ function ContentInspectionCollection({
           <label className="fuma-applicant-minimum-toggle">
             <input
               checked={violationOnly}
+              disabled={violationOnlyLocked}
               onChange={(event) => onChangeViolationOnly(event.target.checked)}
               type="checkbox"
             />
@@ -590,8 +613,10 @@ export function ContentInspectionListPage() {
   }, []);
   const selectedCategory = CONTENT_INSPECTION_CATEGORIES.find(
     (category) => category === searchParams.get("category"),
-  ) ?? "신규";
-  const violationOnly = searchParams.get("issues") === "1";
+  ) ?? DEFAULT_CONTENT_INSPECTION_CATEGORY;
+  const lockedViolationFilter = lockedViolationOnly(selectedCategory);
+  const violationOnlyLocked = lockedViolationFilter !== null;
+  const violationOnly = lockedViolationFilter ?? searchParams.get("issues") === "1";
   const viewMode = searchParams.get("view") === "list" ? "list" : "grid";
   const appliedFilters: QueueFilterValues = {
     keyword: searchParams.get("q") ?? "",
@@ -601,7 +626,8 @@ export function ContentInspectionListPage() {
   };
   const normalizedKeyword = appliedFilters.keyword.trim().toLocaleLowerCase("ko-KR");
   const filteredContents = contents.filter((content) => {
-    const matchesCategory = contentInspectionCategory(content) === selectedCategory;
+    const matchesCategory = selectedCategory === "전체"
+      || contentInspectionCategory(content) === selectedCategory;
     const hasViolation = content.report.signals.some((signal) => signal.tone !== "pass");
     const matchesKeyword = !normalizedKeyword || [
       content.id,
@@ -611,7 +637,7 @@ export function ContentInspectionListPage() {
     const matchesPlatform = !appliedFilters.platform
       || contentPlatform(content.sourcePlatform) === appliedFilters.platform;
     return matchesCategory
-      && (!violationOnly || hasViolation)
+      && (violationOnlyLocked || !violationOnly || hasViolation)
       && matchesKeyword
       && matchesPlatform;
   });
@@ -685,7 +711,12 @@ export function ContentInspectionListPage() {
               },
             });
           }}
-          onSelect={(category) => updateListParam("category", category, "신규", true)}
+          onSelect={(category) => updateListParam(
+            "category",
+            category,
+            DEFAULT_CONTENT_INSPECTION_CATEGORY,
+            true,
+          )}
           pendingCount={pendingContents.length}
           selectedCategory={selectedCategory}
         />
@@ -712,6 +743,7 @@ export function ContentInspectionListPage() {
             })}
             totalCount={filteredContents.length}
             violationOnly={violationOnly}
+            violationOnlyLocked={violationOnlyLocked}
             viewMode={viewMode}
           />
         )}

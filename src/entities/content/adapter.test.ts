@@ -335,3 +335,65 @@ test("keeps analysis pending when the latest version has no report yet", () => {
     signals: [],
   });
 });
+
+test("maps approved and rejected decisions to separate inspection statuses", () => {
+  const adaptContentInspection = (
+    contentEntity as unknown as { adaptContentInspection?: AdaptContentInspection }
+  ).adaptContentInspection;
+  const adaptContentInspectionDetail = (
+    contentEntity as unknown as { adaptContentInspectionDetail?: AdaptContentInspectionDetail }
+  ).adaptContentInspectionDetail;
+  expect(adaptContentInspection).toBeTypeOf("function");
+  expect(adaptContentInspectionDetail).toBeTypeOf("function");
+  if (!adaptContentInspection || !adaptContentInspectionDetail) return;
+
+  expect(adaptContentInspection({
+    accountId: "@actual-channel",
+    contentId: 42,
+    contentType: "FEED",
+    contentUrl: "https://instagram.com/p/actual-42",
+    generationName: "4기",
+    inspectedAt: "2026-08-18T10:06:00",
+    inspectionStatus: "REJECTED",
+    latestVersionId: 420,
+    latestVersionNo: 1,
+    latestVersionStoredAt: "2026-08-18T10:05:00",
+    media: [],
+    profileImageUrl: null,
+    selectorsId: 7,
+    selectorsNickname: "실제 셀렉터",
+    snsCode: "INSTAGRAM",
+    snsContentId: "actual-42",
+    storedAt: "2026-08-18T10:00:00",
+    texts: ["반려된 콘텐츠"],
+  })).toMatchObject({
+    inspectionStatus: "위반",
+    processingState: "처리 완료",
+  });
+
+  expect(adaptContentInspectionDetail({
+    contentId: 42,
+    contentType: "FEED",
+    contentUrl: "https://instagram.com/p/actual-42",
+    selectedVersion: {
+      contentReport: null,
+      contentVersionId: 420,
+      creationReason: "INITIAL",
+      createdAt: "2026-08-18T10:05:00",
+      inspectedAt: "2026-08-18T10:06:00",
+      inspectionDecision: "APPROVED",
+      inspectionStatus: "COMPLETED",
+      media: [],
+      violations: [],
+      versionNo: 1,
+    },
+    selectorsId: 7,
+    snsCode: "INSTAGRAM",
+    snsContentId: "actual-42",
+    storedAt: "2026-08-18T10:00:00",
+    versions: [],
+  })).toMatchObject({
+    inspectionStatus: "승인",
+    processingState: "처리 완료",
+  });
+});

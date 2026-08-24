@@ -2518,6 +2518,11 @@ body:has(.fuma-content-inspection-detail) .hsas-admin-shell__content {
   line-height: 1.55;
 }
 
+.fuma-content-inspection-toolbar .fuma-applicant-minimum-toggle:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .fuma-content-collection {
   display: grid;
   min-width: 0;

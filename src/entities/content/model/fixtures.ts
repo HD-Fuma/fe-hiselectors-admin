@@ -1,5 +1,5 @@
 export type InspectionType = "NEW" | "VIOLATION_CORRECTION" | "EDITED";
-export type InspectionStatus = "검수 대기" | "수정 요청" | "승인" | "위반 확정";
+export type InspectionStatus = "검수 대기" | "수정 요청" | "승인" | "위반";
 export type ProcessingState = "미처리" | "안내 대기" | "처리 완료";
 export type ContentFormat =
   | "유튜브 롱폼"

@@ -30,12 +30,14 @@ const CONTENT_FORMATS: Record<CollectedContentType, ContentFormat> = {
 const INSPECTION_STATUSES: Record<string, InspectionStatus> = {
   APPROVED: "승인",
   PENDING: "검수 대기",
+  REJECTED: "위반",
   REVISION_REQUESTED: "수정 요청",
-  VIOLATION_CONFIRMED: "위반 확정",
+  VIOLATION_CONFIRMED: "위반",
   "검수 대기": "검수 대기",
   "수정 요청": "수정 요청",
   "승인": "승인",
-  "위반 확정": "위반 확정",
+  "위반": "위반",
+  "위반 확정": "위반",
 };
 
 const VERSION_HISTORY_LABELS: Record<ContentVersionInspectionStatus, string> = {
@@ -56,7 +58,7 @@ function inspectionStatus(status: string | null) {
 
 function processingState(status: InspectionStatus): ProcessingState {
   if (status === "수정 요청") return "안내 대기";
-  if (status === "승인" || status === "위반 확정") return "처리 완료";
+  if (status === "승인" || status === "위반") return "처리 완료";
   return "미처리";
 }
 
