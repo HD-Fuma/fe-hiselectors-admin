@@ -45,6 +45,7 @@ import {
   type CampaignProduct,
   type CampaignSaveRequest,
   type CampaignStatusCode,
+  type CampaignUpdateRequest,
   type SpringPage,
 } from "../../entities/campaign";
 
@@ -306,7 +307,11 @@ interface CampaignFormProps {
   campaign?: Campaign;
   formId: string;
   mode: "create" | "edit";
-  onSubmit: (body: CampaignSaveRequest, thumbnailFile: File | null) => void;
+  onSubmit: (
+    body: CampaignSaveRequest,
+    thumbnailFile: File | null,
+    removeThumbnail: boolean,
+  ) => void;
 }
 
 function selectedProductColumns(
@@ -348,6 +353,7 @@ function selectedProductColumns(
 
 function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
   const thumbnailInputId = useId();
+  const thumbnailInputRef = useRef<HTMLInputElement | null>(null);
   const thumbnailObjectUrlRef = useRef<string | null>(null);
   const [isProductModalOpen, setProductModalOpen] = useState(false);
   const [products, setProducts] = useState<CampaignProduct[]>(
@@ -359,6 +365,7 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
   const [endDate, setEndDate] = useState(campaign?.endDate ?? "");
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState(campaign?.thumbnailUrl ?? "");
+  const [removeThumbnail, setRemoveThumbnail] = useState(false);
   const [validationError, setValidationError] = useState("");
 
   useEffect(() => () => {
@@ -374,7 +381,14 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
     }
     if (startDate > endDate) { setValidationError("종료일은 시작일보다 빠를 수 없습니다."); return; }
     setValidationError("");
-    onSubmit({ title: normalizedTitle, description: normalizedDescription, startDate, endDate, thumbnailUrl: campaign?.thumbnailUrl ?? null, productIds: products.map((product) => product.id) }, thumbnailFile);
+    onSubmit({
+      title: normalizedTitle,
+      description: normalizedDescription,
+      startDate,
+      endDate,
+      thumbnailUrl: removeThumbnail ? null : campaign?.thumbnailUrl ?? null,
+      productIds: products.map((product) => product.id),
+    }, thumbnailFile, removeThumbnail);
   }
 
   return (
@@ -430,16 +444,40 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
                 thumbnailObjectUrlRef.current = objectUrl;
                 setThumbnailFile(file);
                 setThumbnailPreviewUrl(objectUrl);
+                setRemoveThumbnail(false);
                 setValidationError("");
               }}
+              ref={thumbnailInputRef}
               type="file"
             />
-            <label
-              className={buttonClassNames("secondary", "fuma-campaign-thumbnail-upload__action")}
-              htmlFor={thumbnailInputId}
-            >
-              {thumbnailFile || campaign?.thumbnailUrl ? "이미지 변경" : "이미지 선택"}
-            </label>
+            <div className="fuma-campaign-thumbnail-upload__actions">
+              <label
+                className={buttonClassNames("secondary", "fuma-campaign-thumbnail-upload__action")}
+                htmlFor={thumbnailInputId}
+              >
+                {thumbnailPreviewUrl ? "이미지 변경" : "이미지 선택"}
+              </label>
+              {thumbnailPreviewUrl ? (
+                <Button
+                  aria-label="캠페인 썸네일 삭제"
+                  className="fuma-campaign-thumbnail-upload__action"
+                  onClick={() => {
+                    if (thumbnailObjectUrlRef.current) {
+                      URL.revokeObjectURL(thumbnailObjectUrlRef.current);
+                      thumbnailObjectUrlRef.current = null;
+                    }
+                    if (thumbnailInputRef.current) thumbnailInputRef.current.value = "";
+                    setThumbnailFile(null);
+                    setThumbnailPreviewUrl("");
+                    setRemoveThumbnail(Boolean(campaign?.thumbnailUrl));
+                    setValidationError("");
+                  }}
+                  variant="danger"
+                >
+                  이미지 삭제
+                </Button>
+              ) : null}
+            </div>
             <small className="fuma-campaign-thumbnail-upload__help">
               {thumbnailFile ? thumbnailFile.name : "JPG, PNG, WEBP · 최대 5MB"}
             </small>
@@ -540,7 +578,11 @@ function CampaignEditorPanel({ campaign, mode, onClose, onSaved = onClose }: Cam
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
-  const save = async (body: CampaignSaveRequest, thumbnailFile: File | null) => {
+  const save = async (
+    body: CampaignSaveRequest,
+    thumbnailFile: File | null,
+    removeThumbnail: boolean,
+  ) => {
     setPending(true); setError("");
     try {
       const thumbnailUrl = thumbnailFile
@@ -548,7 +590,12 @@ function CampaignEditorPanel({ campaign, mode, onClose, onSaved = onClose }: Cam
         : body.thumbnailUrl;
       const saveBody = { ...body, thumbnailUrl };
       if (mode === "create") await createCampaign(saveBody);
-      else await updateCampaign(campaign!.id, saveBody);
+      else {
+        const updateBody: CampaignUpdateRequest = removeThumbnail
+          ? { ...saveBody, removeThumbnail: true }
+          : saveBody;
+        await updateCampaign(campaign!.id, updateBody);
+      }
       onSaved();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "저장에 실패했습니다.");

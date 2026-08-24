@@ -62,6 +62,10 @@ export interface CampaignSaveRequest {
   productIds: number[];
 }
 
+export interface CampaignUpdateRequest extends CampaignSaveRequest {
+  removeThumbnail?: boolean;
+}
+
 export const CAMPAIGN_STATUS_OPTIONS = [
   { label: "시작 전", value: "SCHEDULED" },
   { label: "진행 중", value: "ACTIVE" },
