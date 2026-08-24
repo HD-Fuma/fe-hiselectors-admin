@@ -1904,12 +1904,14 @@
 }
 
 .fuma-campaign-thumbnail-upload {
+  display: grid;
+  grid-template-rows: auto 1fr;
   overflow: hidden;
 }
 
 .fuma-campaign-thumbnail-upload__body {
   display: grid;
-  align-content: start;
+  align-content: center;
   gap: var(--hsas-space-9);
   padding: var(--hsas-space-14);
 }
@@ -1926,7 +1928,9 @@
 .fuma-campaign-thumbnail-upload > header,
 .fuma-campaign-form-section > header,
 .fuma-campaign-selected-products > header {
+  display: flex;
   min-height: 42px;
+  align-items: center;
   padding: var(--hsas-space-8) var(--hsas-space-14);
   border-bottom: 1px solid #e8efeb;
   background: #f5f7f6;
@@ -1973,7 +1977,11 @@
 }
 
 .fuma-campaign-description-input {
+  height: 76px;
+  min-height: 76px;
   width: 100%;
+  padding: var(--hsas-space-8);
+  line-height: 18px;
   resize: vertical;
 }
 
@@ -1998,11 +2006,6 @@
   display: grid;
   grid-template-rows: auto 1fr;
   overflow: hidden;
-}
-
-.fuma-campaign-form-section > header {
-  display: flex;
-  align-items: center;
 }
 
 .fuma-campaign-form {
