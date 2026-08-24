@@ -25,11 +25,6 @@ const ProposalComposePage = lazyPage(() =>
 const SelectorOverviewPage = lazyPage(() =>
   import("../features/selectors/SelectorPages").then((module) => module.SelectorOverviewPage),
 );
-const QualificationManagementPage = lazyPage(() =>
-  import("../features/selectors/SelectorPages").then(
-    (module) => module.QualificationManagementPage,
-  ),
-);
 const ExcellentSelectorListPage = lazyPage(() =>
   import("../features/selectors/SelectorPages").then(
     (module) => module.ExcellentSelectorListPage,
@@ -139,15 +134,6 @@ export const ADMIN_ROUTE_MANIFEST = [
     workTabLabel: "셀렉터스 목록",
   },
   {
-    path: "/selectors/qualifications",
-    Component: QualificationManagementPage,
-    group: "selectors",
-    menuLabel: "블랙리스트 관리",
-    title: "블랙리스트 관리",
-    screenCode: "SL301",
-    workTabLabel: "블랙리스트 관리",
-  },
-  {
     path: "/selectors/excellent",
     Component: ExcellentSelectorListPage,
     group: "selectors",
@@ -165,11 +151,6 @@ export const ADMIN_ROUTE_MANIFEST = [
     screenCode: "SL202",
     workTabLabel: "셀렉터스 상세",
     workTabParentPath: "/selectors",
-    workTabParentQuery: {
-      parameter: "from",
-      value: "qualifications",
-      path: "/selectors/qualifications",
-    },
   },
   {
     path: "/cohorts",
@@ -316,7 +297,7 @@ export const ADMIN_ROUTE_MANIFEST = [
     path: "/notifications/kakao-recipients",
     Component: KakaoRecipientStatusPage,
     group: "notifications",
-    menuLabel: "카카오 수신 현황",
+    menuLabel: "발송 내역",
     title: "카카오 수신 현황",
     screenCode: "NT102",
     workTabLabel: "카카오 수신 현황",

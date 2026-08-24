@@ -1,11 +1,9 @@
 export {
   COHORTS,
-  QUALIFICATIONS,
   SELECTORS,
 } from "./model/fixtures";
 export type {
   CohortFixture,
-  QualificationFixture,
   SelectorFixture,
 } from "./model/fixtures";
 export {
@@ -13,7 +11,6 @@ export {
   getGenerations,
   getSelector,
   getSelectorFilterGenerations,
-  getSelectorPenalties,
   getSelectors,
   updateGeneration,
   updateGenerationStatus,
@@ -22,13 +19,10 @@ export type {
   Generation,
   GenerationSaveRequest,
   GenerationStatus,
-  PenaltyHistory,
   SelectorContent,
   SelectorDetail,
   SelectorFilterGeneration,
   SelectorGeneration,
-  SelectorPenalty,
-  SelectorPenaltySearchRequest,
   SelectorPerformance,
   SelectorSearchRequest,
   SelectorSnsAccount,

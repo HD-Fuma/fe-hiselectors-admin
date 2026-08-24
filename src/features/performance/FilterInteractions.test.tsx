@@ -29,16 +29,6 @@ const API_GENERATIONS = Array.from({ length: 41 }, (_, index) => ({
   status: "INACTIVE",
 }));
 
-const API_PENALTIES = Array.from({ length: 41 }, (_, index) => ({
-  selectorsId: index + 1,
-  selectorsCode: `SEL${String(index + 1).padStart(4, "0")}`,
-  selectorsNickname: `셀렉터${index + 1}`,
-  totalPenaltyCount: 3,
-  activePenaltyCount: 1,
-  blacklistTarget: true,
-  histories: [],
-}));
-
 function json(data: unknown) {
   return Promise.resolve(new Response(JSON.stringify({
     success: true,
@@ -48,21 +38,10 @@ function json(data: unknown) {
   }), { status: 200, headers: { "Content-Type": "application/json" } }));
 }
 
-test("selector, cohort, and qualification filters reset data and page bounds", async () => {
+test("selector and cohort filters reset data and page bounds", async () => {
   vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
     const url = new URL(String(input));
     if (url.pathname.endsWith("/generations")) return json(API_GENERATIONS);
-    if (url.pathname.endsWith("/penalties")) {
-      const matching = url.searchParams.has("generationId") ? API_PENALTIES.slice(0, 1) : API_PENALTIES;
-      const page = Number(url.searchParams.get("page") ?? 0);
-      return json({
-        content: matching.slice(page * 20, page * 20 + 20),
-        number: page,
-        size: 20,
-        totalElements: matching.length,
-        totalPages: Math.ceil(matching.length / 20),
-      });
-    }
     const nickname = url.searchParams.get("nickname");
     const matching = nickname
       ? API_SELECTORS.filter((selector) => selector.nickname.includes(nickname))
@@ -96,7 +75,7 @@ test("selector, cohort, and qualification filters reset data and page bounds", a
   expect(await screen.findByText(paginationSummary(1, API_SELECTORS.length))).toBeInTheDocument();
   selectorView.unmount();
 
-  const cohortView = renderRoute("/cohorts");
+  renderRoute("/cohorts");
   const cohortSearch = await screen.findByRole("search", { name: "검색 조건" });
   await user.type(
     within(cohortSearch).getByRole("textbox", { name: "기수명" }),
@@ -106,15 +85,5 @@ test("selector, cohort, and qualification filters reset data and page bounds", a
   expect(await screen.findByText("총 1건")).toBeInTheDocument();
   await user.click(within(cohortSearch).getByRole("button", { name: "초기화" }));
   expect(await screen.findByText(paginationSummary(1, API_GENERATIONS.length))).toBeInTheDocument();
-  cohortView.unmount();
-
-  renderRoute("/selectors/qualifications");
-  const qualificationSearch = await screen.findByRole("search", { name: "검색 조건" });
-  await within(qualificationSearch).findByRole("option", { name: "1기" });
-  await user.selectOptions(within(qualificationSearch).getByRole("combobox", { name: "기수" }), "1");
-  await user.click(within(qualificationSearch).getByRole("button", { name: "조회" }));
-  expect(await screen.findByText("총 1건")).toBeInTheDocument();
-  await user.click(within(qualificationSearch).getByRole("button", { name: "초기화" }));
-  expect(await screen.findByText(paginationSummary(1, API_PENALTIES.length))).toBeInTheDocument();
   vi.unstubAllGlobals();
 });

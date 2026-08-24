@@ -182,7 +182,7 @@ export function KakaoRecipientStatusPage() {
     <section className="fuma-page">
       <PageHeader title="카카오 수신 현황" />
       <div className="fuma-page__body">
-        <div className="fuma-kakao-recipient-search">
+        <div className="fuma-operations-search fuma-settlement-search fuma-kakao-recipient-search">
           <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyKeyword} />}>
             <FilterField htmlFor="kakao-recipient-keyword" label="검색">
               <TextInput
