@@ -25,21 +25,23 @@ describe("HSAS controls", () => {
     const onChange = vi.fn();
     const { rerender } = render(<ViewModeToggle onChange={onChange} value="grid" />);
 
-    const toggle = screen.getByRole("group", { name: "보기 방식" });
+    const toggle = screen.getByRole("switch", { name: "보기 방식" });
     expect(toggle).toHaveClass("is-grid");
+    expect(toggle).not.toBeChecked();
     expect(screen.getByRole("tooltip")).toHaveTextContent("보기 방식을 변경할 수 있습니다");
     expect(screen.getByRole("tooltip")).toHaveClass("is-visible");
 
     fireEvent.mouseEnter(toggle.parentElement!);
     expect(screen.getByRole("tooltip")).not.toHaveClass("is-visible");
 
-    await userEvent.click(screen.getByRole("button", { name: "카드" }));
+    await userEvent.click(toggle);
     expect(onChange).toHaveBeenCalledWith("list");
 
     rerender(<ViewModeToggle onChange={onChange} value="list" />);
     expect(toggle).toHaveClass("is-list");
+    expect(toggle).toBeChecked();
 
-    await userEvent.click(screen.getByRole("button", { name: "목록" }));
+    await userEvent.click(toggle);
     expect(onChange).toHaveBeenLastCalledWith("grid");
   });
 

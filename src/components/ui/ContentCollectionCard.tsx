@@ -4,54 +4,75 @@ import type { SocialPlatform } from "../social/PlatformIcon";
 import { assetUrl } from "../../lib/assetUrl";
 import { CreatorCardProfileHeader } from "./CreatorCardProfileHeader";
 
-interface ContentCollectionCardProps {
-  author: string;
-  badgeLabel: string;
+interface ContentCollectionCardBaseProps {
   caption: string;
   footerEnd: ReactNode;
   footerStart: ReactNode;
   mediaAlt: string;
   mediaCount?: number;
+  mediaFallbackUrl?: string;
   mediaUrl?: string;
-  platform: SocialPlatform;
-  profileImageUrl: string;
   showPlay?: boolean;
-  snsId?: string;
   status?: ReactNode;
   title: string;
   duration?: string;
 }
 
-export function ContentCollectionCard({
-  author,
-  badgeLabel,
-  caption,
-  duration,
-  footerEnd,
-  footerStart,
-  mediaAlt,
-  mediaCount = 1,
-  mediaUrl,
-  platform,
-  profileImageUrl,
-  showPlay = false,
-  snsId,
-  status,
-  title,
-}: ContentCollectionCardProps) {
+interface ContentCollectionCardCreatorProps {
+  variant?: "creator";
+  author: string;
+  badgeLabel: string;
+  platform: SocialPlatform;
+  profileImageUrl: string;
+  snsId?: string;
+}
+
+interface ContentCollectionCardCustomHeaderProps {
+  variant: "custom";
+  header: ReactNode;
+}
+
+type ContentCollectionCardProps = ContentCollectionCardBaseProps & (
+  ContentCollectionCardCreatorProps | ContentCollectionCardCustomHeaderProps
+);
+
+export function ContentCollectionCard(props: ContentCollectionCardProps) {
+  const {
+    caption,
+    duration,
+    footerEnd,
+    footerStart,
+    mediaAlt,
+    mediaCount = 1,
+    mediaFallbackUrl,
+    mediaUrl,
+    showPlay = false,
+    status,
+    title,
+  } = props;
+
   return (
     <>
-      <CreatorCardProfileHeader
-        badgeLabel={badgeLabel}
-        displayName={author}
-        platform={platform}
-        profileImageUrl={profileImageUrl}
-        snsId={snsId}
-      />
+      {props.variant === "custom" ? props.header : (
+        <CreatorCardProfileHeader
+          badgeLabel={props.badgeLabel}
+          displayName={props.author}
+          platform={props.platform}
+          profileImageUrl={props.profileImageUrl}
+          snsId={props.snsId}
+        />
+      )}
       {status}
       <div className="fuma-content-collection__media">
         {mediaUrl ? (
-          <img alt={mediaAlt} src={assetUrl(mediaUrl)} />
+          <img
+            alt={mediaAlt}
+            onError={mediaFallbackUrl ? (event) => {
+              event.currentTarget.onerror = null;
+              event.currentTarget.src = assetUrl(mediaFallbackUrl);
+            } : undefined}
+            src={assetUrl(mediaUrl)}
+          />
         ) : (
           <span className="fuma-content-collection__media-empty">
             <Images aria-hidden="true" size={24} />

@@ -57,7 +57,9 @@ describe("campaign filter behavior", () => {
     fireEvent.keyDown(within(search).getByRole("textbox", { name: "검색어" }), {
       key: "Enter",
     });
-    await waitFor(() => expect(within(results).getByText("초여름 패션 리뷰")).toBeInTheDocument());
+    await waitFor(() => expect(within(results).getByRole("button", {
+      name: "초여름 패션 리뷰 캠페인 상세 보기",
+    })).toBeInTheDocument());
 
     fireEvent.click(screen.getByRole("button", { name: "종료" }));
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("status=ENDED"), expect.anything()));
@@ -81,6 +83,34 @@ describe("campaign filter behavior", () => {
     expect(within(search).getByLabelText("진행 시작일")).toHaveValue("");
     expect(within(search).getByLabelText("진행 종료일")).toHaveValue("");
     expect(screen.getByText("총 1건")).toBeInTheDocument();
+  });
+
+  test("uses the shared content collection card and view toggle", async () => {
+    renderRoute("/campaigns");
+    const results = await screen.findByRole("region", { name: "캠페인 목록" });
+    const card = await within(results).findByRole("button", {
+      name: "초여름 패션 리뷰 캠페인 상세 보기",
+    });
+
+    expect(card).toHaveClass("fuma-campaign-card");
+    expect(card).toHaveAttribute("data-content-format", "instagram-image");
+    expect(card.querySelector(".fuma-campaign-card__status")).toBeInTheDocument();
+    expect(within(card).queryByText("캠페인")).not.toBeInTheDocument();
+    expect(within(card).queryByText("ID 3")).not.toBeInTheDocument();
+    expect(within(card).getByText("상품 1개")).toBeInTheDocument();
+
+    const viewToggle = screen.getByRole("switch", { name: "보기 방식" });
+    fireEvent.click(viewToggle);
+    expect(within(results).getByRole("region", { name: "캠페인 리스트" })).toBeInTheDocument();
+
+    fireEvent.click(viewToggle);
+    const restoredCard = await within(results).findByRole("button", {
+      name: "초여름 패션 리뷰 캠페인 상세 보기",
+    });
+    expect(restoredCard).toBe(card);
+    fireEvent.click(restoredCard);
+
+    expect(await screen.findByRole("dialog", { name: "캠페인 상세" })).toBeInTheDocument();
   });
 
   test("shows included products above participants without detail tabs", async () => {
