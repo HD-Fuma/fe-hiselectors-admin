@@ -3491,7 +3491,7 @@
 }
 
 .fuma-notification-search .hsas-search-panel__fields {
-  grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(320px, 1.4fr) minmax(160px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
   column-gap: var(--hsas-space-14);
 }
 
@@ -3512,7 +3512,7 @@
 }
 
 .fuma-proposal-history-search .hsas-search-panel__fields {
-  grid-template-columns: minmax(360px, 520px);
+  grid-template-columns: minmax(0, 520px);
 }
 
 .fuma-proposal-history-search .fuma-filter-field {
@@ -6122,6 +6122,14 @@
     grid-template-columns: repeat(2, minmax(220px, 1fr));
   }
 
+  .fuma-notification-search .hsas-search-panel__fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fuma-proposal-history-search .hsas-search-panel__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .fuma-applicant-detail-hero {
     grid-template-columns: 260px minmax(370px, 1fr);
   }
@@ -6161,6 +6169,11 @@
   }
 
   .fuma-settlement-search .hsas-search-panel__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fuma-notification-search .hsas-search-panel__fields,
+  .fuma-proposal-history-search .hsas-search-panel__fields {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -9104,6 +9117,10 @@
 }
 
 @media (max-width: 640px) {
+  .fuma-notification-search .hsas-search-panel__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .fuma-notification-detail-section dl {
     grid-template-columns: minmax(0, 1fr);
   }
