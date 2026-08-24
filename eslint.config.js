@@ -29,7 +29,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              regex: "^(?:\\.\\./)+(?:applicants|auth|campaigns|content|creators|notifications|performance|selectors|settlements)(?:/|$)",
+              regex: "^(?:\\.\\./)+(?:applicants|auth|campaigns|content|creators|notifications|performance|selectors|settlements|task-runs)(?:/|$)",
               message: "Feature끼리 직접 import하지 말고 app 조합 또는 entities/shared 경계를 사용하세요.",
             },
             {

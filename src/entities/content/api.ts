@@ -1,5 +1,6 @@
 import { adminFetch } from "../../lib/adminAuthentication";
 import { API_BASE_URL } from "../../lib/apiBaseUrl";
+import type { TaskRun } from "../task-run";
 
 const AUTH_STORAGE_KEY = "selectors-auth";
 
@@ -60,12 +61,7 @@ interface SpringPage<T> {
   totalPages?: number;
 }
 
-export interface ContentBatchRunResponse {
-  newContentCount: number;
-  engagementCount: number;
-  newContentSucceeded: boolean;
-  storedContentSucceeded: boolean;
-}
+export type ContentBatchRunResponse = TaskRun;
 
 export type ContentVersionInspectionStatus =
   | "PENDING"
@@ -236,6 +232,7 @@ export async function runContentBatch(): Promise<ContentBatchRunResponse> {
   const headers = new Headers();
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
+  headers.set("Idempotency-Key", crypto.randomUUID());
 
   const response = await adminFetch(`${API_BASE_URL}/api/admin/content-batch/run`, {
     headers,
