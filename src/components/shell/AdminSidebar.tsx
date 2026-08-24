@@ -1,14 +1,10 @@
 import {
-  BadgeCheck,
   BarChart3,
   Bell,
   ChevronDown,
   ClipboardList,
-  FileSearch,
   LogOut,
-  Megaphone,
   UsersRound,
-  WalletCards,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -26,13 +22,9 @@ import "../../styles/sidebar-account.css";
 import "../../styles/sidebar-brand.css";
 
 const GROUP_ICONS: Record<NavGroup, LucideIcon> = {
-  creators: UsersRound,
-  selectors: BadgeCheck,
-  applicants: ClipboardList,
-  campaigns: Megaphone,
-  content: FileSearch,
+  recruitment: UsersRound,
+  operations: ClipboardList,
   performance: BarChart3,
-  settlements: WalletCards,
   notifications: Bell,
 };
 
@@ -46,14 +38,19 @@ interface AdminSidebarProps {
 function getGroupMenuItems(routes: readonly AdminRouteMeta[], group: NavGroup) {
   const labels = new Set<string>();
 
-  return routes.filter((route) => {
-    if (route.group !== group || labels.has(route.menuLabel)) {
-      return false;
-    }
+  return routes
+    .filter((route) => {
+      if (route.group !== group || labels.has(route.menuLabel)) {
+        return false;
+      }
 
-    labels.add(route.menuLabel);
-    return true;
-  });
+      labels.add(route.menuLabel);
+      return true;
+    })
+    .sort((left, right) => (
+      (left.menuOrder ?? Number.MAX_SAFE_INTEGER)
+      - (right.menuOrder ?? Number.MAX_SAFE_INTEGER)
+    ));
 }
 
 export function AdminSidebar({

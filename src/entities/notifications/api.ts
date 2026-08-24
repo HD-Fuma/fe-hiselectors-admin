@@ -1,5 +1,6 @@
 import { adminFetch } from "../../lib/adminAuthentication";
 import { API_BASE_URL } from "../../lib/apiBaseUrl";
+import type { TaskRun } from "../task-run";
 import type {
   ApiResult,
   NotificationHistoryItem,
@@ -79,16 +80,19 @@ export async function getNotificationHistory(
 }
 
 export async function resendNotification(notificationId: number) {
+  const headers = authenticatedHeaders();
+  headers.set("Idempotency-Key", crypto.randomUUID());
   const response = await adminFetch(
     `${API_BASE_URL}/api/admin/notifications/${notificationId}/resend`,
-    { headers: authenticatedHeaders(), method: "POST" },
+    { headers, method: "POST" },
   );
   if (!response.ok) {
-    throw new Error(await errorMessage(response, "메시지를 재발송하지 못했습니다."));
+    throw new Error(await errorMessage(response, "메시지 재발송 요청에 실패했습니다."));
   }
 
-  const result = await response.json() as ApiResult<unknown>;
-  if (!result.success) {
-    throw new Error(result.message || "메시지를 재발송하지 못했습니다.");
+  const result = await response.json() as ApiResult<TaskRun>;
+  if (!result.success || !result.data) {
+    throw new Error(result.message || "메시지 재발송 요청에 실패했습니다.");
   }
+  return result.data;
 }

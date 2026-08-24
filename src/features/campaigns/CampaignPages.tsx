@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import "../../styles/content-inspection.css";
 import { PageHeader } from "../../components/shell/PageHeader";
 import {
   Button,
@@ -16,6 +17,7 @@ import {
   TextInput,
 } from "../../components/ui/Controls";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
+import { ContentCollectionCard } from "../../components/ui/ContentCollectionCard";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
@@ -26,6 +28,7 @@ import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { ViewModeToggle, type ViewMode } from "../../components/ui/ViewModeToggle";
 import { assetUrl } from "../../lib/assetUrl";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import {
@@ -45,6 +48,7 @@ import {
   type CampaignProduct,
   type CampaignSaveRequest,
   type CampaignStatusCode,
+  type CampaignUpdateRequest,
   type SpringPage,
 } from "../../entities/campaign";
 
@@ -80,6 +84,45 @@ function CampaignThumbnail({ campaign }: { campaign: Campaign }) {
       onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = assetUrl("/brand/thehyundai-hi.svg"); }}
       src={campaign.thumbnailUrl || assetUrl("/brand/thehyundai-hi.svg")}
     />
+  );
+}
+
+function CampaignCard({ campaign, onOpen }: {
+  campaign: Campaign;
+  onOpen: (campaignId: number) => void;
+}) {
+  return (
+    <button
+      aria-label={`${campaign.title} 캠페인 상세 보기`}
+      className="fuma-content-collection__card fuma-creator-card fuma-campaign-card"
+      data-content-format="instagram-image"
+      onClick={() => onOpen(campaign.id)}
+      type="button"
+    >
+      <ContentCollectionCard
+        caption={campaign.description || "등록된 캠페인 설명이 없습니다."}
+        footerEnd={<span>상품 {campaign.productIds.length}개</span>}
+        footerStart={(
+          <>
+            <time dateTime={campaign.startDate}>{campaign.startDate}</time>
+            {" ~ "}
+            <time dateTime={campaign.endDate}>{campaign.endDate}</time>
+          </>
+        )}
+        header={(
+          <header className="fuma-campaign-card__status">
+            <StatusPill tone={statusTone(campaign.status)}>
+              {campaignStatusLabel(campaign.status)}
+            </StatusPill>
+          </header>
+        )}
+        mediaAlt={`${campaign.title} 썸네일`}
+        mediaFallbackUrl="/brand/thehyundai-hi.svg"
+        mediaUrl={campaign.thumbnailUrl || "/brand/thehyundai-hi.svg"}
+        title={campaign.title}
+        variant="custom"
+      />
+    </button>
   );
 }
 
@@ -154,6 +197,8 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
   const [pageData, setPageData] = useState<SpringPage<Campaign> | null>(null);
   const [listError, setListError] = useState("");
   const currentPage = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const viewMode: ViewMode = searchParams.get("view") === "list" ? "list" : "grid";
+  const campaigns = pageData?.content ?? [];
 
   useEffect(() => {
     const controller = new AbortController();
@@ -215,6 +260,13 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
     setSearchParams(nextParams);
   };
 
+  const changeViewMode = (nextViewMode: ViewMode) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextViewMode === "grid") nextParams.delete("view");
+    else nextParams.set("view", nextViewMode);
+    setSearchParams(nextParams, { replace: true });
+  };
+
   return (
     <>
     <section className="fuma-page">
@@ -258,26 +310,47 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
           options={CAMPAIGN_STATUS_CATEGORIES}
           value={selectedStatus}
         />
-        <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-result-toolbar">
-          <strong>캠페인 목록</strong>
-          <div className="fuma-settlement-result-meta">
-            <span>{selectedStatus ? campaignStatusLabel(selectedStatus) : "전체"}</span>
-            <span>총 {pageData?.totalElements ?? 0}건</span>
+        <section aria-label="캠페인 목록" className="fuma-content-collection">
+          <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-applicant-result-toolbar fuma-campaign-result-toolbar">
+            <strong>캠페인 목록</strong>
+            <div className="fuma-settlement-result-meta">
+              <span>{selectedStatus ? campaignStatusLabel(selectedStatus) : "전체"}</span>
+              <span>총 {pageData?.totalElements ?? 0}건</span>
+            </div>
+            <div className="fuma-creator-toolbar fuma-creator-toolbar__controls">
+              <span aria-hidden="true" className="fuma-creator-toolbar__divider" />
+              <ViewModeToggle onChange={changeViewMode} value={viewMode} />
+            </div>
           </div>
-        </div>
-        <div
-          aria-label="캠페인 목록"
-          className="fuma-wide-table fuma-settlement-table fuma-campaign-list-table"
-          role="region"
-        >
-          {listError ? <EmptyState description={listError} title="목록을 불러오지 못했습니다" /> : <DenseTable
-            columns={CAMPAIGN_COLUMNS}
-            emptyMessage={pageData ? "캠페인이 없습니다." : "캠페인을 불러오는 중입니다."}
-            onRowClick={(campaign) => openDetail(campaign.id)}
-            rowKey={(campaign) => campaign.id}
-            rows={pageData?.content ?? []}
-          />}
-        </div>
+          {listError ? (
+            <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
+          ) : !pageData ? (
+            <EmptyState title="캠페인을 불러오는 중입니다." />
+          ) : campaigns.length === 0 ? (
+            <EmptyState title="캠페인이 없습니다." />
+          ) : (
+            <>
+              <div className="fuma-content-collection__track is-grid" hidden={viewMode !== "grid"}>
+                {campaigns.map((campaign) => (
+                  <CampaignCard campaign={campaign} key={campaign.id} onOpen={openDetail} />
+                ))}
+              </div>
+              <div
+                aria-label="캠페인 리스트"
+                className="fuma-wide-table fuma-content-collection__list fuma-campaign-list-table"
+                hidden={viewMode !== "list"}
+                role="region"
+              >
+                <DenseTable
+                  columns={CAMPAIGN_COLUMNS}
+                  onRowClick={(campaign) => openDetail(campaign.id)}
+                  rowKey={(campaign) => campaign.id}
+                  rows={campaigns}
+                />
+              </div>
+            </>
+          )}
+        </section>
         <Pagination
           onPageChange={(page) => {
             const nextParams = new URLSearchParams(searchParams);
@@ -306,7 +379,11 @@ interface CampaignFormProps {
   campaign?: Campaign;
   formId: string;
   mode: "create" | "edit";
-  onSubmit: (body: CampaignSaveRequest, thumbnailFile: File | null) => void;
+  onSubmit: (
+    body: CampaignSaveRequest,
+    thumbnailFile: File | null,
+    removeThumbnail: boolean,
+  ) => void;
 }
 
 function selectedProductColumns(
@@ -348,6 +425,7 @@ function selectedProductColumns(
 
 function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
   const thumbnailInputId = useId();
+  const thumbnailInputRef = useRef<HTMLInputElement | null>(null);
   const thumbnailObjectUrlRef = useRef<string | null>(null);
   const [isProductModalOpen, setProductModalOpen] = useState(false);
   const [products, setProducts] = useState<CampaignProduct[]>(
@@ -359,6 +437,7 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
   const [endDate, setEndDate] = useState(campaign?.endDate ?? "");
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState(campaign?.thumbnailUrl ?? "");
+  const [removeThumbnail, setRemoveThumbnail] = useState(false);
   const [validationError, setValidationError] = useState("");
 
   useEffect(() => () => {
@@ -374,7 +453,14 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
     }
     if (startDate > endDate) { setValidationError("종료일은 시작일보다 빠를 수 없습니다."); return; }
     setValidationError("");
-    onSubmit({ title: normalizedTitle, description: normalizedDescription, startDate, endDate, thumbnailUrl: campaign?.thumbnailUrl ?? null, productIds: products.map((product) => product.id) }, thumbnailFile);
+    onSubmit({
+      title: normalizedTitle,
+      description: normalizedDescription,
+      startDate,
+      endDate,
+      thumbnailUrl: removeThumbnail ? null : campaign?.thumbnailUrl ?? null,
+      productIds: products.map((product) => product.id),
+    }, thumbnailFile, removeThumbnail);
   }
 
   return (
@@ -430,16 +516,40 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
                 thumbnailObjectUrlRef.current = objectUrl;
                 setThumbnailFile(file);
                 setThumbnailPreviewUrl(objectUrl);
+                setRemoveThumbnail(false);
                 setValidationError("");
               }}
+              ref={thumbnailInputRef}
               type="file"
             />
-            <label
-              className={buttonClassNames("secondary", "fuma-campaign-thumbnail-upload__action")}
-              htmlFor={thumbnailInputId}
-            >
-              {thumbnailFile || campaign?.thumbnailUrl ? "이미지 변경" : "이미지 선택"}
-            </label>
+            <div className="fuma-campaign-thumbnail-upload__actions">
+              <label
+                className={buttonClassNames("secondary", "fuma-campaign-thumbnail-upload__action")}
+                htmlFor={thumbnailInputId}
+              >
+                {thumbnailPreviewUrl ? "이미지 변경" : "이미지 선택"}
+              </label>
+              {thumbnailPreviewUrl ? (
+                <Button
+                  aria-label="캠페인 썸네일 삭제"
+                  className="fuma-campaign-thumbnail-upload__action"
+                  onClick={() => {
+                    if (thumbnailObjectUrlRef.current) {
+                      URL.revokeObjectURL(thumbnailObjectUrlRef.current);
+                      thumbnailObjectUrlRef.current = null;
+                    }
+                    if (thumbnailInputRef.current) thumbnailInputRef.current.value = "";
+                    setThumbnailFile(null);
+                    setThumbnailPreviewUrl("");
+                    setRemoveThumbnail(Boolean(campaign?.thumbnailUrl));
+                    setValidationError("");
+                  }}
+                  variant="danger"
+                >
+                  이미지 삭제
+                </Button>
+              ) : null}
+            </div>
             <small className="fuma-campaign-thumbnail-upload__help">
               {thumbnailFile ? thumbnailFile.name : "JPG, PNG, WEBP · 최대 5MB"}
             </small>
@@ -540,7 +650,11 @@ function CampaignEditorPanel({ campaign, mode, onClose, onSaved = onClose }: Cam
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
-  const save = async (body: CampaignSaveRequest, thumbnailFile: File | null) => {
+  const save = async (
+    body: CampaignSaveRequest,
+    thumbnailFile: File | null,
+    removeThumbnail: boolean,
+  ) => {
     setPending(true); setError("");
     try {
       const thumbnailUrl = thumbnailFile
@@ -548,7 +662,12 @@ function CampaignEditorPanel({ campaign, mode, onClose, onSaved = onClose }: Cam
         : body.thumbnailUrl;
       const saveBody = { ...body, thumbnailUrl };
       if (mode === "create") await createCampaign(saveBody);
-      else await updateCampaign(campaign!.id, saveBody);
+      else {
+        const updateBody: CampaignUpdateRequest = removeThumbnail
+          ? { ...saveBody, removeThumbnail: true }
+          : saveBody;
+        await updateCampaign(campaign!.id, updateBody);
+      }
       onSaved();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "저장에 실패했습니다.");
@@ -775,7 +894,7 @@ export function CampaignDetailPage({
           >
             수정
           </Link>
-          {campaign.status === "ENDED" ? <Button onClick={() => setDeleteOpen(true)} variant="danger">삭제</Button> : null}
+          {campaign.status === "SCHEDULED" ? <Button onClick={() => setDeleteOpen(true)} variant="danger">삭제</Button> : null}
         </>) : null}
         onClose={closePanel}
         title="캠페인 상세"
@@ -869,7 +988,7 @@ export function CampaignDetailPage({
         )}
         </div>
       </SidePanel>
-      {deleteOpen ? <Modal actions={<><Button disabled={deleting} onClick={() => setDeleteOpen(false)}>취소</Button><Button disabled={deleting} onClick={removeCampaign} variant="danger">{deleting ? "삭제 중..." : "삭제"}</Button></>} onClose={() => setDeleteOpen(false)} open role="alertdialog" title="캠페인 삭제"><p>종료된 캠페인을 삭제할까요? 삭제 후 목록에서 보이지 않습니다.</p></Modal> : null}
+      {deleteOpen ? <Modal actions={<><Button disabled={deleting} onClick={() => setDeleteOpen(false)}>취소</Button><Button disabled={deleting} onClick={removeCampaign} variant="danger">{deleting ? "삭제 중..." : "삭제"}</Button></>} onClose={() => setDeleteOpen(false)} open role="alertdialog" title="캠페인 삭제"><p>시작 전 캠페인을 삭제할까요? 삭제 후 목록에서 보이지 않습니다.</p></Modal> : null}
     </>
   );
 }

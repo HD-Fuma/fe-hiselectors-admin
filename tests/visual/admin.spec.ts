@@ -245,7 +245,6 @@ test("creators visual checkpoint at 1440", async ({ page }, testInfo) => {
     "셀렉터스",
     "기수 관리",
     "셀렉터스 목록",
-    "블랙리스트 관리",
     "지원자",
     "지원자 승인",
     "캠페인",

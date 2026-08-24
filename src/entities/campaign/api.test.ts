@@ -1,4 +1,4 @@
-import { createCampaign, deleteCampaign, getCampaigns, uploadCampaignThumbnail } from "./api";
+import { createCampaign, deleteCampaign, getCampaigns, updateCampaign, uploadCampaignThumbnail } from "./api";
 
 describe("campaign admin api", () => {
   beforeEach(() => {
@@ -53,8 +53,33 @@ describe("campaign admin api", () => {
     expect((init?.body as FormData).get("file")).toBe(file);
   });
 
+  test("patches an explicit campaign thumbnail removal", async () => {
+    const body = {
+      title: "캠페인",
+      description: "설명",
+      startDate: "2026-08-01",
+      endDate: "2026-08-31",
+      thumbnailUrl: null,
+      productIds: [1],
+      removeThumbnail: true,
+    };
+    const campaign = { id: 1, ...body, status: "ACTIVE", products: [], createdAt: "", updatedAt: "" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      success: true,
+      code: "OK",
+      message: null,
+      data: campaign,
+    }), { status: 200 })));
+
+    await expect(updateCampaign(1, body)).resolves.toEqual(campaign);
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toContain("/api/admin/campaigns/1");
+    expect(init).toMatchObject({ method: "PATCH", body: JSON.stringify(body) });
+  });
+
   test("uses the backend message on failure", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: "종료된 캠페인만 삭제할 수 있습니다." }), { status: 409 })));
-    await expect(deleteCampaign(1)).rejects.toThrow("종료된 캠페인만 삭제할 수 있습니다.");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: "시작 전 캠페인만 삭제할 수 있습니다." }), { status: 409 })));
+    await expect(deleteCampaign(1)).rejects.toThrow("시작 전 캠페인만 삭제할 수 있습니다.");
   });
 });

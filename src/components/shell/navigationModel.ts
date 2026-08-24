@@ -1,27 +1,19 @@
 export type NavGroup =
-  | "creators"
-  | "selectors"
-  | "applicants"
-  | "campaigns"
-  | "content"
+  | "recruitment"
+  | "operations"
   | "performance"
-  | "settlements"
   | "notifications";
 
 export interface AdminRouteMeta {
   path: string;
   group: NavGroup;
   menuLabel: string;
+  menuOrder?: number;
   title: string;
   screenCode: string;
   workTabLabel: string;
   workTabSingletonId?: string;
   workTabParentPath?: string;
-  workTabParentQuery?: {
-    parameter: string;
-    value: string;
-    path: string;
-  };
 }
 
 export interface NavGroupMeta {

@@ -1,5 +1,6 @@
 import { adminFetch } from "../../lib/adminAuthentication";
 import { API_BASE_URL } from "../../lib/apiBaseUrl";
+import type { TaskRun } from "../task-run";
 
 export interface CreatorSummary {
   id: number;
@@ -101,11 +102,12 @@ async function request<T>(
   signal?: AbortSignal,
   init?: RequestInit,
 ) {
+  const requestHeaders = headers();
+  if (init?.body !== undefined) requestHeaders.set("Content-Type", "application/json");
+  new Headers(init?.headers).forEach((value, key) => requestHeaders.set(key, value));
   const response = await adminFetch(`${API_BASE_URL}${path}`, {
     ...init,
-    headers: init?.body !== undefined
-      ? (() => { const h = headers(); h.set("Content-Type", "application/json"); return h; })()
-      : headers(),
+    headers: requestHeaders,
     signal,
   });
   const body = await response.json() as { data?: T | null; message?: string | null; success?: boolean };
@@ -130,12 +132,14 @@ export async function getCreators(input: CreatorSearchRequest, signal?: AbortSig
   return body.data;
 }
 
-export function runCreatorDiscovery() {
-  return request<unknown>(
-    "/api/admin/discovery/youtube/run",
+export function runCreatorDiscovery(test = false) {
+  const requestHeaders = new Headers();
+  requestHeaders.set("Idempotency-Key", crypto.randomUUID());
+  return request<TaskRun>(
+    `/api/admin/discovery/youtube/run${test ? "?test=true" : ""}`,
     "크리에이터 풀 구축에 실패했습니다.",
     undefined,
-    { method: "POST" },
+    { headers: requestHeaders, method: "POST" },
   );
 }
 
@@ -168,10 +172,12 @@ export function postAdminProposal(
   creatorId: number,
   content?: { subject: string; body: string },
 ) {
-  return request<ProposalHistoryEntry>(
+  const requestHeaders = new Headers();
+  requestHeaders.set("Idempotency-Key", crypto.randomUUID());
+  return request<TaskRun>(
     "/api/admin/proposals",
-    "제안 메일 발송에 실패했습니다.",
+    "제안 메일 발송 요청에 실패했습니다.",
     undefined,
-    { method: "POST", body: JSON.stringify({ creatorId, ...content }) },
+    { headers: requestHeaders, method: "POST", body: JSON.stringify({ creatorId, ...content }) },
   );
 }

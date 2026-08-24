@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
@@ -20,7 +20,6 @@ import {
   getGenerations,
   getSelector,
   getSelectorFilterGenerations,
-  getSelectorPenalties,
   getSelectors,
   SelectorDetailPanel,
   updateGeneration,
@@ -29,7 +28,6 @@ import {
   type GenerationStatus,
   type SelectorDetail,
   type SelectorFilterGeneration,
-  type SelectorPenalty,
   type SelectorSnsCode,
   type SelectorSummary,
   type SpringPage,
@@ -38,11 +36,8 @@ import {
   getSettlementSelectorDetail,
   type SettlementSelectorDetail,
 } from "../../entities/settlement";
-import { formatNumber, formatWon } from "../../lib/formatters";
+import { formatNumber } from "../../lib/formatters";
 import { paginate } from "../../lib/pagination";
-import {
-  SELECTORS,
-} from "../../entities/selectors";
 
 const COHORT_STATUS_CATEGORIES = [
   { label: "활성", value: "ACTIVE" },
@@ -700,7 +695,6 @@ export function SelectorOverviewPage() {
 export function SelectorDetailPage() {
   const { selectorId } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [detailState, setDetailState] = useState<{
     id: number;
     selector: SelectorDetail | null;
@@ -708,14 +702,6 @@ export function SelectorDetailPage() {
     settlementDetail: SettlementSelectorDetail | null;
     settlementDetailError: boolean;
   } | null>(null);
-  const fromQualifications = searchParams.get("from") === "qualifications";
-  const qualificationReturnQuery = qualificationQuery(
-    searchParams.get("generationId"),
-    positiveInteger(searchParams.get("page")) ?? 1,
-  ).toString();
-  const listPath = fromQualifications
-    ? `/selectors/qualifications${qualificationReturnQuery ? `?${qualificationReturnQuery}` : ""}`
-    : "/selectors";
   const numericSelectorId = Number(selectorId);
   const invalidSelectorId = !Number.isSafeInteger(numericSelectorId) || numericSelectorId <= 0;
   const currentDetailState = detailState?.id === numericSelectorId ? detailState : null;
@@ -754,9 +740,9 @@ export function SelectorDetailPage() {
 
   return (
     <>
-      {fromQualifications ? <QualificationManagementPage /> : <SelectorOverviewPage />}
+      <SelectorOverviewPage />
       <SelectorDetailPanel
-        onClose={() => navigate(listPath)}
+        onClose={() => navigate("/selectors")}
         selectorDetail={currentDetailState?.selector}
         selectorDetailError={invalidSelectorId
           ? "요청한 셀렉터스 ID가 올바르지 않습니다."
@@ -767,348 +753,5 @@ export function SelectorDetailPage() {
         settlementDetailLoading={!invalidSelectorId && !currentDetailState}
       />
     </>
-  );
-}
-
-const QUALIFICATION_COLUMNS: DenseTableColumn<SelectorPenalty>[] = [
-  { key: "selectorsId", header: "셀렉터스 ID", width: 110, align: "center" },
-  { key: "selectorsCode", header: "셀렉터스 코드", width: 130, align: "center" },
-  { key: "selectorsNickname", header: "닉네임", width: 130, align: "center" },
-  {
-    key: "totalPenaltyCount",
-    header: "누적 패널티",
-    width: 100,
-    align: "center",
-    render: (qualification) => `${qualification.totalPenaltyCount}회`,
-  },
-  {
-    key: "activePenaltyCount",
-    header: "활성 패널티",
-    width: 100,
-    align: "center",
-    render: (qualification) => `${qualification.activePenaltyCount}회`,
-  },
-  {
-    key: "blacklistTarget",
-    header: "블랙리스트",
-    width: 110,
-    align: "center",
-    render: (qualification) => (
-      <StatusPill tone={qualification.blacklistTarget ? "rejected" : "neutral"}>
-        {qualification.blacklistTarget ? "대상" : "비대상"}
-      </StatusPill>
-    ),
-  },
-];
-
-const BLACKLIST_PAGE_SIZE = 20;
-
-function positiveInteger(value: string | null) {
-  const parsed = Number(value);
-  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
-}
-
-function qualificationQuery(generationId: string | null, page: number, detail = false) {
-  const params = new URLSearchParams();
-  const validGenerationId = positiveInteger(generationId);
-  if (detail) params.set("from", "qualifications");
-  if (validGenerationId) params.set("generationId", String(validGenerationId));
-  if (Number.isSafeInteger(page) && page > 1) params.set("page", String(page));
-  return params;
-}
-
-export function QualificationManagementPage() {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const initialGenerationId = positiveInteger(searchParams.get("generationId"));
-  const initialPage = positiveInteger(searchParams.get("page")) ?? 1;
-  const [generationId, setGenerationId] = useState(initialGenerationId ? String(initialGenerationId) : "");
-  const [appliedGenerationId, setAppliedGenerationId] = useState(initialGenerationId ? String(initialGenerationId) : "");
-  const [page, setPage] = useState(initialPage);
-  const [knownTotalPages, setKnownTotalPages] = useState(initialPage);
-  const [requestVersion, setRequestVersion] = useState(0);
-  const [pageData, setPageData] = useState<SpringPage<SelectorPenalty> | null>(null);
-  const [listError, setListError] = useState("");
-  const [generations, setGenerations] = useState<SelectorFilterGeneration[]>([]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    getSelectorFilterGenerations(controller.signal)
-      .then((result) => {
-        if (!controller.signal.aborted) setGenerations(result);
-      })
-      .catch(() => { /* the list remains usable without generation options */ });
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    getSelectorPenalties({
-      generationId: appliedGenerationId ? Number(appliedGenerationId) : undefined,
-      page: page - 1,
-      size: BLACKLIST_PAGE_SIZE,
-    }, controller.signal).then((result) => {
-      if (controller.signal.aborted) return;
-      setPageData(result);
-      setKnownTotalPages(Math.max(1, result.totalPages));
-      setListError("");
-    }).catch((reason: unknown) => {
-      if (!controller.signal.aborted) {
-        setListError(reason instanceof Error ? reason.message : "블랙리스트 목록 조회에 실패했습니다.");
-      }
-    });
-    return () => controller.abort();
-  }, [appliedGenerationId, page, requestVersion]);
-
-  const appliedGeneration = generations.find((generation) => (
-    String(generation.id) === appliedGenerationId
-  ));
-
-  const applyFilters = () => {
-    setPageData(null);
-    setListError("");
-    setAppliedGenerationId(generationId);
-    setPage(1);
-    setRequestVersion((current) => current + 1);
-    setSearchParams(qualificationQuery(generationId, 1));
-  };
-
-  const resetFilters = () => {
-    setPageData(null);
-    setListError("");
-    setGenerationId("");
-    setAppliedGenerationId("");
-    setPage(1);
-    setRequestVersion((current) => current + 1);
-    setSearchParams(qualificationQuery("", 1));
-  };
-
-  const changePage = (nextPage: number) => {
-    setPageData(null);
-    setListError("");
-    setPage(nextPage);
-    setSearchParams(qualificationQuery(appliedGenerationId, nextPage));
-  };
-
-  const openDetail = (selectorId: number) => {
-    const query = qualificationQuery(appliedGenerationId, page, true);
-    navigate(`/selectors/${selectorId}?${query.toString()}`);
-  };
-
-  return (
-    <section className="fuma-page">
-      <PageHeader title="블랙리스트 관리" />
-      <div className="fuma-page__body">
-        <div className="fuma-operations-search fuma-settlement-search fuma-settlement-search--month-only fuma-qualification-search">
-          <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
-            <FilterField htmlFor="qualification-cohort" label="기수">
-              <Select
-                id="qualification-cohort"
-                name="generationId"
-                onChange={(event) => setGenerationId(event.target.value)}
-                options={[
-                  { label: "전체", value: "" },
-                  ...generations.map((generation) => ({
-                    label: generation.generationName,
-                    value: String(generation.id),
-                  })),
-                ]}
-                value={generationId}
-              />
-            </FilterField>
-          </SearchPanel>
-        </div>
-        <ResultToolbar
-          className="fuma-simple-result-toolbar"
-          description="블랙리스트는 향후 셀렉터스 지원 및 활동이 불가합니다."
-          meta={
-            <>
-              <span>{appliedGeneration?.generationName || "전체"}</span>
-              <span>총 {pageData?.totalElements ?? 0}건</span>
-            </>
-          }
-          title="블랙리스트 목록"
-        />
-        <div aria-label="블랙리스트 목록" className="fuma-wide-table fuma-settlement-table" role="region">
-          {listError ? (
-            <div role="alert"><EmptyState description={listError} title="목록을 불러오지 못했습니다" /></div>
-          ) : (
-            <DenseTable
-              columns={QUALIFICATION_COLUMNS}
-              emptyMessage={pageData
-                ? "블랙리스트 대상이 없습니다."
-                : <span aria-live="polite" role="status">블랙리스트를 불러오는 중입니다.</span>}
-              onRowClick={(qualification) => openDetail(qualification.selectorsId)}
-              rowKey={(qualification) => qualification.selectorsId}
-              rows={pageData?.content ?? []}
-            />
-          )}
-        </div>
-        <Pagination
-          onPageChange={pageData && !listError ? changePage : undefined}
-          page={page}
-          pageSize={BLACKLIST_PAGE_SIZE}
-          totalPages={Math.max(page, knownTotalPages)}
-        />
-      </div>
-    </section>
-  );
-}
-
-interface ExcellentActivityFixture {
-  cohort: string;
-  id: string;
-  name: string;
-  totalSales: number;
-  type: string;
-}
-
-const EXCELLENT_ACTIVITY_COHORTS = ["2기", "3기", "4기"] as const;
-const EXCELLENT_ACTIVITY_RANKS = [1, 2, 3] as const;
-
-const EXCELLENT_ACTIVITIES: readonly ExcellentActivityFixture[] = SELECTORS
-  .filter((selector) => selector.status !== "박탈")
-  .slice(0, 12)
-  .map((selector, index) => {
-    const cohort = EXCELLENT_ACTIVITY_COHORTS[Math.floor(index / 4)];
-    const typeIndex = index % 4;
-    const rank = EXCELLENT_ACTIVITY_RANKS[typeIndex - 1];
-
-    return {
-      cohort,
-      id: selector.id,
-      name: selector.name,
-      totalSales: 21_000_000
-        + Math.floor(index / 4) * 2_500_000
-        + [1_500_000, 18_000_000, 12_000_000, 7_000_000][typeIndex],
-      type: typeIndex === 0
-        ? "누적 매출 1,000만원 이상 달성"
-        : `${cohort} 활동 누적 ${rank}위`,
-    };
-  })
-  .sort((left, right) => right.totalSales - left.totalSales);
-
-const EXCELLENT_ACTIVITY_COHORT_OPTIONS = [
-  { label: "전체", value: "" },
-  ...EXCELLENT_ACTIVITY_COHORTS.map((cohort) => ({ label: cohort, value: cohort })),
-];
-
-const EXCELLENT_SELECTOR_COLUMNS: DenseTableColumn<ExcellentActivityFixture>[] = [
-  { key: "id", header: "셀렉터스 ID", width: 130, align: "center" },
-  { key: "name", header: "이름", width: 110, align: "center" },
-  { key: "cohort", header: "기수", width: 100, align: "center" },
-  { key: "type", header: "종류", width: 250, align: "center" },
-  {
-    key: "totalSales",
-    header: "총 매출액",
-    width: 160,
-    align: "right",
-    render: (activity) => formatWon(activity.totalSales),
-  },
-];
-
-const EXCELLENT_SELECTOR_PAGE_SIZE = 20;
-
-export function ExcellentSelectorListPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [keyword, setKeyword] = useState("");
-  const [cohort, setCohort] = useState("");
-  const [appliedKeyword, setAppliedKeyword] = useState("");
-  const [appliedCohort, setAppliedCohort] = useState("");
-  const [page, setPage] = useState(1);
-  const excellentSelectors = EXCELLENT_ACTIVITIES
-    .filter((selector) => (
-      (!appliedKeyword || [selector.name, selector.id].some((value) => (
-        value.toLowerCase().includes(appliedKeyword.toLowerCase())
-      )))
-      && (!appliedCohort || selector.cohort === appliedCohort)
-    ));
-  const {
-    currentPage,
-    pagedItems: pagedSelectors,
-    totalPages,
-  } = paginate(excellentSelectors, page, EXCELLENT_SELECTOR_PAGE_SIZE);
-  const detailSelector = SELECTORS.find((selector) => selector.id === searchParams.get("detail"));
-
-  const applyFilters = () => {
-    setAppliedKeyword(keyword);
-    setAppliedCohort(cohort);
-    setPage(1);
-  };
-
-  const openDetail = (selectorId: string) => {
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("detail", selectorId);
-    setSearchParams(nextParams);
-  };
-
-  const closeDetail = () => {
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("detail");
-    setSearchParams(nextParams);
-  };
-
-  const resetFilters = () => {
-    setKeyword("");
-    setCohort("");
-    setAppliedKeyword("");
-    setAppliedCohort("");
-    setPage(1);
-  };
-
-  return (
-    <section className="fuma-page">
-      <PageHeader title="우수 활동자" />
-      <div className="fuma-page__body">
-        <div className="fuma-operations-search fuma-settlement-search fuma-qualification-search">
-          <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
-            <FilterField htmlFor="excellent-selector-name" label="이름 / ID">
-              <TextInput
-                id="excellent-selector-name"
-                name="selectorName"
-                onChange={(event) => setKeyword(event.target.value)}
-                placeholder="이름 / ID 검색"
-                value={keyword}
-              />
-            </FilterField>
-            <FilterField htmlFor="excellent-selector-cohort" label="기수">
-              <Select
-                id="excellent-selector-cohort"
-                name="cohort"
-                onChange={(event) => setCohort(event.target.value)}
-                options={EXCELLENT_ACTIVITY_COHORT_OPTIONS}
-                value={cohort}
-              />
-            </FilterField>
-          </SearchPanel>
-        </div>
-        <ResultToolbar
-          className="fuma-simple-result-toolbar"
-          description="매출 및 활동 성과가 우수한 셀렉터스입니다."
-          meta={
-            <>
-              <span>{appliedCohort || "전체"}</span>
-              <span>총 {excellentSelectors.length}건</span>
-            </>
-          }
-          title="우수 활동자 목록"
-        />
-        <div aria-label="우수 활동자 목록" className="fuma-wide-table fuma-settlement-table" role="region">
-          <DenseTable
-            columns={EXCELLENT_SELECTOR_COLUMNS}
-            onRowClick={(selector) => openDetail(selector.id)}
-            rowKey={(selector) => selector.id}
-            rows={pagedSelectors}
-          />
-        </div>
-        <Pagination
-          onPageChange={setPage}
-          page={currentPage}
-          pageSize={EXCELLENT_SELECTOR_PAGE_SIZE}
-          totalPages={totalPages}
-        />
-      </div>
-      {detailSelector ? <SelectorDetailPanel onClose={closeDetail} selector={detailSelector} /> : null}
-    </section>
   );
 }

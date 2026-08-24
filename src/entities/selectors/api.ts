@@ -97,6 +97,26 @@ export interface SelectorSearchRequest {
   size: number;
 }
 
+export interface SelectorSalesPerformance {
+  confirmedOrderCount: number;
+  excellentActivityType: string | null;
+  excellentGenerationName: string | null;
+  excellentGenerationSales: number | null;
+  generationName: string | null;
+  isExcellent: boolean;
+  nickname: string;
+  roleId: string;
+  selectorCode: string;
+  selectorId: number;
+  totalSales: number;
+}
+
+export interface SelectorSalesPerformanceRequest {
+  endDate?: string;
+  keyword?: string;
+  startDate?: string;
+}
+
 export interface SelectorFilterGeneration {
   id: number;
   generationName: string;
@@ -120,30 +140,6 @@ export interface GenerationSaveRequest {
   endDate: string;
   activityStartDate: string;
   activityEndDate: string;
-}
-
-export interface PenaltyHistory {
-  id: number;
-  violationTypeId: number;
-  startedAt: string;
-  endedAt: string | null;
-  status: "ACTIVE" | "RELEASED";
-}
-
-export interface SelectorPenalty {
-  selectorsId: number;
-  selectorsCode: string;
-  selectorsNickname: string;
-  totalPenaltyCount: number;
-  activePenaltyCount: number;
-  blacklistTarget: boolean;
-  histories: PenaltyHistory[];
-}
-
-export interface SelectorPenaltySearchRequest {
-  generationId?: number;
-  page: number;
-  size: number;
 }
 
 function headers(json = false) {
@@ -247,10 +243,19 @@ export function updateGenerationStatus(id: number, status: GenerationStatus) {
   );
 }
 
-export function getSelectorPenalties(input: SelectorPenaltySearchRequest, signal?: AbortSignal) {
-  return request<SpringPage<SelectorPenalty>>(
-    `/api/admin/selectors/penalties?${query({ ...input, blacklistOnly: "true" })}`,
-    "블랙리스트 목록 조회에 실패했습니다.",
+export function getSelectorSalesPerformance(
+  input: SelectorSalesPerformanceRequest = {},
+  signal?: AbortSignal,
+) {
+  const search = query({
+    endDate: input.endDate,
+    keyword: input.keyword,
+    startDate: input.startDate,
+  });
+
+  return request<SelectorSalesPerformance[]>(
+    `/api/admin/selector-performance${search ? `?${search}` : ""}`,
+    "셀렉터스 성과 목록 조회에 실패했습니다.",
     { signal },
   );
 }

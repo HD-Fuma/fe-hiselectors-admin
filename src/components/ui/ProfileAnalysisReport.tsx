@@ -32,7 +32,6 @@ export interface ProfileAnalysisRepresentativeContent {
   contentTypeLabel: string;
   isVideo: boolean;
   keywords: readonly string[];
-  layout: "portrait" | "landscape";
   mediaAlt: string;
   mediaUrl: string | null;
   url: string;
@@ -40,7 +39,7 @@ export interface ProfileAnalysisRepresentativeContent {
 }
 
 interface ProfileAnalysisReportProps {
-  collectedAt: string;
+  completedAt: string | null;
   collectionDays: number;
   comparisonLabel: string;
   contentMetrics: readonly ProfileAnalysisContentMetric[];
@@ -59,8 +58,13 @@ interface ProfileAnalysisReportProps {
   title: string;
 }
 
+function representativeFormatFor(contentTypeLabel: string, isVideo: boolean) {
+  if (!isVideo) return "feed";
+  return contentTypeLabel === "롱폼" ? "long" : "short";
+}
+
 export function ProfileAnalysisReport({
-  collectedAt,
+  completedAt,
   collectionDays,
   comparisonLabel,
   contentMetrics,
@@ -78,6 +82,12 @@ export function ProfileAnalysisReport({
   tagGroups,
   title,
 }: ProfileAnalysisReportProps) {
+  const representativeKeywords = representativeContent
+    ? [...new Set(representativeContent.keywords)].slice(0, 5)
+    : [];
+  const hasRepresentativeBasis = (representativeContent?.basisBars.length ?? 0) > 0;
+  const emphasizeRepresentativeBasis = Boolean(representativeContent?.isVideo && hasRepresentativeBasis);
+
   return (
     <section aria-label={title} className="fuma-creator-analysis-report" id="analysis">
       <header className="fuma-content-section__header">
@@ -85,6 +95,7 @@ export function ProfileAnalysisReport({
           <p>{eyebrow}</p>
           <h2>{title}</h2>
         </div>
+        {completedAt ? <span>AI 리포트 산정 완료 {completedAt}</span> : null}
       </header>
 
       <div className="fuma-creator-analysis-report__content">
@@ -98,11 +109,22 @@ export function ProfileAnalysisReport({
         {representativeContent ? (
           <section aria-label="대표 콘텐츠" className="fuma-creator-analysis-block fuma-representative-card-wrap">
             <div className="fuma-creator-analysis-block__heading">
-              <h3>대표 콘텐츠</h3>
-              <span>AI가 선정한 대표 콘텐츠와 선정 근거</span>
+              <h3>AI PICK</h3>
+              <span>커버를 눌러 원본 콘텐츠 보기</span>
             </div>
-            <div className="fuma-representative-card" data-layout={representativeContent.layout}>
-              <div className="fuma-representative-card__media">
+            <article
+              className="fuma-representative-card"
+              data-design="adaptive-b"
+              data-format={representativeFormatFor(representativeContent.contentTypeLabel, representativeContent.isVideo)}
+              data-media={representativeContent.isVideo ? "video" : "image"}
+            >
+              <a
+                aria-label={`${representativeContent.mediaAlt} 원본 열기`}
+                className="fuma-representative-card__media"
+                href={representativeContent.url}
+                rel="noreferrer"
+                target="_blank"
+              >
                 {representativeContent.mediaUrl ? (
                   <img alt={representativeContent.mediaAlt} src={representativeContent.mediaUrl} />
                 ) : (
@@ -118,10 +140,14 @@ export function ProfileAnalysisReport({
                 <span className="fuma-representative-card__format-badge">
                   {representativeContent.contentTypeLabel}
                 </span>
-              </div>
+              </a>
               <div className="fuma-representative-card__info">
+                <div className="fuma-representative-card__intro">
+                  <span>REPRESENTATIVE CONTENT</span>
+                  <h4>이 계정을 가장 잘 보여주는 콘텐츠</h4>
+                </div>
                 <div className="fuma-representative-card__badges">
-                  {representativeContent.category ? (
+                  {!representativeContent.isVideo && representativeContent.category ? (
                     <span className="fuma-analysis-tags__tag fuma-analysis-tags__tag--keyword">
                       {representativeContent.category}
                     </span>
@@ -132,41 +158,41 @@ export function ProfileAnalysisReport({
                     </strong>
                   ) : null}
                 </div>
-                {representativeContent.basisBars.length > 0 ? (
-                  <div className="fuma-representative-basis">
-                    <span className="fuma-representative-basis__label">선정 근거 · 조회수 비교</span>
-                    <AnalysisBarRows ariaLabel="대표 콘텐츠 조회수 비교" bars={representativeContent.basisBars} />
+                {hasRepresentativeBasis ? (
+                  <div className={`fuma-representative-basis${emphasizeRepresentativeBasis ? " fuma-representative-basis--featured" : ""}`}>
+                    {emphasizeRepresentativeBasis ? (
+                      <span className="fuma-representative-basis__eyebrow">AI PICK POINT</span>
+                    ) : null}
+                    <dl aria-label="대표 콘텐츠 조회수 비교" className="fuma-representative-basis__stats">
+                      {representativeContent.basisBars.map((bar) => (
+                        <div key={bar.label}>
+                          <dt>{bar.label}</dt>
+                          <dd>{bar.valueLabel}</dd>
+                        </div>
+                      ))}
+                    </dl>
                     {representativeContent.basisInsight ? (
                       <p className="fuma-representative-basis__insight">{representativeContent.basisInsight}</p>
                     ) : null}
                   </div>
                 ) : null}
-                {representativeContent.keywords.length > 0 ? (
+                {representativeKeywords.length > 0 ? (
                   <ul className="fuma-analysis-tags__list fuma-representative-card__keywords">
-                    {representativeContent.keywords.map((keyword) => (
-                      <li className="fuma-analysis-tags__tag fuma-analysis-tags__tag--keyword" key={keyword}>
+                    {representativeKeywords.map((keyword) => (
+                      <li className="fuma-representative-card__keyword" key={keyword}>
                         {keyword}
                       </li>
                     ))}
                   </ul>
                 ) : null}
-                <a
-                  className="fuma-representative-card__cta"
-                  href={representativeContent.url}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  원본에서 확인하기 ↗
-                </a>
               </div>
-            </div>
+            </article>
           </section>
         ) : null}
 
         <section aria-label="정량 분석" className="fuma-creator-analysis-block">
           <div className="fuma-creator-analysis-block__heading">
             <h3>정량 분석</h3>
-            <span>수집 시각 {collectedAt}</span>
           </div>
           <div className="fuma-creator-analysis-metrics">
             <section className="fuma-creator-metric-group fuma-creator-metric-group--performance fuma-analysis-engagement">

@@ -7,15 +7,24 @@ const campaign = {
   productIds: [10], products: [{ id: 10, code: "P-10", productName: "골프 재킷", brandName: "브랜드", category: "골프", regularPrice: 10000, salePrice: 9000, status: "ON_SALE", thumbnailUrl: null, detailUrl: null }],
   createdAt: "2026-01-01T00:00:00", updatedAt: "2026-01-01T00:00:00",
 };
+let campaignStatus: "SCHEDULED" | "ACTIVE" | "ENDED" = "ENDED";
+
+const campaignWithThumbnail = {
+  ...campaign,
+  thumbnailUrl: "https://media.example.com/campaigns/existing.webp",
+};
 
 function json(data: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify({ success: true, code: "OK", message: null, data }), { status, headers: { "Content-Type": "application/json" } }));
 }
 
 beforeEach(() => {
+  campaignStatus = "ENDED";
+  const objectUrls = ["blob:first", "blob:second", "blob:third"];
+  let objectUrlIndex = 0;
   Object.defineProperty(URL, "createObjectURL", {
     configurable: true,
-    value: vi.fn(() => "blob:campaign-thumbnail"),
+    value: vi.fn(() => objectUrls[objectUrlIndex++] ?? `blob:${objectUrlIndex}`),
   });
   Object.defineProperty(URL, "revokeObjectURL", {
     configurable: true,
@@ -31,8 +40,8 @@ beforeEach(() => {
     }
     if (url.includes("/participants")) return json({ content: [{ selectorId: 7, nickname: "셀렉터", platform: "INSTAGRAM", accountId: "selector", followerCount: 100 }], number: 0, size: 20, totalElements: 1, totalPages: 1 });
     if (url.includes("/api/admin/products")) return json({ content: campaign.products, number: 0, size: 20, totalElements: 1, totalPages: 1 });
-    if (/\/campaigns\/3(?:\?|$)/.test(url)) return json(campaign);
-    return json({ content: [campaign], number: 0, size: 20, totalElements: 1, totalPages: 1 });
+    if (/\/campaigns\/3(?:\?|$)/.test(url)) return json({ ...campaign, status: campaignStatus });
+    return json({ content: [{ ...campaign, status: campaignStatus }], number: 0, size: 20, totalElements: 1, totalPages: 1 });
   }));
 });
 
@@ -48,7 +57,9 @@ describe("campaign filter behavior", () => {
     fireEvent.keyDown(within(search).getByRole("textbox", { name: "검색어" }), {
       key: "Enter",
     });
-    await waitFor(() => expect(within(results).getByText("초여름 패션 리뷰")).toBeInTheDocument());
+    await waitFor(() => expect(within(results).getByRole("button", {
+      name: "초여름 패션 리뷰 캠페인 상세 보기",
+    })).toBeInTheDocument());
 
     fireEvent.click(screen.getByRole("button", { name: "종료" }));
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("status=ENDED"), expect.anything()));
@@ -74,6 +85,34 @@ describe("campaign filter behavior", () => {
     expect(screen.getByText("총 1건")).toBeInTheDocument();
   });
 
+  test("uses the shared content collection card and view toggle", async () => {
+    renderRoute("/campaigns");
+    const results = await screen.findByRole("region", { name: "캠페인 목록" });
+    const card = await within(results).findByRole("button", {
+      name: "초여름 패션 리뷰 캠페인 상세 보기",
+    });
+
+    expect(card).toHaveClass("fuma-campaign-card");
+    expect(card).toHaveAttribute("data-content-format", "instagram-image");
+    expect(card.querySelector(".fuma-campaign-card__status")).toBeInTheDocument();
+    expect(within(card).queryByText("캠페인")).not.toBeInTheDocument();
+    expect(within(card).queryByText("ID 3")).not.toBeInTheDocument();
+    expect(within(card).getByText("상품 1개")).toBeInTheDocument();
+
+    const viewToggle = screen.getByRole("switch", { name: "보기 방식" });
+    fireEvent.click(viewToggle);
+    expect(within(results).getByRole("region", { name: "캠페인 리스트" })).toBeInTheDocument();
+
+    fireEvent.click(viewToggle);
+    const restoredCard = await within(results).findByRole("button", {
+      name: "초여름 패션 리뷰 캠페인 상세 보기",
+    });
+    expect(restoredCard).toBe(card);
+    fireEvent.click(restoredCard);
+
+    expect(await screen.findByRole("dialog", { name: "캠페인 상세" })).toBeInTheDocument();
+  });
+
   test("shows included products above participants without detail tabs", async () => {
     renderRoute("/campaigns/3");
     const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
@@ -85,6 +124,25 @@ describe("campaign filter behavior", () => {
     expect(within(productList).getByRole("img", { name: "골프 재킷 썸네일" })).toBeInTheDocument();
     expect(productList.compareDocumentPosition(participantList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(detail).queryByRole("button", { name: "포함 상품" })).not.toBeInTheDocument();
+  });
+
+  test.each([
+    ["SCHEDULED", true],
+    ["ACTIVE", false],
+    ["ENDED", false],
+  ] as const)("allows deletion only for %s campaigns", async (status, canDelete) => {
+    campaignStatus = status;
+    renderRoute("/campaigns/3");
+    const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
+
+    if (!canDelete) {
+      expect(within(detail).queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
+      return;
+    }
+
+    fireEvent.click(within(detail).getByRole("button", { name: "삭제" }));
+    const confirmation = await screen.findByRole("alertdialog", { name: "캠페인 삭제" });
+    expect(within(confirmation).getByText("시작 전 캠페인을 삭제할까요? 삭제 후 목록에서 보이지 않습니다.")).toBeInTheDocument();
   });
 
   test("reveals products by ten and appends participants by twenty", async () => {
@@ -195,7 +253,7 @@ describe("campaign filter behavior", () => {
     });
     expect(within(editor).getByRole("img", { name: "선택한 캠페인 썸네일 미리보기" })).toHaveAttribute(
       "src",
-      "blob:campaign-thumbnail",
+      "blob:first",
     );
     expect(within(editor).getByText("summer.png")).toBeInTheDocument();
 
@@ -227,6 +285,178 @@ describe("campaign filter behavior", () => {
       });
     });
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "새 캠페인 생성" })).not.toBeInTheDocument());
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:first");
     expect(screen.getByRole("region", { name: "캠페인 목록" })).toBe(campaignList);
+  });
+
+  test("keeps the final deletion staged after deleting, selecting, and deleting again", async () => {
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/admin/products")) {
+        return json({ content: campaign.products, number: 0, size: 20, totalElements: 1, totalPages: 1 });
+      }
+      if (/\/campaigns\/3(?:\?|$)/.test(url)) return json(campaignWithThumbnail);
+      return json({ content: [campaignWithThumbnail], number: 0, size: 20, totalElements: 1, totalPages: 1 });
+    });
+
+    renderRoute("/campaigns/3/edit");
+    const editor = await screen.findByRole("dialog", { name: "캠페인 수정" });
+    expect(within(editor).getByRole("img", { name: "선택한 캠페인 썸네일 미리보기" })).toHaveAttribute(
+      "src",
+      campaignWithThumbnail.thumbnailUrl,
+    );
+
+    const actions = editor.querySelector<HTMLElement>(".fuma-campaign-thumbnail-upload__actions");
+    expect(actions).not.toBeNull();
+    if (!actions) throw new Error("thumbnail actions are required");
+    expect(within(actions).getByText("이미지 변경")).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "캠페인 썸네일 삭제" })).toBeInTheDocument();
+
+    fireEvent.click(within(editor).getByRole("button", { name: "캠페인 썸네일 삭제" }));
+    expect(within(editor).getByText("이미지 미선택")).toBeInTheDocument();
+    expect(within(editor).queryByRole("img", { name: "선택한 캠페인 썸네일 미리보기" })).not.toBeInTheDocument();
+
+    const input = within(editor).getByLabelText("캠페인 썸네일 파일") as HTMLInputElement;
+    const thumbnail = new File(["thumbnail"], "replacement.png", { type: "image/png" });
+    fireEvent.change(input, { target: { files: [thumbnail] } });
+    expect(within(editor).getByRole("img", { name: "선택한 캠페인 썸네일 미리보기" })).toHaveAttribute(
+      "src",
+      "blob:first",
+    );
+    fireEvent.click(within(editor).getByRole("button", { name: "캠페인 썸네일 삭제" }));
+    expect(within(editor).getByText("이미지 미선택")).toBeInTheDocument();
+
+    fireEvent.click(within(editor).getByRole("button", { name: "저장" }));
+
+    await waitFor(() => {
+      const updateCall = vi.mocked(fetch).mock.calls.find(([input, init]) =>
+        String(input).endsWith("/api/admin/campaigns/3") && init?.method === "PATCH");
+      expect(updateCall).toBeDefined();
+      expect(JSON.parse(String(updateCall?.[1]?.body))).toMatchObject({
+        thumbnailUrl: null,
+        removeThumbnail: true,
+      });
+    });
+    expect(vi.mocked(fetch).mock.calls.filter(([input]) =>
+      String(input).includes("/api/admin/uploads/campaign-thumbnails"))).toHaveLength(0);
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:first");
+  });
+
+  test("replaces an existing thumbnail and releases local previews in order", async () => {
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/admin/uploads/campaign-thumbnails")) {
+        return json({ url: "https://media.example.com/campaigns/replacement.webp" }, 201);
+      }
+      if (url.includes("/api/admin/products")) {
+        return json({ content: campaign.products, number: 0, size: 20, totalElements: 1, totalPages: 1 });
+      }
+      if (/\/campaigns\/3(?:\?|$)/.test(url)) return json(campaignWithThumbnail);
+      return json({ content: [campaignWithThumbnail], number: 0, size: 20, totalElements: 1, totalPages: 1 });
+    });
+
+    renderRoute("/campaigns/3/edit");
+    const editor = await screen.findByRole("dialog", { name: "캠페인 수정" });
+    const input = within(editor).getByLabelText("캠페인 썸네일 파일") as HTMLInputElement;
+    const firstThumbnail = new File(["first"], "first.png", { type: "image/png" });
+    const secondThumbnail = new File(["second"], "second.webp", { type: "image/webp" });
+
+    fireEvent.change(input, { target: { files: [firstThumbnail] } });
+    fireEvent.change(input, { target: { files: [secondThumbnail] } });
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
+    expect(URL.revokeObjectURL).toHaveBeenLastCalledWith("blob:first");
+    expect(within(editor).getByRole("img", { name: "선택한 캠페인 썸네일 미리보기" })).toHaveAttribute(
+      "src",
+      "blob:second",
+    );
+
+    fireEvent.click(within(editor).getByRole("button", { name: "저장" }));
+
+    await waitFor(() => {
+      const updateCall = vi.mocked(fetch).mock.calls.find(([input, init]) =>
+        String(input).endsWith("/api/admin/campaigns/3") && init?.method === "PATCH");
+      expect(updateCall).toBeDefined();
+      const body = JSON.parse(String(updateCall?.[1]?.body));
+      expect(body.thumbnailUrl).toBe("https://media.example.com/campaigns/replacement.webp");
+      expect(body).not.toHaveProperty("removeThumbnail");
+    });
+    const uploadCall = vi.mocked(fetch).mock.calls.find(([input]) =>
+      String(input).includes("/api/admin/uploads/campaign-thumbnails"));
+    expect((uploadCall?.[1]?.body as FormData).get("file")).toBe(secondThumbnail);
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "캠페인 수정" })).not.toBeInTheDocument());
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(URL.revokeObjectURL).mock.calls.map(([url]) => url)).toEqual([
+      "blob:first",
+      "blob:second",
+    ]);
+  });
+
+  test("discards a staged thumbnail deletion when editing is canceled", async () => {
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/admin/products")) {
+        return json({ content: campaign.products, number: 0, size: 20, totalElements: 1, totalPages: 1 });
+      }
+      if (/\/campaigns\/3(?:\?|$)/.test(url)) return json(campaignWithThumbnail);
+      return json({ content: [campaignWithThumbnail], number: 0, size: 20, totalElements: 1, totalPages: 1 });
+    });
+
+    renderRoute("/campaigns/3/edit");
+    const editor = await screen.findByRole("dialog", { name: "캠페인 수정" });
+    fireEvent.click(within(editor).getByRole("button", { name: "캠페인 썸네일 삭제" }));
+    fireEvent.click(within(editor).getByRole("button", { name: "취소" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "캠페인 수정" })).not.toBeInTheDocument());
+    expect(vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === "PATCH")).toHaveLength(0);
+  });
+
+  test("clears a selected thumbnail and permits selecting the same file again", async () => {
+    renderRoute("/campaigns/new");
+    const editor = await screen.findByRole("dialog", { name: "새 캠페인 생성" });
+    const input = within(editor).getByLabelText("캠페인 썸네일 파일") as HTMLInputElement;
+    const thumbnail = new File(["thumbnail"], "summer.png", { type: "image/png" });
+
+    fireEvent.change(input, { target: { files: [thumbnail] } });
+    fireEvent.click(within(editor).getByRole("button", { name: "캠페인 썸네일 삭제" }));
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:first");
+    expect(input).toHaveValue("");
+    expect(within(editor).getByText("이미지 미선택")).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { files: [thumbnail] } });
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(2);
+    expect(within(editor).getByText("summer.png")).toBeInTheDocument();
+    fireEvent.click(within(editor).getByRole("button", { name: "캠페인 썸네일 삭제" }));
+
+    fireEvent.change(within(editor).getByRole("textbox", { name: "캠페인명" }), {
+      target: { value: "여름 캠페인" },
+    });
+    fireEvent.change(within(editor).getByRole("textbox", { name: "설명" }), {
+      target: { value: "여름 캠페인 설명" },
+    });
+    fireEvent.change(within(editor).getByLabelText("시작일"), {
+      target: { value: "2026-08-01" },
+    });
+    fireEvent.change(within(editor).getByLabelText("종료일"), {
+      target: { value: "2026-08-31" },
+    });
+    fireEvent.click(within(editor).getByRole("button", { name: "캠페인 생성" }));
+
+    await waitFor(() => {
+      const createCall = vi.mocked(fetch).mock.calls.find(([input, init]) =>
+        String(input).endsWith("/api/admin/campaigns") && init?.method === "POST");
+      expect(createCall).toBeDefined();
+      const body = JSON.parse(String(createCall?.[1]?.body));
+      expect(body.thumbnailUrl).toBeNull();
+      expect(body).not.toHaveProperty("removeThumbnail");
+    });
+    expect(vi.mocked(fetch).mock.calls.filter(([input]) =>
+      String(input).includes("/api/admin/uploads/campaign-thumbnails"))).toHaveLength(0);
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(URL.revokeObjectURL).mock.calls.map(([url]) => url)).toEqual([
+      "blob:first",
+      "blob:second",
+    ]);
   });
 });

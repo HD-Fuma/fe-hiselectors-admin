@@ -16,6 +16,9 @@ function lazyPage(loader: () => Promise<ComponentType>) {
 const CreatorListPage = lazyPage(() =>
   import("../features/creators/CreatorPages").then((module) => module.CreatorListPage),
 );
+const CreatorTestPage = lazyPage(() =>
+  import("../features/creators/CreatorPages").then((module) => module.CreatorTestPage),
+);
 const ProposalHistoryPage = lazyPage(() =>
   import("../features/creators/CreatorPages").then((module) => module.ProposalHistoryPage),
 );
@@ -24,16 +27,6 @@ const ProposalComposePage = lazyPage(() =>
 );
 const SelectorOverviewPage = lazyPage(() =>
   import("../features/selectors/SelectorPages").then((module) => module.SelectorOverviewPage),
-);
-const QualificationManagementPage = lazyPage(() =>
-  import("../features/selectors/SelectorPages").then(
-    (module) => module.QualificationManagementPage,
-  ),
-);
-const ExcellentSelectorListPage = lazyPage(() =>
-  import("../features/selectors/SelectorPages").then(
-    (module) => module.ExcellentSelectorListPage,
-  ),
 );
 const SelectorDetailPage = lazyPage(() =>
   import("../features/selectors/SelectorPages").then((module) => module.SelectorDetailPage),
@@ -89,33 +82,46 @@ const KakaoRecipientStatusPage = lazyPage(() =>
     (module) => module.KakaoRecipientStatusPage,
   ),
 );
+const TaskRunHistoryPage = lazyPage(() =>
+  import("../features/task-runs/TaskRunHistoryPage").then(
+    (module) => module.TaskRunHistoryPage,
+  ),
+);
 
 const NAV_GROUPS: readonly NavGroupMeta[] = [
-  { id: "creators", label: "크리에이터" },
-  { id: "applicants", label: "지원자" },
-  { id: "selectors", label: "셀렉터스" },
-  { id: "campaigns", label: "캠페인" },
-  { id: "content", label: "콘텐츠" },
-  { id: "performance", label: "성과" },
-  { id: "settlements", label: "정산" },
-  { id: "notifications", label: "알림 및 메시지" },
+  { id: "recruitment", label: "모집·선발" },
+  { id: "operations", label: "운영" },
+  { id: "performance", label: "성과·정산" },
+  { id: "notifications", label: "알림·메시지" },
 ];
 
 export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/creators",
     Component: CreatorListPage,
-    group: "creators",
+    group: "recruitment",
     menuLabel: "크리에이터 풀",
+    menuOrder: 1,
     title: "크리에이터 풀",
     screenCode: "CR101",
     workTabLabel: "크리에이터 풀",
   },
   {
+    path: "/creators/test",
+    Component: CreatorTestPage,
+    group: "recruitment",
+    menuLabel: "크리에이터 풀",
+    title: "테스트 크리에이터 풀 구축",
+    screenCode: "CR102",
+    workTabLabel: "테스트 크리에이터 풀 구축",
+    workTabParentPath: "/creators",
+  },
+  {
     path: "/proposals",
     Component: ProposalHistoryPage,
-    group: "creators",
+    group: "recruitment",
     menuLabel: "제안 이력",
+    menuOrder: 2,
     title: "제안 이력",
     screenCode: "CR201",
     workTabLabel: "제안 이력",
@@ -123,7 +129,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/proposals/new",
     Component: ProposalComposePage,
-    group: "creators",
+    group: "recruitment",
     menuLabel: "크리에이터 풀",
     title: "셀렉터스 제안",
     screenCode: "CR202",
@@ -132,50 +138,29 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/selectors",
     Component: SelectorOverviewPage,
-    group: "selectors",
+    group: "operations",
     menuLabel: "셀렉터스 목록",
+    menuOrder: 0,
     title: "셀렉터스 목록",
     screenCode: "SL201",
     workTabLabel: "셀렉터스 목록",
   },
   {
-    path: "/selectors/qualifications",
-    Component: QualificationManagementPage,
-    group: "selectors",
-    menuLabel: "블랙리스트 관리",
-    title: "블랙리스트 관리",
-    screenCode: "SL301",
-    workTabLabel: "블랙리스트 관리",
-  },
-  {
-    path: "/selectors/excellent",
-    Component: ExcellentSelectorListPage,
-    group: "selectors",
-    menuLabel: "우수 활동자",
-    title: "우수 활동자",
-    screenCode: "SL302",
-    workTabLabel: "우수 활동자",
-  },
-  {
     path: "/selectors/:selectorId",
     Component: SelectorDetailPage,
-    group: "selectors",
+    group: "operations",
     menuLabel: "셀렉터스 목록",
     title: "셀렉터스 목록",
     screenCode: "SL202",
     workTabLabel: "셀렉터스 상세",
     workTabParentPath: "/selectors",
-    workTabParentQuery: {
-      parameter: "from",
-      value: "qualifications",
-      path: "/selectors/qualifications",
-    },
   },
   {
     path: "/cohorts",
     Component: CohortManagementPage,
-    group: "selectors",
+    group: "recruitment",
     menuLabel: "기수 관리",
+    menuOrder: 0,
     title: "기수 관리",
     screenCode: "SL101",
     workTabLabel: "기수 관리",
@@ -183,8 +168,9 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/applicants",
     Component: ApplicantListPage,
-    group: "applicants",
+    group: "recruitment",
     menuLabel: "지원자 승인",
+    menuOrder: 3,
     title: "지원자 승인",
     screenCode: "AP101",
     workTabLabel: "지원자 심사",
@@ -192,7 +178,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/applicants/test",
     Component: ApplicantTestPage,
-    group: "applicants",
+    group: "recruitment",
     menuLabel: "지원자 승인",
     title: "테스트 지원자 등록",
     screenCode: "AP103",
@@ -202,7 +188,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/applicants/:applicantId",
     Component: ApplicantDetailPage,
-    group: "applicants",
+    group: "recruitment",
     menuLabel: "지원자 승인",
     title: "지원자 승인",
     screenCode: "AP102",
@@ -212,8 +198,9 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/campaigns",
     Component: CampaignWorkspacePage,
-    group: "campaigns",
+    group: "operations",
     menuLabel: "캠페인 관리",
+    menuOrder: 1,
     title: "캠페인 관리",
     screenCode: "CP101",
     workTabLabel: "캠페인 관리",
@@ -221,7 +208,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/campaigns/new",
     Component: CampaignWorkspacePage,
-    group: "campaigns",
+    group: "operations",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
     screenCode: "CP102",
@@ -231,7 +218,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/campaigns/:campaignId",
     Component: CampaignWorkspacePage,
-    group: "campaigns",
+    group: "operations",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
     screenCode: "CP104",
@@ -241,7 +228,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/campaigns/:campaignId/edit",
     Component: CampaignWorkspacePage,
-    group: "campaigns",
+    group: "operations",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
     screenCode: "CP103",
@@ -251,8 +238,9 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/content/inspections",
     Component: ContentInspectionListPage,
-    group: "content",
+    group: "operations",
     menuLabel: "콘텐츠 검수",
+    menuOrder: 2,
     title: "콘텐츠 검수",
     screenCode: "CT101",
     workTabLabel: "콘텐츠 검수",
@@ -260,7 +248,7 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/content/inspections/:contentId",
     Component: ContentInspectionDetailPage,
-    group: "content",
+    group: "operations",
     menuLabel: "콘텐츠 검수",
     title: "콘텐츠 검수",
     screenCode: "CT102",
@@ -272,6 +260,7 @@ export const ADMIN_ROUTE_MANIFEST = [
     Component: SelectorPerformancePage,
     group: "performance",
     menuLabel: "셀렉터스 성과",
+    menuOrder: 0,
     title: "셀렉터스 성과",
     screenCode: "PF201",
     workTabLabel: "셀렉터스 성과",
@@ -281,6 +270,7 @@ export const ADMIN_ROUTE_MANIFEST = [
     Component: ContentPerformancePage,
     group: "performance",
     menuLabel: "콘텐츠 성과",
+    menuOrder: 1,
     title: "콘텐츠 성과",
     screenCode: "PF202",
     workTabLabel: "콘텐츠 성과",
@@ -290,6 +280,7 @@ export const ADMIN_ROUTE_MANIFEST = [
     Component: ProductPerformancePage,
     group: "performance",
     menuLabel: "캠페인 성과",
+    menuOrder: 2,
     title: "캠페인 성과",
     screenCode: "PF203",
     workTabLabel: "캠페인 성과",
@@ -297,8 +288,9 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/settlements",
     Component: SettlementManagementPage,
-    group: "settlements",
+    group: "performance",
     menuLabel: "정산 관리",
+    menuOrder: 3,
     title: "정산 관리",
     screenCode: "ST101",
     workTabLabel: "정산 관리",
@@ -308,6 +300,7 @@ export const ADMIN_ROUTE_MANIFEST = [
     Component: NotificationHistoryPage,
     group: "notifications",
     menuLabel: "발송 내역",
+    menuOrder: 0,
     title: "알림 및 메시지",
     screenCode: "NT101",
     workTabLabel: "발송 내역",
@@ -320,6 +313,16 @@ export const ADMIN_ROUTE_MANIFEST = [
     title: "카카오 수신 현황",
     screenCode: "NT102",
     workTabLabel: "카카오 수신 현황",
+  },
+  {
+    path: "/task-runs",
+    Component: TaskRunHistoryPage,
+    group: "operations",
+    menuLabel: "실행 이력",
+    menuOrder: 3,
+    title: "작업 실행 이력",
+    screenCode: "TR101",
+    workTabLabel: "실행 이력",
   },
 ] as const satisfies readonly AdminRouteManifestEntry[];
 

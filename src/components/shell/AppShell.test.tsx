@@ -1,17 +1,21 @@
-import { act, screen, waitForElementToBeRemoved, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { renderRoute } from "../../test/renderRoute";
+import {
+  fireEvent,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+  within,
+} from "@testing-library/react";
+import { getTaskRunPanelApiMock, renderRoute } from "../../test/renderRoute";
 
 const expectedSidebarLinks = [
+  ["기수 관리", "/cohorts"],
   ["크리에이터 풀", "/creators"],
   ["제안 이력", "/proposals"],
-  ["기수 관리", "/cohorts"],
-  ["셀렉터스 목록", "/selectors"],
-  ["블랙리스트 관리", "/selectors/qualifications"],
-  ["우수 활동자", "/selectors/excellent"],
   ["지원자 승인", "/applicants"],
+  ["셀렉터스 목록", "/selectors"],
   ["캠페인 관리", "/campaigns"],
   ["콘텐츠 검수", "/content/inspections"],
+  ["실행 이력", "/task-runs"],
   ["셀렉터스 성과", "/performance/selectors"],
   ["콘텐츠 성과", "/performance/contents"],
   ["캠페인 성과", "/performance/products"],
@@ -36,7 +40,11 @@ test("renders the complete administrator navigation in one sidebar", () => {
 
   expect(sidebarQueries.getByRole("img", { name: "더현대Hi" })).toBeInTheDocument();
   expect(screen.getAllByRole("navigation", { name: "관리자 메뉴" })).toHaveLength(1);
-  expect(within(navigation).getAllByRole("link")).toHaveLength(14);
+  const sidebarLinks = within(navigation).getAllByRole("link");
+  expect(sidebarLinks).toHaveLength(13);
+  expect(sidebarLinks.map((link) => [link.textContent, link.getAttribute("href")])).toEqual(
+    expectedSidebarLinks,
+  );
   for (const [label, href] of expectedSidebarLinks) {
     expect(within(navigation).getByRole("link", { name: label })).toHaveAttribute(
       "href",
@@ -46,14 +54,10 @@ test("renders the complete administrator navigation in one sidebar", () => {
   expect(within(navigation).queryByRole("link", { name: "위반 관리" })).not.toBeInTheDocument();
 
   for (const groupLabel of [
-    "크리에이터",
-    "셀렉터스",
-    "지원자",
-    "캠페인",
-    "콘텐츠",
-    "성과",
-    "정산",
-    "알림 및 메시지",
+    "모집·선발",
+    "운영",
+    "성과·정산",
+    "알림·메시지",
   ]) {
     expect(
       within(navigation).getByRole("heading", { name: groupLabel }),
@@ -103,6 +107,78 @@ test("preserves visual fixture query state in the active work tab", () => {
   );
 });
 
+test("does not render the task progress panel on a normal authenticated route", () => {
+  renderRoute("/creators");
+
+  expect(
+    screen.queryByRole("region", { name: "작업 진행상황" }),
+  ).not.toBeInTheDocument();
+});
+
+test("renders server task runs on an authenticated administrator route", async () => {
+  getTaskRunPanelApiMock().getTaskRunPanel.mockResolvedValueOnce({
+    items: [{
+      runId: "task-run-content-sync",
+      taskType: "CONTENT_SYNC",
+      triggerType: "SCHEDULED",
+      status: "RUNNING",
+      currentStep: "NEW_CONTENT_SYNC",
+      progressMessage: null,
+      totalCount: 2,
+      processedCount: 1,
+      succeededCount: 1,
+      failedCount: 0,
+      skippedCount: 0,
+      progressPercent: 50,
+      startedBy: null,
+      startedAt: "2026-08-23T00:00:00Z",
+      finishedAt: null,
+    }],
+    serverTime: "2026-08-23T00:00:00Z",
+  });
+
+  renderRoute("/creators");
+
+  const panel = await screen.findByRole("region", { name: "작업 진행상황" });
+  expect(within(panel).getByText("콘텐츠 동기화")).toBeInTheDocument();
+  expect(within(panel).getByText("신규 콘텐츠 수집 중")).toBeInTheDocument();
+  expect(within(panel).getAllByRole("listitem")).toHaveLength(1);
+});
+
+test("mounts the development TaskRun preview over the real creators page", async () => {
+  getTaskRunPanelApiMock().getTaskRunPanel.mockClear();
+  renderRoute("/creators?taskRunPreview=mixed");
+
+  expect(await screen.findByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
+  expect(screen.getByRole("navigation", { name: "관리자 메뉴" })).toBeInTheDocument();
+  const panel = screen.getByRole("region", { name: "작업 진행상황" });
+  expect(within(panel).getByText("120건 처리에 실패했습니다")).toBeInTheDocument();
+  expect(within(panel).getByText("248건 작업을 완료했습니다")).toBeInTheDocument();
+  expect(within(panel).queryByText("DESIGN LAB")).not.toBeInTheDocument();
+  expect(getTaskRunPanelApiMock().getTaskRunPanel).not.toHaveBeenCalled();
+});
+
+test("keeps the preview isolated from other real admin routes", async () => {
+  getTaskRunPanelApiMock().getTaskRunPanel.mockClear();
+  renderRoute("/settlements?taskRunPreview=mixed");
+
+  await waitFor(() => {
+    expect(getTaskRunPanelApiMock().getTaskRunPanel).toHaveBeenCalledTimes(1);
+  });
+  expect(screen.queryByText("DESIGN LAB")).not.toBeInTheDocument();
+  expect(screen.queryByText("120건 처리에 실패했습니다")).not.toBeInTheDocument();
+});
+
+test("keeps the login route outside the task progress panel", () => {
+  getTaskRunPanelApiMock().getTaskRunPanel.mockClear();
+  renderRoute("/login", { authenticated: false });
+
+  expect(
+    screen.queryByRole("region", { name: "작업 진행상황" }),
+  ).not.toBeInTheDocument();
+  expect(getTaskRunPanelApiMock().getTaskRunPanel).not.toHaveBeenCalled();
+});
+
 test("renders only the unified administrator shell parts", () => {
   renderRoute("/creators");
 
@@ -114,32 +190,8 @@ test("renders only the unified administrator shell parts", () => {
   expect(shell.querySelector('[data-shell-part="topbar"]')).not.toBeInTheDocument();
   expect(within(shell).queryByText("더현대Hi 셀렉터스 운영")).not.toBeInTheDocument();
   expect(shell.querySelector('[data-shell-part="rail"]')).not.toBeInTheDocument();
-});
-
-test("opens and closes work tabs as screens are visited", async () => {
-  const user = userEvent.setup();
-  const { router } = renderRoute("/creators");
-
-  await act(async () => {
-    await router.navigate("/performance/contents");
-  });
-
-  const workTabs = screen.getByRole("navigation", { name: "작업 탭" });
-  expect(within(workTabs).getByRole("link", { name: "크리에이터 풀" })).toBeInTheDocument();
-  expect(within(workTabs).getByRole("link", { name: "콘텐츠 성과" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
-
-  await user.click(
-    within(workTabs).getByRole("button", { name: "콘텐츠 성과 탭 닫기" }),
-  );
-
-  expect(await screen.findByRole(
-    "heading",
-    { name: "크리에이터 풀" },
-    { timeout: 3_000 },
-  )).toBeInTheDocument();
+  expect(screen.getByRole("main")).toHaveAttribute("id", "admin-main-content");
+  expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
 });
 
 test("keeps the administrator identity and utility controls in the sidebar", () => {
@@ -153,10 +205,9 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
 });
 
 test("logs out to the login screen", async () => {
-  const user = userEvent.setup();
   renderRoute("/creators");
 
-  await user.click(screen.getByRole("button", { name: "로그아웃" }));
+  fireEvent.click(screen.getByRole("button", { name: "로그아웃" }));
 
   expect(screen.getByRole("main")).toHaveTextContent("Hi-Selectors");
   expect(screen.queryByTestId("admin-shell")).not.toBeInTheDocument();
@@ -185,7 +236,7 @@ test("does not render a favorite control for the current screen", () => {
 const routeCases = [
   {
     path: "/creators",
-    group: "creators",
+    group: "recruitment",
     menuLabel: "크리에이터 풀",
     title: "크리에이터 풀",
     screenCode: "CR101",
@@ -193,7 +244,7 @@ const routeCases = [
   },
   {
     path: "/proposals",
-    group: "creators",
+    group: "recruitment",
     menuLabel: "제안 이력",
     title: "제안 이력 관리",
     screenCode: "CR201",
@@ -201,7 +252,7 @@ const routeCases = [
   },
   {
     path: "/cohorts",
-    group: "selectors",
+    group: "recruitment",
     menuLabel: "기수 관리",
     title: "셀렉터스 기수 관리",
     screenCode: "SL101",
@@ -209,31 +260,15 @@ const routeCases = [
   },
   {
     path: "/selectors",
-    group: "selectors",
+    group: "operations",
     menuLabel: "셀렉터스 목록",
     title: "셀렉터스 목록",
     screenCode: "SL201",
     routeIsExact: true,
   },
   {
-    path: "/selectors/qualifications",
-    group: "selectors",
-    menuLabel: "블랙리스트 관리",
-    title: "블랙리스트 관리",
-    screenCode: "SL301",
-    routeIsExact: true,
-  },
-  {
-    path: "/selectors/excellent",
-    group: "selectors",
-    menuLabel: "우수 활동자",
-    title: "우수 활동자",
-    screenCode: "SL302",
-    routeIsExact: true,
-  },
-  {
     path: "/applicants",
-    group: "applicants",
+    group: "recruitment",
     menuLabel: "지원자 승인",
     title: "지원자 심사",
     screenCode: "AP101",
@@ -241,7 +276,7 @@ const routeCases = [
   },
   {
     path: "/applicants/ap-001",
-    group: "applicants",
+    group: "recruitment",
     menuLabel: "지원자 승인",
     title: "지원자 상세 심사",
     screenCode: "AP102",
@@ -249,7 +284,7 @@ const routeCases = [
   },
   {
     path: "/campaigns",
-    group: "campaigns",
+    group: "operations",
     menuLabel: "캠페인 관리",
     title: "캠페인 관리",
     screenCode: "CP101",
@@ -257,7 +292,7 @@ const routeCases = [
   },
   {
     path: "/campaigns/new",
-    group: "campaigns",
+    group: "operations",
     menuLabel: "캠페인 관리",
     title: "캠페인 등록",
     screenCode: "CP102",
@@ -265,7 +300,7 @@ const routeCases = [
   },
   {
     path: "/campaigns/cp-001/edit",
-    group: "campaigns",
+    group: "operations",
     menuLabel: "캠페인 관리",
     title: "캠페인 수정",
     screenCode: "CP103",
@@ -273,7 +308,7 @@ const routeCases = [
   },
   {
     path: "/content/inspections",
-    group: "content",
+    group: "operations",
     menuLabel: "콘텐츠 검수",
     title: "콘텐츠 검수",
     screenCode: "CT101",
@@ -281,7 +316,7 @@ const routeCases = [
   },
   {
     path: "/content/inspections/ct-001",
-    group: "content",
+    group: "operations",
     menuLabel: "콘텐츠 검수",
     title: "콘텐츠 검수 상세",
     screenCode: "CT102",
@@ -313,7 +348,7 @@ const routeCases = [
   },
   {
     path: "/settlements",
-    group: "settlements",
+    group: "performance",
     menuLabel: "정산 관리",
     title: "정산 지급 관리",
     screenCode: "ST101",
@@ -334,6 +369,14 @@ const routeCases = [
     title: "카카오 수신 현황",
     screenCode: "NT102",
     routeIsExact: false,
+  },
+  {
+    path: "/task-runs",
+    group: "operations",
+    menuLabel: "실행 이력",
+    title: "작업 실행 이력",
+    screenCode: "TR101",
+    routeIsExact: true,
   },
 ] as const;
 

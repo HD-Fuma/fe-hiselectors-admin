@@ -131,16 +131,6 @@ const generation = {
   status: "INACTIVE",
 };
 
-const penalty = {
-  selectorsId: 7,
-  selectorsCode: "SEL0007",
-  selectorsNickname: "홍길동",
-  totalPenaltyCount: 3,
-  activePenaltyCount: 2,
-  blacklistTarget: true,
-  histories: [],
-};
-
 function json(data: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify({
     success: status < 400,
@@ -160,9 +150,6 @@ beforeEach(() => {
   selectorDetail = detail;
   vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
-    if (url.includes("/api/admin/selectors/penalties")) {
-      return json({ content: [penalty], number: 0, size: 20, totalElements: 21, totalPages: 2 });
-    }
     if (url.includes("/api/admin/settlements/selectors/7/detail")) return json(settlementDetail);
     if (/\/api\/admin\/selectors\/7$/.test(url)) return json(selectorDetail);
     if (url.endsWith("/api/admin/generations") && init?.method === "POST") {
@@ -200,6 +187,13 @@ describe("selector api pages", () => {
       expect.anything(),
     ));
     expect(screen.getByText("총 1건")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "블랙리스트" }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/roleId=BLACKLIST.*generationId=3.*nickname=.*snsCode=INSTAGRAM/),
+      expect.anything(),
+    ));
+    expect(screen.getByText("블랙리스트 목록")).toBeInTheDocument();
   });
 
   test("renders enhanced selector detail and settlement information", async () => {
@@ -506,92 +500,17 @@ describe("selector api pages", () => {
       ))).toEqual(["3기", "2기", "4기"]));
   });
 
-  test("uses blacklist pagination and opens the real selector detail", async () => {
-    renderRoute("/selectors/qualifications");
-    const search = await screen.findByRole("search", { name: "검색 조건" });
+  test("redirects the removed blacklist screen to the selector list", async () => {
+    const { router } = renderRoute("/selectors/qualifications");
 
-    expect(await screen.findByText("SEL0007")).toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/api\/admin\/selectors\/penalties\?.*page=0.*size=20.*blacklistOnly=true/),
-      expect.anything(),
-    );
-    fireEvent.change(within(search).getByRole("combobox", { name: "기수" }), { target: { value: "3" } });
-    fireEvent.click(within(search).getByRole("button", { name: "조회" }));
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/penalties\?.*generationId=3.*page=0/),
-      expect.anything(),
-    ));
-    const previousFetch = vi.mocked(fetch);
-    const pendingPage = deferredResponse();
-    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => (
-      String(input).includes("/api/admin/selectors/penalties")
-        && String(input).includes("page=1")
-        ? pendingPage.promise
-        : previousFetch(input, init)
-    )));
-    fireEvent.click(screen.getByRole("button", { name: "다음 페이지" }));
-    expect(screen.queryByText("SEL0007")).not.toBeInTheDocument();
-    expect(screen.getByText("블랙리스트를 불러오는 중입니다.")).toHaveAttribute("role", "status");
-    expect(screen.getByRole("button", { name: "이전 페이지" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "다음 페이지" })).toBeDisabled();
-    expect(screen.getByText("2 / 2 페이지")).toBeInTheDocument();
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/penalties\?.*generationId=3.*page=1/),
-      expect.anything(),
-    ));
-    await act(async () => pendingPage.resolve(await json({
-      content: [penalty],
-      number: 1,
-      size: 20,
-      totalElements: 21,
-      totalPages: 2,
-    })));
-    await screen.findByText("SEL0007");
-    vi.stubGlobal("fetch", previousFetch);
-
-    fireEvent.click(screen.getByText("SEL0007"));
-    const panel = await screen.findByRole("dialog", { name: "셀렉터스 상세" });
-    fireEvent.click(within(panel).getByRole("button", { name: "상세 패널 닫기" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "셀렉터스 상세" })).not.toBeInTheDocument());
-    const restoredSearch = screen.getByRole("search", { name: "검색 조건" });
-    expect(within(restoredSearch).getByRole("combobox", { name: "기수" })).toHaveValue("3");
-    expect(await screen.findByText("2 / 2 페이지")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "셀렉터스 목록" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/selectors");
+    expect(screen.queryByRole("heading", { name: "블랙리스트 관리" })).not.toBeInTheDocument();
   });
 
-  test("retries the same qualification query after a request error", async () => {
-    let penaltyRequestCount = 0;
-    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes("/api/admin/selectors/penalties")) {
-        penaltyRequestCount += 1;
-        return penaltyRequestCount === 1
-          ? json(null, 500)
-          : json({ content: [penalty], number: 0, size: 20, totalElements: 1, totalPages: 1 });
-      }
-      if (url.includes("/api/admin/generations")) return json([generation]);
-      return json(null);
-    }));
-
-    renderRoute("/selectors/qualifications");
-    expect(await screen.findByRole("alert")).toHaveTextContent("조회에 실패했습니다.");
-
-    const search = screen.getByRole("search", { name: "검색 조건" });
-    fireEvent.click(within(search).getByRole("button", { name: "조회" }));
-
-    expect(await screen.findByText("SEL0007")).toBeInTheDocument();
-    expect(penaltyRequestCount).toBe(2);
-  });
-
-  test("announces cohort and blacklist request failures", async () => {
+  test("announces cohort request failures", async () => {
     vi.stubGlobal("fetch", vi.fn(() => json(null, 500)));
-    const cohortView = renderRoute("/cohorts");
-    expect(await screen.findByRole("alert")).toHaveTextContent("조회에 실패했습니다.");
-    cohortView.unmount();
-
-    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => (
-      String(input).includes("/api/admin/generations") ? json([]) : json(null, 500)
-    )));
-    renderRoute("/selectors/qualifications");
+    renderRoute("/cohorts");
     expect(await screen.findByRole("alert")).toHaveTextContent("조회에 실패했습니다.");
   });
 

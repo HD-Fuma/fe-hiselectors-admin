@@ -6,6 +6,7 @@ import loginStyles from "./login.css?raw";
 import performanceStyles from "./performance-dashboard.css?raw";
 import accountStyles from "./sidebar-account.css?raw";
 import brandStyles from "./sidebar-brand.css?raw";
+import taskFloatingPanelStyles from "./task-floating-panel.css?raw";
 import tokensSource from "./tokens.css?raw";
 
 const styleFiles = [
@@ -16,6 +17,7 @@ const styleFiles = [
   { file: "performance-dashboard.css", source: performanceStyles },
   { file: "sidebar-account.css", source: accountStyles },
   { file: "sidebar-brand.css", source: brandStyles },
+  { file: "task-floating-panel.css", source: taskFloatingPanelStyles },
 ] as const;
 const definedTokens = new Set(
   [...tokensSource.matchAll(/(--[\w-]+)\s*:/g)].map((match) => match[1]),
@@ -61,5 +63,18 @@ describe("shared component visual contracts", () => {
 
     expect(headerRule).toMatch(/border-top:\s*1px solid #d9dde0;/);
     expect(wrapperRule).not.toMatch(/border-top\s*:/);
+  });
+
+  test("keeps approved task statuses readable on dark floating cards", () => {
+    const approvedTaskStatusRule = taskFloatingPanelStyles.match(
+      /\.fuma-task-run-card__status\.hsas-status-pill--approved\s*\{([^}]*)\}/,
+    )?.[1];
+
+    expect(approvedTaskStatusRule).toMatch(
+      /background:\s*var\(--hsas-sidebar-hover\);/,
+    );
+    expect(approvedTaskStatusRule).toMatch(
+      /color:\s*var\(--hsas-color-white\);/,
+    );
   });
 });

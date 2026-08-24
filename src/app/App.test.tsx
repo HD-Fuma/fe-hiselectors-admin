@@ -3,6 +3,13 @@ import { RouterProvider } from "react-router-dom";
 import { App } from "./App";
 import { createAppRouter } from "./router";
 
+vi.mock("../entities/task-run", () => ({
+  getTaskRunPanel: vi.fn().mockResolvedValue({
+    items: [],
+    serverTime: "2026-08-23T00:00:00Z",
+  }),
+}));
+
 beforeEach(() => {
   localStorage.clear();
 });

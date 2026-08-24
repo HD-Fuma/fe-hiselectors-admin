@@ -681,6 +681,7 @@ export function ApplicantDetailPage({
         ?? (content.mediaType === "IMAGE" ? content.mediaUrl : null)
         ?? "",
       title: content.title || content.caption || content.description || content.snsContentId,
+      url: content.contentUrl,
     })),
     handle: displaySnsName(applicant),
     infoFields: [
