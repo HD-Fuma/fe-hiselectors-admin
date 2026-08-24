@@ -15,6 +15,8 @@ export function ViewModeToggle({
 }: ViewModeToggleProps) {
   const tooltipId = useId();
   const [showTooltip, setShowTooltip] = useState(true);
+  const toggleView = () => onChange(value === "grid" ? "list" : "grid");
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setShowTooltip(false), 2000);
     return () => window.clearTimeout(timeoutId);
@@ -25,28 +27,23 @@ export function ViewModeToggle({
       className="hsas-view-mode-toggle-wrap"
       onMouseEnter={() => setShowTooltip(false)}
     >
-      <div
+      <button
+        aria-checked={value === "list"}
         aria-describedby={tooltipId}
         aria-label="보기 방식"
         className={`hsas-view-mode-toggle is-${value}`}
-        role="group"
+        onClick={toggleView}
+        role="switch"
+        type="button"
       >
         <span aria-hidden="true" className="hsas-view-mode-toggle__slider" />
-        <button
-          aria-pressed={value === "grid"}
-          onClick={() => onChange("grid")}
-          type="button"
-        >
+        <span aria-hidden="true" className="hsas-view-mode-toggle__label is-grid">
           카드
-        </button>
-        <button
-          aria-pressed={value === "list"}
-          onClick={() => onChange("list")}
-          type="button"
-        >
+        </span>
+        <span aria-hidden="true" className="hsas-view-mode-toggle__label is-list">
           목록
-        </button>
-      </div>
+        </span>
+      </button>
       <span
         className={`hsas-view-mode-toggle__tooltip${showTooltip ? " is-visible" : ""}`}
         id={tooltipId}

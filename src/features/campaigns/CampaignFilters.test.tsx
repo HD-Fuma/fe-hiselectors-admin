@@ -99,10 +99,11 @@ describe("campaign filter behavior", () => {
     expect(within(card).queryByText("ID 3")).not.toBeInTheDocument();
     expect(within(card).getByText("상품 1개")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "목록" }));
+    const viewToggle = screen.getByRole("switch", { name: "보기 방식" });
+    fireEvent.click(viewToggle);
     expect(within(results).getByRole("region", { name: "캠페인 리스트" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "카드" }));
+    fireEvent.click(viewToggle);
     const restoredCard = await within(results).findByRole("button", {
       name: "초여름 패션 리뷰 캠페인 상세 보기",
     });
