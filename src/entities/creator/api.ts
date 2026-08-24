@@ -126,6 +126,15 @@ export async function getCreators(input: CreatorSearchRequest, signal?: AbortSig
   return body.data;
 }
 
+export function runCreatorDiscovery() {
+  return request<unknown>(
+    "/api/admin/discovery/youtube/run",
+    "크리에이터 풀 구축에 실패했습니다.",
+    undefined,
+    { method: "POST" },
+  );
+}
+
 export function getCreator(id: number, signal?: AbortSignal) {
   return request<CreatorDetail>(
     `/api/admin/creators/${id}`,

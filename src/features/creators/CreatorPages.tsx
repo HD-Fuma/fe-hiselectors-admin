@@ -23,6 +23,7 @@ import {
   getCreator,
   getCreators,
   postAdminProposal,
+  runCreatorDiscovery,
   type CreatorDetail,
   type CreatorProfileFixture,
   type CreatorSummary,
@@ -374,6 +375,8 @@ export function CreatorListPage() {
   const [page, setPage] = useState(1);
   const [pageData, setPageData] = useState<Awaited<ReturnType<typeof getCreators>> | null>(null);
   const [error, setError] = useState("");
+  const [discoveryRunning, setDiscoveryRunning] = useState(false);
+  const [discoveryStatus, setDiscoveryStatus] = useState("");
   const [discoverySettingsOpen, setDiscoverySettingsOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
   const [proposalCompletedCount, setProposalCompletedCount] = useState(0);
@@ -437,6 +440,21 @@ export function CreatorListPage() {
     setAppliedFilters(EMPTY_CREATOR_FILTERS);
     setSelectedCreators(new Map());
     setPage(1);
+  };
+  const buildCreatorPool = async () => {
+    setDiscoveryRunning(true);
+    setDiscoveryStatus("크리에이터 풀을 구축하는 중입니다.");
+    try {
+      await runCreatorDiscovery();
+      setDiscoveryStatus("크리에이터 풀 구축을 완료했습니다.");
+      setAppliedFilters((current) => ({ ...current }));
+    } catch (reason: unknown) {
+      setDiscoveryStatus(
+        reason instanceof Error ? reason.message : "크리에이터 풀 구축에 실패했습니다.",
+      );
+    } finally {
+      setDiscoveryRunning(false);
+    }
   };
   const selectCategory = (categoryCode: string) => {
     setFilters((current) => ({ ...current, categoryCode }));
@@ -546,6 +564,9 @@ export function CreatorListPage() {
         <ResultToolbar
           actions={(
             <>
+              <Button disabled={discoveryRunning} onClick={() => void buildCreatorPool()}>
+                {discoveryRunning ? "풀 구축 중..." : "크리에이터 풀 구축"}
+              </Button>
               <Button
                 aria-haspopup="dialog"
                 disabled={selectedCreators.size === 0}
@@ -560,6 +581,7 @@ export function CreatorListPage() {
             </>
           )}
           className="fuma-simple-result-toolbar"
+          description={discoveryStatus ? <span role="status">{discoveryStatus}</span> : null}
           meta={<span>총 {pageData?.totalElements ?? 0}건</span>}
           title="크리에이터 목록"
         />
