@@ -1921,7 +1921,7 @@
 .fuma-campaign-selected-products h3 {
   margin: 0;
   color: #34413a;
-  font-size: var(--hsas-font-13);
+  font-size: var(--hsas-font-15);
   font-weight: 800;
 }
 
@@ -2091,8 +2091,9 @@
   min-width: 610px;
 }
 
+.fuma-campaign-selected-products .hsas-dense-table th,
 .fuma-campaign-selected-products .hsas-dense-table td {
-  font-size: var(--hsas-font-11);
+  font-size: var(--hsas-font-13);
 }
 
 .fuma-campaign-detail {
