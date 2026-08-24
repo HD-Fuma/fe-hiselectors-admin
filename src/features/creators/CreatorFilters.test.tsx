@@ -314,6 +314,77 @@ describe("creator filters", () => {
     expect(within(categories).getByRole("button", { name: "전체" }))
       .toHaveAttribute("aria-pressed", "true");
   });
+
+  test("runs the combined creator discovery batch and refreshes the list", async () => {
+    const user = userEvent.setup();
+    let resolveYoutube: (() => void) | undefined;
+    const discoveryOk = () => new Response(JSON.stringify({ success: true, data: {} }));
+    const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
+      void _init;
+      const url = String(input);
+      if (url.endsWith("/api/admin/categories")) {
+        return Promise.resolve(new Response(JSON.stringify({ success: true, data: [] })));
+      }
+      if (url.includes("/api/admin/creators?")) return Promise.resolve(ok());
+      if (url.endsWith("/api/admin/discovery/youtube/run")) {
+        return new Promise<Response>((resolve) => {
+          resolveYoutube = () => resolve(discoveryOk());
+        });
+      }
+      return Promise.resolve(discoveryOk());
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderCreatorPage();
+    await screen.findByText("김서연 ↗");
+
+    await user.click(screen.getByRole("button", { name: "크리에이터 풀 구축" }));
+
+    expect(screen.getByRole("button", { name: "풀 구축 중..." })).toBeDisabled();
+    resolveYoutube?.();
+
+    await waitFor(() => expect(screen.getByRole("status"))
+      .toHaveTextContent("크리에이터 풀 구축을 완료했습니다."));
+    const discoveryCalls = fetchMock.mock.calls.filter(([input]) => (
+      String(input).includes("/api/admin/discovery/")
+    ));
+    expect(discoveryCalls.map(([input]) => new URL(String(input)).pathname)).toEqual([
+      "/api/admin/discovery/youtube/run",
+    ]);
+    discoveryCalls.forEach(([, init]) => expect(init).toMatchObject({ method: "POST" }));
+    await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(2));
+    expect(screen.getByRole("button", { name: "크리에이터 풀 구축" })).toBeEnabled();
+  });
+
+  test("shows the combined discovery error", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/api/admin/categories")) {
+        return Promise.resolve(new Response(JSON.stringify({ success: true, data: [] })));
+      }
+      if (url.includes("/api/admin/creators?")) return Promise.resolve(ok());
+      if (url.endsWith("/api/admin/discovery/youtube/run")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          success: false,
+          data: null,
+          message: "YouTube 발굴 실패",
+        }), { status: 502 }));
+      }
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} })));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderCreatorPage();
+    await screen.findByText("김서연 ↗");
+
+    await user.click(screen.getByRole("button", { name: "크리에이터 풀 구축" }));
+
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("YouTube 발굴 실패"));
+    expect(fetchMock.mock.calls.filter(([input]) => (
+      String(input).includes("/api/admin/discovery/")
+    )).map(([input]) => new URL(String(input)).pathname)).toEqual([
+      "/api/admin/discovery/youtube/run",
+    ]);
+  });
 });
 
 describe("proposal history", () => {
