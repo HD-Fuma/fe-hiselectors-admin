@@ -21,6 +21,8 @@ import { DiscoverySettingsPanel } from "./DiscoverySettingsPanel";
 import "../../styles/creator-discovery-settings.css";
 import { getDiscoveryCategories } from "../../entities/discovery-category";
 import {
+  categoryLabel,
+  CREATOR_CATEGORY_OPTIONS,
   getAdminProposals,
   getCreator,
   getCreators,
@@ -70,19 +72,6 @@ const CREATOR_PLATFORM_TABS = CREATOR_PLATFORM_OPTIONS.filter(
     option.value !== "",
 );
 
-const CREATOR_CATEGORY_OPTIONS = [
-  { label: "전체", value: "" },
-  { label: "뷰티", value: "BEAUTY" },
-  { label: "패션", value: "FASHION" },
-  { label: "푸드", value: "FOOD" },
-  { label: "리빙/라이프", value: "LIVING_LIFE" },
-  { label: "유아동/패밀리", value: "KIDS_FAMILY" },
-  { label: "컬처/서비스", value: "CULTURE_SERVICE" },
-  { label: "스포츠/레저", value: "SPORTS_LEISURE" },
-  { label: "여행", value: "TRAVEL" },
-  { label: "반려생활", value: "PET_LIFE" },
-] as const;
-
 const EMPTY_CREATOR_FILTERS = {
   keyword: "",
   snsCode: "",
@@ -114,13 +103,6 @@ function numericFilter(value: string) {
   if (!value.trim()) return undefined;
   const parsed = Number(value.replaceAll(",", ""));
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
-}
-
-function categoryLabel(
-  code: string | null,
-  options: readonly { label: string; value: string }[],
-) {
-  return options.find((option) => option.value === code)?.label ?? code ?? "-";
 }
 
 function platformFor(code: CreatorSummary["snsCode"]): CreatorProfileFixture["platform"] {
@@ -190,7 +172,7 @@ function creatorColumns(
     header: "카테고리",
     width: 110,
     align: "center",
-    render: (creator) => categoryLabel(creator.category, categoryOptions),
+    render: (creator) => categoryLabel(creator.category, categoryOptions) ?? "-",
   },
   {
     id: "followers",
@@ -322,7 +304,7 @@ function BatchProposalPanel({
                     <span>
                       {platform} · {audienceLabel}{" "}
                       {creator.followerCount === null ? "-" : formatNumber(creator.followerCount)} ·{" "}
-                      {categoryLabel(creator.category, categoryOptions)}
+                      {categoryLabel(creator.category, categoryOptions) ?? "-"}
                     </span>
                   </li>
                 );
