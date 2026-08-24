@@ -109,18 +109,7 @@ function CampaignCard({ campaign, onOpen }: {
             <time dateTime={campaign.endDate}>{campaign.endDate}</time>
           </>
         )}
-        header={(
-          <header className="fuma-creator-card__header">
-            <div className="fuma-creator-card__identity">
-              <div className="fuma-creator-card__badges">
-                <span>캠페인</span>
-              </div>
-              <h2 className="fuma-creator-card__name">
-                ID {campaign.id} <span aria-hidden="true">›</span>
-              </h2>
-            </div>
-          </header>
-        )}
+        header={null}
         mediaAlt={`${campaign.title} 썸네일`}
         mediaFallbackUrl="/brand/thehyundai-hi.svg"
         mediaUrl={campaign.thumbnailUrl || "/brand/thehyundai-hi.svg"}
