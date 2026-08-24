@@ -95,7 +95,7 @@ function CampaignCard({ campaign, onOpen }: {
     <button
       aria-label={`${campaign.title} 캠페인 상세 보기`}
       className="fuma-content-collection__card fuma-creator-card fuma-campaign-card"
-      data-content-format="youtube-long"
+      data-content-format="instagram-image"
       onClick={() => onOpen(campaign.id)}
       type="button"
     >

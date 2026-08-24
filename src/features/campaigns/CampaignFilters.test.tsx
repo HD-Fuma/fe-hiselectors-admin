@@ -91,6 +91,7 @@ describe("campaign filter behavior", () => {
     });
 
     expect(card).toHaveClass("fuma-campaign-card");
+    expect(card).toHaveAttribute("data-content-format", "instagram-image");
     expect(within(card).queryByText("캠페인")).not.toBeInTheDocument();
     expect(within(card).queryByText("ID 3")).not.toBeInTheDocument();
     expect(within(card).getByText("상품 1개")).toBeInTheDocument();
