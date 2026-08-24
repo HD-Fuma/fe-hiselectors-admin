@@ -132,12 +132,14 @@ export async function getCreators(input: CreatorSearchRequest, signal?: AbortSig
   return body.data;
 }
 
-export function runCreatorDiscovery() {
-  return request<unknown>(
-    "/api/admin/discovery/youtube/run",
+export function runCreatorDiscovery(test = false) {
+  const requestHeaders = new Headers();
+  requestHeaders.set("Idempotency-Key", crypto.randomUUID());
+  return request<TaskRun>(
+    `/api/admin/discovery/youtube/run${test ? "?test=true" : ""}`,
     "크리에이터 풀 구축에 실패했습니다.",
     undefined,
-    { method: "POST" },
+    { headers: requestHeaders, method: "POST" },
   );
 }
 
