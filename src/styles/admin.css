@@ -9117,10 +9117,6 @@
 }
 
 @media (max-width: 640px) {
-  .fuma-notification-search .hsas-search-panel__fields {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .fuma-notification-detail-section dl {
     grid-template-columns: minmax(0, 1fr);
   }
