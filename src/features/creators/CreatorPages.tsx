@@ -65,7 +65,10 @@ const CREATOR_PLATFORM_OPTIONS = [
   { label: "Instagram", value: "INSTAGRAM" },
   { label: "YouTube", value: "YOUTUBE" },
 ] as const;
-const CREATOR_PLATFORM_TABS = CREATOR_PLATFORM_OPTIONS.filter((option) => option.value);
+const CREATOR_PLATFORM_TABS = CREATOR_PLATFORM_OPTIONS.filter(
+  (option): option is Exclude<(typeof CREATOR_PLATFORM_OPTIONS)[number], { value: "" }> =>
+    option.value !== "",
+);
 
 const CREATOR_CATEGORY_OPTIONS = [
   { label: "전체", value: "" },
