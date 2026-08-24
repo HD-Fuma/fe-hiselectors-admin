@@ -11,6 +11,9 @@ import type {
   AdminRouteMeta,
 } from "../components/shell/navigationModel";
 import type { WorkTab } from "../components/shell/WorkTabs";
+import { TaskRunPanelHost } from "../features/task-runs/TaskRunPanelHost";
+
+const ADMIN_MAIN_CONTENT_ID = "admin-main-content";
 
 interface AdminLayoutProps {
   navigation: AdminNavigation;
@@ -113,7 +116,6 @@ export function AdminLayout({ navigation }: AdminLayoutProps) {
         ? pathnameOf(parentPath)
         : activeRoute.workTabSingletonId ?? pathnameOf(currentPath)
     );
-
   useEffect(() => {
     const nextTab = workTabForRoute(
       navigation.routes,
@@ -151,15 +153,22 @@ export function AdminLayout({ navigation }: AdminLayoutProps) {
   };
 
   return (
-    <AppShell
-      activeRoute={activeRoute}
-      activeTabId={activeTabId}
-      currentPath={location.pathname}
-      navigation={navigation}
-      onCloseTab={closeTab}
-      tabs={tabs}
-    >
-      <Outlet context={activeRoute} />
-    </AppShell>
+    <>
+      <AppShell
+        activeRoute={activeRoute}
+        activeTabId={activeTabId}
+        currentPath={location.pathname}
+        navigation={navigation}
+        onCloseTab={closeTab}
+        tabs={tabs}
+      >
+        <Outlet context={activeRoute} />
+      </AppShell>
+      <TaskRunPanelHost
+        fallbackFocusId={ADMIN_MAIN_CONTENT_ID}
+        pathname={location.pathname}
+        search={location.search}
+      />
+    </>
   );
 }

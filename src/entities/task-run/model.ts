@@ -23,6 +23,7 @@ export interface TaskRun {
   readonly triggerType: TriggerType;
   readonly status: TaskRunStatus;
   readonly currentStep: string | null;
+  readonly progressMessage: string | null;
   readonly totalCount: number | null;
   readonly processedCount: number;
   readonly succeededCount: number;

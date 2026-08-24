@@ -2,6 +2,19 @@ import { render } from "@testing-library/react";
 import { RouterProvider } from "react-router-dom";
 import { createAppRouter } from "../app/router";
 
+const taskRunPanelApiMock = vi.hoisted(() => ({
+  getTaskRunPanel: vi.fn().mockResolvedValue({
+    items: [],
+    serverTime: "2026-08-23T00:00:00Z",
+  }),
+}));
+
+vi.mock("../entities/task-run", () => taskRunPanelApiMock);
+
+export function getTaskRunPanelApiMock() {
+  return taskRunPanelApiMock;
+}
+
 export function renderRoute(path: string, options: { authenticated?: boolean } = {}) {
   const { authenticated = path !== "/login" } = options;
   if (!authenticated) {

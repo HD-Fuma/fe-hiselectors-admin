@@ -39,7 +39,12 @@ export function AppShell({
       />
       <div className="hsas-admin-shell__workspace">
         <WorkTabs activeTabId={activeTabId} onClose={onCloseTab} tabs={tabs} />
-        <main className="hsas-admin-shell__content" data-shell-part="content">
+        <main
+          className="hsas-admin-shell__content"
+          data-shell-part="content"
+          id="admin-main-content"
+          tabIndex={-1}
+        >
           {children}
         </main>
       </div>

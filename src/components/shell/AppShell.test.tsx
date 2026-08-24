@@ -1,6 +1,12 @@
-import { act, screen, waitForElementToBeRemoved, within } from "@testing-library/react";
+import {
+  act,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderRoute } from "../../test/renderRoute";
+import { getTaskRunPanelApiMock, renderRoute } from "../../test/renderRoute";
 
 const expectedSidebarLinks = [
   ["크리에이터 풀", "/creators"],
@@ -104,6 +110,75 @@ test("preserves visual fixture query state in the active work tab", () => {
   );
 });
 
+test("does not render the task progress panel on a normal authenticated route", () => {
+  renderRoute("/creators");
+
+  expect(
+    screen.queryByRole("region", { name: "작업 진행상황" }),
+  ).not.toBeInTheDocument();
+});
+
+test("renders server task runs on an authenticated administrator route", async () => {
+  getTaskRunPanelApiMock().getTaskRunPanel.mockResolvedValueOnce({
+    items: [{
+      runId: "task-run-content-sync",
+      taskType: "CONTENT_SYNC",
+      triggerType: "SCHEDULED",
+      status: "RUNNING",
+      currentStep: "NEW_CONTENT_SYNC",
+      totalCount: 2,
+      processedCount: 1,
+      succeededCount: 1,
+      failedCount: 0,
+      skippedCount: 0,
+      progressPercent: 50,
+      startedBy: null,
+    }],
+    serverTime: "2026-08-23T00:00:00Z",
+  });
+
+  renderRoute("/creators");
+
+  const panel = await screen.findByRole("region", { name: "작업 진행상황" });
+  expect(within(panel).getByText("콘텐츠 동기화")).toBeInTheDocument();
+  expect(within(panel).getByText("신규 콘텐츠 수집 중")).toBeInTheDocument();
+  expect(within(panel).getAllByRole("listitem")).toHaveLength(1);
+});
+
+test("mounts the development TaskRun preview over the real creators page", async () => {
+  getTaskRunPanelApiMock().getTaskRunPanel.mockClear();
+  renderRoute("/creators?taskRunPreview=mixed");
+
+  expect(await screen.findByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
+  expect(screen.getByRole("navigation", { name: "관리자 메뉴" })).toBeInTheDocument();
+  const panel = screen.getByRole("region", { name: "작업 진행상황" });
+  expect(within(panel).getByText("120건 처리에 실패했습니다")).toBeInTheDocument();
+  expect(within(panel).getByText("248건 작업을 완료했습니다")).toBeInTheDocument();
+  expect(within(panel).queryByText("DESIGN LAB")).not.toBeInTheDocument();
+  expect(getTaskRunPanelApiMock().getTaskRunPanel).not.toHaveBeenCalled();
+});
+
+test("keeps the preview isolated from other real admin routes", async () => {
+  getTaskRunPanelApiMock().getTaskRunPanel.mockClear();
+  renderRoute("/settlements?taskRunPreview=mixed");
+
+  await waitFor(() => {
+    expect(getTaskRunPanelApiMock().getTaskRunPanel).toHaveBeenCalledTimes(1);
+  });
+  expect(screen.queryByText("DESIGN LAB")).not.toBeInTheDocument();
+  expect(screen.queryByText("120건 처리에 실패했습니다")).not.toBeInTheDocument();
+});
+
+test("keeps the login route outside the task progress panel", () => {
+  getTaskRunPanelApiMock().getTaskRunPanel.mockClear();
+  renderRoute("/login", { authenticated: false });
+
+  expect(
+    screen.queryByRole("region", { name: "작업 진행상황" }),
+  ).not.toBeInTheDocument();
+  expect(getTaskRunPanelApiMock().getTaskRunPanel).not.toHaveBeenCalled();
+});
+
 test("renders only the unified administrator shell parts", () => {
   renderRoute("/creators");
 
@@ -115,6 +190,8 @@ test("renders only the unified administrator shell parts", () => {
   expect(shell.querySelector('[data-shell-part="topbar"]')).not.toBeInTheDocument();
   expect(within(shell).queryByText("더현대Hi 셀렉터스 운영")).not.toBeInTheDocument();
   expect(shell.querySelector('[data-shell-part="rail"]')).not.toBeInTheDocument();
+  expect(screen.getByRole("main")).toHaveAttribute("id", "admin-main-content");
+  expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
 });
 
 test("opens and closes work tabs as screens are visited", async () => {
@@ -127,7 +204,7 @@ test("opens and closes work tabs as screens are visited", async () => {
 
   const workTabs = screen.getByRole("navigation", { name: "작업 탭" });
   expect(within(workTabs).getByRole("link", { name: "크리에이터 풀" })).toBeInTheDocument();
-  expect(within(workTabs).getByRole("link", { name: "콘텐츠 성과" })).toHaveAttribute(
+  expect(await within(workTabs).findByRole("link", { name: "콘텐츠 성과" })).toHaveAttribute(
     "aria-current",
     "page",
   );
