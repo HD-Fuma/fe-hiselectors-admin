@@ -1284,25 +1284,6 @@
   border-top: 0;
 }
 
-.fuma-qualification-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.fuma-qualification-form > .hsas-form-row:nth-child(odd) {
-  border-right: 1px solid var(--hsas-border);
-}
-
-.fuma-qualification-section__actions {
-  display: flex;
-  min-height: 39px;
-  align-items: center;
-  justify-content: flex-end;
-  padding: var(--hsas-space-6) var(--hsas-space-8);
-  border-top: 1px solid var(--hsas-border);
-  background: #f7f8f8;
-}
-
 .fuma-ai-summary {
   display: grid;
   grid-template-columns: 170px minmax(0, 1fr);
@@ -3211,17 +3192,17 @@
   grid-template-columns: 42px minmax(0, 1fr);
 }
 
-.fuma-qualification-search .hsas-search-panel__fields {
+.fuma-excellent-selector-search .hsas-search-panel__fields {
   grid-template-columns: 260px 190px;
   column-gap: var(--hsas-space-20);
   justify-content: start;
 }
 
-.fuma-qualification-search .fuma-filter-field:first-child {
+.fuma-excellent-selector-search .fuma-filter-field:first-child {
   grid-template-columns: 52px minmax(0, 1fr);
 }
 
-.fuma-qualification-search .fuma-filter-field:nth-child(2) {
+.fuma-excellent-selector-search .fuma-filter-field:nth-child(2) {
   grid-template-columns: 42px minmax(0, 1fr);
 }
 

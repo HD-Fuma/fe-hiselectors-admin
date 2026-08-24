@@ -63,6 +63,10 @@ const routes: RouteObject[] = [
         path: "performance/creators",
         element: <Navigate replace to="/performance/selectors" />,
       },
+      {
+        path: "selectors/qualifications",
+        element: <Navigate replace to="/selectors" />,
+      },
       ...adminRouteObjects,
     ],
   },

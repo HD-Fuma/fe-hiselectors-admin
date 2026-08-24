@@ -110,30 +110,6 @@ export interface GenerationSaveRequest {
   activityEndDate: string;
 }
 
-export interface PenaltyHistory {
-  id: number;
-  violationTypeId: number;
-  startedAt: string;
-  endedAt: string | null;
-  status: "ACTIVE" | "RELEASED";
-}
-
-export interface SelectorPenalty {
-  selectorsId: number;
-  selectorsCode: string;
-  selectorsNickname: string;
-  totalPenaltyCount: number;
-  activePenaltyCount: number;
-  blacklistTarget: boolean;
-  histories: PenaltyHistory[];
-}
-
-export interface SelectorPenaltySearchRequest {
-  generationId?: number;
-  page: number;
-  size: number;
-}
-
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop").replace(/\/$/, "");
 
 function headers(json = false) {
@@ -234,13 +210,5 @@ export function updateGenerationStatus(id: number, status: GenerationStatus) {
     `/api/admin/generations/${id}/status`,
     "기수 상태 변경에 실패했습니다.",
     { method: "PATCH", headers: headers(true), body: JSON.stringify({ status }) },
-  );
-}
-
-export function getSelectorPenalties(input: SelectorPenaltySearchRequest, signal?: AbortSignal) {
-  return request<SpringPage<SelectorPenalty>>(
-    `/api/admin/selectors/penalties?${query({ ...input, blacklistOnly: "true" })}`,
-    "블랙리스트 목록 조회에 실패했습니다.",
-    { signal },
   );
 }
