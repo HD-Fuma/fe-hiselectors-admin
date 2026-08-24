@@ -13,8 +13,22 @@ function json(data: unknown, status = 200) {
 }
 
 beforeEach(() => {
-  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+  Object.defineProperty(URL, "createObjectURL", {
+    configurable: true,
+    value: vi.fn(() => "blob:campaign-thumbnail"),
+  });
+  Object.defineProperty(URL, "revokeObjectURL", {
+    configurable: true,
+    value: vi.fn(),
+  });
+  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
+    if (url.includes("/api/admin/uploads/campaign-thumbnails")) {
+      return json({ url: "https://media.example.com/campaigns/uploaded.webp" }, 201);
+    }
+    if (url.endsWith("/api/admin/campaigns") && init?.method === "POST") {
+      return json({ ...campaign, thumbnailUrl: "https://media.example.com/campaigns/uploaded.webp" }, 201);
+    }
     if (url.includes("/participants")) return json({ content: [{ selectorId: 7, nickname: "셀렉터", platform: "INSTAGRAM", accountId: "selector", followerCount: 100 }], number: 0, size: 20, totalElements: 1, totalPages: 1 });
     if (url.includes("/api/admin/products")) return json({ content: campaign.products, number: 0, size: 20, totalElements: 1, totalPages: 1 });
     if (/\/campaigns\/3(?:\?|$)/.test(url)) return json(campaign);
@@ -60,26 +74,100 @@ describe("campaign filter behavior", () => {
     expect(screen.getByText("총 1건")).toBeInTheDocument();
   });
 
-  test("switches the campaign detail dataset with its tabs", async () => {
+  test("shows included products above participants without detail tabs", async () => {
     renderRoute("/campaigns/3");
     const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
 
-    expect(await within(detail).findByRole("region", { name: "참여 셀렉터스" })).toBeInTheDocument();
-    expect(within(detail).queryByRole("region", { name: "포함 상품" })).not.toBeInTheDocument();
+    const productList = within(detail).getByRole("region", { name: "포함 상품" });
+    const participantList = await within(detail).findByRole("region", { name: "참여 셀렉터스" });
+    expect(productList).toBeInTheDocument();
+    expect(participantList).toBeInTheDocument();
+    expect(within(productList).getByRole("img", { name: "골프 재킷 썸네일" })).toBeInTheDocument();
+    expect(productList.compareDocumentPosition(participantList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(detail).queryByRole("button", { name: "포함 상품" })).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(within(detail).getByRole("button", { name: "포함 상품" }));
+  test("reveals products by ten and appends participants by twenty", async () => {
+    const products = Array.from({ length: 11 }, (_, index) => ({
+      ...campaign.products[0],
+      id: index + 1,
+      code: `P-${index + 1}`,
+      productName: `상품 ${index + 1}`,
+    }));
+    const participantRows = Array.from({ length: 21 }, (_, index) => ({
+      selectorId: index + 1,
+      nickname: `셀렉터 ${index + 1}`,
+      platform: "INSTAGRAM",
+      accountId: `selector-${index + 1}`,
+      followerCount: 100,
+    }));
+    const expandedCampaign = { ...campaign, productIds: products.map(({ id }) => id), products };
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/participants")) {
+        const page = Number(new URL(url, "http://localhost").searchParams.get("page") ?? 0);
+        return json({
+          content: page === 0 ? participantRows.slice(0, 20) : participantRows.slice(20),
+          number: page,
+          size: 20,
+          totalElements: 21,
+          totalPages: 2,
+        });
+      }
+      if (/\/campaigns\/3(?:\?|$)/.test(url)) return json(expandedCampaign);
+      return json({ content: [expandedCampaign], number: 0, size: 20, totalElements: 1, totalPages: 1 });
+    });
 
-    expect(within(detail).getByRole("region", { name: "포함 상품" })).toBeInTheDocument();
-    expect(within(detail).queryByRole("region", { name: "참여 셀렉터스" })).not.toBeInTheDocument();
+    renderRoute("/campaigns/3");
+    const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
+    const productList = within(detail).getByRole("region", { name: "포함 상품" });
+    const participantList = await within(detail).findByRole("region", { name: "참여 셀렉터스" });
+
+    expect(within(productList).queryByText("상품 11")).not.toBeInTheDocument();
+    fireEvent.click(within(detail).getByRole("button", { name: "포함 상품 더보기" }));
+    expect(within(productList).getByText("상품 11")).toBeInTheDocument();
+
+    expect(within(participantList).queryByText("셀렉터 21")).not.toBeInTheDocument();
+    fireEvent.click(within(detail).getByRole("button", { name: "참여 셀렉터스 더보기" }));
+    expect(await within(participantList).findByText("셀렉터 21")).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("page=1&size=20"), expect.anything());
+  });
+
+  test("transitions from campaign detail to editing without replaying the panel animation", async () => {
+    renderRoute("/campaigns/3");
+    const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
+
+    fireEvent.click(within(detail).getByRole("link", { name: "캠페인 수정" }));
+
+    const editor = await screen.findByRole("dialog", { name: "캠페인 수정" });
+    expect(editor).toHaveAttribute("data-entry-animation", "false");
+    expect(within(editor).getByRole("textbox", { name: "캠페인명" })).toHaveValue(campaign.title);
+  });
+
+  test("keeps the campaign list mounted while the create panel opens and closes", async () => {
+    renderRoute("/campaigns");
+    const campaignList = await screen.findByRole("region", { name: "캠페인 목록" });
+
+    fireEvent.click(screen.getByRole("link", { name: "캠페인 생성" }));
+    const editor = await screen.findByRole("dialog", { name: "새 캠페인 생성" });
+    expect(screen.getByRole("region", { name: "캠페인 목록", hidden: true })).toBe(campaignList);
+
+    fireEvent.click(within(editor).getByRole("button", { name: "취소" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "새 캠페인 생성" })).not.toBeInTheDocument());
+    expect(screen.getByRole("region", { name: "캠페인 목록" })).toBe(campaignList);
   });
 
   test("filters the product picker without losing hidden selections", async () => {
     renderRoute("/campaigns/new");
     const editor = await screen.findByRole("dialog", { name: "새 캠페인 생성" });
+    expect(editor).toHaveAttribute("data-visual-contract", "detail-side-panel");
+    expect(within(editor).getByText("1:1 비율 권장")).toBeInTheDocument();
     fireEvent.click(within(editor).getByRole("button", { name: "상품 선택" }));
     const dialog = await screen.findByRole("dialog", { name: "해당 상품 선택", hidden: true });
     const productList = within(dialog).getByRole("region", { name: "상품 목록", hidden: true });
     const query = within(dialog).getByRole("textbox", { name: "상품 검색", hidden: true });
+
+    expect(within(productList).getByRole("img", { name: "골프 재킷 썸네일", hidden: true })).toBeInTheDocument();
 
     fireEvent.click(within(dialog).getByRole("checkbox", {
       name: /골프 재킷.*선택/,
@@ -94,5 +182,51 @@ describe("campaign filter behavior", () => {
       name: "선택 완료 (1)",
       hidden: true,
     })).toBeInTheDocument();
+  });
+
+  test("uploads a selected thumbnail before creating the campaign", async () => {
+    renderRoute("/campaigns/new");
+    const editor = await screen.findByRole("dialog", { name: "새 캠페인 생성" });
+    const campaignList = screen.getByRole("region", { name: "캠페인 목록", hidden: true });
+    const thumbnail = new File(["thumbnail"], "summer.png", { type: "image/png" });
+
+    fireEvent.change(within(editor).getByLabelText("캠페인 썸네일 파일"), {
+      target: { files: [thumbnail] },
+    });
+    expect(within(editor).getByRole("img", { name: "선택한 캠페인 썸네일 미리보기" })).toHaveAttribute(
+      "src",
+      "blob:campaign-thumbnail",
+    );
+    expect(within(editor).getByText("summer.png")).toBeInTheDocument();
+
+    fireEvent.change(within(editor).getByRole("textbox", { name: "캠페인명" }), {
+      target: { value: "여름 캠페인" },
+    });
+    fireEvent.change(within(editor).getByRole("textbox", { name: "설명" }), {
+      target: { value: "여름 캠페인 설명" },
+    });
+    fireEvent.change(within(editor).getByLabelText("시작일"), {
+      target: { value: "2026-08-01" },
+    });
+    fireEvent.change(within(editor).getByLabelText("종료일"), {
+      target: { value: "2026-08-31" },
+    });
+    fireEvent.click(within(editor).getByRole("button", { name: "캠페인 생성" }));
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/admin/uploads/campaign-thumbnails"),
+      expect.objectContaining({ method: "POST", body: expect.any(FormData) }),
+    ));
+    await waitFor(() => {
+      const createCall = vi.mocked(fetch).mock.calls.find(([input, init]) =>
+        String(input).endsWith("/api/admin/campaigns") && init?.method === "POST");
+      expect(createCall).toBeDefined();
+      expect(JSON.parse(String(createCall?.[1]?.body))).toMatchObject({
+        title: "여름 캠페인",
+        thumbnailUrl: "https://media.example.com/campaigns/uploaded.webp",
+      });
+    });
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "새 캠페인 생성" })).not.toBeInTheDocument());
+    expect(screen.getByRole("region", { name: "캠페인 목록" })).toBe(campaignList);
   });
 });

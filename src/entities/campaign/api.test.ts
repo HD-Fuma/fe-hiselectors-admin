@@ -1,4 +1,4 @@
-import { createCampaign, deleteCampaign, getCampaigns } from "./api";
+import { createCampaign, deleteCampaign, getCampaigns, uploadCampaignThumbnail } from "./api";
 
 describe("campaign admin api", () => {
   beforeEach(() => {
@@ -29,6 +29,28 @@ describe("campaign admin api", () => {
 
     expect(vi.mocked(fetch).mock.calls[0][1]).toMatchObject({ method: "POST", body: JSON.stringify(body) });
     expect(vi.mocked(fetch).mock.calls[1][1]).toMatchObject({ method: "DELETE" });
+  });
+
+  test("uploads a campaign thumbnail as authorized multipart data", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      success: true,
+      code: "OK",
+      message: null,
+      data: { url: "https://media.example.com/campaigns/thumb.webp" },
+    }), { status: 201 })));
+    const file = new File(["thumbnail"], "campaign.webp", { type: "image/webp" });
+
+    await expect(uploadCampaignThumbnail(file)).resolves.toEqual({
+      url: "https://media.example.com/campaigns/thumb.webp",
+    });
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toContain("/api/admin/uploads/campaign-thumbnails");
+    expect(init?.method).toBe("POST");
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer token");
+    expect(new Headers(init?.headers).has("Content-Type")).toBe(false);
+    expect(init?.body).toBeInstanceOf(FormData);
+    expect((init?.body as FormData).get("file")).toBe(file);
   });
 
   test("uses the backend message on failure", async () => {

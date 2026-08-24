@@ -379,7 +379,7 @@
 
 .hsas-modal-backdrop {
   position: fixed;
-  z-index: 1000;
+  z-index: 1300;
   inset: 0;
   display: grid;
   place-items: center;
@@ -1861,6 +1861,11 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--hsas-space-16);
+  padding: var(--hsas-space-14) var(--hsas-space-16);
+  border: 1px solid #d9e3de;
+  border-radius: 10px;
+  background: var(--hsas-color-white);
+  box-shadow: 0 8px 22px rgb(30 61 48 / 6%);
 }
 
 .fuma-campaign-editor__intro > div:first-child {
@@ -1886,43 +1891,59 @@
 
 .fuma-campaign-editor__layout {
   display: grid;
-  grid-template-columns: 190px minmax(0, 1fr);
+  grid-template-columns: 210px minmax(0, 1fr);
   gap: var(--hsas-space-14);
 }
 
 .fuma-campaign-thumbnail-upload,
 .fuma-campaign-form-section,
 .fuma-campaign-selected-products {
-  border: 1px solid #dde4e0;
-  border-radius: var(--hsas-radius-square);
+  border: 1px solid #dde6e1;
+  border-radius: 10px;
   background: var(--hsas-color-white);
 }
 
 .fuma-campaign-thumbnail-upload {
   display: grid;
-  align-content: start;
-  gap: var(--hsas-space-9);
-  padding: var(--hsas-space-14);
-  cursor: pointer;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
 }
 
-.fuma-campaign-thumbnail-upload__label,
+.fuma-campaign-thumbnail-upload__body {
+  display: grid;
+  align-content: center;
+  gap: var(--hsas-space-9);
+  padding: var(--hsas-space-14);
+}
+
+.fuma-campaign-thumbnail-upload h3,
 .fuma-campaign-form-section h3,
 .fuma-campaign-selected-products h3 {
   margin: 0;
   color: #34413a;
-  font-size: var(--hsas-font-13);
+  font-size: var(--hsas-font-15);
   font-weight: 800;
+}
+
+.fuma-campaign-thumbnail-upload > header,
+.fuma-campaign-form-section > header,
+.fuma-campaign-selected-products > header {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  padding: var(--hsas-space-8) var(--hsas-space-14);
+  border-bottom: 1px solid #e8efeb;
+  background: #f5f7f6;
 }
 
 .fuma-campaign-thumbnail-upload__preview {
   display: grid;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 1;
   place-items: center;
   overflow: hidden;
   border: 1px dashed #b8c8c0;
-  border-radius: var(--hsas-radius-square);
+  border-radius: 8px;
   background: #f1f5f3;
 }
 
@@ -1947,7 +1968,7 @@
   font-size: var(--hsas-font-10);
 }
 
-.fuma-campaign-thumbnail-upload > input {
+.fuma-campaign-thumbnail-upload__body > input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -1955,42 +1976,41 @@
   clip: rect(0 0 0 0);
 }
 
-.fuma-campaign-thumbnail-upload > input[type="url"] {
-  position: static;
-  width: 100%;
-  height: auto;
-  overflow: visible;
-  clip: auto;
-}
-
 .fuma-campaign-description-input {
+  height: 76px;
+  min-height: 76px;
   width: 100%;
+  padding: var(--hsas-space-8);
+  line-height: 18px;
   resize: vertical;
 }
 
 .fuma-campaign-thumbnail-upload__action {
-  display: inline-flex;
-  min-height: 30px;
-  align-items: center;
   justify-content: center;
-  border: 1px solid var(--hsas-teal);
-  border-radius: var(--hsas-radius-square);
-  color: var(--hsas-teal-dark);
-  font-size: var(--hsas-font-12);
-  font-weight: 700;
+  cursor: pointer;
+}
+
+.fuma-campaign-thumbnail-upload__help {
+  overflow: hidden;
+  color: #7d8882;
+  font-size: var(--hsas-font-10);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-campaign-editor-panel {
+  gap: var(--hsas-space-14);
 }
 
 .fuma-campaign-form-section {
+  display: grid;
+  grid-template-rows: auto 1fr;
   overflow: hidden;
-}
-
-.fuma-campaign-form-section > header {
-  padding: var(--hsas-space-14) var(--hsas-space-16) var(--hsas-space-10);
-  border-bottom: 1px solid var(--hsas-color-line-150);
 }
 
 .fuma-campaign-form {
   display: grid;
+  align-content: center;
   padding: var(--hsas-space-8) var(--hsas-space-16) var(--hsas-space-12);
 }
 
@@ -1998,6 +2018,10 @@
   grid-template-columns: 90px minmax(0, 1fr);
   align-items: center;
   border-bottom: 0;
+}
+
+.fuma-campaign-editor .hsas-form-row + .hsas-form-row {
+  border-top: 1px solid var(--hsas-color-line-100);
 }
 
 .fuma-campaign-editor .hsas-form-row__label {
@@ -2047,8 +2071,6 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--hsas-space-12);
-  padding: var(--hsas-space-10) var(--hsas-space-14);
-  border-bottom: 1px solid #e5eae7;
 }
 
 .fuma-campaign-selected-products > header > div {
@@ -2069,8 +2091,9 @@
   min-width: 610px;
 }
 
+.fuma-campaign-selected-products .hsas-dense-table th,
 .fuma-campaign-selected-products .hsas-dense-table td {
-  font-size: var(--hsas-font-11);
+  font-size: var(--hsas-font-13);
 }
 
 .fuma-campaign-detail {
@@ -2244,7 +2267,37 @@
 }
 
 .fuma-campaign-detail-list-toolbar {
-  margin-block: var(--hsas-space-10);
+  margin: 0;
+}
+
+.fuma-campaign-detail-list-toolbar strong {
+  font-size: var(--hsas-font-15);
+}
+
+.fuma-campaign-detail-list-section {
+  display: grid;
+  gap: var(--hsas-space-10);
+  padding-top: var(--hsas-space-18);
+}
+
+.fuma-campaign-detail-list-section .hsas-dense-table th,
+.fuma-campaign-detail-list-section .hsas-dense-table td {
+  font-size: var(--hsas-font-13);
+}
+
+.fuma-campaign-detail-list-section + .fuma-campaign-detail-list-section {
+  margin-top: var(--hsas-space-18);
+  border-top: 1px solid var(--hsas-color-line-100);
+}
+
+.fuma-campaign-detail-load-more {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--hsas-space-2);
+}
+
+.fuma-campaign-detail-load-more .hsas-button {
+  min-width: 148px;
 }
 
 .fuma-campaign-detail-overview {
@@ -2601,6 +2654,29 @@
   gap: var(--hsas-space-8);
 }
 
+.fuma-campaign-product-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--hsas-space-8);
+}
+
+.fuma-campaign-product-identity img {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border: 1px solid var(--hsas-border);
+  border-radius: var(--hsas-radius);
+  background: var(--hsas-surface-muted);
+  object-fit: cover;
+}
+
+.fuma-campaign-product-identity span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .fuma-campaign-modal-table {
   min-width: 0;
 }
@@ -2700,16 +2776,16 @@
   }
 
   .fuma-campaign-thumbnail-upload {
+    display: block;
+  }
+
+  .fuma-campaign-thumbnail-upload__body {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
   }
 
-  .fuma-campaign-thumbnail-upload__label,
   .fuma-campaign-thumbnail-upload__preview {
     grid-column: 1 / -1;
-  }
-
-  .fuma-campaign-thumbnail-upload__preview {
     max-width: 260px;
   }
 
@@ -7253,6 +7329,10 @@
   background: var(--hsas-color-surface-subtle);
   box-shadow: -20px 0 54px rgb(19 39 30 / 18%);
   animation: fuma-detail-panel-enter 180ms ease-out;
+}
+
+.fuma-detail-panel[data-entry-animation="false"] {
+  animation: none;
 }
 
 .fuma-detail-panel__resize-handle {
