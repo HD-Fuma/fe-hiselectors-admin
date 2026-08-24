@@ -60,3 +60,8 @@ export const NOTIFICATION_STATUSES = [
   { value: "SENT", label: "발송 완료" },
   { value: "FAILED", label: "발송 실패" },
 ] as const;
+
+export const NOTIFICATION_CHANNELS = [
+  { value: "KAKAO_MESSAGE", label: "카카오 메시지" },
+  { value: "EMAIL", label: "이메일" },
+] as const;

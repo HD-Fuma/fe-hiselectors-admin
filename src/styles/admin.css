@@ -3490,6 +3490,31 @@
   gap: var(--hsas-space-20);
 }
 
+.fuma-notification-search .hsas-search-panel__fields {
+  grid-template-columns: repeat(5, minmax(160px, 1fr));
+  column-gap: var(--hsas-space-14);
+}
+
+.fuma-notification-search .fuma-filter-field {
+  grid-template-columns: 76px minmax(0, 1fr);
+}
+
+.fuma-notification-search .fuma-filter-field:nth-child(5) {
+  grid-template-columns: 52px minmax(0, 1fr);
+}
+
+.fuma-kakao-recipient-search .hsas-search-panel__fields {
+  grid-template-columns: minmax(280px, 420px);
+}
+
+.fuma-proposal-history-search .hsas-search-panel__fields {
+  grid-template-columns: minmax(360px, 520px);
+}
+
+.fuma-proposal-history-search .fuma-filter-field {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
 .fuma-cohort-date-range {
   display: grid;
   min-width: 0;
@@ -3801,10 +3826,6 @@
   font-weight: 700;
 }
 
-.fuma-creator-toolbar__selected { color: #64716b; font-size: var(--hsas-font-11); font-weight: 600; white-space: nowrap; }
-.fuma-creator-toolbar__select-mode { height: 29px; padding: 0 var(--hsas-space-12); border: 1px solid #c8d5cf; border-radius: 5px; background: var(--hsas-color-white); color: #44534d; cursor: pointer; font-size: var(--hsas-font-11); font-weight: 600; }
-.fuma-creator-toolbar__select-mode:hover { border-color: #91aaa0; background: var(--hsas-color-surface-subtle); }
-.fuma-creator-toolbar__select-mode[aria-pressed="true"] { border-color: #c7ceca; background: #f3f5f4; color: #4f5a55; }
 .hsas-dense-table input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--hsas-teal); cursor: pointer; }
 .fuma-creator-toolbar__divider {
   width: 1px;
@@ -8980,14 +9001,6 @@
   font-size: var(--hsas-font-13);
 }
 
-.fuma-notification-search .hsas-search-panel__fields {
-  grid-template-columns: repeat(5, minmax(132px, 1fr));
-}
-
-.fuma-kakao-recipient-search .hsas-search-panel__fields {
-  grid-template-columns: minmax(220px, 420px);
-}
-
 .fuma-notification-table {
   min-width: 0;
 }
@@ -9086,15 +9099,7 @@
   line-height: 1.5;
 }
 
-@media (max-width: 980px) {
-  .fuma-notification-search .hsas-search-panel__fields {
-    grid-template-columns: repeat(3, minmax(132px, 1fr));
-  }
-}
-
 @media (max-width: 640px) {
-  .fuma-notification-search .hsas-search-panel__fields,
-  .fuma-kakao-recipient-search .hsas-search-panel__fields,
   .fuma-notification-detail-section dl {
     grid-template-columns: minmax(0, 1fr);
   }

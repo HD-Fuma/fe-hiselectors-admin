@@ -8,10 +8,12 @@ import {
   type ReactNode,
 } from "react";
 
+type DenseTableAlign = "left" | "center" | "right";
+
 interface DenseTableColumnBase {
   header: ReactNode;
   width?: CSSProperties["width"];
-  align?: "left" | "center" | "right";
+  align?: DenseTableAlign;
 }
 
 export type DenseTableColumn<T> =
@@ -30,6 +32,7 @@ export interface DenseTableProps<T extends object> {
   columns: DenseTableColumn<T>[];
   rows: T[];
   rowKey: (row: T) => Key;
+  align?: DenseTableAlign;
   emptyMessage?: ReactNode;
   footer?: ReactNode;
   onRowClick?: (row: T) => void;
@@ -72,6 +75,7 @@ function renderedCell<T extends object>(column: DenseTableColumn<T>, row: T) {
 }
 
 export function DenseTable<T extends object>({
+  align = "left",
   columns,
   emptyMessage = "조회 결과가 없습니다.",
   footer,
@@ -145,7 +149,7 @@ export function DenseTable<T extends object>({
                 >
                   {columns.map((column) => (
                     <td
-                      className={`hsas-dense-table__cell--${column.align ?? "left"}`}
+                      className={`hsas-dense-table__cell--${column.align ?? align}`}
                       key={columnIdentity(column)}
                     >
                       {renderedCell(column, row)}

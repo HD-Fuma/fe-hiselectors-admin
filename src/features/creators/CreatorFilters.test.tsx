@@ -489,16 +489,26 @@ describe("proposal history", () => {
     };
   }
 
-  test("requests server pagination and renders the API result as a read-only table", async () => {
+  test("filters proposal history by platform tab without calling the API again", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       success: true,
       data: {
-        content: [proposalEntry()],
-        totalElements: 21,
-        totalPages: 2,
+        content: [
+          proposalEntry(),
+          proposalEntry({
+            proposalHistoryId: 2,
+            creatorId: 114,
+            creatorName: "Clevr TV",
+            snsCode: "YOUTUBE",
+            accountId: "UCnMBn-PNx1M9TLF0s-sEDeQ",
+            email: "clevr@example.com",
+          }),
+        ],
+        totalElements: 2,
+        totalPages: 1,
         number: 0,
-        size: 20,
+        size: 100,
       },
     })));
     vi.stubGlobal("fetch", fetchMock);
@@ -506,12 +516,104 @@ describe("proposal history", () => {
 
     const table = screen.getByRole("region", { name: "제안 이력 목록" });
     expect(await within(table).findByText("김서연")).toBeInTheDocument();
-    expect(within(table).getByText("seoyeon@example.com")).toBeInTheDocument();
+    expect(within(table).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
+      "순번",
+      "크리에이터",
+      "플랫폼",
+      "SNS 계정",
+      "이메일 주소",
+      "발송 시각",
+    ]);
+    expect(within(table).queryByRole("columnheader", { name: "발송자" })).not.toBeInTheDocument();
+    expect(within(table).getByText("Clevr TV")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "제안 플랫폼" })).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "YouTube" }));
+    expect(within(table).queryByText("김서연")).not.toBeInTheDocument();
+    expect(within(table).getByText("Clevr TV")).toBeInTheDocument();
+    expect(resultCount(1)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Instagram" }));
+    expect(within(table).getByText("김서연")).toBeInTheDocument();
+    expect(within(table).queryByText("Clevr TV")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "전체" }));
+    expect(within(table).getByText("김서연")).toBeInTheDocument();
+    expect(within(table).getByText("Clevr TV")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("paginates loaded proposal history on the client", async () => {
+    const user = userEvent.setup();
+    const content = Array.from({ length: 21 }, (_, index) => proposalEntry({
+      proposalHistoryId: index + 1,
+      creatorName: index === 0 ? "김서연" : `크리에이터 ${index + 1}`,
+      accountId: `creator-${index + 1}`,
+      email: `creator-${index + 1}@example.com`,
+    }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      success: true,
+      data: {
+        content,
+        totalElements: 21,
+        totalPages: 1,
+        number: 0,
+        size: 100,
+      },
+    })));
+    vi.stubGlobal("fetch", fetchMock);
+    renderProposalPage();
+
+    const table = screen.getByRole("region", { name: "제안 이력 목록" });
+    expect(await within(table).findByText("김서연")).toBeInTheDocument();
     expect(resultCount(21)).toBeInTheDocument();
     expect(screen.getByText("1 / 2 페이지")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "다음 페이지" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(String(fetchMock.mock.calls[1][0])).toContain("page=1");
+    expect(screen.getByText("2 / 2 페이지")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("filters proposal history by sent period from the search panel", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      success: true,
+      data: {
+        content: [
+          proposalEntry(),
+          proposalEntry({
+            proposalHistoryId: 2,
+            creatorName: "Clevr TV",
+            createdAt: "2026-08-20T10:24:00",
+            email: "clevr@example.com",
+          }),
+        ],
+        totalElements: 2,
+        totalPages: 1,
+        number: 0,
+        size: 100,
+      },
+    })));
+    vi.stubGlobal("fetch", fetchMock);
+    renderProposalPage();
+
+    const table = screen.getByRole("region", { name: "제안 이력 목록" });
+    expect(await within(table).findByText("Clevr TV")).toBeInTheDocument();
+
+    const search = screen.getByRole("search", { name: "검색 조건" });
+    await user.type(within(search).getByLabelText("발송 시작일"), "2026-08-10");
+    await user.type(within(search).getByLabelText("발송 종료일"), "2026-08-31");
+    await user.click(within(search).getByRole("button", { name: "조회" }));
+
+    expect(within(table).queryByText("김서연")).not.toBeInTheDocument();
+    expect(within(table).getByText("Clevr TV")).toBeInTheDocument();
+    expect(resultCount(1)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await user.click(within(search).getByRole("button", { name: "초기화" }));
+    expect(within(table).getByText("김서연")).toBeInTheDocument();
+    expect(within(table).getByText("Clevr TV")).toBeInTheDocument();
   });
 });
