@@ -2269,10 +2269,19 @@
   margin: 0;
 }
 
+.fuma-campaign-detail-list-toolbar strong {
+  font-size: var(--hsas-font-15);
+}
+
 .fuma-campaign-detail-list-section {
   display: grid;
   gap: var(--hsas-space-10);
   padding-top: var(--hsas-space-18);
+}
+
+.fuma-campaign-detail-list-section .hsas-dense-table th,
+.fuma-campaign-detail-list-section .hsas-dense-table td {
+  font-size: var(--hsas-font-13);
 }
 
 .fuma-campaign-detail-list-section + .fuma-campaign-detail-list-section {
