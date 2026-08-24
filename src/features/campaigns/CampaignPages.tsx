@@ -775,7 +775,7 @@ export function CampaignDetailPage({
           >
             수정
           </Link>
-          {campaign.status === "ENDED" ? <Button onClick={() => setDeleteOpen(true)} variant="danger">삭제</Button> : null}
+          {campaign.status === "SCHEDULED" ? <Button onClick={() => setDeleteOpen(true)} variant="danger">삭제</Button> : null}
         </>) : null}
         onClose={closePanel}
         title="캠페인 상세"
@@ -869,7 +869,7 @@ export function CampaignDetailPage({
         )}
         </div>
       </SidePanel>
-      {deleteOpen ? <Modal actions={<><Button disabled={deleting} onClick={() => setDeleteOpen(false)}>취소</Button><Button disabled={deleting} onClick={removeCampaign} variant="danger">{deleting ? "삭제 중..." : "삭제"}</Button></>} onClose={() => setDeleteOpen(false)} open role="alertdialog" title="캠페인 삭제"><p>종료된 캠페인을 삭제할까요? 삭제 후 목록에서 보이지 않습니다.</p></Modal> : null}
+      {deleteOpen ? <Modal actions={<><Button disabled={deleting} onClick={() => setDeleteOpen(false)}>취소</Button><Button disabled={deleting} onClick={removeCampaign} variant="danger">{deleting ? "삭제 중..." : "삭제"}</Button></>} onClose={() => setDeleteOpen(false)} open role="alertdialog" title="캠페인 삭제"><p>시작 전 캠페인을 삭제할까요? 삭제 후 목록에서 보이지 않습니다.</p></Modal> : null}
     </>
   );
 }

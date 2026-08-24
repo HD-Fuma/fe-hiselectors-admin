@@ -7,12 +7,14 @@ const campaign = {
   productIds: [10], products: [{ id: 10, code: "P-10", productName: "골프 재킷", brandName: "브랜드", category: "골프", regularPrice: 10000, salePrice: 9000, status: "ON_SALE", thumbnailUrl: null, detailUrl: null }],
   createdAt: "2026-01-01T00:00:00", updatedAt: "2026-01-01T00:00:00",
 };
+let campaignStatus: "SCHEDULED" | "ACTIVE" | "ENDED" = "ENDED";
 
 function json(data: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify({ success: true, code: "OK", message: null, data }), { status, headers: { "Content-Type": "application/json" } }));
 }
 
 beforeEach(() => {
+  campaignStatus = "ENDED";
   Object.defineProperty(URL, "createObjectURL", {
     configurable: true,
     value: vi.fn(() => "blob:campaign-thumbnail"),
@@ -31,8 +33,8 @@ beforeEach(() => {
     }
     if (url.includes("/participants")) return json({ content: [{ selectorId: 7, nickname: "셀렉터", platform: "INSTAGRAM", accountId: "selector", followerCount: 100 }], number: 0, size: 20, totalElements: 1, totalPages: 1 });
     if (url.includes("/api/admin/products")) return json({ content: campaign.products, number: 0, size: 20, totalElements: 1, totalPages: 1 });
-    if (/\/campaigns\/3(?:\?|$)/.test(url)) return json(campaign);
-    return json({ content: [campaign], number: 0, size: 20, totalElements: 1, totalPages: 1 });
+    if (/\/campaigns\/3(?:\?|$)/.test(url)) return json({ ...campaign, status: campaignStatus });
+    return json({ content: [{ ...campaign, status: campaignStatus }], number: 0, size: 20, totalElements: 1, totalPages: 1 });
   }));
 });
 
@@ -85,6 +87,25 @@ describe("campaign filter behavior", () => {
     expect(within(productList).getByRole("img", { name: "골프 재킷 썸네일" })).toBeInTheDocument();
     expect(productList.compareDocumentPosition(participantList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(detail).queryByRole("button", { name: "포함 상품" })).not.toBeInTheDocument();
+  });
+
+  test.each([
+    ["SCHEDULED", true],
+    ["ACTIVE", false],
+    ["ENDED", false],
+  ] as const)("allows deletion only for %s campaigns", async (status, canDelete) => {
+    campaignStatus = status;
+    renderRoute("/campaigns/3");
+    const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
+
+    if (!canDelete) {
+      expect(within(detail).queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
+      return;
+    }
+
+    fireEvent.click(within(detail).getByRole("button", { name: "삭제" }));
+    const confirmation = await screen.findByRole("alertdialog", { name: "캠페인 삭제" });
+    expect(within(confirmation).getByText("시작 전 캠페인을 삭제할까요? 삭제 후 목록에서 보이지 않습니다.")).toBeInTheDocument();
   });
 
   test("reveals products by ten and appends participants by twenty", async () => {
