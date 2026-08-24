@@ -8,6 +8,7 @@ export interface ProfileDetailGalleryItem {
   id: string;
   imageUrl: string;
   title: string;
+  url: string | null;
 }
 
 export interface ProfileDetailInfoField {
@@ -100,7 +101,18 @@ function ProfileDetailSidebar({
           <div><dt>ER</dt><dd>{profile.engagementValue}</dd></div>
         </dl>
         <div aria-label="대표 콘텐츠" className="fuma-social-profile__gallery">
-          {profile.gallery.map((item) => <GalleryImage item={item} key={item.id} name={profile.name} />)}
+          {profile.gallery.map((item) => item.url ? (
+            <a
+              aria-label={`${profile.name} 대표 게시글: ${item.title} 원본 열기`}
+              className="fuma-creator-media"
+              href={item.url}
+              key={item.id}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <GalleryImage item={item} name={profile.name} />
+            </a>
+          ) : <GalleryImage item={item} key={item.id} name={profile.name} />)}
         </div>
       </section>
 

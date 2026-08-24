@@ -396,7 +396,12 @@ describe("applicant api pages", () => {
     expect(within(panel).getByRole("img", { name: "김민지 프로필 이미지" }))
       .toHaveAttribute("src", "https://cdn.example.com/minji-profile.jpg");
     const representativeContents = within(panel).getByLabelText("대표 콘텐츠");
-    expect(within(representativeContents).getByRole("img", {
+    const thumbnailLink = within(representativeContents).getByRole("link", {
+      name: "김민지 대표 게시글: 대표 피드 캡션 원본 열기",
+    });
+    expect(thumbnailLink).toHaveAttribute("href", "https://www.instagram.com/p/post-11");
+    expect(thumbnailLink).toHaveAttribute("target", "_blank");
+    expect(within(thumbnailLink).getByRole("img", {
       name: "김민지 대표 게시글: 대표 피드 캡션",
     })).toHaveAttribute("src", "https://cdn.example.com/post-11-thumbnail.jpg");
     expect(representativeContents.children).toHaveLength(1);
