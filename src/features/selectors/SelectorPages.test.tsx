@@ -247,7 +247,8 @@ describe("selector api pages", () => {
     const settlements = within(panel).getByRole("region", { name: "셀렉터스 정산 내역" });
     expect(settlements).toHaveTextContent("75,000원");
     expect(within(panel).getByText("누적 지급 수수료").parentElement).toHaveTextContent("320,000원");
-    expect(within(panel).getAllByText("지급 상태")[0].parentElement).toHaveTextContent("지급 대기");
+    expect(within(panel).getAllByText("지급 상태")[0].parentElement).toHaveTextContent("정상");
+    expect(within(panel).getByText("정상")).toHaveClass("hsas-status-pill");
     expect(within(panel).getByText("정산정보 등록 여부").parentElement).toHaveTextContent("등록 완료");
     expect(within(panel).queryByText("현재 활동월")).not.toBeInTheDocument();
     expect(within(panel).queryByText("다음 지급월")).not.toBeInTheDocument();

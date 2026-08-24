@@ -208,12 +208,6 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SelectorSettlementTableRow>[] = [
   },
 ];
 
-function apiSelectorStatusTone(roleId: string): NonNullable<StatusPillProps["tone"]> {
-  if (roleId === "ACTIVE") return "approved";
-  if (roleId === "BLACKLIST") return "rejected";
-  return "neutral";
-}
-
 function apiPlatform(snsCode: SelectorSnsCode | null) {
   if (snsCode === "INSTAGRAM") return "Instagram";
   if (snsCode === "YOUTUBE") return "YouTube";
@@ -370,16 +364,11 @@ function SelectorApiDetailContent({
   const handle = accountId ? accountHandle(accountId) : null;
   const channelHref = snsAccountHref(platform, accountId || null);
   const audienceLabel = audienceCountLabel(platform, primaryAccount?.followerCount);
-  const paymentStatus = primarySettlementPaymentStatus([
+  const paymentHoldReason = settlementHoldReason(primarySettlementPaymentStatus([
     settlementSummary?.nextPaymentSettlementStatus,
     ...settlementRows.map((row) => row.statusCode),
-  ]);
-  const paymentHoldReason = settlementHoldReason(paymentStatus);
-  const paymentStatusLabel = paymentHoldReason
-    ? "지급 보류"
-    : paymentStatus
-      ? settlementStatusLabel(paymentStatus)
-      : "지급 대상 없음";
+  ]));
+  const paymentHeld = paymentHoldReason != null;
 
   return (
     <div className="fuma-detail-panel__content fuma-selector-detail-panel">
@@ -402,9 +391,6 @@ function SelectorApiDetailContent({
             </div>
             <div className="fuma-creator-detail-hero__title-row">
               <h2>{detail.nickname}</h2>
-              <StatusPill tone={apiSelectorStatusTone(detail.roleId)}>
-                {detail.roleName || detail.roleId}
-              </StatusPill>
             </div>
             {handle || audienceLabel ? (
               <div className="fuma-creator-detail-hero__channel">
@@ -533,8 +519,8 @@ function SelectorApiDetailContent({
               <div className="fuma-key-value-grid__item">
                 <dt>지급 상태</dt>
                 <dd>
-                  <StatusPill tone={paymentStatus ? settlementStatusTone(paymentStatus) : "neutral"}>
-                    {paymentStatusLabel}
+                  <StatusPill tone={paymentHeld ? "danger" : "approved"}>
+                    {paymentHeld ? "지급 보류" : "정상"}
                   </StatusPill>
                   {paymentHoldReason ? <span>{paymentHoldReason}</span> : null}
                 </dd>
