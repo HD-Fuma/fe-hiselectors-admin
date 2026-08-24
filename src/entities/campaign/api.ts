@@ -4,6 +4,7 @@ import type {
   Campaign,
   CampaignParticipant,
   CampaignSaveRequest,
+  CampaignUpdateRequest,
   CampaignSearchRequest,
   CampaignProduct,
   ProductStatusCode,
@@ -76,7 +77,7 @@ export function uploadCampaignThumbnail(file: File) {
   );
 }
 
-export function updateCampaign(id: number, body: CampaignSaveRequest) {
+export function updateCampaign(id: number, body: CampaignUpdateRequest) {
   return request<Campaign>(`/api/admin/campaigns/${id}`, { method: "PATCH", headers: headers(true), body: JSON.stringify(body) }, "캠페인 수정에 실패했습니다.");
 }
 

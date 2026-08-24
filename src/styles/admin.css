@@ -1971,6 +1971,12 @@
   cursor: pointer;
 }
 
+.fuma-campaign-thumbnail-upload__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--hsas-space-6);
+}
+
 .fuma-campaign-thumbnail-upload__help {
   overflow: hidden;
   color: #7d8882;
@@ -2770,9 +2776,12 @@
     max-width: 260px;
   }
 
-  .fuma-campaign-thumbnail-upload__action {
+  .fuma-campaign-thumbnail-upload__actions {
     grid-column: 2;
     min-width: 100px;
+  }
+
+  .fuma-campaign-thumbnail-upload__action {
     padding-inline: var(--hsas-space-12);
   }
 
