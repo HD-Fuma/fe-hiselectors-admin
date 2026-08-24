@@ -80,6 +80,7 @@ const EMPTY_CREATOR_FILTERS = {
   categoryCode: "",
   minFollower: "",
   maxFollower: "",
+  excludeBrands: false,
 };
 
 function dateTime(value: string) {
@@ -397,6 +398,7 @@ export function CreatorListPage() {
       categoryCode: appliedFilters.categoryCode || undefined,
       minFollower: numericFilter(appliedFilters.minFollower),
       maxFollower: numericFilter(appliedFilters.maxFollower),
+      maxBrandScore: appliedFilters.excludeBrands ? 1 : undefined,
       page: page - 1,
       size: CREATOR_LIST_PAGE_SIZE,
     }, controller.signal).then((result) => {
@@ -496,7 +498,21 @@ export function CreatorListPage() {
       <PageHeader title="크리에이터 풀" />
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-creator-pool-search">
-          <SearchPanel actions={<SearchActions onReset={resetSearch} onSearch={applySearch} />}>
+          <SearchPanel actions={(
+            <>
+              <Button
+                aria-pressed={filters.excludeBrands}
+                onClick={() => setFilters((current) => ({
+                  ...current,
+                  excludeBrands: !current.excludeBrands,
+                }))}
+                variant={filters.excludeBrands ? "primary" : "secondary"}
+              >
+                브랜드 계정 제외
+              </Button>
+              <SearchActions onReset={resetSearch} onSearch={applySearch} />
+            </>
+          )}>
             <FilterField htmlFor="creator-keyword" label="키워드">
               <TextInput
                 id="creator-keyword"
