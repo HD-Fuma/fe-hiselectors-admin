@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -179,11 +178,6 @@ function detectionSourceLabel(source: string) {
   if (source.includes("OCR")) return "OCR";
   if (source.includes("STT") || source.includes("음성")) return "STT";
   return "본문";
-}
-
-function collectionStepStatus(succeeded: boolean, savedCount: number) {
-  if (succeeded) return "성공";
-  return savedCount > 0 ? "일부 실패" : "실패";
 }
 
 interface QueueFilterValues {
@@ -417,13 +411,11 @@ function ContentInspectionCollection({
 }
 
 function ContentInspectionCategoryTabs({
-  onCollectionComplete,
   onStartInspection,
   pendingCount,
   selectedCategory,
   onSelect,
 }: {
-  onCollectionComplete: () => Promise<void>;
   onStartInspection: () => void;
   pendingCount: number;
   selectedCategory: ContentInspectionCategory;
@@ -441,7 +433,6 @@ function ContentInspectionCategoryTabs({
     setCollectionError(null);
     try {
       const result = await runContentBatch();
-      await onCollectionComplete();
       setCollectionResult(result);
     } catch (error) {
       setCollectionError(
@@ -484,16 +475,7 @@ function ContentInspectionCategoryTabs({
       />
       {collectionResult ? (
         <p className="fuma-content-inspection-collection-feedback" role="status">
-          배치 완료 · 신규 콘텐츠 {collectionResult.newContentCount}건 · 성과 저장{" "}
-          {collectionResult.engagementCount}건 · 신규 수집{" "}
-          {collectionStepStatus(
-            collectionResult.newContentSucceeded,
-            collectionResult.newContentCount,
-          )} · 기존 콘텐츠 검수{" "}
-          {collectionStepStatus(
-            collectionResult.storedContentSucceeded,
-            collectionResult.engagementCount,
-          )}
+          작업 요청됨 · 작업 ID {collectionResult.runId} · 진행상황에서 확인
         </p>
       ) : collectionError ? (
         <p
@@ -558,55 +540,23 @@ export function ContentInspectionListPage() {
   const [contents, setContents] = useState<ContentInspectionFixture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const contentRequestController = useRef<AbortController | null>(null);
-  const latestContentRequestId = useRef(0);
-  const fetchContents = useCallback(async () => {
-    contentRequestController.current?.abort();
-    const controller = new AbortController();
-    const requestId = latestContentRequestId.current + 1;
-    contentRequestController.current = controller;
-    latestContentRequestId.current = requestId;
-    try {
-      const result = await getCurrentGenerationContents(controller.signal);
-      if (latestContentRequestId.current !== requestId) return;
-      setContents(result.map(adaptContentInspection));
-    } catch (error) {
-      if (
-        latestContentRequestId.current !== requestId
-        || (error instanceof Error && error.name === "AbortError")
-      ) return;
-      setLoadError(error instanceof Error ? error.message : "콘텐츠 목록 조회에 실패했습니다.");
-      throw error;
-    } finally {
-      if (latestContentRequestId.current === requestId) setIsLoading(false);
-    }
-  }, []);
-  const reloadContents = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    await fetchContents();
-  }, [fetchContents]);
-
   useEffect(() => {
     const controller = new AbortController();
-    const requestId = latestContentRequestId.current + 1;
-    contentRequestController.current = controller;
-    latestContentRequestId.current = requestId;
 
     void getCurrentGenerationContents(controller.signal)
       .then((result) => {
-        if (latestContentRequestId.current !== requestId) return;
+        if (controller.signal.aborted) return;
         setContents(result.map(adaptContentInspection));
       })
       .catch((error: unknown) => {
         if (
-          latestContentRequestId.current !== requestId
+          controller.signal.aborted
           || (error instanceof Error && error.name === "AbortError")
         ) return;
         setLoadError(error instanceof Error ? error.message : "콘텐츠 목록 조회에 실패했습니다.");
       })
       .finally(() => {
-        if (latestContentRequestId.current === requestId) setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       });
 
     return () => controller.abort();
@@ -698,7 +648,6 @@ export function ContentInspectionListPage() {
           onReset={resetQueueFilters}
         />
         <ContentInspectionCategoryTabs
-          onCollectionComplete={reloadContents}
           onStartInspection={() => {
             const firstPendingContent = pendingContents[0];
             if (!firstPendingContent) return;

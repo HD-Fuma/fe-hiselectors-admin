@@ -136,6 +136,20 @@ const applicantDetail = {
   }],
 };
 
+const applicantAiReport = {
+  applicationId: 1,
+  summary: "",
+  category: "",
+  keywords: [],
+  contentStyle: "",
+  tone: "",
+  strength: "",
+  warning: "",
+  brandHistory: "",
+  status: "COMPLETED",
+  createdAt: "2026-08-05T10:00:00",
+};
+
 const youtubeApplicantDetail = {
   ...applicantDetail,
   ...applicants[1],
@@ -500,6 +514,7 @@ describe("applicant api pages", () => {
       if (path.endsWith("/api/admin/applications/1/status") && init?.method === "PATCH") {
         return statusResponse.promise;
       }
+      if (path.endsWith("/api/admin/applications/1/ai-report")) return json(applicantAiReport);
       if (path.endsWith("/api/admin/applications/1")) {
         return json(applicantDetail);
       }
@@ -542,6 +557,7 @@ describe("applicant api pages", () => {
         approved = true;
         return json({ id: 1, status: "APPROVED" });
       }
+      if (path.endsWith("/api/admin/applications/1/ai-report")) return json(applicantAiReport);
       if (path.endsWith("/api/admin/applications/1")) {
         return json({ ...applicantDetail, status: approved ? "APPROVED" : "PENDING" });
       }
@@ -565,9 +581,9 @@ describe("applicant api pages", () => {
     await user.click(await within(panel).findByRole("button", { name: "승인" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "지원자 상세" })).not.toBeInTheDocument());
+    await waitFor(() => expect(listPages.at(-1)).toBe(0));
     expect(await screen.findByText("1 / 1 페이지")).toBeInTheDocument();
     expect(screen.getByText("정하린")).toBeInTheDocument();
-    expect(listPages.length).toBeGreaterThan(0);
   });
 
   test("stays on the current page after deciding an applicant when other pages still remain", async () => {

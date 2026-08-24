@@ -34,30 +34,46 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test("runs the content batch manually with authentication", async () => {
+test("requests an asynchronous content batch with authentication and idempotency", async () => {
   const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
     code: "OK",
     data: {
-      engagementCount: 5,
-      newContentCount: 2,
-      newContentSucceeded: true,
-      storedContentSucceeded: true,
+      currentStep: null,
+      failedCount: 0,
+      finishedAt: null,
+      processedCount: 0,
+      progressMessage: null,
+      progressPercent: null,
+      runId: "run-content-1",
+      skippedCount: 0,
+      startedAt: null,
+      startedBy: { adminId: 1, name: "관리자" },
+      status: "QUEUED",
+      succeededCount: 0,
+      taskType: "CONTENT_SYNC",
+      totalCount: null,
+      triggerType: "ADMIN_TRIGGERED",
     },
     message: null,
     success: true,
   }), {
     headers: { "Content-Type": "application/json" },
-    status: 200,
+    status: 202,
   }));
   vi.stubGlobal("fetch", fetchMock);
 
-  await contentEntity.runContentBatch();
+  await expect(contentEntity.runContentBatch()).resolves.toMatchObject({
+    runId: "run-content-1",
+    status: "QUEUED",
+  });
 
   expect(new URL(String(fetchMock.mock.calls[0][0])).pathname)
     .toBe("/api/admin/content-batch/run");
   expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({ method: "POST" }));
   const [, init] = fetchMock.mock.calls[0];
-  expect(new Headers(init.headers).get("Authorization")).toBe("Bearer admin.jwt");
+  const headers = new Headers(init.headers);
+  expect(headers.get("Authorization")).toBe("Bearer admin.jwt");
+  expect(headers.get("Idempotency-Key")).toMatch(/^[0-9a-f-]{36}$/);
 });
 
 test("retrieves every current-generation content page with authentication and cancellation", async () => {

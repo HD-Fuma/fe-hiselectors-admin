@@ -738,7 +738,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 }
 
 .fuma-content-table-trend { display: grid; min-width: 188px; }
-.fuma-content-table-trend__header { display: inline-grid; justify-items: center; gap: 1px; line-height: 1.2; }
+.fuma-content-table-trend__header { display: inline-grid; justify-items: center; gap: var(--hsas-space-1); line-height: 1.2; }
 .fuma-content-table-trend__header small { display: inline-flex; align-items: center; gap: var(--hsas-space-3); color: #7c8883; font-size: var(--hsas-font-8); font-weight: 600; }
 .fuma-content-table-trend__header i { width: 9px; height: 2px; margin-left: var(--hsas-space-3); border-radius: 99px; background: var(--cohort-series-color); }
 .fuma-content-table-trend__header i:first-child { margin-left: 0; }
