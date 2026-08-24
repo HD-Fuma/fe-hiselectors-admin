@@ -40,7 +40,7 @@ export interface ProfileAnalysisRepresentativeContent {
 }
 
 interface ProfileAnalysisReportProps {
-  collectedAt: string;
+  completedAt: string | null;
   collectionDays: number;
   comparisonLabel: string;
   contentMetrics: readonly ProfileAnalysisContentMetric[];
@@ -60,7 +60,7 @@ interface ProfileAnalysisReportProps {
 }
 
 export function ProfileAnalysisReport({
-  collectedAt,
+  completedAt,
   collectionDays,
   comparisonLabel,
   contentMetrics,
@@ -85,6 +85,7 @@ export function ProfileAnalysisReport({
           <p>{eyebrow}</p>
           <h2>{title}</h2>
         </div>
+        {completedAt ? <span>AI 리포트 산정 완료 {completedAt}</span> : null}
       </header>
 
       <div className="fuma-creator-analysis-report__content">
@@ -102,7 +103,13 @@ export function ProfileAnalysisReport({
               <span>AI가 선정한 대표 콘텐츠와 선정 근거</span>
             </div>
             <div className="fuma-representative-card" data-layout={representativeContent.layout}>
-              <div className="fuma-representative-card__media">
+              <a
+                aria-label={`${representativeContent.mediaAlt} 원본 열기`}
+                className="fuma-representative-card__media"
+                href={representativeContent.url}
+                rel="noreferrer"
+                target="_blank"
+              >
                 {representativeContent.mediaUrl ? (
                   <img alt={representativeContent.mediaAlt} src={representativeContent.mediaUrl} />
                 ) : (
@@ -118,7 +125,7 @@ export function ProfileAnalysisReport({
                 <span className="fuma-representative-card__format-badge">
                   {representativeContent.contentTypeLabel}
                 </span>
-              </div>
+              </a>
               <div className="fuma-representative-card__info">
                 <div className="fuma-representative-card__badges">
                   {representativeContent.category ? (
@@ -150,14 +157,6 @@ export function ProfileAnalysisReport({
                     ))}
                   </ul>
                 ) : null}
-                <a
-                  className="fuma-representative-card__cta"
-                  href={representativeContent.url}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  원본에서 확인하기 ↗
-                </a>
               </div>
             </div>
           </section>
@@ -166,7 +165,6 @@ export function ProfileAnalysisReport({
         <section aria-label="정량 분석" className="fuma-creator-analysis-block">
           <div className="fuma-creator-analysis-block__heading">
             <h3>정량 분석</h3>
-            <span>수집 시각 {collectedAt}</span>
           </div>
           <div className="fuma-creator-analysis-metrics">
             <section className="fuma-creator-metric-group fuma-creator-metric-group--performance fuma-analysis-engagement">

@@ -162,10 +162,12 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
     ? {
       basisBars: basis.bars,
       basisInsight: basis.insight,
-      category: aiReport.representativeCategory,
+      category: aiReport.representativeCategory || aiReport.category || null,
       contentTypeLabel: representativeContentTypeLabel(aiReport.representativeContentType),
       isVideo: aiReport.representativeContentType !== "FEED",
-      keywords: aiReport.representativeKeywords ?? [],
+      keywords: aiReport.representativeKeywords?.length
+        ? aiReport.representativeKeywords
+        : aiReport.keywords,
       layout: aiReport.representativeContentType === "LONG_FORM"
         ? "landscape" as const
         : "portrait" as const,
@@ -174,7 +176,9 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
         const matched = applicant.contents.find(
           (content) => content.contentUrl === aiReport.representativeContentUrl,
         );
-        return matched?.mediaUrl ? assetUrl(matched.mediaUrl) : null;
+        const thumbnailUrl = matched?.thumbnailUrl
+          ?? (matched?.mediaType === "IMAGE" ? matched.mediaUrl : null);
+        return thumbnailUrl ? assetUrl(thumbnailUrl) : null;
       })(),
       url: aiReport.representativeContentUrl,
       viewCountLabel: aiReport.representativeViewCount === null
@@ -218,7 +222,11 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
 
   return (
     <ProfileAnalysisReport
-      collectedAt={dateTime(applicant.mediaCollectedAt)}
+      completedAt={aiReport
+        ? dateTime(aiReport.createdAt || applicant.mediaCollectedAt)
+        : applicant.analysisStatus === "DONE"
+          ? dateTime(applicant.mediaCollectedAt)
+          : null}
       collectionDays={applicant.metrics.analysisWindowDays}
       comparisonLabel="지원자 중"
       contentMetrics={[

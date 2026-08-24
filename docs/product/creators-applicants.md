@@ -21,6 +21,7 @@
 - 오른쪽: 동일한 CREATOR REPORT 정보 구조
 - 승인·반려 action은 실제 mutation API가 연결된 경우에만 제공
 - list drawer와 route 상세가 같은 데이터·컴포넌트 계약을 사용
+- 콘텐츠 썸네일은 원본 SNS의 만료 가능 URL을 그대로 저장하지 않고 S3/CDN에 영속 보관한 `thumbnailUrl`을 제공
 
 새로운 지원자 전용 상세 골격이나 크리에이터 상세 복사본을 만들지 않습니다.
 

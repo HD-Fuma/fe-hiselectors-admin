@@ -390,6 +390,54 @@ describe("applicant api pages", () => {
       .toHaveTextContent("2026.08.05 10:00");
   });
 
+  test("uses the stored thumbnail as the representative-content link and keeps AI metadata visible", async () => {
+    const report = {
+      applicationId: 1,
+      summary: "일상 콘텐츠의 반응이 안정적입니다.",
+      category: "라이프스타일",
+      keywords: ["일상", "브이로그"],
+      contentStyle: "정보형",
+      tone: "친근함",
+      strength: "꾸준한 소통",
+      cautions: "광고 비중 확인",
+      risks: "",
+      brandHistory: "브랜드 A",
+      status: "DONE",
+      createdAt: "2026-08-05T10:30:00",
+      representativeContentUrl: "https://www.instagram.com/p/post-11",
+      representativeContentType: "FEED",
+      representativeViewCount: null,
+      representativeCategory: null,
+      representativeKeywords: null,
+    };
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith("/api/admin/generations")) return json([]);
+      if (path.endsWith("/api/admin/applications/1/ai-report")) return json(report);
+      if (path.endsWith("/api/admin/applications/1")) return json(applicantDetail);
+      return json(page(applicants));
+    }));
+
+    renderApplicantPage("/applicants?detail=1");
+    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
+    const analysisReport = await within(panel).findByRole("region", { name: "지원자 분석 리포트" });
+    const representativeContent = within(analysisReport).getByRole("region", { name: "대표 콘텐츠" });
+    const thumbnailLink = within(representativeContent).getByRole("link", {
+      name: "김민지 대표 콘텐츠 원본 열기",
+    });
+
+    expect(thumbnailLink).toHaveAttribute("href", "https://www.instagram.com/p/post-11");
+    expect(within(thumbnailLink).getByRole("img", { name: "김민지 대표 콘텐츠" }))
+      .toHaveAttribute("src", "https://cdn.example.com/post-11-thumbnail.jpg");
+    expect(within(representativeContent).getByText("라이프스타일")).toBeInTheDocument();
+    expect(within(representativeContent).getByText("일상")).toBeInTheDocument();
+    expect(within(representativeContent).getByText("브이로그")).toBeInTheDocument();
+    expect(within(analysisReport).getByText("AI 리포트 산정 완료 2026.08.05 10:30"))
+      .toBeInTheDocument();
+    expect(within(analysisReport).queryByText(/원본에서 확인하기/)).not.toBeInTheDocument();
+    expect(within(analysisReport).queryByText(/수집 시각/)).not.toBeInTheDocument();
+  });
+
   test("polls a pending test applicant until analysis completes", async () => {
     vi.useFakeTimers();
     const pendingTestApplicant = {
