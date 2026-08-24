@@ -6,6 +6,7 @@ export interface ResultToolbarProps {
   description?: ReactNode;
   meta?: ReactNode;
   title: ReactNode;
+  titleId?: string;
 }
 
 function hasSlot(value: ReactNode) {
@@ -18,10 +19,11 @@ export function ResultToolbar({
   description,
   meta,
   title,
+  titleId,
 }: ResultToolbarProps) {
   return (
     <div className={["fuma-result-toolbar", className].filter(Boolean).join(" ")}>
-      <strong>{title}</strong>
+      <strong id={titleId}>{title}</strong>
       {hasSlot(description) ? (
         <span className="fuma-result-toolbar__description">{description}</span>
       ) : null}

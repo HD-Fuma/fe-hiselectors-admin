@@ -5,23 +5,23 @@ import { assetUrl } from "../../lib/assetUrl";
 import { CreatorCardProfileHeader } from "./CreatorCardProfileHeader";
 
 interface ContentCollectionCardBaseProps {
-  caption: string;
-  footerEnd: ReactNode;
-  footerStart: ReactNode;
+  caption?: string;
+  footerEnd?: ReactNode;
+  footerStart?: ReactNode;
   mediaAlt: string;
   mediaCount?: number;
   mediaFallbackUrl?: string;
+  mediaOverlay?: ReactNode;
   mediaUrl?: string;
   showPlay?: boolean;
   status?: ReactNode;
-  title: string;
+  title?: string;
   duration?: string;
 }
 
 interface ContentCollectionCardCreatorProps {
   variant?: "creator";
   author: string;
-  badgeLabel: string;
   platform: SocialPlatform;
   profileImageUrl: string;
   snsId?: string;
@@ -45,6 +45,7 @@ export function ContentCollectionCard(props: ContentCollectionCardProps) {
     mediaAlt,
     mediaCount = 1,
     mediaFallbackUrl,
+    mediaOverlay,
     mediaUrl,
     showPlay = false,
     status,
@@ -55,7 +56,6 @@ export function ContentCollectionCard(props: ContentCollectionCardProps) {
     <>
       {props.variant === "custom" ? props.header : (
         <CreatorCardProfileHeader
-          badgeLabel={props.badgeLabel}
           displayName={props.author}
           platform={props.platform}
           profileImageUrl={props.profileImageUrl}
@@ -87,15 +87,20 @@ export function ContentCollectionCard(props: ContentCollectionCardProps) {
         {mediaCount > 1 ? (
           <span className="fuma-content-collection__media-count">1 / {mediaCount}</span>
         ) : null}
+        {mediaOverlay}
       </div>
-      <div className="fuma-content-collection__copy">
-        <strong>{title}</strong>
-        <p className="fuma-content-collection__caption">{caption}</p>
-      </div>
-      <footer className="fuma-content-collection__meta">
-        <span>{footerStart}</span>
-        {footerEnd}
-      </footer>
+      {title || caption ? (
+        <div className="fuma-content-collection__copy">
+          {title ? <strong>{title}</strong> : null}
+          {caption ? <p className="fuma-content-collection__caption">{caption}</p> : null}
+        </div>
+      ) : null}
+      {footerStart || footerEnd ? (
+        <footer className="fuma-content-collection__meta">
+          <span>{footerStart}</span>
+          {footerEnd}
+        </footer>
+      ) : null}
     </>
   );
 }

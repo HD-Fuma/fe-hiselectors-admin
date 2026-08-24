@@ -308,7 +308,6 @@ function CollectionCard({
     >
       <ContentCollectionCard
         author={content.author}
-        badgeLabel={content.cohort}
         caption={snapshot.text}
         duration={content.duration}
         footerEnd={(

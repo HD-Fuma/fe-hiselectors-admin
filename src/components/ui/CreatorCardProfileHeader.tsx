@@ -3,7 +3,6 @@ import { PlatformIcon } from "../social/PlatformIcon";
 import { CreatorProfilePhoto } from "./CreatorProfilePhoto";
 
 export interface CreatorCardProfileHeaderProps {
-  badgeLabel: string;
   displayName: string;
   platform: SocialPlatform;
   profileImageUrl: string;
@@ -11,7 +10,6 @@ export interface CreatorCardProfileHeaderProps {
 }
 
 export function CreatorCardProfileHeader({
-  badgeLabel,
   displayName,
   platform,
   profileImageUrl,
@@ -24,7 +22,6 @@ export function CreatorCardProfileHeader({
       </span>
       <div className="fuma-creator-card__identity">
         <div className="fuma-creator-card__badges">
-          <span>{badgeLabel}</span>
           <span className="fuma-creator-card__platform">
             <PlatformIcon platform={platform} />
             {platform}

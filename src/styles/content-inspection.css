@@ -2931,10 +2931,68 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
   background: var(--hsas-color-line-100);
 }
 
+.fuma-content-collection:has(.fuma-campaign-card) .fuma-content-collection__track.is-grid {
+  gap: var(--hsas-space-22);
+  row-gap: var(--hsas-space-42);
+  padding: var(--hsas-space-20);
+}
+
+.fuma-campaign-card {
+  border: 0;
+  border-radius: 0;
+}
+
+.fuma-campaign-card .fuma-content-collection__media,
+.fuma-campaign-card .fuma-content-collection__media img {
+  margin: 0;
+  border-radius: 0;
+}
+
 .fuma-campaign-card__status {
+  position: absolute;
+  z-index: 2;
+  top: var(--hsas-space-12);
+  right: var(--hsas-space-12);
   display: flex;
   justify-content: flex-end;
-  padding: var(--hsas-space-14) var(--hsas-space-16) var(--hsas-space-8);
+  padding: 0;
+}
+
+.fuma-campaign-card__overlay {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  gap: var(--hsas-space-4);
+  padding: var(--hsas-space-40) var(--hsas-space-14) var(--hsas-space-14);
+  background: linear-gradient(
+    to top,
+    rgba(21, 31, 27, 0.82) 0%,
+    rgba(21, 31, 27, 0.42) 42%,
+    transparent 100%
+  );
+  color: var(--hsas-color-white);
+}
+
+.fuma-campaign-card__title {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--hsas-color-white);
+  font-size: var(--hsas-font-15);
+  font-weight: 700;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.fuma-campaign-card__period {
+  margin: 0;
+  color: var(--hsas-color-white);
+  font-size: var(--hsas-font-11);
+  line-height: 1.4;
+  opacity: 0.92;
 }
 
 .fuma-content-collection__card[data-content-format="youtube-long"] .fuma-content-collection__media {

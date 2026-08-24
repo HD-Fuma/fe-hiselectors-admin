@@ -100,26 +100,27 @@ function CampaignCard({ campaign, onOpen }: {
       type="button"
     >
       <ContentCollectionCard
-        caption={campaign.description || "등록된 캠페인 설명이 없습니다."}
-        footerEnd={<span>상품 {campaign.productIds.length}개</span>}
-        footerStart={(
-          <>
-            <time dateTime={campaign.startDate}>{campaign.startDate}</time>
-            {" ~ "}
-            <time dateTime={campaign.endDate}>{campaign.endDate}</time>
-          </>
-        )}
-        header={(
-          <header className="fuma-campaign-card__status">
-            <StatusPill tone={statusTone(campaign.status)}>
-              {campaignStatusLabel(campaign.status)}
-            </StatusPill>
-          </header>
-        )}
+        header={null}
         mediaAlt={`${campaign.title} 썸네일`}
         mediaFallbackUrl="/brand/thehyundai-hi.svg"
+        mediaOverlay={(
+          <>
+            <header className="fuma-campaign-card__status">
+              <StatusPill tone={statusTone(campaign.status)}>
+                {campaignStatusLabel(campaign.status)}
+              </StatusPill>
+            </header>
+            <div className="fuma-campaign-card__overlay">
+              <strong className="fuma-campaign-card__title">{campaign.title}</strong>
+              <p className="fuma-campaign-card__period">
+                <time dateTime={campaign.startDate}>{campaign.startDate}</time>
+                {" ~ "}
+                <time dateTime={campaign.endDate}>{campaign.endDate}</time>
+              </p>
+            </div>
+          </>
+        )}
         mediaUrl={campaign.thumbnailUrl || "/brand/thehyundai-hi.svg"}
-        title={campaign.title}
         variant="custom"
       />
     </button>
@@ -910,17 +911,19 @@ export function CampaignDetailPage({
               <div className="fuma-campaign-detail-overview__info">
                 <header>
                   <div>
-                    <span>캠페인</span>
                     <h2>{campaign.title}</h2>
-                  </div>
-                  <div>
-                    <StatusPill tone={statusTone(campaign.status)}>{campaignStatusLabel(campaign.status)}</StatusPill>
                   </div>
                 </header>
                 <p>{campaign.description}</p>
                 <dl>
                   <div><dt>캠페인 ID</dt><dd>{campaign.id}</dd></div>
                   <div><dt>캠페인 진행 기간</dt><dd>{campaign.startDate} ~ {campaign.endDate}</dd></div>
+                  <div>
+                    <dt>진행 상태</dt>
+                    <dd>
+                      <StatusPill tone={statusTone(campaign.status)}>{campaignStatusLabel(campaign.status)}</StatusPill>
+                    </dd>
+                  </div>
                   <div><dt>포함 상품</dt><dd>{campaign.products.length}개</dd></div>
                 </dl>
               </div>
