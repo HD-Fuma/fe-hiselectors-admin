@@ -20,3 +20,7 @@
   filter: brightness(0) invert(1);
   transform: translateY(4px);
 }
+
+:root[data-sidebar-theme="light"] .hsas-admin-sidebar__brand-logo {
+  filter: none;
+}

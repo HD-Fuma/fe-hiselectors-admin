@@ -65,7 +65,7 @@ describe("shared component visual contracts", () => {
     expect(wrapperRule).not.toMatch(/border-top\s*:/);
   });
 
-  test("keeps approved task statuses readable on dark floating cards", () => {
+  test("keeps approved task statuses readable on themed floating cards", () => {
     const approvedTaskStatusRule = taskFloatingPanelStyles.match(
       /\.fuma-task-run-card__status\.hsas-status-pill--approved\s*\{([^}]*)\}/,
     )?.[1];
@@ -74,7 +74,32 @@ describe("shared component visual contracts", () => {
       /background:\s*var\(--hsas-sidebar-hover\);/,
     );
     expect(approvedTaskStatusRule).toMatch(
-      /color:\s*var\(--hsas-color-white\);/,
+      /color:\s*var\(--hsas-sidebar-strong-text\);/,
+    );
+  });
+
+  test("uses white sidebar surfaces only in light mode", () => {
+    const lightThemeTokens = tokensSource.match(
+      /:root\[data-sidebar-theme="light"\]\s*\{([^}]*)\}/,
+    )?.[1];
+
+    expect(lightThemeTokens).toMatch(
+      /--hsas-sidebar-background:\s*var\(--hsas-surface\);/,
+    );
+    expect(lightThemeTokens).toMatch(
+      /--hsas-sidebar-surface:\s*var\(--hsas-surface\);/,
+    );
+    expect(lightThemeTokens).toMatch(
+      /--hsas-sidebar-strong-text:\s*var\(--hsas-text\);/,
+    );
+    expect(lightThemeTokens).toMatch(
+      /--hsas-sidebar-active:\s*var\(--hsas-color-black\);/,
+    );
+    expect(lightThemeTokens).toMatch(
+      /--hsas-sidebar-active-text:\s*var\(--hsas-color-white\);/,
+    );
+    expect(lightThemeTokens).toMatch(
+      /--hsas-sidebar-hover:\s*#eee;/,
     );
   });
 });
