@@ -351,19 +351,22 @@ export function NotificationHistoryPage() {
     prepareRequest();
   };
 
-  const changeChannel = (nextChannel: NotificationChannel | null) => {
-    setChannel(nextChannel);
-    setPage(1);
-  };
-
-  const changePage = (nextPage: number) => {
-    setPage(nextPage);
-  };
-
   const closeDetail = () => {
     setSelectedItem(null);
     setIsResendDialogOpen(false);
     setResendError("");
+  };
+
+  const changeChannel = (nextChannel: NotificationChannel | null) => {
+    setChannel(nextChannel);
+    setPage(1);
+    if (selectedItem && nextChannel && selectedItem.channel !== nextChannel) {
+      closeDetail();
+    }
+  };
+
+  const changePage = (nextPage: number) => {
+    setPage(nextPage);
   };
 
   const confirmResend = async () => {

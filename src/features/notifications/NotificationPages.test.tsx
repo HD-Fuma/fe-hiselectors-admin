@@ -159,10 +159,14 @@ test("filters loaded history by channel tab without calling the API again", asyn
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.has("channel")).toBe(false);
 
-  fireEvent.click(screen.getByRole("button", { name: "이메일" }));
+  fireEvent.click(within(results).getByRole("row", { name: /선정 승인/ }));
+  expect(await screen.findByRole("dialog", { name: "발송 내역 상세" })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "이메일", hidden: true }));
   expect(within(results).queryByText("김하이 (hi-selector)")).not.toBeInTheDocument();
   expect(within(results).getByText("이메이 (hi-creator)")).toBeInTheDocument();
   expect(within(results).getByText("시스템")).toBeInTheDocument();
+  expect(screen.queryByRole("dialog", { name: "발송 내역 상세" })).not.toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledTimes(1);
 
   fireEvent.click(screen.getByRole("button", { name: "카카오 메시지" }));
