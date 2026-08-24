@@ -1,3 +1,6 @@
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
+
 export interface DiscoveryKeyword {
   id: number;
   keyword: string;
@@ -42,8 +45,6 @@ export interface DiscoveryKeywordCreateResponse {
   warnings: string[];
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop").replace(/\/$/, "");
-
 function headers(json = false) {
   const result = new Headers();
   const stored = localStorage.getItem("selectors-auth");
@@ -70,7 +71,7 @@ async function errorMessage(response: Response, fallback: string) {
 }
 
 async function request<T>(path: string, init: RequestInit = {}, fallback = "요청에 실패했습니다.") {
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers: init.headers ?? headers() });
+  const response = await adminFetch(`${API_BASE_URL}${path}`, { ...init, headers: init.headers ?? headers() });
   if (!response.ok) throw new Error(await errorMessage(response, fallback));
   const body = await response.json() as { data?: T | null; message?: string | null; success?: boolean };
   if (!body.success || body.data == null) throw new Error(body.message || fallback);
@@ -78,7 +79,7 @@ async function request<T>(path: string, init: RequestInit = {}, fallback = "요�
 }
 
 async function requestEmpty(path: string, fallback: string) {
-  const response = await fetch(`${API_BASE_URL}${path}`, { method: "DELETE", headers: headers() });
+  const response = await adminFetch(`${API_BASE_URL}${path}`, { method: "DELETE", headers: headers() });
   if (!response.ok) throw new Error(await errorMessage(response, fallback));
 }
 

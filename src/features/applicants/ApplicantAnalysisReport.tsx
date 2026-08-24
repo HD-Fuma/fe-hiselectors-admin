@@ -1,10 +1,13 @@
 import { ProfileAnalysisReport } from "../../components/ui/ProfileAnalysisReport";
 import type {
+  AdminApplicationAiReport,
   AdminApplicationDetail,
   ApplicationContentFormat,
   ApplicationMetricValue,
+  ApplicationRepresentativeContentType,
 } from "../../entities/application";
-import { formatNumber } from "../../lib/formatters";
+import { assetUrl } from "../../lib/assetUrl";
+import { formatCompactCount, formatNumber } from "../../lib/formatters";
 
 const FORMAT_COLORS = ["#de76ce", "#667085", "#a0a8b0", "#c8cdd2"];
 
@@ -25,6 +28,95 @@ function formatLabel(format: ApplicationContentFormat) {
   return "미분류";
 }
 
+const MAX_KEYWORDS = 20;
+
+const BRACKET_OPEN = new Set(["(", "[", "{"]);
+const BRACKET_CLOSE = new Set([")", "]", "}"]);
+
+/** 괄호 안의 쉼표(예: "메뉴(피자, 파스타)")는 무시하고, 최상위 쉼표에서만 나눈다. */
+function splitTopLevelCommas(value: string) {
+  const parts: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const char of value) {
+    if (BRACKET_OPEN.has(char)) depth++;
+    else if (BRACKET_CLOSE.has(char)) depth = Math.max(0, depth - 1);
+    if (char === "," && depth === 0) {
+      parts.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  parts.push(current);
+  return parts;
+}
+
+function splitCsv(...values: (string | undefined)[]) {
+  return values
+    .flatMap((value) => (value ? splitTopLevelCommas(value) : []))
+    .map((value) => value.trim().replace(/^[-–—]\s*/, ""))
+    .filter(Boolean);
+}
+
+const CONTENT_TYPE_TOKENS = new Set(["SHORT_FORM", "LONG_FORM", "SHORTS", "FEED", "REELS", "POST"]);
+
+/** 톤앤매너 응답에 콘텐츠 유형 원시값(예: LONG_FORM)이 섞여 나오는 백엔드 이슈 방어. */
+function excludeContentTypeTokens(values: string[]) {
+  return values.filter((value) => !CONTENT_TYPE_TOKENS.has(value.toUpperCase()));
+}
+
+function narrativeValues(raw: string | undefined, fallback: string) {
+  const values = splitCsv(raw);
+  return values.length > 0 ? values : [fallback];
+}
+
+function representativeContentTypeLabel(type: ApplicationRepresentativeContentType) {
+  if (type === "SHORT_FORM") return "숏폼";
+  if (type === "FEED") return "피드";
+  return "롱폼";
+}
+
+function representativeBasis(representativeViewCount: number | null, averageViewCount: number | null) {
+  if (representativeViewCount === null || averageViewCount === null || averageViewCount <= 0) {
+    return { bars: [], insight: null };
+  }
+  const multiplier = representativeViewCount / averageViewCount;
+  const insight = multiplier >= 1.05
+    ? `평균보다 ${multiplier.toFixed(1)}배 높은 조회수예요.`
+    : multiplier <= 0.95
+      ? "평균보다 낮은 조회수예요."
+      : "평균과 비슷한 조회수예요.";
+  return {
+    bars: [
+      {
+        label: "대표 콘텐츠",
+        tone: "accent" as const,
+        value: representativeViewCount,
+        valueLabel: `${formatCompactCount(representativeViewCount)}회`,
+      },
+      {
+        label: "평균 콘텐츠",
+        tone: "muted" as const,
+        value: averageViewCount,
+        valueLabel: `${formatCompactCount(averageViewCount)}회`,
+      },
+    ],
+    insight,
+  };
+}
+
+function qualitativeStatusMessage(aiReport: AdminApplicationAiReport | null | undefined, applicant: AdminApplicationDetail) {
+  if (aiReport) return null;
+  if (applicant.analysisStatus === "PENDING" || applicant.analysisStatus === "IN_PROGRESS") {
+    return "AI 리포트를 생성하는 중입니다. 잠시 후 다시 확인해주세요.";
+  }
+  if (applicant.analysisStatus === "FAILED") {
+    return "AI 리포트 생성에 실패했습니다.";
+  }
+  return null;
+}
+
 function reportSummary(applicant: AdminApplicationDetail) {
   if (applicant.mediaCollectionStatus === "PENDING") {
     return "SNS 정량 지표 수집을 기다리고 있습니다.";
@@ -41,7 +133,11 @@ function reportSummary(applicant: AdminApplicationDetail) {
   return `최근 ${applicant.metrics.analysisWindowDays}일 콘텐츠 ${formatNumber(applicant.metrics.recent90DayContentCount)}건의 공개 정량 지표입니다.`;
 }
 
-export function ApplicantAnalysisReport({ applicant }: { applicant: AdminApplicationDetail }) {
+export function ApplicantAnalysisReport({ aiReport, applicant }: {
+  aiReport?: AdminApplicationAiReport | null;
+  applicant: AdminApplicationDetail;
+}) {
+  const collectionDone = applicant.mediaCollectionStatus === "DONE";
   const formatTotal = applicant.metrics.contentFormats.reduce((total, format) => (
     total + format.count
   ), 0);
@@ -58,6 +154,67 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: AdminApplica
     };
   });
   const unavailableNarrative = "정성 분석 데이터가 제공되지 않았습니다.";
+  const basis = representativeBasis(
+    aiReport?.representativeViewCount ?? null,
+    collectionDone ? applicant.metrics.averageViewCount.value : null,
+  );
+  const representativeContent = aiReport?.representativeContentUrl && aiReport.representativeContentType
+    ? {
+      basisBars: basis.bars,
+      basisInsight: basis.insight,
+      category: aiReport.representativeCategory,
+      contentTypeLabel: representativeContentTypeLabel(aiReport.representativeContentType),
+      isVideo: aiReport.representativeContentType !== "FEED",
+      keywords: aiReport.representativeKeywords ?? [],
+      layout: aiReport.representativeContentType === "LONG_FORM"
+        ? "landscape" as const
+        : "portrait" as const,
+      mediaAlt: `${applicant.applicantName} 대표 콘텐츠`,
+      mediaUrl: (() => {
+        const matched = applicant.contents.find(
+          (content) => content.contentUrl === aiReport.representativeContentUrl,
+        );
+        return matched?.mediaUrl ? assetUrl(matched.mediaUrl) : null;
+      })(),
+      url: aiReport.representativeContentUrl,
+      viewCountLabel: aiReport.representativeViewCount === null
+        ? null
+        : `조회수 ${formatCompactCount(aiReport.representativeViewCount)}`,
+    }
+    : null;
+  const engagementFunnel = collectionDone
+    ? [
+      {
+        label: "평균 조회",
+        percentile: applicant.metrics.viewCountPercentile ?? null,
+        value: applicant.metrics.averageViewCount.value,
+      },
+      {
+        label: "평균 좋아요",
+        percentile: applicant.metrics.likeCountPercentile ?? null,
+        value: applicant.metrics.averageLikeCount.value,
+      },
+      {
+        label: "평균 댓글",
+        percentile: applicant.metrics.commentCountPercentile ?? null,
+        value: applicant.metrics.averageCommentCount.value,
+      },
+    ]
+      .filter((metric): metric is { label: string; percentile: number | null; value: number } => (
+        metric.value !== null
+      ))
+      .map((metric) => ({
+        label: metric.label,
+        tone: "accent" as const,
+        value: metric.percentile === null ? 0 : 101 - metric.percentile,
+        valueLabel: metric.percentile === null
+          ? `${formatNumber(metric.value)}건`
+          : `상위 ${metric.percentile}% · ${formatNumber(metric.value)}건`,
+      }))
+    : [];
+  const qualitativeStatus = qualitativeStatusMessage(aiReport, applicant);
+  const riskValues = splitCsv(aiReport?.risks);
+  const riskNarrative = riskValues.length > 0 ? { label: "위험 요소", values: riskValues } : null;
 
   return (
     <ProfileAnalysisReport
@@ -79,9 +236,11 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: AdminApplica
         },
         {
           label: "업로드 주기",
-          value: `${applicant.metrics.uploadCadence.weeklyAverage === null
-            ? "-"
-            : `주 ${applicant.metrics.uploadCadence.weeklyAverage.toFixed(1)}회`} · 표본 ${formatNumber(applicant.metrics.uploadCadence.sampleCount)}건`,
+          value: collectionDone
+            ? `${applicant.metrics.uploadCadence.weeklyAverage === null
+              ? "-"
+              : `주 ${applicant.metrics.uploadCadence.weeklyAverage.toFixed(1)}회`} · 표본 ${formatNumber(applicant.metrics.uploadCadence.sampleCount)}건`
+            : "-",
         },
         {
           label: "최장 게시 공백",
@@ -91,6 +250,7 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: AdminApplica
         },
         { label: "마지막 게시일", value: dateTime(applicant.metrics.lastPublishedAt).slice(0, 10) },
       ]}
+      engagementFunnel={engagementFunnel}
       engagementMetrics={[
         {
           label: "팔로워/구독자",
@@ -98,23 +258,8 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: AdminApplica
           percentile: null,
         },
         {
-          label: "평균 조회",
-          value: metricValue(applicant.metrics.averageViewCount),
-          percentile: null,
-        },
-        {
-          label: "평균 좋아요",
-          value: metricValue(applicant.metrics.averageLikeCount),
-          percentile: null,
-        },
-        {
-          label: "평균 댓글",
-          value: metricValue(applicant.metrics.averageCommentCount),
-          percentile: null,
-        },
-        {
           label: "ER",
-          value: metricValue(applicant.metrics.engagementRate, "%"),
+          value: collectionDone ? metricValue(applicant.metrics.engagementRate, "%") : "-",
           percentile: null,
         },
       ]}
@@ -125,18 +270,26 @@ export function ApplicantAnalysisReport({ applicant }: { applicant: AdminApplica
         ? formatTotal
         : null}
       formatTotalLabel="수집 콘텐츠"
-      narratives={[
-        { label: "위험 요소", value: `미확인 (${unavailableNarrative})` },
-        { label: "강점", value: unavailableNarrative },
-        { label: "유의점", value: unavailableNarrative },
+      narratives={aiReport ? [
+        { label: "강점", values: narrativeValues(aiReport.strength, unavailableNarrative) },
+        { label: "유의점", values: narrativeValues(aiReport.cautions, unavailableNarrative) },
+      ] : [
+        { label: "강점", values: [unavailableNarrative] },
+        { label: "유의점", values: [unavailableNarrative] },
       ]}
-      summary={reportSummary(applicant)}
+      qualitativeStatus={qualitativeStatus}
+      representativeContent={representativeContent}
+      riskNarrative={riskNarrative}
+      summary={aiReport?.summary || reportSummary(applicant)}
       tagGroups={[
-        { label: "카테고리", values: [] },
-        { label: "키워드", values: [] },
-        { label: "협업 이력", values: [] },
+        { label: "카테고리", values: aiReport?.category ? [aiReport.category] : [] },
+        { label: "키워드", values: aiReport?.keywords?.slice(0, MAX_KEYWORDS) ?? [] },
+        { label: "협업 이력", values: splitCsv(aiReport?.brandHistory) },
         { label: "콘텐츠 유형", values: formatSegments.map((format) => format.label) },
-        { label: "톤앤매너", values: [] },
+        {
+          label: "톤앤매너",
+          values: aiReport ? excludeContentTypeTokens(splitCsv(aiReport.tone, aiReport.contentStyle)) : [],
+        },
       ]}
       title="지원자 분석 리포트"
     />

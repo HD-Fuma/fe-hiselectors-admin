@@ -184,6 +184,9 @@ const LEADER_SELECTOR_DETAIL: SelectorDetail = {
   userId: null,
   createdAt: "2026-07-01T09:00:00",
   updatedAt: "2026-08-24T09:00:00",
+  snsVerifiedAt: null,
+  privacyAgreedAt: null,
+  alimtalkAgreed: false,
   generations: [],
   snsAccount: {
     id: 70,

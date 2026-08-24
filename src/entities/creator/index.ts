@@ -2,7 +2,6 @@ export {
   CREATORS,
   CREATOR_CATEGORIES,
   PENDING_AI_REPORT,
-  PROPOSALS,
 } from "./model/fixtures";
 export type {
   CreatorCategory,
@@ -10,8 +9,6 @@ export type {
   CreatorFixture,
   CreatorPlatform,
   CreatorProfileFixture,
-  ProposalFixture,
-  ProposalStatus,
 } from "./model/fixtures";
 export {
   deriveCadence,
@@ -20,5 +17,20 @@ export {
 } from "./model/analysis";
 export { CreatorContentPhoto, CreatorProfilePhoto } from "./ui/CreatorArtwork";
 export { CreatorCardProfileHeader } from "../../components/ui/CreatorCardProfileHeader";
-export { getCreators } from "./api";
-export type { CreatorPage, CreatorSearchRequest, CreatorSummary } from "./api";
+export {
+  getAdminProposals,
+  getCreator,
+  getCreators,
+  postAdminProposal,
+  resetCreatorPool,
+  runCreatorDiscovery,
+} from "./api";
+export type {
+  CreatorDetail,
+  CreatorPage,
+  CreatorPoolResetResult,
+  CreatorSearchRequest,
+  CreatorSummary,
+  ProposalHistoryEntry,
+  ProposalHistoryPage,
+} from "./api";

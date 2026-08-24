@@ -1,12 +1,28 @@
-export { getCurrentGenerationContents, runContentBatch } from "./api";
+export {
+  getContentDetail,
+  getContentVersionDetail,
+  confirmContentInspection,
+  getCurrentGenerationContents,
+  inspectContentVersion,
+  runContentBatch,
+} from "./api";
 export type {
   CollectedContent,
   CollectedContentMedia,
   CollectedContentType,
   ContentBatchRunResponse,
+  ContentInspectionConfirmationRequest,
+  ContentInspectionConfirmationResponse,
+  ContentDetail,
   ContentInspectionSnsCode,
+  ContentInspectionRunResponse,
+  ContentReport,
+  ContentVersionDetail,
+  ContentVersionMedia,
+  ContentVersionSummary,
+  ContentViolation,
 } from "./api";
-export { adaptContentInspection } from "./model/adapter";
+export { adaptContentInspection, adaptContentInspectionDetail } from "./model/adapter";
 export {
   CONTENT_INSPECTIONS,
   INSPECTION_TYPE_LABELS,

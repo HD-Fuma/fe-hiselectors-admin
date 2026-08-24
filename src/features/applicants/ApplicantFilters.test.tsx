@@ -15,6 +15,7 @@ const applicants = [
     generationName: "3기",
     snsCode: "INSTAGRAM",
     snsAccountId: "minji.daily",
+    snsDisplayName: "minji.daily",
     followerCount: 58_420,
     engagementRate: 2.55,
     totalContentCount: 126,
@@ -35,7 +36,8 @@ const applicants = [
     generationId: 3,
     generationName: "3기",
     snsCode: "YOUTUBE",
-    snsAccountId: "harin-lab",
+    snsAccountId: "UC1111111111111111111111",
+    snsDisplayName: "하린의 생활연구소",
     followerCount: 83_100,
     engagementRate: 3.1,
     totalContentCount: 94,
@@ -57,6 +59,7 @@ const applicants = [
     generationName: "3기",
     snsCode: "INSTAGRAM",
     snsAccountId: "sora.daily",
+    snsDisplayName: "sora.daily",
     followerCount: 400,
     engagementRate: null,
     totalContentCount: null,
@@ -71,6 +74,7 @@ const applicants = [
 
 const applicantDetail = {
   ...applicants[0],
+  profileImageUrl: "https://cdn.example.com/minji-profile.jpg",
   metrics: {
     analysisWindowDays: 90,
     totalContentCount: 126,
@@ -84,7 +88,7 @@ const applicantDetail = {
     },
     averageViewCount: { value: null, sampleCount: 0 },
     averageLikeCount: { value: 120.5, sampleCount: 2 },
-    averageCommentCount: { value: 8, sampleCount: 3 },
+    averageCommentCount: { value: 0, sampleCount: 3 },
     engagementRate: { value: 2.55, sampleCount: 2 },
     contentFormats: [
       { contentType: "FEED", count: 2 },
@@ -97,15 +101,44 @@ const applicantDetail = {
     snsCode: "INSTAGRAM",
     snsContentId: "post-11",
     contentUrl: "https://www.instagram.com/p/post-11",
-    mediaUrl: null,
+    mediaUrl: "https://cdn.example.com/post-11-image.jpg",
+    thumbnailUrl: "https://cdn.example.com/post-11-thumbnail.jpg",
     contentType: "FEED",
+    mediaType: "IMAGE",
+    title: null,
+    caption: "대표 피드 캡션",
+    description: null,
     sequenceNo: 0,
     publishedAt: "2026-08-02T12:00:00",
     viewCount: null,
     likeCount: 120,
-    commentCount: 8,
+    commentCount: 0,
+    collectedAt: "2026-08-05T10:00:00",
+  }, {
+    id: 12,
+    applicationId: 1,
+    snsCode: "INSTAGRAM",
+    snsContentId: "post-11",
+    contentUrl: "https://www.instagram.com/p/post-11",
+    mediaUrl: "https://cdn.example.com/post-11-second-image.jpg",
+    thumbnailUrl: "https://cdn.example.com/post-11-second-thumbnail.jpg",
+    contentType: "FEED",
+    mediaType: "IMAGE",
+    title: "중복 미디어",
+    caption: null,
+    description: null,
+    sequenceNo: 0,
+    publishedAt: "2026-08-02T12:00:00",
+    viewCount: null,
+    likeCount: 120,
+    commentCount: 0,
     collectedAt: "2026-08-05T10:00:00",
   }],
+};
+
+const youtubeApplicantDetail = {
+  ...applicantDetail,
+  ...applicants[1],
 };
 
 const pendingApplicantDetail = {
@@ -172,6 +205,7 @@ function mockApi() {
       return json([{ id: 3, generationName: "3기" }]);
     }
     if (/\/api\/admin\/applications\/1$/.test(url.pathname)) return json(applicantDetail);
+    if (/\/api\/admin\/applications\/2$/.test(url.pathname)) return json(youtubeApplicantDetail);
     if (url.searchParams.get("minimumCriteriaOnly") === "true") return json(page([applicants[2]]));
     if (url.searchParams.get("keyword") === "하린") return json(page([applicants[1]]));
     return json(page(applicants));
@@ -193,12 +227,22 @@ describe("applicant api pages", () => {
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
     expect(await screen.findByText("정하린")).toBeInTheDocument();
+    const applicantList = screen.getByRole("region", { name: "지원자 목록" });
+    expect(within(applicantList).getByText("하린의 생활연구소")).toBeInTheDocument();
+    expect(within(applicantList).queryByText("UC1111111111111111111111"))
+      .not.toBeInTheDocument();
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
       expect.stringMatching(/keyword=.*snsCode=YOUTUBE.*status=APPROVED.*generationId=3.*page=0.*size=20/),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     ));
     expect(screen.getByText("총 1건")).toBeInTheDocument();
     expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
+
+    await user.click(screen.getByText("정하린"));
+    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
+    expect(await within(panel).findByRole("link", { name: "하린의 생활연구소 ↗" }))
+      .toHaveAttribute("href", "https://www.youtube.com/channel/UC1111111111111111111111");
+    expect(panel).not.toHaveTextContent("UC1111111111111111111111");
   });
 
   test("uses the server minimum-criteria query and derives automatic rejection", async () => {
@@ -219,7 +263,7 @@ describe("applicant api pages", () => {
     const minimumCriteriaRequest = vi.mocked(fetch).mock.calls
       .map(([input]) => new URL(String(input)))
       .find((url) => url.searchParams.get("minimumCriteriaOnly") === "true");
-    expect(minimumCriteriaRequest?.searchParams.get("status")).toBeNull();
+    expect(minimumCriteriaRequest?.searchParams.get("status")).toBe("PENDING");
   });
 
   test("limits the automatic-rejection status filter to pending minimum-criteria applications", async () => {
@@ -244,18 +288,15 @@ describe("applicant api pages", () => {
     });
   });
 
-  test("requests pending applications outside the minimum criteria unless the toolbar overrides it", async () => {
+  test("defaults to pending applications outside the minimum criteria unless the toolbar overrides it", async () => {
     mockApi();
     const user = userEvent.setup();
     renderApplicantPage();
     await screen.findByText("김민지");
     const search = screen.getByRole("search", { name: "검색 조건" });
 
-    await user.selectOptions(
-      within(search).getByRole("combobox", { name: "심사 상태" }),
-      "검토 대기",
-    );
-    await user.click(within(search).getByRole("button", { name: "조회" }));
+    expect(within(search).getByRole("combobox", { name: "심사 상태" }))
+      .toHaveValue("검토 대기");
 
     await waitFor(() => expect(vi.mocked(fetch).mock.calls
       .map(([input]) => new URL(String(input)))
@@ -313,7 +354,7 @@ describe("applicant api pages", () => {
     expect(await screen.findByText("정하린")).toBeInTheDocument();
     await act(async () => initial.resolve(await json(page([applicants[0]]))));
 
-    expect(screen.getByText("정하린")).toBeInTheDocument();
+    expect(await screen.findByText("정하린")).toBeInTheDocument();
     expect(screen.queryByText("김민지")).not.toBeInTheDocument();
   });
 
@@ -332,29 +373,87 @@ describe("applicant api pages", () => {
 
     await act(async () => pendingDetail.resolve(await json(applicantDetail)));
     expect(await within(panel).findByRole("heading", { name: "김민지" })).toBeInTheDocument();
+    expect(within(panel).getByRole("img", { name: "김민지 프로필 이미지" }))
+      .toHaveAttribute("src", "https://cdn.example.com/minji-profile.jpg");
+    const representativeContents = within(panel).getByLabelText("대표 콘텐츠");
+    expect(within(representativeContents).getByRole("img", {
+      name: "김민지 대표 게시글: 대표 피드 캡션",
+    })).toHaveAttribute("src", "https://cdn.example.com/post-11-thumbnail.jpg");
+    expect(representativeContents.children).toHaveLength(1);
     const report = within(panel).getByRole("region", { name: "지원자 분석 리포트" });
-    expect(within(report).getByText("- · 표본 0건")).toBeInTheDocument();
+    expect(within(report).queryByText("평균 조회")).not.toBeInTheDocument();
+    expect(within(report).getByText("평균 좋아요").parentElement).toHaveTextContent("120.5건");
+    expect(within(report).getByText("평균 댓글").parentElement).toHaveTextContent("0건");
     expect(within(report).getAllByText("미분류")).not.toHaveLength(0);
     expect(within(report).getByText("전체 공개 콘텐츠").parentElement).toHaveTextContent("126건");
     expect(within(panel).getByText("최종 업데이트").parentElement)
       .toHaveTextContent("2026.08.05 10:00");
   });
 
-  test("renders an uncollected detail without coercing nullable cadence to zero", async () => {
+  test("polls a pending test applicant until analysis completes", async () => {
+    vi.useFakeTimers();
+    const pendingTestApplicant = {
+      ...pendingApplicantDetail,
+      analysisStatus: "PENDING",
+      hiId: "test_polling",
+    };
+    const completedTestApplicant = {
+      ...applicantDetail,
+      analysisStatus: "DONE",
+      hiId: "test_polling",
+    };
+    let detailRequests = 0;
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
       const path = new URL(String(input)).pathname;
       if (path.endsWith("/api/admin/generations")) return json([]);
-      if (/\/api\/admin\/applications\/1$/.test(path)) return json(pendingApplicantDetail);
+      if (path.endsWith("/api/admin/applications/1/ai-report")) {
+        return new Promise<Response>(() => {});
+      }
+      if (path.endsWith("/api/admin/applications/1")) {
+        detailRequests += 1;
+        return json(detailRequests === 1 ? pendingTestApplicant : completedTestApplicant);
+      }
+      return json(page(applicants));
+    }));
+
+    try {
+      renderApplicantPage("/applicants?detail=1");
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      const panel = screen.getByRole("dialog", { name: "지원자 상세" });
+      expect(within(panel).getByText("SNS 정량 지표 수집을 기다리고 있습니다."))
+        .toBeInTheDocument();
+      expect(within(panel).queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
+      expect(within(panel).queryByRole("button", { name: "반려" })).not.toBeInTheDocument();
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+
+      expect(detailRequests).toBe(2);
+      expect(within(panel).getByText("최근 90일 콘텐츠 3건의 공개 정량 지표입니다."))
+        .toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test.each([
+    ["PENDING", "SNS 정량 지표 수집을 기다리고 있습니다."],
+    ["FAILED", "SNS 정량 지표를 수집하지 못했습니다."],
+  ] as const)("renders a %s detail without zero samples", async (mediaCollectionStatus, summary) => {
+    const uncollectedDetail = { ...pendingApplicantDetail, mediaCollectionStatus };
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith("/api/admin/generations")) return json([]);
+      if (/\/api\/admin\/applications\/1$/.test(path)) return json(uncollectedDetail);
       return json(page(applicants));
     }));
     renderApplicantPage("/applicants?detail=1");
     const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
     const report = await within(panel).findByRole("region", { name: "지원자 분석 리포트" });
 
-    expect(within(report).getByText("SNS 정량 지표 수집을 기다리고 있습니다."))
-      .toBeInTheDocument();
+    expect(within(report).getByText(summary)).toBeInTheDocument();
     expect(within(report).getByText("업로드 주기").parentElement)
-      .toHaveTextContent("- · 표본 0건");
+      .toHaveTextContent("-");
+    expect(report).not.toHaveTextContent("표본 0건");
     expect(within(report).getByText("최장 게시 공백").parentElement).toHaveTextContent("-");
     const formats = within(report).getByRole("group", { name: "콘텐츠 형식 합계 미수집" });
     expect(within(formats).getByText("-")).toBeInTheDocument();
@@ -366,6 +465,12 @@ describe("applicant api pages", () => {
       metrics: {
         ...applicantDetail.metrics,
         recent90DayContentCount: 0,
+        uploadCadence: {
+          sampleCount: 0,
+          dailyAverage: 0,
+          weeklyAverage: 0,
+          maximumGapDays: null,
+        },
         contentFormats: [],
       },
       contents: [],
@@ -381,13 +486,13 @@ describe("applicant api pages", () => {
     const report = await within(panel).findByRole("region", { name: "지원자 분석 리포트" });
     const formats = within(report).getByRole("group", { name: "콘텐츠 형식 총 0건" });
 
+    expect(within(report).getByText("업로드 주기").parentElement)
+      .toHaveTextContent("주 0.0회 · 표본 0건");
     expect(within(formats).getByText("0건")).toBeInTheDocument();
   });
 
-  test("approves a pending applicant, disables both actions, and refetches the detail", async () => {
+  test("approves a pending applicant, closes the panel, and shows a confirmation modal", async () => {
     const statusResponse = deferredResponse();
-    let detailRequests = 0;
-    let listRequests = 0;
     let serverStatus: "PENDING" | "APPROVED" = "PENDING";
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const path = new URL(String(input)).pathname;
@@ -396,12 +501,8 @@ describe("applicant api pages", () => {
         return statusResponse.promise;
       }
       if (path.endsWith("/api/admin/applications/1")) {
-        detailRequests += 1;
-        return json(detailRequests === 1
-          ? applicantDetail
-          : { ...applicantDetail, status: "APPROVED" });
+        return json(applicantDetail);
       }
-      listRequests += 1;
       return json(page(applicants.map((applicant) => (
         applicant.id === 1 ? { ...applicant, status: serverStatus } : applicant
       ))));
@@ -419,47 +520,15 @@ describe("applicant api pages", () => {
     await act(async () => statusResponse.resolve(await json({ id: 1, status: "APPROVED" })));
 
     await waitFor(() => {
-      expect(detailRequests).toBe(2);
-      expect(listRequests).toBe(2);
+      expect(screen.queryByRole("dialog", { name: "지원자 상세" })).not.toBeInTheDocument();
     });
-    expect(within(panel).queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
-    const completion = within(panel).getByText("승인 처리가 완료됐습니다.").closest("section");
-    expect(completion).toHaveAttribute("role", "status");
-    expect(completion).toHaveFocus();
-    await user.click(within(panel).getByRole("button", { name: "상세 패널 닫기" }));
+    const modal = await screen.findByRole("alertdialog", { name: "심사 처리 완료" });
+    expect(within(modal).getByText("김민지")).toBeInTheDocument();
+    expect(within(modal).getByText(/승인 처리했습니다/)).toBeInTheDocument();
+
+    await user.click(within(modal).getByRole("button", { name: "확인" }));
     const list = await screen.findByRole("region", { name: "지원자 목록" });
     expect(within(within(list).getAllByRole("row")[1]).getByText("승인")).toBeInTheDocument();
-  });
-
-  test("keeps a completed decision when the detail refresh fails", async () => {
-    let detailRequests = 0;
-    const alert = vi.spyOn(window, "alert").mockImplementation(() => undefined);
-    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-      const path = new URL(String(input)).pathname;
-      if (path.endsWith("/api/admin/generations")) return json([]);
-      if (path.endsWith("/api/admin/applications/1/status") && init?.method === "PATCH") {
-        return json({ id: 1, status: "APPROVED" });
-      }
-      if (path.endsWith("/api/admin/applications/1")) {
-        detailRequests += 1;
-        return detailRequests === 1 ? json(applicantDetail) : json(null, 500);
-      }
-      return json(page(applicants));
-    }));
-    const user = userEvent.setup();
-    renderApplicantPage("/applicants?detail=1");
-    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
-
-    await user.click(await within(panel).findByRole("button", { name: "승인" }));
-
-    await waitFor(() => expect(alert).toHaveBeenCalledWith(
-      "심사 처리는 완료됐지만 최신 지원자 정보를 불러오지 못했습니다.",
-    ));
-    const completion = within(panel).getByText("승인 처리가 완료됐습니다.").closest("section");
-    expect(completion).toHaveFocus();
-    expect(within(panel).queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
-    expect(within(panel).queryByRole("button", { name: "반려" })).not.toBeInTheDocument();
-    alert.mockRestore();
   });
 
   test("returns to the first list page after deciding the last applicant", async () => {
@@ -495,10 +564,50 @@ describe("applicant api pages", () => {
     const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
     await user.click(await within(panel).findByRole("button", { name: "승인" }));
 
-    await waitFor(() => expect(listPages).toEqual([0, 1, 0]));
-    await user.click(within(panel).getByRole("button", { name: "상세 패널 닫기" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "지원자 상세" })).not.toBeInTheDocument());
     expect(await screen.findByText("1 / 1 페이지")).toBeInTheDocument();
     expect(screen.getByText("정하린")).toBeInTheDocument();
+    expect(listPages.length).toBeGreaterThan(0);
+  });
+
+  test("stays on the current page after deciding an applicant when other pages still remain", async () => {
+    let approved = false;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      const path = url.pathname;
+      if (path.endsWith("/api/admin/generations")) return json([]);
+      if (path.endsWith("/api/admin/applications/1/status") && init?.method === "PATCH") {
+        approved = true;
+        return json({ id: 1, status: "APPROVED" });
+      }
+      if (path.endsWith("/api/admin/applications/1")) {
+        return json({ ...applicantDetail, status: approved ? "APPROVED" : "PENDING" });
+      }
+      const requestedPage = Number(url.searchParams.get("page"));
+      return json({
+        content: requestedPage === 0 ? [applicants[1]] : [applicants[0]],
+        number: requestedPage,
+        size: 20,
+        totalElements: 3,
+        totalPages: 2,
+      });
+    }));
+    const user = userEvent.setup();
+    renderApplicantPage();
+    await screen.findByText("정하린");
+
+    await user.click(screen.getByRole("button", { name: "다음 페이지" }));
+    await user.click(await screen.findByText("김민지"));
+    const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
+    await user.click(await within(panel).findByRole("button", { name: "승인" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "지원자 상세" })).not.toBeInTheDocument());
+    const modal = await screen.findByRole("alertdialog", { name: "심사 처리 완료" });
+    await user.click(within(modal).getByRole("button", { name: "확인" }));
+
+    expect(await screen.findByText("2 / 2 페이지")).toBeInTheDocument();
+    const list = screen.getByRole("region", { name: "지원자 목록" });
+    expect(within(list).getByText("김민지")).toBeInTheDocument();
   });
 
   test("alerts on a failed applicant decision and leaves the actions available", async () => {

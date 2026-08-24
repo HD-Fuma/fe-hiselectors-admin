@@ -8,3 +8,7 @@ test-results/
 *.tsbuildinfo
 vite-dev*.log
 .DS_Store
+.idea/
+.serena/
+.env*
+.env*.local

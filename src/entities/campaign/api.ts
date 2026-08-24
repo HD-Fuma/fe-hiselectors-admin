@@ -1,15 +1,16 @@
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
 import type {
   Campaign,
   CampaignParticipant,
   CampaignSaveRequest,
+  CampaignUpdateRequest,
   CampaignSearchRequest,
   CampaignProduct,
   CampaignPerformanceDetail,
   ProductStatusCode,
   SpringPage,
 } from "./model";
-
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop").replace(/\/$/, "");
 
 function headers(json = false) {
   const result = new Headers();
@@ -34,7 +35,7 @@ async function message(response: Response, fallback: string) {
 }
 
 async function request<T>(path: string, init: RequestInit = {}, fallback = "요청에 실패했습니다."): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers: init.headers ?? headers() });
+  const response = await adminFetch(`${API_BASE_URL}${path}`, { ...init, headers: init.headers ?? headers() });
   if (!response.ok) throw new Error(await message(response, fallback));
   return (await response.json() as { data: T }).data;
 }
@@ -80,11 +81,21 @@ export function createCampaign(body: CampaignSaveRequest) {
   return request<Campaign>("/api/admin/campaigns", { method: "POST", headers: headers(true), body: JSON.stringify(body) }, "캠페인 생성에 실패했습니다.");
 }
 
-export function updateCampaign(id: number, body: CampaignSaveRequest) {
+export function uploadCampaignThumbnail(file: File) {
+  const body = new FormData();
+  body.append("file", file);
+  return request<{ url: string }>(
+    "/api/admin/uploads/campaign-thumbnails",
+    { method: "POST", headers: headers(), body },
+    "캠페인 썸네일 업로드에 실패했습니다.",
+  );
+}
+
+export function updateCampaign(id: number, body: CampaignUpdateRequest) {
   return request<Campaign>(`/api/admin/campaigns/${id}`, { method: "PATCH", headers: headers(true), body: JSON.stringify(body) }, "캠페인 수정에 실패했습니다.");
 }
 
 export async function deleteCampaign(id: number) {
-  const response = await fetch(`${API_BASE_URL}/api/admin/campaigns/${id}`, { method: "DELETE", headers: headers() });
+  const response = await adminFetch(`${API_BASE_URL}/api/admin/campaigns/${id}`, { method: "DELETE", headers: headers() });
   if (!response.ok) throw new Error(await message(response, "캠페인 삭제에 실패했습니다."));
 }

@@ -1,3 +1,6 @@
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
+
 export type SelectorSnsCode = "INSTAGRAM" | "YOUTUBE";
 
 export interface SpringPage<T> {
@@ -43,6 +46,7 @@ export interface SelectorContent {
   id: number;
   snsCode: SelectorSnsCode | null;
   contentUrl: string;
+  title: string | null;
   contentType: string | null;
   createdAt: string;
   viewCount: number | null;
@@ -51,10 +55,10 @@ export interface SelectorContent {
 }
 
 export interface SelectorPerformance {
-  contentCount: number;
-  totalViewCount: number;
-  totalLikeCount: number;
-  totalCommentCount: number;
+  contentCount: number | null;
+  totalViewCount: number | null;
+  totalLikeCount: number | null;
+  totalCommentCount: number | null;
 }
 
 export interface SelectorDetail {
@@ -67,6 +71,9 @@ export interface SelectorDetail {
   userId: number | null;
   createdAt: string;
   updatedAt: string;
+  snsVerifiedAt: string | null;
+  privacyAgreedAt: string | null;
+  alimtalkAgreed: boolean;
   generations: SelectorGeneration[];
   snsAccount: SelectorSnsAccount | null;
   totalPenaltyCount: number;
@@ -130,8 +137,6 @@ export interface GenerationSaveRequest {
   activityEndDate: string;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop").replace(/\/$/, "");
-
 function headers(json = false) {
   const result = new Headers();
   const stored = localStorage.getItem("selectors-auth");
@@ -158,7 +163,7 @@ async function message(response: Response, fallback: string) {
 }
 
 async function request<T>(path: string, fallback: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await adminFetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: init.headers ?? headers(),
   });

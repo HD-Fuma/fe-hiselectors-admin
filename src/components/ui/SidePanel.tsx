@@ -12,12 +12,13 @@ import { useDialogLifecycle } from "./useDialogLifecycle";
 
 export interface SidePanelProps {
   actions?: ReactNode;
+  animateOnOpen?: boolean;
   children: ReactNode;
   onClose: () => void;
   title: string;
 }
 
-export function SidePanel({ actions, children, onClose, title }: SidePanelProps) {
+export function SidePanel({ actions, animateOnOpen = true, children, onClose, title }: SidePanelProps) {
   const titleId = useId();
   const backdropRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
@@ -89,6 +90,7 @@ export function SidePanel({ actions, children, onClose, title }: SidePanelProps)
         aria-labelledby={titleId}
         aria-modal="true"
         className="fuma-detail-panel"
+        data-entry-animation={animateOnOpen ? "true" : "false"}
         data-visual-contract="detail-side-panel"
         ref={panelRef}
         role="dialog"

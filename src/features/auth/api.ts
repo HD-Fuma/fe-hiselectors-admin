@@ -1,6 +1,7 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop")
-  .replace(/\/$/, "");
-const AUTH_STORAGE_KEY = "selectors-auth";
+import { AUTH_STORAGE_KEY } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
+
+export { AUTH_STORAGE_KEY };
 
 export interface AdminLoginRequest {
   loginId: string;
@@ -10,8 +11,13 @@ export interface AdminLoginRequest {
 export interface AdminLoginResponse {
   accessToken: string;
   loginId: string;
+  name: string;
   role: string;
   tokenType: string;
+}
+
+export interface AdministratorSession extends AdminLoginResponse {
+  issuedAt: number;
 }
 
 interface ApiResult<T> {
@@ -59,4 +65,40 @@ export function persistAdministratorSession(session: AdminLoginResponse) {
     issuedAt: Date.now(),
     tokenType: session.tokenType || "Bearer",
   }));
+}
+
+export function getAdministratorSession(): AdministratorSession | null {
+  const storedSession = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!storedSession) return null;
+
+  try {
+    const session = JSON.parse(storedSession) as Partial<AdministratorSession>;
+    if (
+      typeof session.accessToken !== "string"
+      || !session.accessToken.trim()
+      || typeof session.loginId !== "string"
+      || session.role !== "ADMIN"
+    ) {
+      return null;
+    }
+
+    return {
+      accessToken: session.accessToken,
+      issuedAt: typeof session.issuedAt === "number" ? session.issuedAt : 0,
+      loginId: session.loginId,
+      name: typeof session.name === "string" && session.name.trim()
+        ? session.name.trim()
+        : session.loginId,
+      role: session.role,
+      tokenType: typeof session.tokenType === "string" && session.tokenType
+        ? session.tokenType
+        : "Bearer",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function clearAdministratorSession() {
+  localStorage.removeItem(AUTH_STORAGE_KEY);
 }

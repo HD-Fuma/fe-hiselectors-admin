@@ -183,6 +183,9 @@ export function createCampaignPerformancePreviewSelectorDetail(
     userId: null,
     createdAt: "2026-08-01T09:00:00",
     updatedAt: "2026-08-24T09:00:00",
+    snsVerifiedAt: null,
+    privacyAgreedAt: null,
+    alimtalkAgreed: false,
     generations: [],
     snsAccount: {
       id: selector.selectorId,

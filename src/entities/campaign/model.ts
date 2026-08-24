@@ -62,6 +62,10 @@ export interface CampaignSaveRequest {
   productIds: number[];
 }
 
+export interface CampaignUpdateRequest extends CampaignSaveRequest {
+  removeThumbnail?: boolean;
+}
+
 export interface CampaignPerformanceSummary {
   confirmedSales: number;
   confirmedOrderCount: number;

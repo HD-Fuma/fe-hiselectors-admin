@@ -1,3 +1,6 @@
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
+
 export interface CreatorSummary {
   id: number;
   snsCode: "INSTAGRAM" | "YOUTUBE";
@@ -15,6 +18,8 @@ export interface CreatorSearchRequest {
   categoryCode?: string;
   snsCode?: string;
   minFollower?: number;
+  maxFollower?: number;
+  maxBrandScore?: number;
   minEngagementRate?: number;
   minRecent90DayContentCount?: number;
   page: number;
@@ -29,8 +34,40 @@ export interface CreatorPage {
   size: number;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080")
-  .replace(/\/$/, "");
+export interface CreatorPoolResetResult {
+  softDeletedCount: number;
+}
+
+export interface CreatorDetail {
+  id: number;
+  snsCode: "INSTAGRAM" | "YOUTUBE";
+  accountId: string;
+  creatorName: string | null;
+  email: string;
+  followerCount: number | null;
+  engagementRate: number | null;
+  lastContentAt: string | null;
+  category: string | null;
+}
+
+export interface ProposalHistoryEntry {
+  proposalHistoryId: number;
+  creatorId: number;
+  creatorName: string;
+  snsCode: "INSTAGRAM" | "YOUTUBE";
+  accountId: string;
+  email: string;
+  adminName: string;
+  createdAt: string;
+}
+
+export interface ProposalHistoryPage {
+  content: ProposalHistoryEntry[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
 
 function headers() {
   const result = new Headers();
@@ -58,8 +95,26 @@ function query(input: CreatorSearchRequest) {
   return params.toString();
 }
 
+async function request<T>(
+  path: string,
+  fallback: string,
+  signal?: AbortSignal,
+  init?: RequestInit,
+) {
+  const response = await adminFetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    headers: init?.body !== undefined
+      ? (() => { const h = headers(); h.set("Content-Type", "application/json"); return h; })()
+      : headers(),
+    signal,
+  });
+  const body = await response.json() as { data?: T | null; message?: string | null; success?: boolean };
+  if (!response.ok || !body.success || body.data == null) throw new Error(body.message || fallback);
+  return body.data;
+}
+
 export async function getCreators(input: CreatorSearchRequest, signal?: AbortSignal) {
-  const response = await fetch(
+  const response = await adminFetch(
     `${API_BASE_URL}/api/admin/creators?${query(input)}`,
     { headers: headers(), signal },
   );
@@ -73,4 +128,50 @@ export async function getCreators(input: CreatorSearchRequest, signal?: AbortSig
     throw new Error(body.message || "크리에이터 목록 조회에 실패했습니다.");
   }
   return body.data;
+}
+
+export function runCreatorDiscovery() {
+  return request<unknown>(
+    "/api/admin/discovery/youtube/run",
+    "크리에이터 풀 구축에 실패했습니다.",
+    undefined,
+    { method: "POST" },
+  );
+}
+
+export function resetCreatorPool() {
+  return request<CreatorPoolResetResult>(
+    "/api/admin/creators?confirmation=DELETE_CREATOR_POOL",
+    "크리에이터 풀 초기화에 실패했습니다.",
+    undefined,
+    { method: "DELETE" },
+  );
+}
+
+export function getCreator(id: number, signal?: AbortSignal) {
+  return request<CreatorDetail>(
+    `/api/admin/creators/${id}`,
+    "크리에이터 상세 조회에 실패했습니다.",
+    signal,
+  );
+}
+
+export function getAdminProposals(page: number, size: number, signal?: AbortSignal) {
+  return request<ProposalHistoryPage>(
+    `/api/admin/proposals?page=${page}&size=${size}`,
+    "제안 이력 조회에 실패했습니다.",
+    signal,
+  );
+}
+
+export function postAdminProposal(
+  creatorId: number,
+  content?: { subject: string; body: string },
+) {
+  return request<ProposalHistoryEntry>(
+    "/api/admin/proposals",
+    "제안 메일 발송에 실패했습니다.",
+    undefined,
+    { method: "POST", body: JSON.stringify({ creatorId, ...content }) },
+  );
 }

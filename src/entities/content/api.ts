@@ -1,5 +1,6 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop")
-  .replace(/\/$/, "");
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
+
 const AUTH_STORAGE_KEY = "selectors-auth";
 
 interface StoredAuthSession {
@@ -46,11 +47,17 @@ export interface CollectedContent {
 }
 
 interface SpringPage<T> {
-  content: T[];
-  number: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
+  content?: T[];
+  number?: number;
+  page?: {
+    number?: number;
+    size?: number;
+    totalElements?: number;
+    totalPages?: number;
+  };
+  size?: number;
+  totalElements?: number;
+  totalPages?: number;
 }
 
 export interface ContentBatchRunResponse {
@@ -58,6 +65,143 @@ export interface ContentBatchRunResponse {
   engagementCount: number;
   newContentSucceeded: boolean;
   storedContentSucceeded: boolean;
+}
+
+export type ContentVersionInspectionStatus =
+  | "PENDING"
+  | "INSPECTING"
+  | "COMPLETED"
+  | "FAILED";
+
+export type ContentViolationType =
+  | "AD_DISCLOSURE_INVALID"
+  | "AFFILIATE_LINK_INVALID"
+  | "ABUSIVE_LANGUAGE"
+  | "HATE_DISCRIMINATION"
+  | "VIOLENCE_THREAT"
+  | "SEXUAL_CONTENT"
+  | "POLITICAL_CONTENT"
+  | "SOCIAL_CONTROVERSY"
+  | "FALSE_EXAGGERATED_CLAIM"
+  | "BRAND_REPUTATION_DAMAGE";
+
+export type ContentViolationItemStatus =
+  | "PENDING"
+  | "VIOLATION_CONFIRMED"
+  | "EDIT_REQUESTED"
+  | "DISMISSED"
+  | "RESOLVED";
+
+export type ContentEvidenceMediaType = "TEXT" | "IMAGE" | "VIDEO";
+export type ContentEvidenceSource = "RULE" | "AI";
+
+export interface ContentBoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface ContentEvidenceLocation {
+  bbox: ContentBoundingBox | null;
+  contentMediaId: number | null;
+  endIndex: number | null;
+  endTime: number | null;
+  excerpt: string | null;
+  mediaType: ContentEvidenceMediaType;
+  startIndex: number | null;
+  startTime: number | null;
+}
+
+export interface ContentViolationEvidence {
+  confidence: number;
+  locations: ContentEvidenceLocation[];
+  reason: string;
+  source: ContentEvidenceSource;
+}
+
+export interface ContentViolation {
+  currentStatus: ContentViolationItemStatus;
+  detectedAt: string;
+  evidence: ContentViolationEvidence | null;
+  inspectionPolicyId: number;
+  violationEvidenceHistoryId: number;
+  violationItemId: number;
+  violationType: ContentViolationType;
+  violationTypeDescription: string;
+}
+
+export type ContentVersionCreationReason =
+  | "INITIAL"
+  | "SOURCE_CHANGE"
+  | "EXTRACTION_CHANGE";
+
+export interface ContentVersionMedia {
+  contentMediaId: number;
+  mediaType: ContentEvidenceMediaType;
+  mediaUrl: string | null;
+  sequenceNo: number;
+  snsMediaId: string | null;
+  text: string | null;
+}
+
+export interface ContentReport {
+  contentReportId: number;
+  flow: string | null;
+  overallAssessment: string | null;
+  purpose: string | null;
+  summary: string | null;
+}
+
+export interface ContentVersionSummary {
+  contentVersionId: number;
+  creationReason: ContentVersionCreationReason;
+  createdAt: string;
+  inspectionDecision?: ContentInspectionDecision | null;
+  inspectedAt: string | null;
+  inspectionStatus: ContentVersionInspectionStatus;
+  versionNo: number;
+}
+
+export interface ContentVersionDetail extends ContentVersionSummary {
+  contentReport: ContentReport | null;
+  media: ContentVersionMedia[];
+  violations: ContentViolation[];
+}
+
+export interface ContentInspectionRunResponse {
+  creationReason: ContentVersionCreationReason;
+  inspectedContentVersionId: number;
+  requestedContentVersionId: number;
+  versionCreated: boolean;
+  violationCount: number;
+}
+
+export type ContentInspectionDecision = "APPROVED" | "REJECTED";
+export type ContentInspectionTargetStatus = "VIOLATION_CONFIRMED" | "DISMISSED";
+
+export interface ContentInspectionConfirmationRequest {
+  decision: ContentInspectionDecision;
+  violations: Array<{
+    violationItemId: number;
+    status: ContentInspectionTargetStatus;
+  }>;
+}
+
+export interface ContentInspectionConfirmationResponse {
+  updatedCount: number;
+}
+
+export interface ContentDetail {
+  contentId: number;
+  contentType: CollectedContentType;
+  contentUrl: string;
+  selectedVersion: ContentVersionDetail;
+  selectorsId: number;
+  snsCode: ContentInspectionSnsCode;
+  snsContentId: string;
+  storedAt: string;
+  versions: ContentVersionSummary[];
 }
 
 async function errorMessage(response: Response, fallbackMessage: string) {
@@ -93,7 +237,7 @@ export async function runContentBatch(): Promise<ContentBatchRunResponse> {
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
 
-  const response = await fetch(`${API_BASE_URL}/api/admin/content-batch/run`, {
+  const response = await adminFetch(`${API_BASE_URL}/api/admin/content-batch/run`, {
     headers,
     method: "POST",
   });
@@ -118,7 +262,7 @@ async function getCurrentGenerationContentPage(page: number, signal?: AbortSigna
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
 
-  const response = await fetch(
+  const response = await adminFetch(
     `${API_BASE_URL}/api/admin/contents?${searchParams.toString()}`,
     { headers, signal },
   );
@@ -127,10 +271,15 @@ async function getCurrentGenerationContentPage(page: number, signal?: AbortSigna
   }
 
   const result = await response.json() as ApiResult<SpringPage<CollectedContent>>;
-  if (!result.success || !result.data) {
+  if (!result.success || !result.data || !Array.isArray(result.data.content)) {
     throw new Error(result.message || "콘텐츠 목록 조회에 실패했습니다.");
   }
   return result.data;
+}
+
+function pageTotalPages(page: SpringPage<unknown>) {
+  const totalPages = page.totalPages ?? page.page?.totalPages;
+  return typeof totalPages === "number" && totalPages > 0 ? totalPages : 1;
 }
 
 export async function getCurrentGenerationContents(signal?: AbortSignal) {
@@ -140,10 +289,93 @@ export async function getCurrentGenerationContents(signal?: AbortSignal) {
 
   while (page < totalPages) {
     const result = await getCurrentGenerationContentPage(page, signal);
-    contents.push(...result.content);
-    totalPages = result.totalPages;
+    contents.push(...(result.content ?? []));
+    totalPages = pageTotalPages(result);
     page += 1;
   }
 
   return contents;
+}
+
+async function fetchContentDetail(path: string, signal?: AbortSignal) {
+  const headers = new Headers();
+  const authorization = authorizationHeader();
+  if (authorization) headers.set("Authorization", authorization);
+
+  const response = await adminFetch(`${API_BASE_URL}${path}`, { headers, signal });
+  if (!response.ok) {
+    throw new Error(await errorMessage(response, "콘텐츠 상세 조회에 실패했습니다."));
+  }
+
+  const result = await response.json() as ApiResult<ContentDetail>;
+  if (!result.success || !result.data?.selectedVersion) {
+    throw new Error(result.message || "콘텐츠 상세 조회에 실패했습니다.");
+  }
+  return result.data;
+}
+
+export function getContentDetail(contentId: number, signal?: AbortSignal) {
+  return fetchContentDetail(`/api/admin/contents/${contentId}`, signal);
+}
+
+export function getContentVersionDetail(
+  contentId: number,
+  contentVersionId: number,
+  signal?: AbortSignal,
+) {
+  return fetchContentDetail(
+    `/api/admin/contents/${contentId}/versions/${contentVersionId}`,
+    signal,
+  );
+}
+
+export async function inspectContentVersion(
+  contentVersionId: number,
+  signal?: AbortSignal,
+): Promise<ContentInspectionRunResponse> {
+  const headers = new Headers();
+  const authorization = authorizationHeader();
+  if (authorization) headers.set("Authorization", authorization);
+
+  const response = await adminFetch(
+    `${API_BASE_URL}/api/admin/content-versions/${contentVersionId}/inspect`,
+    { headers, method: "POST", signal },
+  );
+  if (!response.ok) {
+    throw new Error(await errorMessage(response, "콘텐츠 검수 실행에 실패했습니다."));
+  }
+  const result = await response.json() as ApiResult<ContentInspectionRunResponse>;
+  if (!result.success || !result.data) {
+    throw new Error(result.message || "콘텐츠 검수 실행에 실패했습니다.");
+  }
+  return result.data;
+}
+
+export async function confirmContentInspection(
+  contentId: number,
+  contentVersionId: number,
+  request: ContentInspectionConfirmationRequest,
+  signal?: AbortSignal,
+): Promise<ContentInspectionConfirmationResponse> {
+  const headers = new Headers({ "Content-Type": "application/json" });
+  const authorization = authorizationHeader();
+  if (authorization) headers.set("Authorization", authorization);
+
+  const response = await adminFetch(
+    `${API_BASE_URL}/api/admin/contents/${contentId}/versions/${contentVersionId}/inspection`,
+    {
+      body: JSON.stringify(request),
+      headers,
+      method: "PATCH",
+      signal,
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await errorMessage(response, "콘텐츠 검수 확정에 실패했습니다."));
+  }
+  const result = await response.json() as ApiResult<ContentInspectionConfirmationResponse>;
+  if (!result.success || !result.data) {
+    throw new Error(result.message || "콘텐츠 검수 확정에 실패했습니다.");
+  }
+  return result.data;
 }

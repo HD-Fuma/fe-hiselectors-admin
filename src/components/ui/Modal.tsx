@@ -7,12 +7,13 @@ export interface ModalProps {
   title: string;
   children: ReactNode;
   actions?: ReactNode;
+  ariaDescribedBy?: string;
   className?: string;
   onClose?: () => void;
   role?: "alertdialog" | "dialog";
 }
 
-export function Modal({ actions, children, className, onClose, open, role = "dialog", title }: ModalProps) {
+export function Modal({ actions, ariaDescribedBy, children, className, onClose, open, role = "dialog", title }: ModalProps) {
   const titleId = useId();
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
@@ -26,6 +27,7 @@ export function Modal({ actions, children, className, onClose, open, role = "dia
   return createPortal(
     <div className="hsas-modal-backdrop" ref={backdropRef}>
       <section
+        aria-describedby={ariaDescribedBy}
         aria-labelledby={titleId}
         aria-modal="true"
         className={["hsas-modal", className].filter(Boolean).join(" ")}

@@ -1,8 +1,14 @@
+import { adminFetch } from "../../lib/adminAuthentication";
+import { API_BASE_URL } from "../../lib/apiBaseUrl";
+
 export type ApplicationSnsCode = "INSTAGRAM" | "YOUTUBE";
 export type ApplicationStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type ApplicationMediaCollectionStatus = "PENDING" | "DONE" | "FAILED";
+export type ApplicationAnalysisStatus = "PENDING" | "IN_PROGRESS" | "DONE" | "FAILED";
 export type ApplicationContentType = "SHORT_FORM" | "LONG_FORM" | "SHORTS" | "FEED";
+export type ApplicationMediaType = "IMAGE" | "VIDEO";
 export type ApplicationContentFormat = ApplicationContentType | "UNKNOWN";
+export type ApplicationRepresentativeContentType = "SHORT_FORM" | "FEED" | "LONG_FORM";
 
 export interface SpringPage<T> {
   content: T[];
@@ -23,6 +29,7 @@ export interface AdminApplicationIdentity {
   generationName: string;
   snsCode: ApplicationSnsCode;
   snsAccountId: string;
+  snsDisplayName: string | null;
   followerCount: number | null;
   status: ApplicationStatus;
   mediaCollectionStatus: ApplicationMediaCollectionStatus;
@@ -65,6 +72,9 @@ export interface ApplicationMetrics {
   averageCommentCount: ApplicationMetricValue;
   engagementRate: ApplicationMetricValue;
   contentFormats: ApplicationContentFormatCount[];
+  viewCountPercentile: number | null;
+  likeCountPercentile: number | null;
+  commentCountPercentile: number | null;
 }
 
 export interface ApplicationContent {
@@ -74,7 +84,12 @@ export interface ApplicationContent {
   snsContentId: string;
   contentUrl: string | null;
   mediaUrl: string | null;
+  thumbnailUrl: string | null;
   contentType: ApplicationContentType | null;
+  mediaType: ApplicationMediaType;
+  title: string | null;
+  caption: string | null;
+  description: string | null;
   sequenceNo: number;
   publishedAt: string | null;
   viewCount: number | null;
@@ -84,8 +99,30 @@ export interface ApplicationContent {
 }
 
 export interface AdminApplicationDetail extends AdminApplicationIdentity {
+  analysisStatus: ApplicationAnalysisStatus;
+  profileImageUrl: string | null;
   metrics: ApplicationMetrics;
   contents: ApplicationContent[];
+}
+
+export interface AdminApplicationAiReport {
+  applicationId: number;
+  summary: string;
+  category: string;
+  keywords: string[];
+  contentStyle: string;
+  tone: string;
+  strength: string;
+  cautions: string;
+  risks: string;
+  brandHistory: string;
+  status: string;
+  createdAt: string;
+  representativeContentUrl: string | null;
+  representativeContentType: ApplicationRepresentativeContentType | null;
+  representativeViewCount: number | null;
+  representativeCategory: string | null;
+  representativeKeywords: string[] | null;
 }
 
 export interface AdminApplicationSearchRequest {
@@ -93,13 +130,15 @@ export interface AdminApplicationSearchRequest {
   snsCode?: ApplicationSnsCode;
   status?: ApplicationStatus;
   generationId?: number;
+  hasAiReport?: boolean;
   minimumCriteriaOnly?: boolean;
   page: number;
   size: number;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.hiselectors.shop")
-  .replace(/\/$/, "");
+export interface AdminApplicationTestCreateResponse {
+  id: number;
+}
 
 function headers(json = false) {
   const result = new Headers();
@@ -132,7 +171,7 @@ async function request<T>(
   signal?: AbortSignal,
   init?: RequestInit,
 ) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await adminFetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: headers(init?.body !== undefined),
     signal,
@@ -164,12 +203,36 @@ export function getAdminApplications(input: AdminApplicationSearchRequest, signa
   );
 }
 
+export function createAdminApplicationTest(profileUrl: string) {
+  return request<AdminApplicationTestCreateResponse>(
+    "/api/admin/applications/test",
+    "테스트 지원자 생성에 실패했습니다.",
+    undefined,
+    { method: "POST", body: JSON.stringify({ profileUrl }) },
+  );
+}
+
 export function getAdminApplication(id: number, signal?: AbortSignal) {
   return request<AdminApplicationDetail>(
     `/api/admin/applications/${id}`,
     "지원자 상세 조회에 실패했습니다.",
     signal,
   );
+}
+
+export async function getAdminApplicationAiReport(id: number, signal?: AbortSignal) {
+  try {
+    return await request<AdminApplicationAiReport>(
+      `/api/admin/applications/${id}/ai-report`,
+      "AI 리포트 조회에 실패했습니다.",
+      signal,
+    );
+  } catch (reason) {
+    if (!(reason instanceof DOMException && reason.name === "AbortError")) {
+      console.error(`[ai-report] applicationId=${id}`, reason);
+    }
+    return null;
+  }
 }
 
 export function updateAdminApplicationStatus(id: number, status: Exclude<ApplicationStatus, "PENDING">) {

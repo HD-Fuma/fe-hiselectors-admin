@@ -15,7 +15,6 @@ const expectedSidebarLinks = [
   ["캠페인 성과", "/performance/products"],
   ["정산 관리", "/settlements"],
   ["발송 내역", "/notifications"],
-  ["카카오 수신 현황", "/notifications/kakao-recipients"],
 ] as const;
 
 test("renderRoute renders the administrator login route", () => {
@@ -35,7 +34,7 @@ test("renders the complete administrator navigation in one sidebar", () => {
 
   expect(sidebarQueries.getByRole("img", { name: "더현대Hi" })).toBeInTheDocument();
   expect(screen.getAllByRole("navigation", { name: "관리자 메뉴" })).toHaveLength(1);
-  expect(within(navigation).getAllByRole("link")).toHaveLength(13);
+  expect(within(navigation).getAllByRole("link")).toHaveLength(12);
   for (const [label, href] of expectedSidebarLinks) {
     expect(within(navigation).getByRole("link", { name: label })).toHaveAttribute(
       "href",
@@ -145,7 +144,7 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
   renderRoute("/creators");
 
   const shell = screen.getByTestId("admin-shell");
-  expect(within(shell).getByText("관리자")).toBeInTheDocument();
+  expect(within(shell).getByText("테스트 관리자")).toBeInTheDocument();
   expect(within(shell).getByText("관리자 계정")).toBeInTheDocument();
   expect(within(shell).queryByRole("button", { name: "설정" })).not.toBeInTheDocument();
   expect(within(shell).getAllByRole("button", { name: "로그아웃" })).toHaveLength(1);
@@ -159,6 +158,7 @@ test("logs out to the login screen", async () => {
 
   expect(screen.getByRole("main")).toHaveTextContent("Hi-Selectors");
   expect(screen.queryByTestId("admin-shell")).not.toBeInTheDocument();
+  expect(localStorage.getItem("selectors-auth")).toBeNull();
 });
 
 test("does not render icon-rail navigation controls", () => {
@@ -312,10 +312,10 @@ const routeCases = [
   {
     path: "/notifications/kakao-recipients",
     group: "notifications",
-    menuLabel: "카카오 수신 현황",
+    menuLabel: "발송 내역",
     title: "카카오 수신 현황",
     screenCode: "NT102",
-    routeIsExact: true,
+    routeIsExact: false,
   },
 ] as const;
 

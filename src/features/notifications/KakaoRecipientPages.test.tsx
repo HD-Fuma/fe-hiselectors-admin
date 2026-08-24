@@ -86,6 +86,7 @@ test("lists kakao recipient status and filters by keyword and status", async () 
   expect(within(blockedRow).getByLabelText("알림 메시지 수신 불가, 재인증 필요")).toBeInTheDocument();
 
   const search = screen.getByRole("search", { name: "검색 조건" });
+  expect(search.closest(".fuma-operations-search.fuma-settlement-search")).not.toBeNull();
   fireEvent.change(within(search).getByLabelText("이름, 이메일 또는 셀렉터스 코드"), {
     target: { value: "수신가능" },
   });

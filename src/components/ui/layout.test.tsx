@@ -435,6 +435,27 @@ test("switches a typed choice tab while preserving an optional action", async ()
   );
 });
 
+test("centers every cell when the table align is set", () => {
+  render(
+    <DenseTable
+      align="center"
+      columns={[
+        { key: "code", header: "Code" },
+        { key: "name", header: "Product name" },
+      ]}
+      rowKey={(row) => row.id}
+      rows={[{ id: 101, code: "P-001", name: "Centered product", status: "approved" }]}
+    />,
+  );
+
+  const dataRow = screen.getByRole("row", { name: /Centered product/ });
+  expect(
+    within(dataRow).getAllByRole("cell").every((cell) => (
+      cell.classList.contains("hsas-dense-table__cell--center")
+    )),
+  ).toBe(true);
+});
+
 test("keeps read-only table rows out of the keyboard tab order", () => {
   render(
     <DenseTable
