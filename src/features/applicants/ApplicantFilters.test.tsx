@@ -136,20 +136,6 @@ const applicantDetail = {
   }],
 };
 
-const applicantAiReport = {
-  applicationId: 1,
-  summary: "",
-  category: "",
-  keywords: [],
-  contentStyle: "",
-  tone: "",
-  strength: "",
-  warning: "",
-  brandHistory: "",
-  status: "COMPLETED",
-  createdAt: "2026-08-05T10:00:00",
-};
-
 const youtubeApplicantDetail = {
   ...applicantDetail,
   ...applicants[1],
