@@ -44,6 +44,9 @@ const CohortManagementPage = lazyPage(() =>
 const ApplicantListPage = lazyPage(() =>
   import("../features/applicants/ApplicantPages").then((module) => module.ApplicantListPage),
 );
+const ApplicantTestPage = lazyPage(() =>
+  import("../features/applicants/ApplicantPages").then((module) => module.ApplicantTestPage),
+);
 const ApplicantDetailPage = lazyPage(() =>
   import("../features/applicants/ApplicantPages").then((module) => module.ApplicantDetailPage),
 );
@@ -185,6 +188,16 @@ export const ADMIN_ROUTE_MANIFEST = [
     title: "지원자 승인",
     screenCode: "AP101",
     workTabLabel: "지원자 심사",
+  },
+  {
+    path: "/applicants/test",
+    Component: ApplicantTestPage,
+    group: "applicants",
+    menuLabel: "지원자 승인",
+    title: "테스트 지원자 등록",
+    screenCode: "AP103",
+    workTabLabel: "테스트 지원자 등록",
+    workTabParentPath: "/applicants",
   },
   {
     path: "/applicants/:applicantId",

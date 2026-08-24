@@ -1,4 +1,9 @@
-import { getAdminApplication, getAdminApplications, updateAdminApplicationStatus } from "./api";
+import {
+  createAdminApplicationTest,
+  getAdminApplication,
+  getAdminApplications,
+  updateAdminApplicationStatus,
+} from "./api";
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify({
@@ -67,6 +72,22 @@ describe("application admin api", () => {
     expect(init).toEqual(expect.objectContaining({
       method: "PATCH",
       body: JSON.stringify({ status: "APPROVED" }),
+    }));
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer admin.jwt");
+    expect(new Headers(init?.headers).get("Content-Type")).toBe("application/json");
+  });
+
+  test("creates a test application from a profile URL", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ id: 41 })));
+
+    await expect(createAdminApplicationTest("https://www.instagram.com/test.account"))
+      .resolves.toEqual({ id: 41 });
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toMatch(/\/api\/admin\/applications\/test$/);
+    expect(init).toEqual(expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({ profileUrl: "https://www.instagram.com/test.account" }),
     }));
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer admin.jwt");
     expect(new Headers(init?.headers).get("Content-Type")).toBe("application/json");

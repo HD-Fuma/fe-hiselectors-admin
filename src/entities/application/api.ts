@@ -136,6 +136,10 @@ export interface AdminApplicationSearchRequest {
   size: number;
 }
 
+export interface AdminApplicationTestCreateResponse {
+  id: number;
+}
+
 function headers(json = false) {
   const result = new Headers();
   if (json) result.set("Content-Type", "application/json");
@@ -196,6 +200,15 @@ export function getAdminApplications(input: AdminApplicationSearchRequest, signa
     `/api/admin/applications?${query(input)}`,
     "지원자 목록 조회에 실패했습니다.",
     signal,
+  );
+}
+
+export function createAdminApplicationTest(profileUrl: string) {
+  return request<AdminApplicationTestCreateResponse>(
+    "/api/admin/applications/test",
+    "테스트 지원자 생성에 실패했습니다.",
+    undefined,
+    { method: "POST", body: JSON.stringify({ profileUrl }) },
   );
 }
 
