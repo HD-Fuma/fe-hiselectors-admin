@@ -1,14 +1,19 @@
 import {
   BarChart3,
   Bell,
+  Check,
   ChevronDown,
   ClipboardList,
   LogOut,
+  Moon,
+  Settings,
+  Sun,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, matchPath, useNavigate } from "react-router-dom";
+import { applyTheme, getTheme, saveTheme } from "../../lib/theme";
 import {
   clearAdministratorSession,
   getAdministratorSession,
@@ -27,6 +32,13 @@ const GROUP_ICONS: Record<NavGroup, LucideIcon> = {
   performance: BarChart3,
   notifications: Bell,
 };
+
+const THEME_OPTIONS = [
+  { value: "light", label: "라이트 모드", icon: Sun },
+  { value: "dark", label: "다크 모드", icon: Moon },
+] as const;
+
+const THEME_SETTINGS_ID = "hsas-theme-settings";
 
 interface AdminSidebarProps {
   activeRoute: AdminRouteMeta;
@@ -62,9 +74,37 @@ export function AdminSidebar({
   const navigate = useNavigate();
   const session = getAdministratorSession();
   const administratorName = session?.name ?? session?.loginId ?? "관리자";
+  const [isSettingsOpen, setSettingsOpen] = useState(false);
+  const [theme, setTheme] = useState(getTheme);
+  const settingsRef = useRef<HTMLDivElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<NavGroup>>(
     () => new Set(groups.map(({ id }) => id)),
   );
+
+  useLayoutEffect(() => applyTheme(theme), [theme]);
+
+  useEffect(() => {
+    if (!isSettingsOpen) return undefined;
+
+    const closeOnPointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !settingsRef.current?.contains(event.target)) {
+        setSettingsOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setSettingsOpen(false);
+      settingsButtonRef.current?.focus();
+    };
+
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isSettingsOpen]);
 
   const toggleGroup = (groupId: NavGroup) => {
     setExpandedGroups((current) => {
@@ -176,7 +216,57 @@ export function AdminSidebar({
           <strong>{administratorName}</strong>
           <span>관리자 계정</span>
         </span>
-        <span className="hsas-admin-sidebar__account-actions">
+        <div className="hsas-admin-sidebar__account-actions">
+          <div className="hsas-theme-settings-anchor" ref={settingsRef}>
+            <button
+              aria-controls={THEME_SETTINGS_ID}
+              aria-expanded={isSettingsOpen}
+              aria-label="환경설정"
+              className="hsas-admin-sidebar__account-action"
+              onClick={() => setSettingsOpen((current) => !current)}
+              ref={settingsButtonRef}
+              type="button"
+            >
+              <Settings aria-hidden="true" />
+            </button>
+            {isSettingsOpen && (
+              <div
+                aria-label="환경설정"
+                className="hsas-theme-settings-popover"
+                id={THEME_SETTINGS_ID}
+                role="group"
+              >
+                <span className="hsas-theme-settings__label">화면 모드</span>
+                <div
+                  aria-label="화면 모드"
+                  className="hsas-theme-settings__menu"
+                  role="group"
+                >
+                  {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+                    <button
+                      aria-pressed={theme === value}
+                      className="hsas-theme-settings__item"
+                      key={value}
+                      onClick={() => {
+                        setTheme(value);
+                        saveTheme(value);
+                      }}
+                      type="button"
+                    >
+                      <Icon aria-hidden="true" />
+                      <span>{label}</span>
+                      {theme === value && (
+                        <Check
+                          aria-hidden="true"
+                          className="hsas-theme-settings__check"
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           <button
             type="button"
             className="hsas-admin-sidebar__account-action"
@@ -188,7 +278,7 @@ export function AdminSidebar({
           >
             <LogOut aria-hidden="true" />
           </button>
-        </span>
+        </div>
       </div>
     </aside>
   );

@@ -5,6 +5,12 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   background: #f6f7f7;
 }
 
+html[data-theme='dark'] body:has(.fuma-performance-page) .hsas-admin-shell,
+html[data-theme='dark'] body:has(.fuma-performance-page) .hsas-admin-shell__workspace,
+html[data-theme='dark'] body:has(.fuma-performance-page) .hsas-admin-shell__content {
+  background: var(--hsas-background);
+}
+
 .fuma-performance-page {
   --fuma-performance-ink: #25282a;
   --fuma-performance-muted: #73777a;
@@ -13,12 +19,147 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   --fuma-performance-teal-soft: #f2f4f1;
   --fuma-performance-orange: #ca7700;
   --fuma-performance-orange-text: #925500;
-  --fuma-performance-panel: var(--hsas-color-white);
+  --fuma-performance-panel: var(--hsas-surface);
   --fuma-content-format-1: #238b78;
   --fuma-content-format-2: #6ba99d;
   --fuma-content-format-3: #a9cbc4;
   --fuma-content-format-4: #536963;
   --fuma-content-format-5: #a8b1ae;
+}
+
+html[data-theme='dark'] .fuma-performance-page {
+  --fuma-performance-ink: var(--hsas-text);
+  --fuma-performance-muted: var(--hsas-text-muted);
+  --fuma-performance-line: var(--hsas-border);
+  color: var(--hsas-text);
+}
+
+html[data-theme='dark'] .fuma-performance-page :is(
+  h2,
+  h3,
+  h4,
+  .fuma-campaign-overview__row > strong,
+  .fuma-campaign-overview__identity > strong,
+  .fuma-campaign-overview__kpis dd,
+  .fuma-campaign-product-group > header dd,
+  .fuma-campaign-product__body dl > div:not(:first-child):not(:last-child) dd,
+  .fuma-selector-performance-report__header > dl dd,
+  .fuma-selector-performance-report__kpis dd,
+  .fuma-selector-performance-report__chart figcaption strong,
+  .fuma-selector-performance-report__metrics > div:first-child dd,
+  .fuma-content-upload-status dd,
+  .fuma-content-reaction-table__content strong,
+  .fuma-content-reaction-table__count,
+  .fuma-content-reaction-table__channel strong
+) {
+  color: var(--hsas-text);
+}
+
+html[data-theme='dark'] .fuma-performance-page :is(
+  dt,
+  small,
+  .fuma-campaign-overview__header > div > span,
+  .fuma-campaign-overview__comparison header p,
+  .fuma-campaign-overview__comparison header > span,
+  .fuma-campaign-overview__bar > span,
+  .fuma-campaign-overview__insight > p,
+  .fuma-campaign-product-group > header p,
+  .fuma-campaign-product-group__more.is-open,
+  .fuma-selector-performance-report__header > div > span,
+  .fuma-selector-performance-report__section-heading p,
+  .fuma-selector-performance-report__chart figcaption span,
+  .fuma-selector-performance-report__bar-item > strong,
+  .fuma-selector-performance-report__bar-item > span,
+  .fuma-selector-performance-report__ranking > header > span,
+  .fuma-selector-performance-report__identity-meta > span:first-child,
+  .fuma-selector-performance-report__contribution span,
+  .fuma-content-upload-status__formats > p,
+  .fuma-content-period-chart__period strong,
+  .fuma-content-cohort-chart__legend,
+  .fuma-content-cohort-chart > p,
+  .fuma-content-reaction-table__content > div > span,
+  .fuma-content-reaction-table__platform,
+  .fuma-content-table-trend.is-empty
+) {
+  color: var(--hsas-text-muted);
+}
+
+html[data-theme='dark'] .fuma-performance-page :is(
+  .fuma-campaign-overview,
+  .fuma-campaign-overview :where(header, dl, dl > div),
+  .fuma-campaign-overview__comparison,
+  .fuma-campaign-overview__row,
+  .fuma-campaign-overview__insight,
+  .fuma-campaign-product-group,
+  .fuma-campaign-product,
+  .fuma-campaign-product-group :where(header, dl, dl > div),
+  .fuma-selector-performance-report,
+  .fuma-selector-performance-report :where(header, dl, dl > div, figure),
+  .fuma-selector-performance-report__insights,
+  .fuma-selector-performance-report__bars,
+  .fuma-selector-performance-report__list,
+  .fuma-selector-performance-report__entry,
+  .fuma-content-performance-card,
+  .fuma-result-toolbar
+) {
+  border-color: var(--hsas-border);
+}
+
+html[data-theme='dark'] .fuma-performance-page :is(
+  .fuma-campaign-overview__body,
+  .fuma-campaign-product-group > header,
+  .fuma-campaign-product-group__more,
+  .fuma-selector-performance-report__insights
+) {
+  background: var(--hsas-surface-muted);
+}
+
+html[data-theme='dark'] .fuma-campaign-overview__header {
+  background: linear-gradient(112deg, var(--hsas-surface) 0%, color-mix(in srgb, var(--hsas-surface-muted) 92%, var(--hsas-teal)) 100%);
+}
+
+html[data-theme='dark'] .fuma-campaign-overview__insight {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--hsas-surface-muted) 92%, var(--hsas-teal)) 0%, var(--hsas-surface) 100%);
+}
+
+html[data-theme='dark'] .fuma-selector-performance-report__header {
+  background: linear-gradient(112deg, var(--hsas-surface) 0%, color-mix(in srgb, var(--hsas-surface-muted) 92%, var(--fuma-selector-accent)) 100%);
+}
+
+html[data-theme='dark'] .fuma-selector-performance-report__bars {
+  background: repeating-linear-gradient(to bottom, transparent 0, transparent 36px, var(--hsas-color-line-100) 37px);
+}
+
+html[data-theme='dark'] .fuma-content-cohort-chart__grid { stroke: var(--hsas-border); }
+html[data-theme='dark'] .fuma-content-cohort-chart__value { fill: var(--hsas-text-muted); }
+html[data-theme='dark'] .fuma-content-cohort-chart__label { fill: var(--hsas-text); }
+
+html[data-theme='dark'] .fuma-selector-performance-report :is(
+  .fuma-selector-performance-report__entry:hover,
+  .fuma-selector-performance-report__more:hover
+) {
+  background: color-mix(in srgb, var(--hsas-surface-muted) 88%, var(--fuma-selector-accent));
+}
+
+html[data-theme='dark'] .fuma-campaign-product__body dl > div:first-child dd,
+html[data-theme='dark'] .fuma-campaign-product__body dl > div:last-child dd {
+  color: var(--hsas-teal);
+}
+
+html[data-theme='dark'] .fuma-selector-performance-report__metrics > div:nth-child(n + 2) dd {
+  color: var(--fuma-selector-accent);
+}
+
+html[data-theme='dark'] .fuma-content-performance-detail :is(h3, dd) {
+  color: var(--hsas-text);
+}
+
+html[data-theme='dark'] .fuma-content-performance-detail :is(dt, p, small) {
+  color: var(--hsas-text-muted);
+}
+
+html[data-theme='dark'] .fuma-content-performance-detail :is(dl, dl > div, .fuma-content-performance-detail__trend) {
+  border-color: var(--hsas-border);
 }
 
 .fuma-performance-page .fuma-page__body {
@@ -47,7 +188,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   overflow: hidden;
   border: 1px solid #dce6e2;
   border-radius: 14px;
-  background: var(--hsas-color-white);
+  background: var(--hsas-surface);
   box-shadow: 0 5px 18px var(--hsas-color-shadow-soft);
 }
 
@@ -58,7 +199,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   gap: var(--hsas-space-20);
   padding: var(--hsas-space-22) var(--hsas-space-23) var(--hsas-space-19);
   border-bottom: 1px solid #e6ede9;
-  background: linear-gradient(112deg, var(--hsas-color-white) 0%, #f1f8f5 100%);
+  background: linear-gradient(112deg, var(--hsas-surface) 0%, #f1f8f5 100%);
 }
 
 .fuma-campaign-overview__header p {
@@ -143,14 +284,14 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   grid-template-columns: minmax(0, 1.65fr) minmax(230px, .65fr);
   gap: var(--hsas-space-14);
   padding: var(--hsas-space-18) var(--hsas-space-20) var(--hsas-space-20);
-  background: #fbfcfb;
+  background: var(--hsas-color-surface-soft);
 }
 
 .fuma-campaign-overview__comparison {
   overflow: hidden;
   border: 1px solid #e1e9e5;
   border-radius: 10px;
-  background: var(--hsas-color-white);
+  background: var(--hsas-surface);
 }
 
 .fuma-campaign-overview__comparison > header {
@@ -207,7 +348,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   padding: var(--hsas-space-20);
   border: 1px solid var(--fuma-performance-line);
   border-radius: 14px;
-  background: var(--hsas-color-white);
+  background: var(--hsas-surface);
   box-shadow: 0 5px 18px var(--hsas-color-shadow-soft);
 }
 
@@ -259,7 +400,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   padding: var(--hsas-space-12);
   border: 1px solid #dde8e3;
   border-radius: 10px;
-  background: var(--hsas-color-white);
+  background: var(--hsas-surface);
 }
 
 .fuma-campaign-product > img { width: 142px; height: 168px; border-radius: 8px; object-fit: cover; background: #e6eeea; }
@@ -274,7 +415,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   overflow: hidden;
   border: 1px solid #e4ece8;
   border-radius: 8px;
-  background: var(--hsas-color-white);
+  background: var(--hsas-surface);
 }
 
 .fuma-campaign-product__body dl > div { min-width: 0; padding: var(--hsas-space-8) var(--hsas-space-9); border-top: 1px solid #e4ece8; border-left: 1px solid #e4ece8; }
@@ -310,7 +451,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   overflow: hidden;
   border: 1px solid #dfe5e5;
   border-radius: 14px;
-  background: var(--hsas-color-white);
+  background: var(--hsas-surface);
   box-shadow: 0 5px 18px rgb(35 43 49 / 5%);
 }
 
@@ -321,7 +462,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   gap: var(--hsas-space-20);
   padding: var(--hsas-space-22) var(--hsas-space-23) var(--hsas-space-19);
   border-bottom: 1px solid #ebeff0;
-  background: linear-gradient(112deg, var(--hsas-color-white) 0%, #fdf8fc 100%);
+  background: linear-gradient(112deg, var(--hsas-surface) 0%, #fdf8fc 100%);
 }
 
 .fuma-selector-performance-report__header p,
@@ -345,7 +486,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 .fuma-selector-performance-report__section-heading h3 { margin: 0; color: #343b40; font-size: var(--hsas-font-15); letter-spacing: -.04em; }
 .fuma-selector-performance-report__section-heading p { margin: var(--hsas-space-4) 0 0; color: #8a9297; font-size: var(--hsas-font-9); }
 .fuma-selector-performance-report__section-heading > span { display: inline-flex; align-items: center; gap: var(--hsas-space-4); color: #b64baa; font-size: var(--hsas-font-9); font-weight: 750; }
-.fuma-selector-performance-report__kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; overflow: hidden; border: 1px solid #e4e9ea; border-radius: 8px; background: var(--hsas-color-white); }
+.fuma-selector-performance-report__kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; overflow: hidden; border: 1px solid #e4e9ea; border-radius: 8px; background: var(--hsas-surface); }
 .fuma-selector-performance-report__kpis > div { position: relative; min-width: 0; padding: var(--hsas-space-12) var(--hsas-space-12) var(--hsas-space-12) var(--hsas-space-44); border-left: 1px solid #edf0f1; }
 .fuma-selector-performance-report__kpis > div:first-child { border-left: 0; }
 .fuma-selector-performance-report__kpis > div > span { position: absolute; top: var(--hsas-space-13); left: var(--hsas-space-12); display: grid; width: 25px; height: 25px; place-items: center; border-radius: 7px; color: #bd50af; background: #fff0fb; }
@@ -354,7 +495,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 .fuma-selector-performance-report__kpis small { margin-left: var(--hsas-space-2); color: #858d92; font-size: var(--hsas-font-10); font-weight: 700; }
 
 .fuma-selector-performance-report__charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--hsas-space-12); margin-top: var(--hsas-space-12); }
-.fuma-selector-performance-report__chart { min-width: 0; margin: 0; padding: var(--hsas-space-14); border: 1px solid #e4e9ea; border-radius: 9px; background: var(--hsas-color-white); }
+.fuma-selector-performance-report__chart { min-width: 0; margin: 0; padding: var(--hsas-space-14); border: 1px solid #e4e9ea; border-radius: 9px; background: var(--hsas-surface); }
 .fuma-selector-performance-report__chart figcaption strong { display: block; color: #41494f; font-size: var(--hsas-font-11); }
 .fuma-selector-performance-report__chart figcaption span { display: block; margin-top: var(--hsas-space-3); color: #969da1; font-size: var(--hsas-font-9); }
 .fuma-selector-performance-report__bars {
@@ -425,7 +566,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   padding: 0 var(--hsas-space-16);
   border: 1px solid #d9dfe0;
   border-radius: 7px;
-  background: var(--hsas-color-white);
+  background: var(--hsas-surface);
   color: #667078;
   font-size: var(--hsas-font-11);
   font-weight: 750;
@@ -686,7 +827,7 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   position: relative;
   overflow: hidden;
   border: 1px solid #e2e7e5;
-  background: var(--hsas-color-white);
+  background: var(--hsas-surface);
 }
 
 .fuma-content-performance-card__trigger {

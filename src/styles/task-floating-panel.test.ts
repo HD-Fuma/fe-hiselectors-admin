@@ -100,7 +100,7 @@ describe("TaskRun floating panel layout", () => {
 });
 
 describe("TaskRun floating panel surfaces", () => {
-  test("uses a high-contrast dark capsule for the title and collapse control", () => {
+  test("uses theme-aware capsule colors for the title and collapse control", () => {
     const headerRule = ruleFor(".fuma-task-run-panel__header");
     const titleRule = ruleFor(".fuma-task-run-panel__title");
     const countRule = ruleFor(".fuma-task-run-panel__count");
@@ -115,7 +115,7 @@ describe("TaskRun floating panel surfaces", () => {
     expect(headerRule).toMatch(
       /border-radius:\s*calc\(var\(--hsas-sidebar-radius\) \* 3\);/,
     );
-    expect(titleRule).toMatch(/color:\s*var\(--hsas-color-white\);/);
+    expect(titleRule).toMatch(/color:\s*var\(--hsas-sidebar-strong-text\);/);
     expect(countRule).toMatch(/color:\s*var\(--hsas-sidebar-heading\);/);
     expect(collapseRule).toMatch(
       /border:\s*1px solid var\(--hsas-sidebar-border\);/,
@@ -123,10 +123,10 @@ describe("TaskRun floating panel surfaces", () => {
     expect(collapseRule).toMatch(
       /background:\s*var\(--hsas-sidebar-hover\);/,
     );
-    expect(collapseRule).toMatch(/color:\s*var\(--hsas-color-white\);/);
+    expect(collapseRule).toMatch(/color:\s*var\(--hsas-sidebar-strong-text\);/);
   });
 
-  test("preserves the original dark capsule surface", () => {
+  test("uses a soft shadow on the task capsule surface", () => {
     const surfaceRule = ruleFor(".fuma-task-run-card-surface");
     const cardRule = ruleFor(".fuma-task-run-card");
 
@@ -140,14 +140,14 @@ describe("TaskRun floating panel surfaces", () => {
       /background:\s*var\(--hsas-sidebar-background\);/,
     );
     expect(surfaceRule).toMatch(
-      /box-shadow:\s*0 var\(--hsas-space-8\) var\(--hsas-space-24\) rgb\(15 15 15 \/ 24%\);/,
+      /box-shadow:\s*0 12px 32px -8px rgb\(15 15 15 \/ 20%\);/,
     );
     expect(cardRule).toMatch(
       /padding:\s*var\(--hsas-space-14\) var\(--hsas-space-16\);/,
     );
   });
 
-  test("ships one dark material path", () => {
+  test("ships one tokenized material path", () => {
     expect(taskFloatingPanelStyles).not.toMatch(
       /fuma-task-run-(?:panel|card)--(?:dark|light)/,
     );
@@ -159,6 +159,10 @@ describe("TaskRun floating panel surfaces", () => {
 });
 
 describe("TaskRun floating panel interaction styling", () => {
+  test("prevents accidental text selection", () => {
+    expect(ruleFor(".fuma-task-run-panel")).toMatch(/user-select:\s*none;/);
+  });
+
   test("aligns every status pill without a visible terminal action", () => {
     const terminalRule = ruleFor(".fuma-task-run-card__terminal");
     const footerRule = ruleFor(".fuma-task-run-card__terminal-footer");

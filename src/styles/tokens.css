@@ -1,4 +1,6 @@
 :root {
+  color-scheme: light;
+
   /* Shared color primitives */
   --hsas-color-white: #fff;
   --hsas-color-black: #111;
@@ -24,6 +26,9 @@
   --hsas-color-danger-muted: #b43a31;
   --hsas-color-accent-pink: #de76ce;
   --hsas-color-shadow-soft: rgb(29 70 57 / 4%);
+  --hsas-media-surface: #0f0f0f;
+  --hsas-action-surface: #374151;
+  --hsas-action-surface-muted: #4b5563;
 
   /* Semantic color aliases */
   --hsas-teal: #1e9d8b;
@@ -36,7 +41,9 @@
   --hsas-sidebar-surface: #333333;
   --hsas-sidebar-text: #d5d5d5;
   --hsas-sidebar-heading: #b8b8b8;
+  --hsas-sidebar-strong-text: var(--hsas-color-white);
   --hsas-sidebar-active: var(--hsas-teal);
+  --hsas-sidebar-active-text: var(--hsas-text-inverse);
   --hsas-sidebar-hover: #3a3a3a;
   --hsas-sidebar-border: rgb(255 255 255 / 10%);
   --hsas-sidebar-row-height: 32px;
@@ -137,4 +144,63 @@
   --hsas-space-54: 54px;
   --hsas-space-60: 60px;
   --hsas-space-67: 67px;
+}
+
+:root[data-sidebar-theme="light"] {
+  --hsas-sidebar-background: var(--hsas-surface);
+  --hsas-sidebar-surface: var(--hsas-surface);
+  --hsas-sidebar-text: var(--hsas-text);
+  --hsas-sidebar-heading: var(--hsas-color-neutral-600);
+  --hsas-sidebar-strong-text: var(--hsas-text);
+  --hsas-sidebar-active: var(--hsas-color-black);
+  --hsas-sidebar-active-text: var(--hsas-color-white);
+  --hsas-sidebar-hover: #eee;
+  --hsas-sidebar-border: var(--hsas-border);
+  --hsas-sidebar-scrollbar: var(--hsas-border-dark);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --hsas-color-ink-900: #f1f5f3;
+  --hsas-color-ink-700: #d6deda;
+  --hsas-color-ink-600: #b7c2bd;
+  --hsas-color-ink-500: #98a59f;
+  --hsas-color-neutral-950: #f1f5f3;
+  --hsas-color-neutral-100: #242b28;
+  --hsas-color-neutral-800: #d6deda;
+  --hsas-color-neutral-700: #c4cec9;
+  --hsas-color-neutral-600: #aab6b0;
+  --hsas-color-neutral-500: #98a59f;
+  --hsas-color-neutral-450: #8d9a94;
+  --hsas-color-line-100: #242b28;
+  --hsas-color-line-150: #29312e;
+  --hsas-color-line-200: #2f3834;
+  --hsas-color-line-250: #333d38;
+  --hsas-color-line-300: #37423d;
+  --hsas-color-line-400: #3c4943;
+  --hsas-color-surface-subtle: #222825;
+  --hsas-color-surface-soft: #1c211f;
+  --hsas-color-shadow-soft: rgb(0 0 0 / 24%);
+
+  --hsas-teal-soft: #1d302a;
+  --hsas-background: #131715;
+  --hsas-surface: #1c221f;
+  --hsas-surface-muted: #242b28;
+  --hsas-border: #3c4742;
+  --hsas-border-dark: #5a6862;
+  --hsas-text: #edf2ef;
+  --hsas-text-muted: #aab5af;
+
+  --hsas-status-approved: #66d0bd;
+  --hsas-status-approved-bg: #1d302a;
+  --hsas-status-approved-border: #3d6559;
+  --hsas-status-pending: #e6bd62;
+  --hsas-status-pending-bg: #342d1c;
+  --hsas-status-pending-border: #6c5b31;
+  --hsas-status-rejected: #ef9696;
+  --hsas-status-rejected-bg: #382525;
+  --hsas-status-rejected-border: #714747;
+  --hsas-status-neutral-bg: #2a302e;
+  --hsas-status-neutral-border: #59635f;
 }
