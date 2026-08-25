@@ -40,6 +40,77 @@ body:has(.fuma-content-inspection-studio) {
   display: none;
 }
 
+.fuma-content-inspection-studio__decision {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid rgb(255 255 255 / 72%);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 74%);
+  box-shadow: 0 14px 34px rgb(35 45 48 / 14%);
+  backdrop-filter: blur(18px);
+  transform: translateX(-50%);
+}
+
+.fuma-content-inspection-studio__decision button {
+  display: inline-flex;
+  min-width: 112px;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 120ms ease;
+}
+
+.fuma-content-inspection-studio__decision button.is-reject {
+  border-color: #e9c5c1;
+  color: #a33b33;
+  background: #fff6f5;
+}
+
+.fuma-content-inspection-studio__decision button.is-approve {
+  border-color: #b9dcd2;
+  color: #176c57;
+  background: #f2fbf8;
+}
+
+.fuma-content-inspection-studio__decision button[aria-pressed="true"] {
+  color: #fff;
+  transform: translateY(1px);
+}
+
+.fuma-content-inspection-studio__decision button.is-reject[aria-pressed="true"] {
+  border-color: #b5473e;
+  background: #b5473e;
+}
+
+.fuma-content-inspection-studio__decision button.is-approve[aria-pressed="true"] {
+  border-color: #19745d;
+  background: #19745d;
+}
+
+.fuma-content-inspection-studio__decision kbd {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 7px;
+  background: rgb(255 255 255 / 58%);
+  font: inherit;
+  font-size: 12px;
+}
+
 .fuma-content-inspection-studio > .fuma-minimal-version-card[data-content-format="instagram-feed"] {
   width: 375px;
   height: 576px;

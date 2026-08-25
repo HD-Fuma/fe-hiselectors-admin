@@ -1746,6 +1746,7 @@ function ContentInspectionDetailContent({
 export function ContentInspectionDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [studioDecision, setStudioDecision] = useState<"approve" | "reject" | null>(null);
   const [studioExiting, setStudioExiting] = useState(false);
   const { contentId } = useParams();
   const numericContentId = Number(contentId);
@@ -1816,6 +1817,11 @@ export function ContentInspectionDetailPage() {
     if (!routeState?.inspectionSession) return undefined;
     let exitTimer: number | undefined;
     const exitSession = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "0" || event.key === "1") {
+        event.preventDefault();
+        setStudioDecision(event.key === "0" ? "reject" : "approve");
+        return;
+      }
       if (event.key !== "Escape" || exitTimer) return;
       event.preventDefault();
       setStudioExiting(true);
@@ -1850,6 +1856,26 @@ export function ContentInspectionDetailPage() {
             snapshot={content.currentSnapshot}
           />
         ) : null}
+        <div aria-label="최종 검수" className="fuma-content-inspection-studio__decision" role="group">
+          <button
+            aria-pressed={studioDecision === "reject"}
+            className="is-reject"
+            onClick={() => setStudioDecision("reject")}
+            type="button"
+          >
+            <kbd>0</kbd>
+            반려
+          </button>
+          <button
+            aria-pressed={studioDecision === "approve"}
+            className="is-approve"
+            onClick={() => setStudioDecision("approve")}
+            type="button"
+          >
+            <kbd>1</kbd>
+            승인
+          </button>
+        </div>
       </main>
     );
   }
