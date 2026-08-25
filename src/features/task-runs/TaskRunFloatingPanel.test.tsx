@@ -36,6 +36,11 @@ const runningContentSync: TaskRun = {
   taskType: "CONTENT_SYNC",
 };
 
+const runningSettlement: TaskRun = {
+  ...runningCreatorSync,
+  taskType: "SETTLEMENT_CALCULATION",
+};
+
 test("keeps an empty polite announcement mounted without a visual section", () => {
   render(<TaskRunFloatingPanel runs={[]} />);
 
@@ -53,11 +58,11 @@ test("keeps an empty polite announcement mounted without a visual section", () =
 });
 
 test("shows determinate progress and administrator context", () => {
-  render(<TaskRunFloatingPanel runs={[runningContentSync]} />);
+  render(<TaskRunFloatingPanel runs={[runningSettlement]} />);
 
   const panel = screen.getByRole("region", { name: "작업 진행상황" });
   expect(panel).not.toHaveAttribute("tabindex");
-  expect(within(panel).getByText("콘텐츠 동기화")).toBeInTheDocument();
+  expect(within(panel).getByText("정산 계산")).toBeInTheDocument();
   expect(within(panel).getByText("프로필 정보를 동기화하는 중")).toBeInTheDocument();
   expect(within(panel).getByText("김관리자 실행")).toBeInTheDocument();
   expect(within(panel).getByText("84 / 120")).toBeInTheDocument();
@@ -67,17 +72,17 @@ test("shows determinate progress and administrator context", () => {
     "hsas-status-pill--approved",
   );
   expect(
-    within(panel).getByRole("progressbar", { name: "콘텐츠 동기화 진행률" }),
+    within(panel).getByRole("progressbar", { name: "정산 계산 진행률" }),
   ).toHaveAttribute("max", "120");
   expect(
-    within(panel).getByRole("progressbar", { name: "콘텐츠 동기화 진행률" }),
+    within(panel).getByRole("progressbar", { name: "정산 계산 진행률" }),
   ).toHaveAttribute("value", "84");
 });
 
 test("clamps over-total determinate progress at one hundred percent", () => {
   render(
     <TaskRunFloatingPanel
-      runs={[{ ...runningContentSync, processedCount: 150 }]}
+      runs={[{ ...runningSettlement, processedCount: 150 }]}
     />,
   );
 
@@ -89,7 +94,7 @@ test("clamps over-total determinate progress at one hundred percent", () => {
 test("clamps negative determinate progress at zero percent", () => {
   render(
     <TaskRunFloatingPanel
-      runs={[{ ...runningContentSync, processedCount: -12 }]}
+      runs={[{ ...runningSettlement, processedCount: -12 }]}
     />,
   );
 
@@ -171,6 +176,68 @@ test("keeps creator progress indeterminate when its progress message is absent",
   expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
 });
 
+test("keeps content progress indeterminate when its progress message is absent", () => {
+  render(
+    <TaskRunFloatingPanel
+      runs={[{
+        ...runningContentSync,
+        currentStep: "NEW_CONTENT_SYNC",
+        totalCount: 2,
+        processedCount: 1,
+        failedCount: 1,
+      }]}
+    />,
+  );
+
+  expect(screen.getByText("신규 콘텐츠 수집 중")).toBeInTheDocument();
+  expect(screen.getByRole("status", { name: "진행 상황 확인 중" })).toBeInTheDocument();
+  expect(screen.queryByText("1 / 2")).not.toBeInTheDocument();
+  expect(screen.queryByText("50%")).not.toBeInTheDocument();
+  expect(screen.queryByText("1건 실패")).not.toBeInTheDocument();
+  expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+});
+
+test("keeps content progress indeterminate when its progress message is blank", () => {
+  render(
+    <TaskRunFloatingPanel
+      runs={[{
+        ...runningContentSync,
+        currentStep: "NEW_CONTENT_SYNC",
+        progressMessage: "   ",
+        totalCount: 2,
+        processedCount: 1,
+      }]}
+    />,
+  );
+
+  expect(screen.getByRole("status", { name: "진행 상황 확인 중" })).toBeInTheDocument();
+  expect(screen.queryByText("1 / 2")).not.toBeInTheDocument();
+  expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+});
+
+test("shows a live content message instead of generic progress numbers", () => {
+  const progressMessage = "신규 콘텐츠 수집 중: 7건 처리";
+
+  render(
+    <TaskRunFloatingPanel
+      runs={[{
+        ...runningContentSync,
+        currentStep: "NEW_CONTENT_SYNC",
+        failedCount: 1,
+        progressMessage,
+      }]}
+    />,
+  );
+
+  expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
+  expect(screen.getByRole("status")).toHaveTextContent(progressMessage);
+  expect(screen.getAllByText(progressMessage)).toHaveLength(1);
+  expect(screen.queryByText("84 / 120")).not.toBeInTheDocument();
+  expect(screen.queryByText("70%")).not.toBeInTheDocument();
+  expect(screen.queryByText("1건 실패")).not.toBeInTheDocument();
+  expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+});
+
 test("shows a live creator collection message instead of generic progress numbers", () => {
   const progressMessage = "2개 키워드 중 1개 처리 · 크리에이터 7명 수집";
 
@@ -205,6 +272,23 @@ test("uses the creator collection message as the terminal summary", () => {
     <TaskRunFloatingPanel
       runs={[{
         ...runningCreatorSync,
+        progressMessage,
+        status: "SUCCEEDED",
+      }]}
+    />,
+  );
+
+  expect(screen.getByText(progressMessage)).toBeInTheDocument();
+  expect(screen.queryByText("84건 작업을 완료했습니다")).not.toBeInTheDocument();
+});
+
+test("uses the content collection message as the terminal summary", () => {
+  const progressMessage = "신규 콘텐츠 7건 수집, 기존 콘텐츠 12건 확인";
+
+  render(
+    <TaskRunFloatingPanel
+      runs={[{
+        ...runningContentSync,
         progressMessage,
         status: "SUCCEEDED",
       }]}
@@ -1144,6 +1228,7 @@ test.each([
   ["RECALCULATE", "정산 재계산 중"],
   ["YOUTUBE_CREATOR_SYNC", "YouTube 크리에이터 동기화 중"],
   ["INSTAGRAM_CREATOR_SYNC", "Instagram 크리에이터 동기화 중"],
+  ["STORED_CONTENT_SYNC", "기존 콘텐츠 확인 중"],
 ])("shows a friendly label for the %s step", (currentStep, label) => {
   render(
     <TaskRunFloatingPanel runs={[{ ...runningCreatorSync, currentStep }]} />,
