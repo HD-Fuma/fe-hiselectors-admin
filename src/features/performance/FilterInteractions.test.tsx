@@ -44,7 +44,7 @@ test("selector and cohort filters reset data and page bounds", async () => {
     if (url.pathname.endsWith("/generations")) return json(API_GENERATIONS);
     const nickname = url.searchParams.get("nickname");
     const matching = nickname
-      ? API_SELECTORS.filter((selector) => selector.nickname.includes(nickname))
+      ? API_SELECTORS.filter((selector) => selector.snsAccountId.includes(nickname))
       : API_SELECTORS;
     const page = Number(url.searchParams.get("page") ?? 0);
     return json({
@@ -63,13 +63,13 @@ test("selector and cohort filters reset data and page bounds", async () => {
   await user.click(screen.getByRole("button", { name: "다음 페이지" }));
   expect(await screen.findByText(paginationSummary(2, API_SELECTORS.length))).toBeInTheDocument();
   await user.type(
-    within(selectorSearch).getByRole("textbox", { name: "닉네임" }),
-    "김서연",
+    within(selectorSearch).getByRole("textbox", { name: "SNS 계정" }),
+    "selector41",
   );
   await user.click(within(selectorSearch).getByRole("button", { name: "조회" }));
   expect(await screen.findByText("총 1건")).toBeInTheDocument();
   expect(await screen.findByText("1 / 1 페이지")).toBeInTheDocument();
-  expect(within(screen.getByRole("region", { name: "셀렉터스 목록" })).getByText("김서연"))
+  expect(within(screen.getByRole("region", { name: "셀렉터스 목록" })).getByText("selector41"))
     .toBeInTheDocument();
   await user.click(within(selectorSearch).getByRole("button", { name: "초기화" }));
   expect(await screen.findByText(paginationSummary(1, API_SELECTORS.length))).toBeInTheDocument();

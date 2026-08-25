@@ -19,6 +19,7 @@ export interface SelectorSummary {
   roleName: string | null;
   snsCode: SelectorSnsCode | null;
   snsAccountId: string | null;
+  snsDisplayName: string | null;
   followerCount: number | null;
   profileImageUrl: string | null;
   createdAt: string;

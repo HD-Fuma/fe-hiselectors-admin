@@ -11,9 +11,20 @@ const summary = {
   roleName: "활성",
   snsCode: "INSTAGRAM",
   snsAccountId: "hong.selector",
+  snsDisplayName: "hong.selector",
   followerCount: 12345,
   profileImageUrl: null,
   createdAt: "2026-08-19T10:00:00",
+};
+
+const youtubeSummary = {
+  ...summary,
+  id: 8,
+  selectorsCode: "SEL0008",
+  nickname: "정하린",
+  snsCode: "YOUTUBE",
+  snsAccountId: "UC1111111111111111111111",
+  snsDisplayName: "하린의 생활연구소",
 };
 
 const detail = {
@@ -160,7 +171,7 @@ beforeEach(() => {
     }
     if (url.endsWith("/api/admin/generations/3") && init?.method === "PATCH") return json(generation);
     if (url.includes("/api/admin/generations")) return json([generation]);
-    return json({ content: [summary], number: 0, size: 20, totalElements: 1, totalPages: 1 });
+    return json({ content: [summary, youtubeSummary], number: 0, size: 20, totalElements: 2, totalPages: 1 });
   }));
 });
 
@@ -170,8 +181,17 @@ describe("selector api pages", () => {
     const search = await screen.findByRole("search", { name: "검색 조건" });
 
     expect(await screen.findByText("SEL0007")).toBeInTheDocument();
-    fireEvent.change(within(search).getByRole("textbox", { name: "닉네임" }), {
-      target: { value: "홍길동" },
+    const list = screen.getByRole("region", { name: "셀렉터스 목록" });
+    expect(within(list).queryByRole("columnheader", { name: "닉네임" })).not.toBeInTheDocument();
+    expect(within(list).getByRole("columnheader", { name: "SNS 계정" })).toBeInTheDocument();
+    expect(within(list).getByText("hong.selector")).toBeInTheDocument();
+    expect(within(list).queryByText("홍길동")).not.toBeInTheDocument();
+    expect(within(list).getByText("하린의 생활연구소")).toBeInTheDocument();
+    expect(within(list).queryByText("UC1111111111111111111111")).not.toBeInTheDocument();
+    expect(within(list).queryByText("정하린")).not.toBeInTheDocument();
+
+    fireEvent.change(within(search).getByRole("textbox", { name: "SNS 계정" }), {
+      target: { value: "hong.selector" },
     });
     fireEvent.change(within(search).getByRole("combobox", { name: "SNS" }), {
       target: { value: "INSTAGRAM" },
@@ -186,7 +206,7 @@ describe("selector api pages", () => {
       expect.stringMatching(/roleId=ACTIVE.*generationId=3.*nickname=.*snsCode=INSTAGRAM/),
       expect.anything(),
     ));
-    expect(screen.getByText("총 1건")).toBeInTheDocument();
+    expect(screen.getByText("총 2건")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "블랙리스트" }));
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(

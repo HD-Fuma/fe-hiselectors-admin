@@ -499,8 +499,13 @@ function selectorPlatform(snsCode: SelectorSnsCode | null) {
 const SELECTOR_COLUMNS: DenseTableColumn<SelectorSummary>[] = [
   { key: "id", header: "셀렉터스 ID", width: 110, align: "center" },
   { key: "selectorsCode", header: "셀렉터스 코드", width: 120, align: "center" },
-  { key: "nickname", header: "닉네임", width: 120, align: "center" },
-  { key: "snsAccountId", header: "SNS 계정", width: 150, align: "center", render: (selector) => selector.snsAccountId || "-" },
+  {
+    key: "snsAccountId",
+    header: "SNS 계정",
+    width: 150,
+    align: "center",
+    render: (selector) => selector.snsDisplayName || selector.snsAccountId || "-",
+  },
   {
     key: "snsCode",
     header: "플랫폼",
@@ -607,8 +612,8 @@ export function SelectorOverviewPage() {
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-selector-search">
           <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
-            <FilterField htmlFor="selector-name" label="닉네임">
-              <TextInput id="selector-name" name="selectorName" onChange={(event) => setKeyword(event.target.value)} placeholder="닉네임 검색" value={keyword} />
+            <FilterField htmlFor="selector-account" label="SNS 계정">
+              <TextInput id="selector-account" name="selectorAccount" onChange={(event) => setKeyword(event.target.value)} placeholder="SNS 계정 검색" value={keyword} />
             </FilterField>
             <FilterField htmlFor="selector-sns" label="SNS">
               <Select
