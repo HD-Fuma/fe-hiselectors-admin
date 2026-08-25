@@ -46,13 +46,7 @@ body:has(.fuma-content-inspection-studio) {
   left: 50%;
   z-index: 2;
   display: flex;
-  gap: 8px;
-  padding: 6px;
-  border: 1px solid rgb(255 255 255 / 72%);
-  border-radius: 16px;
-  background: rgb(255 255 255 / 74%);
-  box-shadow: 0 14px 34px rgb(35 45 48 / 14%);
-  backdrop-filter: blur(18px);
+  gap: 10px;
   transform: translateX(-50%);
 }
 
@@ -64,7 +58,7 @@ body:has(.fuma-content-inspection-studio) {
   justify-content: center;
   gap: 10px;
   border: 1px solid transparent;
-  border-radius: 11px;
+  border-radius: 999px;
   font: inherit;
   font-size: 14px;
   font-weight: 700;
@@ -73,15 +67,15 @@ body:has(.fuma-content-inspection-studio) {
 }
 
 .fuma-content-inspection-studio__decision button.is-reject {
-  border-color: #e9c5c1;
-  color: #a33b33;
-  background: #fff6f5;
+  border-color: #dedede;
+  color: #353535;
+  background: #fff;
 }
 
 .fuma-content-inspection-studio__decision button.is-approve {
-  border-color: #b9dcd2;
-  color: #176c57;
-  background: #f2fbf8;
+  border-color: #171717;
+  color: #fff;
+  background: #171717;
 }
 
 .fuma-content-inspection-studio__decision button[aria-pressed="true"] {
@@ -95,20 +89,26 @@ body:has(.fuma-content-inspection-studio) {
 }
 
 .fuma-content-inspection-studio__decision button.is-approve[aria-pressed="true"] {
-  border-color: #19745d;
-  background: #19745d;
+  border-color: #000;
+  background: #000;
 }
 
 .fuma-content-inspection-studio__decision kbd {
   display: grid;
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
   place-items: center;
-  border: 1px solid currentColor;
-  border-radius: 7px;
-  background: rgb(255 255 255 / 58%);
+  border: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 7%);
   font: inherit;
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.fuma-content-inspection-studio__decision button.is-approve kbd {
+  color: #fff;
+  background: rgb(255 255 255 / 18%);
 }
 
 .fuma-content-inspection-studio > .fuma-minimal-version-card[data-content-format="instagram-feed"] {
