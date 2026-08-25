@@ -675,10 +675,21 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__report-evidence li small[data-judgment="violation"],
 .fuma-content-inspection-studio__report-evidence li small[data-judgment="clear"] {
   padding: 3px 6px;
+  border: 1px solid;
   border-radius: 999px;
-  color: rgb(32 34 36 / 62%);
-  background: rgb(255 255 255 / 44%);
   font-weight: 750;
+}
+
+.fuma-content-inspection-studio__report-evidence li small[data-judgment="violation"] {
+  border-color: #dedede;
+  color: #353535;
+  background: #fff;
+}
+
+.fuma-content-inspection-studio__report-evidence li small[data-judgment="clear"] {
+  border-color: #171717;
+  color: #fff;
+  background: #171717;
 }
 
 .fuma-content-inspection-studio__report-evidence li p,
