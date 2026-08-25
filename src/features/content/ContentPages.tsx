@@ -951,6 +951,7 @@ function MinimalVersionCard({
   const activeMedia = mediaItems[visibleIndex];
   const platform = contentPlatform(content.sourcePlatform);
   const isInstagram = platform === "Instagram";
+  const useCarouselTrack = isInstagram && mediaItems.length > 1 && !showAnnotations;
   const embedUrl = isInstagram ? null : youtubeEmbedUrl(snapshot.youtubeVideoId);
   const isVerticalVideo = content.contentFormat === "인스타 릴스" || content.contentFormat === "유튜브 쇼츠";
   const activeMediaAnnotations = annotations.filter((annotation) => (
@@ -971,6 +972,19 @@ function MinimalVersionCard({
 
   const moveMedia = (direction: -1 | 1) => {
     setActiveMediaIndex((current) => (current + direction + mediaItems.length) % mediaItems.length);
+  };
+
+  const recordMediaSize = (index: number, image: HTMLImageElement) => {
+    const { naturalHeight, naturalWidth } = image;
+    if (naturalHeight <= 0 || naturalWidth <= 0) return;
+    setMediaAspectRatios((current) => ({
+      ...current,
+      [index]: naturalWidth / naturalHeight,
+    }));
+    setMediaNaturalSizes((current) => ({
+      ...current,
+      [index]: { height: naturalHeight, width: naturalWidth },
+    }));
   };
 
   useEffect(() => {
@@ -1045,23 +1059,24 @@ function MinimalVersionCard({
                 src={embedUrl}
                 title={`${content.contentTitle} YouTube 영상`}
               />
+            ) : useCarouselTrack ? (
+              <div
+                className="fuma-platform-inspection-frame__carousel-track"
+                style={{ transform: `translateX(-${visibleIndex * 100}%)` }}
+              >
+                {mediaItems.map((media, index) => media.url ? (
+                  <img
+                    alt={`${content.author} ${label} 미디어 ${index + 1}`}
+                    key={`${media.url}-${index}`}
+                    onLoad={(event) => recordMediaSize(index, event.currentTarget)}
+                    src={media.url}
+                  />
+                ) : null)}
+              </div>
             ) : activeMedia?.url ? (
               <img
                 alt={`${content.author} ${label} 미디어 ${visibleIndex + 1}`}
-                key={`${activeMedia.url}-${visibleIndex}`}
-                onLoad={(event) => {
-                  const { naturalHeight, naturalWidth } = event.currentTarget;
-                  if (naturalHeight > 0 && naturalWidth > 0) {
-                    setMediaAspectRatios((current) => ({
-                      ...current,
-                      [visibleIndex]: naturalWidth / naturalHeight,
-                    }));
-                    setMediaNaturalSizes((current) => ({
-                      ...current,
-                      [visibleIndex]: { height: naturalHeight, width: naturalWidth },
-                    }));
-                  }
-                }}
+                onLoad={(event) => recordMediaSize(visibleIndex, event.currentTarget)}
                 src={activeMedia.url}
               />
             ) : (
