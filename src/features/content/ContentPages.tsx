@@ -1912,6 +1912,16 @@ export function ContentInspectionDetailPage() {
     });
   }, [studioViolationSignals.length]);
 
+  const judgeStudioViolationAndAdvance = useCallback((
+    index: number,
+    judgment: "violation" | "clear",
+  ) => {
+    judgeStudioViolation(index, judgment);
+    setFocusedStudioViolationIndex(
+      index + 1 < studioViolationSignals.length ? index + 1 : -1,
+    );
+  }, [judgeStudioViolation, studioViolationSignals.length]);
+
   const selectStudioViolationFromContent = useCallback((ordinal: number) => {
     const index = studioViolationSignals.findIndex((signal) => signal.ordinal === ordinal);
     if (index >= 0) setFocusedStudioViolationIndex(index);
@@ -2725,7 +2735,7 @@ export function ContentInspectionDetailPage() {
                                   studioActionPending !== null
                                   || studioReportRefreshVersionId !== null
                                 }
-                                onClick={() => judgeStudioViolation(index, "violation")}
+                                onClick={() => judgeStudioViolationAndAdvance(index, "violation")}
                                 type="button"
                               >
                                 위반
@@ -2737,7 +2747,7 @@ export function ContentInspectionDetailPage() {
                                   studioActionPending !== null
                                   || studioReportRefreshVersionId !== null
                                 }
-                                onClick={() => judgeStudioViolation(index, "clear")}
+                                onClick={() => judgeStudioViolationAndAdvance(index, "clear")}
                                 type="button"
                               >
                                 위반 아님
