@@ -233,9 +233,7 @@ function SelectorContentGallery({ contents }: { contents: SelectorContent[] }) {
     return () => observer.disconnect();
   }, [contents]);
 
-  if (!newestFirst.length) {
-    return <p className="fuma-selector-content-gallery__empty">등록된 콘텐츠가 없습니다.</p>;
-  }
+  if (!newestFirst.length) return null;
 
   const slide = (direction: 1 | -1) => {
     const track = trackRef.current;
@@ -285,62 +283,213 @@ function SelectorContentGallery({ contents }: { contents: SelectorContent[] }) {
   );
 }
 
-/** 지표별 성과. 콘텐츠 한 건이 막대 하나, 카드 제목에 지표를 명시한다. */
-const PERFORMANCE_METRICS = [
-  { key: "viewCount", label: "조회수", unit: "회", total: "totalViewCount" },
-  { key: "likeCount", label: "좋아요", unit: "개", total: "totalLikeCount" },
-  { key: "commentCount", label: "댓글", unit: "개", total: "totalCommentCount" },
-] as const;
+/**
+ * 성과 패널: 핵심 지표 3개(도달·반응·구매) + 조회수 추이 + 반응 구성.
+ * 조회수와 반응수는 자릿수가 달라 한 축에 겹치지 않고 역할을 나눠 배치한다.
+ */
+const PERFORMANCE_BAR_LIMIT = 12;
 
-const PERFORMANCE_BAR_LIMIT = 10;
-
-function SelectorPerformanceBars({ detail }: { detail: SelectorDetail }) {
+function SelectorPerformancePanel({ detail }: { detail: SelectorDetail }) {
   const recent = [...detail.contents]
     .filter((content) => content.createdAt)
     .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
     .slice(-PERFORMANCE_BAR_LIMIT);
 
-  return (
-    <div className="fuma-selector-metric-cards">
-      {PERFORMANCE_METRICS.map((metric) => {
-        const values = recent.map((content) => content[metric.key] ?? 0);
-        const max = Math.max(...values, 0);
-        const total = detail.performance[metric.total];
-        const average = recent.length
-          ? Math.round(values.reduce((sum, value) => sum + value, 0) / recent.length)
-          : null;
+  const views = detail.performance.totalViewCount ?? 0;
+  const likes = detail.performance.totalLikeCount ?? 0;
+  const comments = detail.performance.totalCommentCount ?? 0;
+  const reactions = likes + comments;
+  const contentCount = detail.performance.contentCount ?? detail.contents.length;
+  const purchaseCount = detail.generations.reduce(
+    (sum, generation) => sum + (generation.confirmedPurchaseCount ?? 0),
+    0,
+  );
+  const totalSales = detail.generations.reduce(
+    (sum, generation) => sum + (generation.totalSales ?? 0),
+    0,
+  );
+  const perContent = contentCount ? Math.round(views / contentCount) : null;
+  const reactionRate = views ? (reactions / views) * 100 : null;
 
-        return (
-          <figure className="fuma-selector-metric-card" key={metric.key}>
-            <figcaption>
-              <strong>{metric.label}</strong>
-              <span>최근 {recent.length}건 · 막대 1개 = 콘텐츠 1건</span>
-            </figcaption>
-            <p className="fuma-selector-metric-card__total">
-              {displayNumber(total)}
-              <span>{metric.unit} 누적</span>
-            </p>
-            <div
-              aria-label={`최근 콘텐츠 ${metric.label}`}
-              className="fuma-selector-metric-card__bars"
-              role="img"
+  const stats = [
+    {
+      hint: contentCount ? `콘텐츠당 ${displayNumber(perContent)}회` : "콘텐츠 없음",
+      key: "views",
+      label: "도달",
+      unit: "회",
+      value: views,
+    },
+    {
+      hint: reactionRate == null ? "조회 데이터 없음" : `반응률 ${reactionRate.toFixed(1)}%`,
+      key: "reactions",
+      label: "반응",
+      unit: "개",
+      value: reactions,
+    },
+    {
+      hint: `매출 ${displayWon(totalSales)}`,
+      key: "purchase",
+      label: "구매확정",
+      unit: "건",
+      value: purchaseCount,
+    },
+  ];
+
+  const width = 720;
+  const height = 132;
+  const padding = { bottom: 12, left: 4, right: 4, top: 12 };
+  const innerWidth = width - padding.left - padding.right;
+  const innerHeight = height - padding.top - padding.bottom;
+  const maxView = Math.max(...recent.map((content) => content.viewCount ?? 0), 0);
+  const coords = recent.map((content, index) => ({
+    content,
+    x: padding.left + (recent.length < 2 ? innerWidth / 2 : (index / (recent.length - 1)) * innerWidth),
+    y: padding.top + innerHeight - ((content.viewCount ?? 0) / (maxView || 1)) * innerHeight,
+  }));
+  const line = coords
+    .map((coord, index) => `${index === 0 ? "M" : "L"}${coord.x.toFixed(1)} ${coord.y.toFixed(1)}`)
+    .join(" ");
+  const area = coords.length
+    ? `${line} L${coords[coords.length - 1].x.toFixed(1)} ${padding.top + innerHeight} L${coords[0].x.toFixed(1)} ${padding.top + innerHeight} Z`
+    : "";
+  const likeShare = reactions ? (likes / reactions) * 100 : 0;
+
+  return (
+    <section aria-label="셀렉터스 성과" className="fuma-selector-performance">
+      <div className="fuma-selector-performance__stats fuma-selector-performance__stats--top">
+        {stats.map((stat) => (
+          <div key={stat.key}>
+            <span className="fuma-selector-performance__label">{stat.label}</span>
+            <strong>
+              {displayNumber(stat.value)}
+              <em>{stat.unit}</em>
+            </strong>
+            <span className="fuma-selector-performance__hint">{stat.hint}</span>
+          </div>
+        ))}
+      </div>
+
+      {coords.length > 1 || reactions > 0 ? (
+      <div className="fuma-selector-performance__row">
+      {coords.length > 1 ? (
+      <div className="fuma-selector-performance__chart">
+        <div className="fuma-selector-performance__chart-head">
+          <strong>콘텐츠별 조회수</strong>
+          <span>최근 {recent.length}건 · 최고 {displayNumber(maxView)}회</span>
+        </div>
+        {(
+          <svg
+            aria-label="콘텐츠별 조회수 추이"
+            preserveAspectRatio="none"
+            role="img"
+            viewBox={`0 0 ${width} ${height}`}
+          >
+            <defs>
+              <linearGradient id="selector-performance-fill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="var(--hsas-teal)" stopOpacity="0.32" />
+                <stop offset="100%" stopColor="var(--hsas-teal)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d={area} fill="url(#selector-performance-fill)" />
+            <path
+              className="fuma-selector-performance__line"
+              d={line}
+              vectorEffect="non-scaling-stroke"
+            />
+            {coords.map((coord) => (
+              <circle
+                className="fuma-selector-performance__dot"
+                cx={coord.x}
+                cy={coord.y}
+                key={coord.content.id}
+                r="3.5"
+              >
+                <title>
+                  {`${displayDateTime(coord.content.createdAt).slice(0, 10)} · 조회 ${displayNumber(coord.content.viewCount)}회`}
+                </title>
+              </circle>
+            ))}
+          </svg>
+        )}
+        <div className="fuma-selector-performance__axis">
+          <span>{displayDateTime(recent[0].createdAt).slice(0, 10)}</span>
+          <span>{displayDateTime(recent[recent.length - 1].createdAt).slice(0, 10)}</span>
+        </div>
+      </div>
+      ) : null}
+
+      {reactions > 0 ? (
+      <div className="fuma-selector-performance__breakdown">
+        <div className="fuma-selector-performance__chart-head">
+          <strong>반응 구성</strong>
+        </div>
+        <div className="fuma-selector-performance__donut">
+          <svg aria-label="좋아요와 댓글 비율" role="img" viewBox="0 0 120 120">
+            <circle className="fuma-selector-performance__donut-track" cx="60" cy="60" r="46" />
+            <circle
+              className="fuma-selector-performance__donut-value"
+              cx="60"
+              cy="60"
+              r="46"
+              strokeDasharray={`${(likeShare / 100) * 289} 289`}
+              transform="rotate(-90 60 60)"
             >
-              {recent.map((content, index) => (
-                <span
-                  key={content.id}
-                  style={{ height: `${max ? Math.max(6, (values[index] / max) * 100) : 6}%` }}
-                  title={`${displayDateTime(content.createdAt).slice(0, 10)} · ${metric.label} ${displayNumber(content[metric.key])}${metric.unit}`}
-                />
-              ))}
-            </div>
-            <p className="fuma-selector-metric-card__foot">
-              <span>최고 {displayNumber(max)}{metric.unit}</span>
-              <span>평균 {displayNumber(average)}{metric.unit}</span>
-            </p>
-          </figure>
-        );
-      })}
-    </div>
+              <title>{`좋아요 ${displayNumber(likes)}개`}</title>
+            </circle>
+          </svg>
+          <div className="fuma-selector-performance__donut-center">
+            <strong>{displayNumber(reactions)}</strong>
+            <span>총 반응</span>
+          </div>
+        </div>
+        <div className="fuma-selector-performance__legend">
+          <span className="is-like">좋아요 {displayNumber(likes)}개 · {likeShare.toFixed(0)}%</span>
+          <span className="is-comment">댓글 {displayNumber(comments)}개 · {(100 - likeShare).toFixed(0)}%</span>
+        </div>
+      </div>
+      ) : null}
+      </div>
+      ) : null}
+    </section>
+  );
+}
+
+/** 모달 전용 헤더: 프로필 | 신원 | 동의 요약 3열. 공용 히어로 CSS와 섞지 않는다. */
+function SelectorModalHero({ detail }: { detail: SelectorDetail }) {
+  const account = detail.snsAccount;
+  const platform = apiPlatform(account?.snsCode ?? null);
+  const accountId = account?.accountId?.trim() || "";
+  const handle = accountId ? accountHandle(accountId) : null;
+  const channelHref = snsAccountHref(platform, accountId || null);
+  const audienceLabel = audienceCountLabel(platform, account?.followerCount);
+  const latestGeneration = (detail.generations ?? [])[0];
+
+  return (
+    <header className="hsas-selector-hero">
+      <div className="hsas-selector-hero__photo">
+        <CreatorProfilePhoto creatorName={detail.nickname} src={account?.profileImageUrl ?? ""} />
+        {platform ? (
+          <span className="hsas-selector-hero__platform">
+            <PlatformIcon platform={platform} />
+          </span>
+        ) : null}
+      </div>
+      <div className="hsas-selector-hero__identity">
+        {latestGeneration ? <span className="hsas-selector-hero__badge">{latestGeneration.generationName}</span> : null}
+        <h3>{detail.nickname}</h3>
+        <p className="hsas-selector-hero__channel">
+          {handle && channelHref ? (
+            <a href={channelHref} rel="noreferrer" target="_blank">{handle}</a>
+          ) : handle ? <span>{handle}</span> : null}
+          {handle && audienceLabel ? <span aria-hidden="true">·</span> : null}
+          {audienceLabel ? <span>{audienceLabel}</span> : null}
+        </p>
+        <p className="hsas-selector-hero__code">
+          셀렉터스 코드 <strong>{displayText(detail.selectorsCode)}</strong>
+        </p>
+      </div>
+      <SelectorConsentChips detail={detail} />
+    </header>
   );
 }
 
@@ -373,29 +522,38 @@ function SelectorGenerationCards({ generations }: { generations: SelectorGenerat
     return rightDate.localeCompare(leftDate) || right.generationId - left.generationId;
   });
 
-  if (!generations.length) {
-    return <p className="fuma-selector-content-gallery__empty">참여 기수 이력이 없습니다.</p>;
-  }
+  if (!ordered.length) return null;
+
+  const peakSales = Math.max(...ordered.map((generation) => generation.totalSales ?? 0), 0);
 
   return (
-    <ul className="fuma-selector-generation-cards">
-      {ordered.map((generation) => (
-        <li key={generation.generationId}>
-          <div className="fuma-selector-generation-cards__head">
-            <strong>{generation.generationName}</strong>
-            <StatusPill tone={generation.status === "ACTIVE" ? "approved" : "neutral"}>
-              {generation.status === "ACTIVE" ? "활성" : "비활성"}
-            </StatusPill>
-          </div>
-          <p>{displayDateRange(generation.joinedAt, generation.activityEndDate)}</p>
-          <dl>
-            <div><dt>구매확정</dt><dd>{displayCount(generation.confirmedPurchaseCount)}</dd></div>
-            <div><dt>총 매출</dt><dd>{displayWon(generation.totalSales)}</dd></div>
-            <div><dt>지급 수수료</dt><dd>{displayWon(generation.paidCommissionAmount)}</dd></div>
-          </dl>
-        </li>
-      ))}
-    </ul>
+    <ol className="fuma-selector-timeline">
+      {ordered.map((generation) => {
+        const active = generation.status === "ACTIVE";
+        const share = peakSales ? ((generation.totalSales ?? 0) / peakSales) * 100 : 0;
+
+        return (
+          <li className={active ? "is-active" : undefined} key={generation.generationId}>
+            <span aria-hidden="true" className="fuma-selector-timeline__marker" />
+            <div className="fuma-selector-timeline__body">
+              <div className="fuma-selector-timeline__head">
+                <strong>{generation.generationName}</strong>
+                {active ? <StatusPill tone="approved">활동중</StatusPill> : null}
+                <span>{displayDateRange(generation.joinedAt, generation.activityEndDate)}</span>
+              </div>
+              <div className="fuma-selector-timeline__metrics">
+                <span><em>구매확정</em>{displayCount(generation.confirmedPurchaseCount)}</span>
+                <span><em>매출</em>{displayWon(generation.totalSales)}</span>
+                <span><em>지급 수수료</em>{displayWon(generation.paidCommissionAmount)}</span>
+              </div>
+              <div aria-hidden="true" className="fuma-selector-timeline__bar">
+                <span style={{ width: `${share}%` }} />
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -612,6 +770,7 @@ function SelectorApiDetailContent({
 
   return (
     <div className="fuma-detail-panel__content fuma-selector-detail-panel">
+      {contentView === "gallery" ? <SelectorModalHero detail={detail} /> : (
       <section
         aria-label="셀렉터스 프로필"
         className="fuma-creator-detail-hero fuma-selector-detail-hero fuma-unified-detail-hero"
@@ -660,12 +819,8 @@ function SelectorApiDetailContent({
             )}
           </dl>
         </div>
-        {contentView === "gallery" ? (
-          <div className="fuma-selector-detail-aside">
-            <SelectorConsentChips detail={detail} />
-          </div>
-        ) : null}
       </section>
+      )}
 
       {contentView === "gallery" ? null : (
       <SelectorDetailListSection title="동의 및 수신 정보" titleId="selector-consent-title">
@@ -705,10 +860,11 @@ function SelectorApiDetailContent({
 
       {contentView === "gallery" ? (
         <SelectorDetailListSection title="콘텐츠 성과" titleId="selector-trend-title">
-          <SelectorPerformanceBars detail={detail} />
+          <SelectorPerformancePanel detail={detail} />
         </SelectorDetailListSection>
       ) : null}
 
+      {contentView === "gallery" && !detail.contents.length ? null : (
       <SelectorDetailListSection
         meta={<span>최근 {detail.contents.length}건 · 전체 {displayCount(detail.performance.contentCount)}</span>}
         title="등록 콘텐츠"
@@ -729,7 +885,9 @@ function SelectorApiDetailContent({
           </div>
         )}
       </SelectorDetailListSection>
+      )}
 
+      {contentView === "gallery" && !generations.length ? null : (
       <SelectorDetailListSection
         meta={<span>총 {generations.length}건</span>}
         title="참여 기수 이력"
@@ -749,6 +907,7 @@ function SelectorApiDetailContent({
           </div>
         )}
       </SelectorDetailListSection>
+      )}
 
       {hideSettlement ? null : (
       <SelectorDetailListSection

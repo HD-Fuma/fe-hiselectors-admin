@@ -334,15 +334,92 @@
   font-size: var(--hsas-font-12);
 }
 
-/* 프로필 우측: 동의 요약 칩 + 성과 그래프 */
-.fuma-selector-detail-aside {
+
+/* 모달 전용 헤더 */
+.hsas-selector-hero {
   display: grid;
-  gap: var(--hsas-space-10);
-  min-width: 0;
-  padding: var(--hsas-space-16) var(--hsas-space-16) var(--hsas-space-16) 0;
-  align-content: start;
+  gap: var(--hsas-space-16);
+  align-items: center;
+  padding: var(--hsas-space-16);
+  border: 1px solid var(--hsas-border);
+  border-radius: 16px;
+  background: var(--hsas-surface);
+  grid-template-columns: auto minmax(0, 1fr) minmax(230px, 300px);
 }
 
+@media (width <= 860px) {
+  .hsas-selector-hero {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+.hsas-selector-hero__photo {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  background: var(--hsas-surface-muted);
+}
+
+.hsas-selector-hero__photo img,
+.hsas-selector-hero__photo .fuma-creator-profile-fallback {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: var(--hsas-font-28);
+  object-fit: cover;
+}
+
+.hsas-selector-hero__platform {
+  position: absolute;
+  right: 0;
+  bottom: 4px;
+}
+
+.hsas-selector-hero__identity {
+  display: grid;
+  gap: var(--hsas-space-4);
+  min-width: 0;
+}
+
+.hsas-selector-hero__badge {
+  justify-self: start;
+  padding: var(--hsas-space-2) var(--hsas-space-8);
+  border-radius: 999px;
+  background: rgb(30 157 139 / 12%);
+  color: var(--hsas-teal);
+  font-size: var(--hsas-font-11);
+  font-weight: 600;
+}
+
+.hsas-selector-hero__identity h3 {
+  margin: 0;
+  font-size: var(--hsas-font-22);
+}
+
+.hsas-selector-hero__channel,
+.hsas-selector-hero__code {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hsas-space-6);
+  margin: 0;
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-12);
+}
+
+.hsas-selector-hero__channel a {
+  color: var(--hsas-teal);
+  font-weight: 600;
+}
+
+.hsas-selector-hero__code strong {
+  color: var(--hsas-text);
+}
+
+/* 동의 요약 칩 2x2 */
 .fuma-selector-consent-chips {
   display: grid;
   gap: var(--hsas-space-6);
@@ -353,6 +430,7 @@
 .fuma-selector-consent-chips > div {
   display: grid;
   gap: var(--hsas-space-2);
+  min-width: 0;
   padding: var(--hsas-space-8) var(--hsas-space-10);
   border: 1px solid var(--hsas-border);
   border-radius: 10px;
@@ -362,137 +440,325 @@
 .fuma-selector-consent-chips dt {
   color: var(--hsas-text-muted);
   font-size: var(--hsas-font-10);
+  white-space: nowrap;
 }
 
 .fuma-selector-consent-chips dd {
   margin: 0;
   font-size: var(--hsas-font-12);
   font-weight: 600;
+  white-space: nowrap;
 }
 
-/* 참여 기수 이력 카드 */
-.fuma-selector-generation-cards {
+
+/* 참여 기수 이력 — 타임라인 */
+.fuma-selector-timeline {
   display: grid;
-  gap: var(--hsas-space-10);
+  gap: var(--hsas-space-4);
   margin: 0;
   padding: 0;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   list-style: none;
 }
 
-.fuma-selector-generation-cards > li {
-  display: grid;
-  gap: var(--hsas-space-6);
-  padding: var(--hsas-space-12);
-  border: 1px solid var(--hsas-border);
-  border-radius: 14px;
+.fuma-selector-timeline > li {
+  position: relative;
+  padding: var(--hsas-space-10) 0 var(--hsas-space-14) var(--hsas-space-24);
+}
+
+.fuma-selector-timeline > li::before {
+  position: absolute;
+  top: var(--hsas-space-18);
+  bottom: 0;
+  left: 5px;
+  width: 2px;
+  background: var(--hsas-border);
+  content: "";
+}
+
+.fuma-selector-timeline > li:last-child::before {
+  display: none;
+}
+
+.fuma-selector-timeline__marker {
+  position: absolute;
+  top: var(--hsas-space-12);
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--hsas-border-dark);
+  border-radius: 50%;
   background: var(--hsas-surface);
 }
 
-.fuma-selector-generation-cards__head {
+.fuma-selector-timeline > li.is-active .fuma-selector-timeline__marker {
+  border-color: var(--hsas-teal);
+  background: var(--hsas-teal);
+  box-shadow: 0 0 0 4px rgb(30 157 139 / 16%);
+}
+
+.fuma-selector-timeline__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--hsas-space-8);
 }
 
-.fuma-selector-generation-cards__head strong {
+.fuma-selector-timeline__head strong {
   font-size: var(--hsas-font-14);
 }
 
-.fuma-selector-generation-cards p {
-  margin: 0;
+.fuma-selector-timeline__head > span {
   color: var(--hsas-text-muted);
   font-size: var(--hsas-font-11);
 }
 
-.fuma-selector-generation-cards dl {
-  display: grid;
-  gap: var(--hsas-space-4);
-  margin: 0;
-}
-
-.fuma-selector-generation-cards dl > div {
+.fuma-selector-timeline__metrics {
   display: flex;
-  justify-content: space-between;
-  gap: var(--hsas-space-8);
+  flex-wrap: wrap;
+  gap: var(--hsas-space-18);
+  margin-top: var(--hsas-space-6);
   font-size: var(--hsas-font-12);
-}
-
-.fuma-selector-generation-cards dt {
-  color: var(--hsas-text-muted);
-}
-
-.fuma-selector-generation-cards dd {
-  margin: 0;
   font-weight: 600;
 }
 
-/* 지표별 성과 막대 카드 3종 */
-.fuma-selector-metric-cards {
-  display: grid;
-  gap: var(--hsas-space-12);
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+.fuma-selector-timeline__metrics em {
+  margin-right: var(--hsas-space-4);
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-11);
+  font-style: normal;
+  font-weight: 500;
 }
 
-.fuma-selector-metric-card {
+.fuma-selector-timeline__bar {
+  height: 4px;
+  margin-top: var(--hsas-space-8);
+  border-radius: 999px;
+  background: var(--hsas-surface-muted);
+}
+
+.fuma-selector-timeline__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: rgb(30 157 139 / 45%);
+}
+
+.fuma-selector-timeline > li.is-active .fuma-selector-timeline__bar > span {
+  background: var(--hsas-teal);
+}
+
+/* 성과 패널: KPI 스트립 + 조회수 추이(좌) + 반응 도넛(우) */
+.fuma-selector-performance {
   display: grid;
-  gap: var(--hsas-space-8);
-  margin: 0;
-  padding: var(--hsas-space-14);
+  gap: var(--hsas-space-14);
+  min-width: 0;
+}
+
+.fuma-selector-performance__stats {
+  display: grid;
+  gap: var(--hsas-space-16);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.fuma-selector-performance__stats--top {
+  padding: var(--hsas-space-14) var(--hsas-space-16);
   border: 1px solid var(--hsas-border);
   border-radius: 14px;
-  background: var(--hsas-surface);
+  background: var(--hsas-surface-muted);
 }
 
-.fuma-selector-metric-card figcaption {
+.fuma-selector-performance__stats > div {
   display: grid;
   gap: var(--hsas-space-2);
+  min-width: 0;
+  padding-left: var(--hsas-space-14);
+  border-left: 2px solid var(--hsas-teal);
 }
 
-.fuma-selector-metric-card figcaption strong {
+.fuma-selector-performance__stats > div:nth-child(2) {
+  border-left-color: var(--hsas-color-accent-pink);
+}
+
+.fuma-selector-performance__stats > div:nth-child(3) {
+  border-left-color: var(--hsas-border-dark);
+}
+
+.fuma-selector-performance__label {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-11);
+  font-weight: 600;
+}
+
+.fuma-selector-performance__stats strong {
+  display: flex;
+  align-items: baseline;
+  gap: var(--hsas-space-2);
+  font-size: var(--hsas-font-26);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.fuma-selector-performance__stats em {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-12);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.fuma-selector-performance__hint {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-11);
+}
+
+.fuma-selector-performance__row {
+  display: grid;
+  gap: var(--hsas-space-20);
+  align-items: start;
+  padding: var(--hsas-space-16) var(--hsas-space-18);
+  border: 1px solid var(--hsas-border);
+  border-radius: 16px;
+  background: var(--hsas-surface);
+  grid-template-columns: minmax(0, 2fr) minmax(170px, 1fr);
+}
+
+@media (width <= 860px) {
+  .fuma-selector-performance__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.fuma-selector-performance__chart,
+.fuma-selector-performance__breakdown {
+  min-width: 0;
+}
+
+.fuma-selector-performance__chart-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--hsas-space-8);
+  margin-bottom: var(--hsas-space-8);
+}
+
+.fuma-selector-performance__chart-head strong {
   font-size: var(--hsas-font-13);
 }
 
-.fuma-selector-metric-card figcaption span {
+.fuma-selector-performance__chart-head span {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-11);
+}
+
+.fuma-selector-performance__chart svg {
+  display: block;
+  width: 100%;
+  height: 132px;
+}
+
+.fuma-selector-performance__line {
+  fill: none;
+  stroke: var(--hsas-teal);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.fuma-selector-performance__dot {
+  fill: var(--hsas-surface);
+  stroke: var(--hsas-teal);
+  stroke-width: 2;
+}
+
+.fuma-selector-performance__axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--hsas-space-4);
   color: var(--hsas-text-muted);
   font-size: var(--hsas-font-10);
 }
 
-.fuma-selector-metric-card__total {
-  display: flex;
-  align-items: baseline;
-  gap: var(--hsas-space-4);
-  margin: 0;
-  font-size: var(--hsas-font-24);
+.fuma-selector-performance__donut {
+  position: relative;
+  width: 150px;
+  margin: 0 auto;
+}
+
+.fuma-selector-performance__donut svg {
+  display: block;
+  width: 100%;
+}
+
+.fuma-selector-performance__donut-track {
+  fill: none;
+  stroke: var(--hsas-color-accent-pink);
+  stroke-width: 16;
+}
+
+.fuma-selector-performance__donut-value {
+  fill: none;
+  stroke: var(--hsas-teal);
+  stroke-linecap: butt;
+  stroke-width: 16;
+}
+
+.fuma-selector-performance__donut-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--hsas-space-1);
+}
+
+.fuma-selector-performance__donut-center strong {
+  font-size: var(--hsas-font-20);
   font-weight: 700;
 }
 
-.fuma-selector-metric-card__total span {
+.fuma-selector-performance__donut-center span {
   color: var(--hsas-text-muted);
   font-size: var(--hsas-font-11);
-  font-weight: 500;
 }
 
-.fuma-selector-metric-card__bars {
+.fuma-selector-performance__legend {
   display: flex;
-  height: 84px;
-  align-items: flex-end;
-  gap: 3px;
-  padding-bottom: var(--hsas-space-2);
-  border-bottom: 1px solid var(--hsas-border);
+  flex-direction: column;
+  align-items: center;
+  gap: var(--hsas-space-4);
+  margin-top: var(--hsas-space-8);
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-11);
 }
 
-.fuma-selector-metric-card__bars span {
-  flex: 1;
-  border-radius: 4px 4px 0 0;
+.fuma-selector-performance__legend span::before {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: var(--hsas-space-4);
+  border-radius: 50%;
+  content: "";
+}
+
+.fuma-selector-performance__legend .is-like::before {
   background: var(--hsas-teal);
 }
 
-.fuma-selector-metric-card__foot {
-  display: flex;
-  justify-content: space-between;
-  margin: 0;
-  color: var(--hsas-text-muted);
-  font-size: var(--hsas-font-11);
+.fuma-selector-performance__legend .is-comment::before {
+  background: var(--hsas-color-accent-pink);
+}
+
+/* 모달 본문이 가로로 넘치지 않게 폭을 고정 */
+.hsas-selector-detail-modal .hsas-modal__body,
+.hsas-selector-detail-modal .fuma-detail-panel__content,
+.hsas-selector-detail-modal .fuma-detail-panel__content > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hsas-selector-detail-modal .fuma-detail-panel__content {
+  display: grid;
+  gap: var(--hsas-space-20);
+  padding: 0;
+  grid-template-columns: minmax(0, 1fr);
 }
