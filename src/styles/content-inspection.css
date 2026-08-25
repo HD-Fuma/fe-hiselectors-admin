@@ -131,6 +131,7 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__profile,
 .fuma-content-inspection-studio__queue,
 .fuma-content-inspection-studio__report,
+.fuma-content-inspection-studio__exit-button,
 .fuma-content-inspection-studio__exit-dialog {
   border: 1px solid rgb(255 255 255 / 78%);
   color: #202224;
@@ -141,9 +142,44 @@ body:has(.fuma-content-inspection-studio) {
   backdrop-filter: blur(24px) saturate(1.15);
 }
 
-.fuma-content-inspection-studio__profile {
+.fuma-content-inspection-studio__exit-button {
   position: absolute;
   top: 28px;
+  left: 28px;
+  z-index: 3;
+  display: flex;
+  height: 38px;
+  padding: 0 13px;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: 140ms ease;
+  transition-property: background-color, transform;
+}
+
+.fuma-content-inspection-studio__exit-button:hover {
+  background: rgb(255 255 255 / 62%);
+  transform: translateX(-2px);
+}
+
+.fuma-content-inspection-studio__exit-button:focus-visible {
+  outline: 3px solid rgb(32 34 36 / 18%);
+  outline-offset: 2px;
+}
+
+.fuma-content-inspection-studio__exit-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+}
+
+.fuma-content-inspection-studio__profile {
+  position: absolute;
+  top: 76px;
   left: 28px;
   z-index: 2;
   width: min(400px, calc(100vw - 56px));

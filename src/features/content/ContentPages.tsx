@@ -2455,6 +2455,16 @@ export function ContentInspectionDetailPage() {
         data-exiting={studioExiting}
         role="dialog"
       >
+        <button
+          aria-label="검수 화면 나가기"
+          className="fuma-content-inspection-studio__exit-button"
+          disabled={studioActionPending !== null}
+          onClick={() => setExitConfirmationOpen(true)}
+          type="button"
+        >
+          <ArrowLeft aria-hidden="true" size={16} />
+          나가기
+        </button>
         {content ? (
           <>
             <aside aria-label="셀렉터스 프로필" className="fuma-content-inspection-studio__profile">
