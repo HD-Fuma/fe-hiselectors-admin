@@ -20,9 +20,13 @@ import { formatCompactCount, formatNumber, formatWon } from "../../lib/formatter
 import "../../styles/settlements.css";
 import {
   apiStatusesForFilter,
+  getDemoSettlementPage,
+  getDemoSettlementSelectorDetail,
+  getDemoSettlementSummary,
   getSettlementEstimates,
   getSettlementEstimateSummary,
   getSettlementSelectorDetail,
+  isDemoSettlement,
   SETTLEMENT_STATUS_FILTERS,
   settlementStatusTone,
   SettlementTable,
@@ -36,8 +40,10 @@ import {
 } from "../../entities/settlement";
 import {
   getSelector,
+  SELECTORS,
   SelectorDetailPanel,
   type SelectorDetail,
+  type SelectorFixture,
 } from "../../entities/selectors";
 
 const SETTLEMENT_PAGE_SIZE = 20;
@@ -56,6 +62,27 @@ function emptySettlementPage(): SpringPage<SettlementEstimate> {
     size: SETTLEMENT_PAGE_SIZE,
     totalElements: 0,
     totalPages: 0,
+  };
+}
+
+function demoSelectorFixture(settlement: SettlementEstimate): SelectorFixture {
+  const fixtureId = `sl-${String(settlement.selectorsId).padStart(3, "0")}`;
+  const fixture = SELECTORS.find((selector) => selector.id === fixtureId);
+  if (fixture) return fixture;
+
+  return {
+    clicks: settlement.confirmedPurchaseCount * 18,
+    cohort: "테스트기수56",
+    contentCount: 12,
+    conversions: settlement.confirmedPurchaseCount,
+    id: fixtureId,
+    name: settlement.selectorsNickname,
+    recentActivity: settlement.updatedAt.slice(0, 10),
+    selectorCode: settlement.selectorsCode,
+    shopNickname: `${settlement.selectorsNickname}샵`,
+    sns: settlement.selectorsId % 2 === 0 ? "YouTube" : "Instagram",
+    status: "활동 중",
+    violationCount: 0,
   };
 }
 
@@ -304,10 +331,12 @@ function SettlementStatusOverview({ summary }: { summary: SettlementEstimateSumm
 }
 
 function SettlementSummaryDashboard({
+  demo,
   hasError,
   isLoading,
   summary,
 }: {
+  demo: boolean;
   hasError: boolean;
   isLoading: boolean;
   summary: SettlementEstimateSummary | null;
@@ -343,7 +372,7 @@ function SettlementSummaryDashboard({
               <span>MONTHLY SETTLEMENT</span>
               <h2>{activityMonthLabel(summary.activityMonth)} 정산 요약</h2>
             </div>
-            <small>지급 상태 필터와 무관한 월 전체 기준</small>
+            <small>{demo ? "샘플 데이터 · 실제 지급과 무관" : "지급 상태 필터와 무관한 월 전체 기준"}</small>
           </header>
           <div className="fuma-settlement-dashboard__top">
             <article aria-label="예상 정산액" className="fuma-settlement-dashboard__spotlight">
@@ -504,6 +533,20 @@ export function SettlementManagementPage() {
 
   const openSettlementDetail = (settlement: SettlementTableRow) => {
     detailAbortController.current?.abort();
+    if (isDemoSettlement(settlement)) {
+      detailAbortController.current = null;
+      detailRequestId.current += 1;
+      setSelectedSettlement(settlement);
+      setSettlementDetailState({
+        loading: false,
+        selector: null,
+        selectorError: "",
+        settlementDetail: getDemoSettlementSelectorDetail(settlement),
+        settlementDetailError: false,
+      });
+      return;
+    }
+
     const controller = new AbortController();
     const requestId = detailRequestId.current + 1;
     detailRequestId.current = requestId;
@@ -590,10 +633,31 @@ export function SettlementManagementPage() {
     prepareTableRequest();
   };
 
-  const rows = settlementPage.content.map((settlement, rowIndex) => ({
+  const usingDemoData = !isTableLoading
+    && !isSummaryLoading
+    && !hasTableError
+    && !hasSummaryError
+    && settlementPage.totalElements === 0
+    && settlementSummary?.settlementCount === 0
+    && settlementSummary.monthlyTrend.every((month) => month.settlementCount === 0);
+  const displayedSettlementPage = usingDemoData
+    ? getDemoSettlementPage({
+      activityMonth: appliedMonth,
+      page: page - 1,
+      size: SETTLEMENT_PAGE_SIZE,
+      statuses: apiStatusesForFilter(selectedStatus),
+    })
+    : settlementPage;
+  const displayedSettlementSummary = usingDemoData
+    ? getDemoSettlementSummary(appliedMonth)
+    : settlementSummary;
+  const rows = displayedSettlementPage.content.map((settlement, rowIndex) => ({
     ...settlement,
-    ordinal: settlementPage.number * settlementPage.size + rowIndex + 1,
+    ordinal: displayedSettlementPage.number * displayedSettlementPage.size + rowIndex + 1,
   }));
+  const selectedDemoSelector = selectedSettlement && isDemoSettlement(selectedSettlement)
+    ? demoSelectorFixture(selectedSettlement)
+    : undefined;
   const emptyMessage = isTableLoading ? (
     <span aria-live="polite" role="status">정산 내역을 불러오는 중입니다.</span>
   ) : hasTableError ? (
@@ -611,9 +675,10 @@ export function SettlementManagementPage() {
           selectedMonth={selectedMonth}
         />
         <SettlementSummaryDashboard
+          demo={usingDemoData}
           hasError={hasSummaryError}
           isLoading={isSummaryLoading}
-          summary={settlementSummary}
+          summary={displayedSettlementSummary}
         />
         <ChoiceTabs
           ariaLabel="지급 상태"
@@ -631,7 +696,8 @@ export function SettlementManagementPage() {
           meta={
             <>
               <span>{activityMonthLabel(appliedMonth)}</span>
-              <span>총 {settlementPage.totalElements.toLocaleString("ko-KR")}건</span>
+              {usingDemoData ? <span>샘플 데이터</span> : null}
+              <span>총 {displayedSettlementPage.totalElements.toLocaleString("ko-KR")}건</span>
             </>
           }
           title="정산 지급 목록"
@@ -642,18 +708,19 @@ export function SettlementManagementPage() {
           rows={rows}
           selectedRowKeys={selectedSettlement ? [selectedSettlement.settlementId] : []}
         />
-        {!isTableLoading && !hasTableError && settlementPage.totalPages > 0 ? (
+        {!isTableLoading && !hasTableError && displayedSettlementPage.totalPages > 0 ? (
           <Pagination
             onPageChange={changePage}
-            page={settlementPage.number + 1}
-            pageSize={settlementPage.size}
-            totalPages={settlementPage.totalPages}
+            page={displayedSettlementPage.number + 1}
+            pageSize={displayedSettlementPage.size}
+            totalPages={displayedSettlementPage.totalPages}
           />
         ) : null}
       </div>
       {selectedSettlement ? (
         <SelectorDetailPanel
           onClose={closeSettlementDetail}
+          selector={selectedDemoSelector}
           selectorDetail={settlementDetailState?.selector}
           selectorDetailError={settlementDetailState?.selectorError}
           selectorDetailLoading={settlementDetailState?.loading ?? false}

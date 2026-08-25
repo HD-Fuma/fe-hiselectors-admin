@@ -374,6 +374,7 @@ test("requests and renders the current-month settlement page", async () => {
   expect(within(results).getByText("지급 완료")).toHaveClass("hsas-status-pill--approved");
   expect(within(results).getByText("지급 만료")).toHaveClass("hsas-status-pill--rejected");
   expect(screen.getByText("총 42건")).toBeInTheDocument();
+  expect(screen.queryByText("샘플 데이터")).not.toBeInTheDocument();
 
   const summary = screen.getByRole("region", { name: "정산 요약" });
   expect(await within(summary).findByRole("article", { name: "예상 정산액" })).toHaveTextContent(
@@ -545,7 +546,7 @@ test("applies the month on search and requests status and pages immediately", as
   expect(requestedUrl(fetchMock.mock.calls[8]).searchParams.get("page")).toBe("1");
 });
 
-test("shows loading, empty, and error states", async () => {
+test("shows loading, demo fallback, and error states", async () => {
   const pendingResponses: Array<(response: Response) => void> = [];
   const fetchMock = vi.fn().mockImplementation(() => new Promise<Response>((resolve) => {
     pendingResponses.push(resolve);
@@ -569,12 +570,21 @@ test("shows loading, empty, and error states", async () => {
     settlementCount: 0,
     statusDistribution: [],
   }));
-  expect(await screen.findByText("조회된 정산 내역이 없습니다.")).toBeInTheDocument();
-  expect(screen.getAllByText("0원")).toHaveLength(2);
-  expect(screen.getByText("0.00%")).toBeInTheDocument();
-  expect(screen.getByText("표시할 월별 추이 데이터가 없습니다.")).toBeInTheDocument();
-  expect(screen.getByText("표시할 지급 상태 데이터가 없습니다.")).toBeInTheDocument();
-  expect(screen.queryByRole("navigation", { name: "페이지 이동" })).not.toBeInTheDocument();
+  const results = await screen.findByRole("region", { name: "정산 지급 목록" });
+  const demoRow = await within(results).findByRole("row", { name: /SEL-0001/ });
+  expect(screen.getByText("샘플 데이터 · 실제 지급과 무관")).toBeInTheDocument();
+  expect(screen.getByText("샘플 데이터")).toBeInTheDocument();
+  expect(screen.getByText("총 44건")).toBeInTheDocument();
+  expect(screen.getByRole("img", { name: /최근 6개월 확정 매출 및 수수료율 추이/ }))
+    .toBeInTheDocument();
+  expect(screen.getByRole("navigation", { name: "페이지 이동" })).toBeInTheDocument();
+
+  fireEvent.click(demoRow);
+  const detail = await screen.findByRole("dialog", { name: "셀렉터스 정산 상세" });
+  expect(within(detail).getByRole("heading", { name: "김서연" })).toBeInTheDocument();
+  expect(within(detail).getByRole("region", { name: "셀렉터스 정산 내역" }))
+    .toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
   unmount();
 
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
