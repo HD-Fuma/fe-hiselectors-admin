@@ -7,13 +7,17 @@ import { Pagination } from "../../components/ui/Pagination";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
+import { formatNumber, formatWon } from "../../lib/formatters";
+import "../../styles/settlements.css";
 import {
   apiStatusesForFilter,
   getSettlementEstimates,
+  getSettlementEstimateSummary,
   getSettlementSelectorDetail,
   SETTLEMENT_STATUS_FILTERS,
   SettlementTable,
   type SettlementEstimate,
+  type SettlementEstimateSummary,
   type SettlementSelectorDetail,
   type SettlementStatusFilter,
   type SettlementTableRow,
@@ -47,6 +51,13 @@ function emptySettlementPage(): SpringPage<SettlementEstimate> {
 function activityMonthLabel(activityMonth: string) {
   const [year, monthNumber] = activityMonth.split("-");
   return `${year}년 ${Number(monthNumber)}월`;
+}
+
+function formatSettlementRate(rate: number) {
+  return `${rate.toLocaleString("ko-KR", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  })}%`;
 }
 
 interface SettlementDetailState {
@@ -85,6 +96,54 @@ function SettlementFilters({
   );
 }
 
+function SettlementSummaryMetrics({
+  hasError,
+  isLoading,
+  summary,
+}: {
+  hasError: boolean;
+  isLoading: boolean;
+  summary: SettlementEstimateSummary | null;
+}) {
+  return (
+    <section aria-label="정산 요약" className="fuma-settlement-summary" role="region">
+      {isLoading ? (
+        <p aria-live="polite" className="fuma-settlement-summary__state" role="status">
+          정산 요약을 불러오는 중입니다.
+        </p>
+      ) : hasError ? (
+        <p className="fuma-settlement-summary__state fuma-settlement-summary__state--error" role="alert">
+          정산 요약 조회에 실패했습니다.
+        </p>
+      ) : summary ? (
+        <dl className="fuma-metric-strip">
+          <div className="fuma-metric-strip__item">
+            <dt>총 매출액</dt>
+            <dd>{formatWon(summary.confirmedSalesAmount)}</dd>
+          </div>
+          <div className="fuma-metric-strip__item">
+            <dt>총 수수료</dt>
+            <dd>{formatWon(summary.settlementAmount)}</dd>
+          </div>
+          <div className="fuma-metric-strip__item">
+            <dt>
+              매출 대비 수수료율
+              <small className="fuma-settlement-summary__formula">
+                총 수수료 ÷ 총 매출액 × 100
+              </small>
+            </dt>
+            <dd>{formatSettlementRate(summary.commissionToSalesRate)}</dd>
+          </div>
+          <div className="fuma-metric-strip__item">
+            <dt>구매 확정</dt>
+            <dd>{formatNumber(summary.confirmedPurchaseCount)}건</dd>
+          </div>
+        </dl>
+      ) : null}
+    </section>
+  );
+}
+
 export function SettlementManagementPage() {
   const [defaultMonth] = useState(currentSettlementMonth);
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
@@ -93,6 +152,7 @@ export function SettlementManagementPage() {
   const [page, setPage] = useState(1);
   const [requestVersion, setRequestVersion] = useState(0);
   const [settlementPage, setSettlementPage] = useState(emptySettlementPage);
+  const [settlementSummary, setSettlementSummary] = useState<SettlementEstimateSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [selectedSettlement, setSelectedSettlement] = useState<SettlementTableRow | null>(null);
@@ -106,15 +166,23 @@ export function SettlementManagementPage() {
     const requestId = latestRequestId.current + 1;
     latestRequestId.current = requestId;
 
-    getSettlementEstimates({
+    const filters = {
       activityMonth: appliedMonth,
-      page: page - 1,
-      size: SETTLEMENT_PAGE_SIZE,
       statuses: apiStatusesForFilter(selectedStatus),
-    }, controller.signal)
-      .then((result) => {
+    };
+
+    Promise.all([
+      getSettlementEstimates({
+        ...filters,
+        page: page - 1,
+        size: SETTLEMENT_PAGE_SIZE,
+      }, controller.signal),
+      getSettlementEstimateSummary(filters, controller.signal),
+    ])
+      .then(([pageResult, summaryResult]) => {
         if (latestRequestId.current !== requestId) return;
-        setSettlementPage(result);
+        setSettlementPage(pageResult);
+        setSettlementSummary(summaryResult);
         setHasError(false);
       })
       .catch((error: unknown) => {
@@ -126,6 +194,7 @@ export function SettlementManagementPage() {
         }
 
         setSettlementPage(emptySettlementPage());
+        setSettlementSummary(null);
         setHasError(true);
       })
       .finally(() => {
@@ -191,6 +260,7 @@ export function SettlementManagementPage() {
     latestRequestId.current += 1;
     closeSettlementDetail();
     setSettlementPage(emptySettlementPage());
+    setSettlementSummary(null);
     setHasError(false);
     setIsLoading(true);
     setRequestVersion((version) => version + 1);
@@ -243,6 +313,11 @@ export function SettlementManagementPage() {
           onSearch={applyFilters}
           selectedMonth={selectedMonth}
         />
+        <SettlementSummaryMetrics
+          hasError={hasError}
+          isLoading={isLoading}
+          summary={settlementSummary}
+        />
         <ChoiceTabs
           ariaLabel="지급 상태"
           className="fuma-settlement-status-filter"
@@ -288,6 +363,7 @@ export function SettlementManagementPage() {
           settlementDetail={settlementDetailState?.settlementDetail ?? null}
           settlementDetailError={settlementDetailState?.settlementDetailError ?? false}
           settlementDetailLoading={settlementDetailState?.loading ?? false}
+          settlementOnly
         />
       ) : null}
     </section>

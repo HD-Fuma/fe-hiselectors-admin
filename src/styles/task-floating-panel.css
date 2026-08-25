@@ -12,10 +12,11 @@
   padding: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  color: var(--hsas-text-inverse);
+  color: var(--hsas-sidebar-strong-text);
   font-family: var(--hsas-font-family);
   overscroll-behavior: contain;
   pointer-events: none;
+  user-select: none;
 }
 
 .fuma-task-run-panel__header {
@@ -27,7 +28,7 @@
   border: 1px solid var(--hsas-sidebar-border);
   border-radius: calc(var(--hsas-sidebar-radius) * 3);
   background: var(--hsas-sidebar-background);
-  box-shadow: 0 var(--hsas-space-8) var(--hsas-space-24) rgb(15 15 15 / 18%);
+  box-shadow: 0 12px 32px -8px rgb(15 15 15 / 18%);
   width: min(380px, 100%);
   justify-self: end;
   pointer-events: auto;
@@ -35,7 +36,7 @@
 
 .fuma-task-run-panel__title {
   margin: 0;
-  color: var(--hsas-color-white);
+  color: var(--hsas-sidebar-strong-text);
   font-size: var(--hsas-font-13);
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -56,7 +57,7 @@
   border: 1px solid var(--hsas-sidebar-border);
   border-radius: var(--hsas-sidebar-radius);
   background: var(--hsas-sidebar-hover);
-  color: var(--hsas-color-white);
+  color: var(--hsas-sidebar-strong-text);
   cursor: pointer;
 }
 
@@ -161,7 +162,7 @@
   border: 1px solid var(--hsas-sidebar-border);
   border-radius: calc(var(--hsas-sidebar-radius) * 3);
   background: var(--hsas-sidebar-background);
-  box-shadow: 0 var(--hsas-space-8) var(--hsas-space-24) rgb(15 15 15 / 24%);
+  box-shadow: 0 12px 32px -8px rgb(15 15 15 / 20%);
 }
 
 .fuma-task-run-card {
@@ -172,7 +173,7 @@
   padding: var(--hsas-space-14) var(--hsas-space-16);
   border-radius: calc(var(--hsas-sidebar-radius) * 3);
   background: var(--hsas-sidebar-background);
-  color: var(--hsas-text-inverse);
+  color: var(--hsas-sidebar-strong-text);
   font-family: var(--hsas-font-family);
 }
 
@@ -197,7 +198,7 @@
 .fuma-task-run-card__status.hsas-status-pill--approved {
   border-color: var(--hsas-sidebar-border);
   background: var(--hsas-sidebar-hover);
-  color: var(--hsas-color-white);
+  color: var(--hsas-sidebar-strong-text);
 }
 
 .fuma-task-run-card__step,
@@ -221,7 +222,8 @@
   font-weight: 700;
 }
 
-.fuma-task-run-card__progress progress {
+.fuma-task-run-card__progress progress,
+.fuma-task-run-card__content-progress-row progress {
   grid-column: 1 / -1;
   width: 100%;
   height: var(--hsas-space-6);
@@ -232,21 +234,50 @@
   accent-color: var(--hsas-teal);
 }
 
-.fuma-task-run-card__progress progress::-webkit-progress-bar {
+.fuma-task-run-card__progress progress::-webkit-progress-bar,
+.fuma-task-run-card__content-progress-row progress::-webkit-progress-bar {
   border-radius: var(--hsas-sidebar-radius);
   background: inherit;
 }
 
-.fuma-task-run-card__progress progress::-webkit-progress-value {
+.fuma-task-run-card__progress progress::-webkit-progress-value,
+.fuma-task-run-card__content-progress-row progress::-webkit-progress-value {
   border-radius: var(--hsas-sidebar-radius);
   background: var(--hsas-teal);
   transition: width 180ms ease;
 }
 
-.fuma-task-run-card__progress progress::-moz-progress-bar {
+.fuma-task-run-card__progress progress::-moz-progress-bar,
+.fuma-task-run-card__content-progress-row progress::-moz-progress-bar {
   border-radius: var(--hsas-sidebar-radius);
   background: var(--hsas-teal);
   transition: width 180ms ease;
+}
+
+.fuma-task-run-card__content-progress {
+  display: grid;
+  gap: var(--hsas-space-10);
+}
+
+.fuma-task-run-card__content-progress-row {
+  display: grid;
+  gap: var(--hsas-space-5);
+  color: var(--hsas-sidebar-heading);
+  font-size: var(--hsas-font-11);
+}
+
+.fuma-task-run-card__content-progress-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--hsas-space-8);
+}
+
+.fuma-task-run-card__content-progress-heading strong {
+  color: inherit;
+}
+
+.fuma-task-run-card__content-progress-text {
+  color: var(--hsas-sidebar-text);
 }
 
 .fuma-task-run-card__indeterminate {
@@ -276,7 +307,7 @@
 }
 
 .fuma-task-run-card__failure {
-  color: var(--hsas-color-white);
+  color: var(--hsas-sidebar-strong-text);
   font-weight: 800;
 }
 
@@ -326,7 +357,7 @@
   border: 1px solid var(--hsas-sidebar-border);
   border-radius: var(--hsas-sidebar-radius);
   background: var(--hsas-sidebar-hover);
-  color: var(--hsas-color-white);
+  color: var(--hsas-sidebar-strong-text);
   clip: auto;
   opacity: 1;
   font-size: var(--hsas-font-10);
@@ -368,7 +399,9 @@
   .fuma-task-run-track[data-dismiss-phase="exiting"],
   .fuma-task-run-track[data-dismiss-phase="collapsing"],
   .fuma-task-run-card__progress progress::-webkit-progress-value,
-  .fuma-task-run-card__progress progress::-moz-progress-bar {
+  .fuma-task-run-card__progress progress::-moz-progress-bar,
+  .fuma-task-run-card__content-progress-row progress::-webkit-progress-value,
+  .fuma-task-run-card__content-progress-row progress::-moz-progress-bar {
     transition: none;
   }
 

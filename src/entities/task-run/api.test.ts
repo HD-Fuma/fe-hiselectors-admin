@@ -1,4 +1,4 @@
-import { getRecentTaskRuns, getTaskRunPanel } from "./api";
+import { getRecentTaskRuns, getTaskRun, getTaskRunPanel } from "./api";
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify({
@@ -33,6 +33,16 @@ describe("task run panel api", () => {
     expect(String(url)).toMatch(/\/api\/admin\/task-runs\/panel$/);
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer admin.jwt");
     expect(init?.signal).toBe(controller.signal);
+  });
+
+  test("loads one task run by id", async () => {
+    const run = { runId: "run/id", status: "SUCCEEDED" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(run)));
+
+    await expect(getTaskRun("run/id")).resolves.toEqual(run);
+
+    const [request] = vi.mocked(fetch).mock.calls[0];
+    expect(new URL(String(request)).pathname).toBe("/api/admin/task-runs/run%2Fid");
   });
 
   test("rejects an unsuccessful or malformed API envelope", async () => {

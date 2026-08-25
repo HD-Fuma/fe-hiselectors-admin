@@ -1,4 +1,4 @@
-export { getRecentTaskRuns, getTaskRunPanel } from "./api";
+export { getRecentTaskRuns, getTaskRun, getTaskRunPanel } from "./api";
 export type {
   SpringPage,
   TaskRun,

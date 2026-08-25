@@ -7,6 +7,16 @@ import {
 } from "@testing-library/react";
 import { getTaskRunPanelApiMock, renderRoute } from "../../test/renderRoute";
 
+function resetTheme() {
+  localStorage.removeItem("selectors-theme");
+  document.documentElement.removeAttribute("data-theme");
+  document.documentElement.removeAttribute("data-sidebar-theme");
+  document.documentElement.style.removeProperty("color-scheme");
+}
+
+beforeEach(resetTheme);
+afterEach(resetTheme);
+
 const expectedSidebarLinks = [
   ["기수 관리", "/cohorts"],
   ["크리에이터 풀", "/creators"],
@@ -141,7 +151,9 @@ test("renders server task runs on an authenticated administrator route", async (
 
   const panel = await screen.findByRole("region", { name: "작업 진행상황" });
   expect(within(panel).getByText("콘텐츠 동기화")).toBeInTheDocument();
-  expect(within(panel).getByText("신규 콘텐츠 수집 중")).toBeInTheDocument();
+  expect(within(panel).getByText("신규 콘텐츠 수집")).toBeInTheDocument();
+  expect(within(panel).getByText("기존 콘텐츠 수집")).toBeInTheDocument();
+  expect(within(panel).getAllByText("진행 정보 확인 중")).toHaveLength(2);
   expect(within(panel).getAllByRole("listitem")).toHaveLength(1);
 });
 
@@ -200,9 +212,90 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
   const shell = screen.getByTestId("admin-shell");
   expect(within(shell).getByText("테스트 관리자")).toBeInTheDocument();
   expect(within(shell).getByText("관리자 계정")).toBeInTheDocument();
-  expect(within(shell).queryByRole("button", { name: "설정" })).not.toBeInTheDocument();
+  expect(within(shell).getByRole("button", { name: "환경설정" })).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
   expect(within(shell).getAllByRole("button", { name: "로그아웃" })).toHaveLength(1);
 });
+
+test("opens anchored environment settings with the original dark sidebar selected by default", () => {
+  renderRoute("/creators");
+
+  expect(document.documentElement).toHaveAttribute("data-sidebar-theme", "dark");
+  expect(document.documentElement).not.toHaveAttribute("data-theme");
+  expect(document.documentElement.style.colorScheme).toBe("");
+
+  const trigger = screen.getByRole("button", { name: "환경설정" });
+  fireEvent.click(trigger);
+
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  expect(screen.queryByRole("dialog", { name: "환경설정" })).not.toBeInTheDocument();
+  const settings = screen.getByRole("group", { name: "환경설정" });
+  expect(within(settings).getByRole("button", { name: "라이트 모드" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  expect(within(settings).getByRole("button", { name: "다크 모드" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+});
+
+test("switches and persists the selected theme immediately", () => {
+  renderRoute("/creators");
+  fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
+
+  const settings = screen.getByRole("group", { name: "환경설정" });
+  fireEvent.click(within(settings).getByRole("button", { name: "라이트 모드" }));
+
+  expect(within(settings).getByRole("button", { name: "라이트 모드" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect(within(settings).getByRole("button", { name: "다크 모드" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  expect(document.documentElement).toHaveAttribute("data-sidebar-theme", "light");
+  expect(document.documentElement).not.toHaveAttribute("data-theme");
+  expect(document.documentElement.style.colorScheme).toBe("");
+  expect(localStorage.getItem("selectors-theme")).toBe("light");
+});
+
+test("closes environment settings with Escape and returns focus", () => {
+  renderRoute("/creators");
+  const trigger = screen.getByRole("button", { name: "환경설정" });
+  fireEvent.click(trigger);
+
+  fireEvent.keyDown(document, { key: "Escape" });
+
+  expect(screen.queryByRole("group", { name: "환경설정" })).not.toBeInTheDocument();
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+  expect(trigger).toHaveFocus();
+});
+
+test.each([
+  ["dark", "dark", "다크 모드"],
+  ["sepia", "dark", "다크 모드"],
+] as const)(
+  "restores stored theme %s as %s when the shell renders",
+  (storedTheme, expectedTheme, selectedLabel) => {
+    localStorage.setItem("selectors-theme", storedTheme);
+
+    renderRoute("/creators");
+
+    expect(document.documentElement).toHaveAttribute("data-sidebar-theme", expectedTheme);
+    expect(document.documentElement).not.toHaveAttribute("data-theme");
+    expect(document.documentElement.style.colorScheme).toBe("");
+
+    fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
+    expect(screen.getByRole("button", { name: selectedLabel })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  },
+);
 
 test("logs out to the login screen", async () => {
   renderRoute("/creators");

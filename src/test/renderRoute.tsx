@@ -14,6 +14,10 @@ const taskRunPanelApiMock = vi.hoisted(() => ({
     items: [],
     serverTime: "2026-08-23T00:00:00Z",
   }),
+  getTaskRun: vi.fn().mockResolvedValue({
+    runId: "test-task-run",
+    status: "SUCCEEDED",
+  }),
 }));
 
 vi.mock("../entities/task-run", () => taskRunPanelApiMock);

@@ -59,6 +59,7 @@ describe("creator filters", () => {
     snsCode: "INSTAGRAM",
     accountId: "seo.yeon",
     creatorName: "김서연",
+    profileImageUrl: "https://cdn.example.com/seo-yeon.jpg",
     followerCount: 82_400,
     engagementRate: 4.25,
     lastContentAt: "2026-08-12T20:00:00",
@@ -71,6 +72,7 @@ describe("creator filters", () => {
     snsCode: "YOUTUBE",
     accountId: "UCnMBn-PNx1M9TLF0s-sEDeQ",
     creatorName: "Clevr TV",
+    profileImageUrl: "https://cdn.example.com/clevr-list.jpg",
     followerCount: 830_000,
     engagementRate: 0.92,
     recent90DayContentCount: 25,
@@ -81,9 +83,40 @@ describe("creator filters", () => {
     id: 115,
     accountId: "17841400602400210",
     creatorName: "numeric.instagram",
+    profileImageUrl: null,
     followerCount: 12_345,
     engagementRate: 1.23,
     recent90DayContentCount: 4,
+    category: "LEGACY_INTERNAL",
+  };
+  const creatorDetail = {
+    ...creator,
+    categoryShares: [
+      { categoryCode: "BEAUTY", totalShare: 0.75 },
+      { categoryCode: "FASHION", totalShare: 0.25 },
+    ],
+    brandScore: 0,
+    brandHits: null,
+    igHandle: null,
+    igConfidence: null,
+    registeredAt: "2026-08-01T09:00:00",
+    firstDiscoveredAt: "2026-07-31T09:00:00",
+    updatedAt: "2026-08-13T09:00:00",
+  };
+  const youtubeCreatorDetail = {
+    ...youtubeCreator,
+    profileImageUrl: "https://cdn.example.com/clevr-detail.jpg",
+    categoryShares: [
+      { categoryCode: "SKINCARE", totalShare: 0.7 },
+      { categoryCode: "BEAUTY", totalShare: 0.3 },
+    ],
+    brandScore: 0,
+    brandHits: null,
+    igHandle: "clevr.instagram",
+    igConfidence: 0.95,
+    registeredAt: "2026-08-02T09:00:00",
+    firstDiscoveredAt: "2026-08-01T09:00:00",
+    updatedAt: "2026-08-13T09:00:00",
   };
 
   function ok(totalPages = 1) {
@@ -101,6 +134,12 @@ describe("creator filters", () => {
 
   function mockCreatorApi(totalPages = 1, failedProposalIds: ReadonlySet<number> = new Set()) {
     return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/api/admin/creators/113")) {
+        return Promise.resolve(new Response(JSON.stringify({ success: true, data: creatorDetail })));
+      }
+      if (String(input).endsWith("/api/admin/creators/114")) {
+        return Promise.resolve(new Response(JSON.stringify({ success: true, data: youtubeCreatorDetail })));
+      }
       if (String(input).endsWith("/api/admin/proposals") && init?.method === "POST") {
         const { creatorId } = JSON.parse(String(init.body)) as { creatorId: number };
         const failed = failedProposalIds.has(creatorId);
@@ -143,13 +182,20 @@ describe("creator filters", () => {
     renderCreatorPage();
 
     const table = screen.getByRole("region", { name: "크리에이터 목록" });
-    expect(await within(table).findByText("김서연 ↗")).toBeInTheDocument();
-    expect(within(table).getByText("Clevr TV ↗")).toBeInTheDocument();
+    expect(await within(table).findByRole("button", { name: "김서연 프로필 보기" })).toBeInTheDocument();
+    expect(within(table).getByRole("img", { name: "김서연 프로필 이미지" }))
+      .toHaveAttribute("src", "https://cdn.example.com/seo-yeon.jpg");
+    expect(within(table).getByRole("img", { name: "numeric.instagram 프로필 이미지 없음" }))
+      .toBeInTheDocument();
+    expect(within(table).getByRole("button", { name: "Clevr TV 프로필 보기" })).toBeInTheDocument();
     expect(within(table).getByText("82,400")).toBeInTheDocument();
     expect(within(table).getByText("4.25%")).toBeInTheDocument();
     expect(within(table).getByText("14건")).toBeInTheDocument();
     expect(within(table).getByText("25+건")).toBeInTheDocument();
     expect(await within(table).findByText("스킨케어")).toBeInTheDocument();
+    expect(within(table).queryByText("LEGACY_INTERNAL")).not.toBeInTheDocument();
+    expect(within(table).getByRole("button", { name: "numeric.instagram 프로필 보기" }).closest("tr"))
+      .toHaveTextContent("기타");
     expect(within(table).queryByRole("columnheader", { name: "SNS 계정" }))
       .not.toBeInTheDocument();
     const seoLink = within(table).getByRole("link", { name: "김서연 SNS 계정 열기 (새 창)" });
@@ -164,7 +210,7 @@ describe("creator filters", () => {
     expect(screen.queryByRole("button", { name: "카드" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "선택 0명 제안 발송" })).toBeDisabled();
 
-    const seoRow = within(table).getByText("김서연 ↗").closest("tr");
+    const seoRow = within(table).getByRole("button", { name: "김서연 프로필 보기" }).closest("tr");
     const seoCheckbox = within(table).getByRole("checkbox", { name: "김서연 선택" });
     const selectAll = within(table).getByRole("checkbox", { name: "현재 페이지 전체 선택" });
     await user.click(seoCheckbox);
@@ -186,13 +232,53 @@ describe("creator filters", () => {
     expect(String(creatorRequests(fetchMock)[1][0])).toContain("page=1");
   });
 
+  test("opens a creator profile with public metrics and connected channels", async () => {
+    const user = userEvent.setup();
+    const fetchMock = mockCreatorApi();
+    vi.stubGlobal("fetch", fetchMock);
+    renderCreatorPage();
+    const table = screen.getByRole("region", { name: "크리에이터 목록" });
+
+    await user.click(await within(table).findByRole("checkbox", { name: "김서연 선택" }));
+    await user.click(await within(table).findByRole("button", { name: "Clevr TV 프로필 보기" }));
+
+    const panel = await screen.findByRole("dialog", { name: "크리에이터 프로필" });
+    expect(await within(panel).findByRole("heading", { name: "Clevr TV" })).toBeInTheDocument();
+    expect(within(panel).getByRole("img", { name: "Clevr TV 프로필 이미지" }))
+      .toHaveAttribute("src", "https://cdn.example.com/clevr-detail.jpg");
+    expect(within(panel).getByText("83만")).toBeInTheDocument();
+    expect(within(panel).getByText("0.92%")).toBeInTheDocument();
+    expect(within(panel).getByText("25+건")).toBeInTheDocument();
+    expect(within(panel).getByRole("link", { name: "YouTube 채널 ↗" }))
+      .toHaveAttribute("href", "https://www.youtube.com/channel/UCnMBn-PNx1M9TLF0s-sEDeQ");
+    expect(within(panel).getByRole("link", { name: "@clevr.instagram ↗" }))
+      .toHaveAttribute("href", "https://www.instagram.com/clevr.instagram");
+    expect(within(panel).getByText("프로필 URL에서 발견")).toBeInTheDocument();
+    expect(within(panel).getByRole("progressbar", { name: "스킨케어 발굴 비중" }))
+      .toHaveValue(70);
+    expect(within(panel).getByRole("progressbar", { name: "뷰티 발굴 비중" }))
+      .toHaveValue(30);
+    expect(within(panel).queryByText("SKINCARE")).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([input]) => (
+      String(input).endsWith("/api/admin/creators/114")
+    ))).toHaveLength(1);
+
+    await user.click(within(panel).getByRole("button", { name: "제안 작성" }));
+    const proposalPanel = await screen.findByRole("dialog", { name: "제안 발송" });
+    const target = within(proposalPanel).getByRole("complementary", { name: "제안 대상" });
+    expect(target).toHaveTextContent("Clevr TV");
+    expect(target).not.toHaveTextContent("김서연");
+    await user.click(within(proposalPanel).getByRole("button", { name: "상세 패널 닫기" }));
+    expect(screen.getByRole("button", { name: "선택 1명 제안 발송" })).toBeEnabled();
+  });
+
   test("sends proposals to every selected creator from the side panel", async () => {
     const user = userEvent.setup();
     const fetchMock = mockCreatorApi();
     vi.stubGlobal("fetch", fetchMock);
     renderCreatorPage();
     const table = screen.getByRole("region", { name: "크리에이터 목록" });
-    await within(table).findByText("김서연 ↗");
+    await within(table).findByRole("button", { name: "김서연 프로필 보기" });
 
     await user.click(within(table).getByRole("checkbox", { name: "김서연 선택" }));
     await user.click(within(table).getByRole("checkbox", { name: "Clevr TV 선택" }));
@@ -208,15 +294,9 @@ describe("creator filters", () => {
     const target = within(panel).getByRole("complementary", { name: "제안 대상" });
     expect(target).toHaveTextContent("2명 선택됨");
     expect(within(target).getAllByRole("listitem")).toHaveLength(2);
-    expect(within(panel).getByText("김서연")).toBeInTheDocument();
-    expect(within(panel).getByText("Clevr TV")).toBeInTheDocument();
-    expect(target).toHaveTextContent("82,400");
-    expect(target).toHaveTextContent("830,000");
-    expect(target).toHaveTextContent("뷰티");
-    await waitFor(() => expect(target).toHaveTextContent("스킨케어"));
-    expect(within(panel).getByRole("combobox", { name: "제안 채널" }))
-      .toBeDisabled();
-    expect(within(panel).getByText("이메일 자동 발송")).toBeInTheDocument();
+    expect(within(target).getByText("김서연")).toBeInTheDocument();
+    expect(within(target).getByText("Clevr TV")).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: "수정" }));
     const subject = within(panel).getByRole("textbox", { name: "제목" });
     const message = within(panel).getByRole("textbox", { name: "제안 메시지" });
     expect(subject).toHaveAttribute("maxlength", "200");
@@ -259,11 +339,12 @@ describe("creator filters", () => {
     vi.stubGlobal("fetch", fetchMock);
     renderCreatorPage();
     const table = screen.getByRole("region", { name: "크리에이터 목록" });
-    await within(table).findByText("김서연 ↗");
+    await within(table).findByRole("button", { name: "김서연 프로필 보기" });
 
     await user.click(within(table).getByRole("checkbox", { name: "현재 페이지 전체 선택" }));
     await user.click(screen.getByRole("button", { name: "선택 3명 제안 발송" }));
     const panel = await screen.findByRole("dialog", { name: "제안 발송" });
+    await user.click(within(panel).getByRole("button", { name: "수정" }));
     const subject = within(panel).getByRole("textbox", { name: "제목" });
     const message = within(panel).getByRole("textbox", { name: "제안 메시지" });
     await user.clear(subject);
@@ -292,7 +373,7 @@ describe("creator filters", () => {
     const fetchMock = mockCreatorApi();
     vi.stubGlobal("fetch", fetchMock);
     renderCreatorPage();
-    await screen.findByText("김서연 ↗");
+    await screen.findByRole("button", { name: "김서연 프로필 보기" });
     const search = screen.getByRole("search", { name: "검색 조건" });
     const keyword = within(search).getByRole("textbox", { name: "키워드" });
     const minFollowers = within(search).getByRole("textbox", { name: "최소 팔로워·구독자" });
@@ -372,7 +453,7 @@ describe("creator filters", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     renderCreatorPage();
-    await screen.findByText("김서연 ↗");
+    await screen.findByRole("button", { name: "김서연 프로필 보기" });
 
     await user.click(screen.getByRole("button", { name: "크리에이터 풀 구축" }));
 
@@ -411,7 +492,7 @@ describe("creator filters", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     renderCreatorPage();
-    await screen.findByText("김서연 ↗");
+    await screen.findByRole("button", { name: "김서연 프로필 보기" });
 
     await user.click(screen.getByRole("button", { name: "크리에이터 풀 구축" }));
 
@@ -445,7 +526,7 @@ describe("creator filters", () => {
     vi.stubGlobal("fetch", fetchMock);
     renderCreatorPage();
     const table = screen.getByRole("region", { name: "크리에이터 목록" });
-    await within(table).findByText("김서연 ↗");
+    await within(table).findByRole("button", { name: "김서연 프로필 보기" });
     await user.click(within(table).getByRole("checkbox", { name: "김서연 선택" }));
 
     await user.click(screen.getByRole("button", { name: "기존 풀 초기화" }));
@@ -496,7 +577,7 @@ describe("creator filters", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     renderCreatorPage();
-    await screen.findByText("김서연 ↗");
+    await screen.findByRole("button", { name: "김서연 프로필 보기" });
 
     await user.click(screen.getByRole("button", { name: "기존 풀 초기화" }));
     const dialog = screen.getByRole("alertdialog", { name: "기존 크리에이터 풀 초기화" });
@@ -545,8 +626,6 @@ test("single proposal acceptance does not append a completed history entry", asy
 
   await screen.findByText("이전에 발송한 제안 이력이 없습니다.");
   expect(screen.getByText("발송 작업을 요청하고 작업 진행상황에서 확인할 수 있습니다."))
-    .toBeInTheDocument();
-  expect(screen.getByText("요청 후 작업 진행상황에서 처리 상태를 확인할 수 있습니다."))
     .toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "제안 발송" }));
 

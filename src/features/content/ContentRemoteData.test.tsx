@@ -195,6 +195,29 @@ test("shows the backend list error inline", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent("콘텐츠 목록 서버 오류");
 });
 
+test("shows a YouTube thumbnail when the video has no direct media URL", async () => {
+  mockContentApis([contentItem({
+    contentType: "LONG_FORM",
+    contentUrl: "https://www.youtube.com/watch?v=youtube-901",
+    media: [{
+      mediaType: "VIDEO",
+      mediaUrl: null,
+      sequenceNo: 1,
+      snsMediaId: "youtube-901",
+    }],
+    snsCode: "YOUTUBE",
+    snsContentId: "youtube-901",
+    texts: ["YouTube 콘텐츠"],
+  })]);
+
+  renderRoute("/content/inspections");
+
+  expect(await screen.findByAltText("YouTube 콘텐츠 썸네일")).toHaveAttribute(
+    "src",
+    "https://i.ytimg.com/vi/youtube-901/hqdefault.jpg",
+  );
+});
+
 test("loads a direct detail route and keeps pending analysis and decisions honest", async () => {
   const fetchMock = mockContentApis([contentItem()]);
 

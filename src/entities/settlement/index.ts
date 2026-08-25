@@ -1,4 +1,8 @@
-export { getSettlementEstimates, getSettlementSelectorDetail } from "./api";
+export {
+  getSettlementEstimates,
+  getSettlementEstimateSummary,
+  getSettlementSelectorDetail,
+} from "./api";
 export { SETTLEMENTS } from "./fixtures";
 export {
   SETTLEMENT_HOLD_STATUSES,
@@ -11,6 +15,8 @@ export {
   type ApiResult,
   type SettlementEstimate,
   type SettlementEstimateRequest,
+  type SettlementEstimateSummary,
+  type SettlementEstimateSummaryRequest,
   type SettlementSelectorDetail,
   type SettlementSelectorProfile,
   type SettlementSnsCode,
