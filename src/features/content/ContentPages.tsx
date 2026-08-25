@@ -29,6 +29,7 @@ import {
   ShieldCheck,
   ThumbsDown,
   ThumbsUp,
+  UserRound,
   Volume2,
 } from "lucide-react";
 import "../../styles/content-inspection.css";
@@ -919,18 +920,20 @@ function MinimalVersionCard({
   focusedViolation,
   label,
   onSelectViolation,
+  showAnnotations = true,
   snapshot,
 }: {
   content: ContentInspectionFixture;
   focusedViolation?: { ordinal: number; requestId: number } | null;
   label: string;
   onSelectViolation?: (ordinal: number) => void;
+  showAnnotations?: boolean;
   snapshot: ContentSnapshot;
 }) {
   const cardRef = useRef<HTMLElement>(null);
   const annotations = useMemo(
-    () => indexedViolationAnnotations(content, snapshot),
-    [content, snapshot],
+    () => showAnnotations ? indexedViolationAnnotations(content, snapshot) : [],
+    [content, showAnnotations, snapshot],
   );
   const firstAnnotatedMediaIndex = annotations.find((annotation) => annotation.target.kind === "media")?.target;
   const [activeMediaIndex, setActiveMediaIndex] = useState(
@@ -963,8 +966,8 @@ function MinimalVersionCard({
   const mediaStageFit = embedUrl ? "fill" : mediaAspectRatio >= frameAspectRatio ? "width" : "height";
   const handle = content.accountId ?? content.author;
   const avatarUrl = content.profileImageUrl ?? "";
-  const [month, day] = snapshot.capturedAt.slice(5, 10).split("-");
-  const postDate = `${Number(month)}월 ${Number(day)}일`;
+  const [year, month, day] = snapshot.capturedAt.slice(0, 10).split("-");
+  const postDate = `${Number(year)}년 ${Number(month)}월 ${Number(day)}일`;
 
   const moveMedia = (direction: -1 | 1) => {
     setActiveMediaIndex((current) => (current + direction + mediaItems.length) % mediaItems.length);
@@ -1017,7 +1020,9 @@ function MinimalVersionCard({
         {isInstagram ? (
           <div className="fuma-platform-inspection-frame__instagram-header">
             <span className="fuma-platform-inspection-frame__avatar">
-              <CreatorProfilePhoto creatorName={content.author} src={avatarUrl} />
+              {avatarUrl
+                ? <CreatorProfilePhoto creatorName={content.author} src={avatarUrl} />
+                : <UserRound aria-label="익명 프로필 이미지" role="img" size={19} />}
             </span>
             <div><strong>{handle}</strong><small>현대홈쇼핑 셀렉터스 · {content.cohort}</small></div>
             <button aria-label="게시물 메뉴" type="button"><MoreHorizontal aria-hidden="true" size={20} /></button>
@@ -1169,9 +1174,7 @@ function MinimalVersionCard({
               <button aria-label="저장" type="button"><Bookmark aria-hidden="true" size={23} /></button>
             </div>
             <div className="fuma-platform-inspection-frame__instagram-copy">
-              <strong>성과 정보 없음</strong>
               <p><b>{handle}</b>{" "}<ViolationHighlightedText annotations={annotations} focusedOrdinal={focusedViolation?.ordinal} onSelectViolation={onSelectViolation} text={snapshot.text} useStoredIndexes /></p>
-              <button type="button">댓글 정보 없음</button>
               <time>{postDate}</time>
             </div>
           </>
@@ -1183,19 +1186,30 @@ function MinimalVersionCard({
                 <span className="fuma-platform-inspection-frame__avatar">
                   <CreatorProfilePhoto creatorName={content.author} src={avatarUrl} />
                 </span>
-                <span><strong>{content.author}</strong><small>구독자 정보 없음</small></span>
-                <button type="button">구독</button>
+                <span>
+                  <strong>
+                    {content.author}
+                    <CheckCircle2 aria-label="인증된 채널" size={14} />
+                  </strong>
+                  <small>{handle}</small>
+                </span>
+                <span className="fuma-platform-inspection-frame__youtube-subscriptions">
+                  <button className="is-membership" type="button">가입</button>
+                  <button className="is-subscribe" type="button">구독</button>
+                </span>
               </div>
               <div className="fuma-platform-inspection-frame__youtube-actions">
-                <button aria-label="좋아요" type="button"><ThumbsUp aria-hidden="true" size={17} /></button>
-                <button aria-label="싫어요" type="button"><ThumbsDown aria-hidden="true" size={17} /></button>
+                <span className="fuma-platform-inspection-frame__youtube-rating">
+                  <button type="button"><ThumbsUp aria-hidden="true" size={18} /> 좋아요</button>
+                  <button aria-label="싫어요" type="button"><ThumbsDown aria-hidden="true" size={18} /></button>
+                </span>
                 <button type="button"><Share2 aria-hidden="true" size={17} /> 공유</button>
                 <button type="button"><Bookmark aria-hidden="true" size={17} /> 저장</button>
                 <button aria-label="더보기" type="button"><MoreHorizontal aria-hidden="true" size={18} /></button>
               </div>
             </div>
             <div className="fuma-platform-inspection-frame__youtube-description">
-              <strong>성과 정보 없음 · {postDate}</strong>
+              <strong>{postDate}</strong>
               <p><ViolationHighlightedText annotations={annotations} focusedOrdinal={focusedViolation?.ordinal} onSelectViolation={onSelectViolation} text={snapshot.text} useStoredIndexes /></p>
             </div>
           </div>
@@ -1827,7 +1841,16 @@ export function ContentInspectionDetailPage() {
         className="fuma-content-inspection-studio"
         data-exiting={studioExiting}
         role="dialog"
-      />
+      >
+        {content ? (
+          <MinimalVersionCard
+            content={content}
+            label="콘텐츠 원문"
+            showAnnotations={false}
+            snapshot={content.currentSnapshot}
+          />
+        ) : null}
+      </main>
     );
   }
 
