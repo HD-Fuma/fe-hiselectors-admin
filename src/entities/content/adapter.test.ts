@@ -68,10 +68,9 @@ test("adapts collected backend content without inventing analysis or violation r
       },
       {
         mediaType: "VIDEO",
-        mediaUrl: "https://cdn.example.com/video.mp4",
+        mediaUrl: null,
         sequenceNo: 2,
         snsMediaId: "video-42",
-        thumbnailUrl: "https://cdn.example.com/video-thumbnail.jpg",
       },
     ],
     profileImageUrl: "https://cdn.example.com/profile.jpg",
@@ -106,10 +105,7 @@ test("adapts collected backend content without inventing analysis or violation r
   expect(inspection.currentSnapshot).toMatchObject({
     capturedAt: "2026-08-18T10:05:00",
     mediaKinds: ["동영상", "이미지"],
-    mediaUrls: [
-      "https://cdn.example.com/video-thumbnail.jpg",
-      "https://cdn.example.com/image.jpg",
-    ],
+    mediaUrls: ["", "https://cdn.example.com/image.jpg"],
     text: "YouTube 제목\n영상 본문",
     youtubeVideoId: "video-42",
   });
