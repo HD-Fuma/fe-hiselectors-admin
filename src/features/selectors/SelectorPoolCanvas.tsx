@@ -280,7 +280,7 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
     });
     return layoutCategories(counts);
   }, [selectors]);
-  const [dockOpen, setDockOpen] = useState(true);
+  const [dockOpen, setDockOpen] = useState(false);
 
   useEffect(() => {
     selectRef.current = onSelect;
@@ -324,7 +324,7 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
         ...nodes.map((node) => Math.hypot(node.x, node.y) + node.r),
         CATEGORY_RADIUS * 3,
       );
-      camera.scale = Math.min(1.1, Math.max(0.25, Math.min(box.width, box.height) / (reach * 2.2)));
+      camera.scale = Math.min(1.4, Math.max(0.3, Math.min(box.width, box.height) / (reach * 1.5)));
       camera.x = box.width / 2;
       camera.y = box.height / 2;
     };
