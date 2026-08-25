@@ -1773,6 +1773,9 @@ export function ContentInspectionDetailPage() {
   const navigate = useNavigate();
   const [studioDecision, setStudioDecision] = useState<"approve" | "reject" | null>(null);
   const [studioSelector, setStudioSelector] = useState<SelectorDetail | null>(null);
+  const [studioVersionOverride, setStudioVersionOverride] = useState<ContentInspectionFixture | null>(null);
+  const [studioVersionError, setStudioVersionError] = useState<string | null>(null);
+  const [studioVersionPending, setStudioVersionPending] = useState(false);
   const [studioViolationJudgments, setStudioViolationJudgments] = useState<
     Array<"violation" | "clear" | null>
   >([]);
@@ -1781,6 +1784,7 @@ export function ContentInspectionDetailPage() {
   const [studioExiting, setStudioExiting] = useState(false);
   const studioReportRef = useRef<HTMLElement>(null);
   const studioDecisionRef = useRef<HTMLDivElement>(null);
+  const studioVersionRequestRef = useRef<AbortController | null>(null);
   const { contentId } = useParams();
   const numericContentId = Number(contentId);
   const invalidContentId = !Number.isSafeInteger(numericContentId) || numericContentId <= 0;
@@ -1796,13 +1800,45 @@ export function ContentInspectionDetailPage() {
     initialRouteContents,
   );
   const [loadError, setLoadError] = useState<{ id: string; message: string } | null>(null);
-  const content = detailContents.find((item) => item.id === contentId);
+  const baseContent = detailContents.find((item) => item.id === contentId);
+  const content = routeState?.inspectionSession && studioVersionOverride?.id === contentId
+    ? studioVersionOverride
+    : baseContent;
+  const studioVersionSource = studioVersionOverride?.versions?.length
+    ? studioVersionOverride
+    : baseContent;
+  const studioLatestVersion = studioVersionSource
+    ? latestContentVersion(studioVersionSource)
+    : null;
+  const studioVersions = studioVersionSource
+    ? [...(studioVersionSource.versions ?? [])].sort((left, right) => right.versionNo - left.versionNo)
+    : [];
+  const studioVersionOptions = studioLatestVersion
+    ? (studioVersions.length > 0 ? studioVersions : [studioLatestVersion]).map((version) => ({
+        label: [
+          `v${version.versionNo}`,
+          versionCreationReasonLabel(version.creationReason),
+          version.contentVersionId === studioLatestVersion.contentVersionId ? "최신 버전" : null,
+        ].filter(Boolean).join(" · "),
+        value: String(version.contentVersionId),
+      }))
+    : [];
+  const studioHistoricalVersion = Boolean(
+    content
+    && studioLatestVersion
+    && currentDisplayedVersionNo(content) < studioLatestVersion.versionNo,
+  );
   const studioViolationSignals = useMemo(
-    () => content ? pendingInspectionCandidates(content) : [],
-    [content],
+    () => content
+      ? studioHistoricalVersion
+        ? inspectionIssueSignals(content)
+        : pendingInspectionCandidates(content)
+      : [],
+    [content, studioHistoricalVersion],
   );
   const studioReportReady = content?.aiStatus === "ready";
   const studioViolationReviewComplete = studioReportReady
+    && !studioHistoricalVersion
     && studioViolationJudgments.length === studioViolationSignals.length
     && studioViolationJudgments.every(Boolean);
   const studioFinalFocused = studioViolationReviewComplete
@@ -1823,10 +1859,44 @@ export function ContentInspectionDetailPage() {
   const remainingCount = currentPendingIndex >= 0
     ? Math.max(0, pendingContents.length - currentPendingIndex - 1)
     : pendingContents.length;
+  const selectStudioVersion = useCallback((contentVersionId: number) => {
+    if (!baseContent) return;
+    studioVersionRequestRef.current?.abort();
+    setStudioVersionError(null);
+    if (contentVersionId === baseContent.contentVersionId) {
+      setStudioVersionOverride(null);
+      setStudioVersionPending(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    studioVersionRequestRef.current = controller;
+    setStudioVersionPending(true);
+    void getContentVersionDetail(Number(baseContent.id), contentVersionId, controller.signal)
+      .then((detail) => {
+        if (!controller.signal.aborted) {
+          setStudioVersionOverride(adaptContentInspectionDetail(detail, baseContent));
+        }
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") return;
+        setStudioVersionError(error instanceof Error
+          ? error.message
+          : "콘텐츠 버전 조회에 실패했습니다.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setStudioVersionPending(false);
+      });
+  }, [baseContent]);
+
   const navigateStudioContent = useCallback((target?: ContentInspectionFixture) => {
     if (!target) return;
+    studioVersionRequestRef.current?.abort();
     setStudioDecision(null);
     setStudioSelector(null);
+    setStudioVersionOverride(null);
+    setStudioVersionError(null);
+    setStudioVersionPending(false);
     setStudioViolationJudgments([]);
     setFocusedStudioViolationIndex(-1);
     navigate(`/content/inspections/${target.id}`, {
@@ -1887,14 +1957,33 @@ export function ContentInspectionDetailPage() {
   useEffect(() => {
     if (!routeState?.inspectionSession) return;
     setStudioViolationJudgments(Array(studioViolationSignals.length).fill(null));
-    setFocusedStudioViolationIndex(studioViolationSignals.length > 0 ? 0 : -1);
+    setFocusedStudioViolationIndex(
+      !studioHistoricalVersion && studioViolationSignals.length > 0 ? 0 : -1,
+    );
     setStudioDecision(null);
-  }, [contentId, routeState?.inspectionSession, studioViolationSignals.length]);
+  }, [
+    content?.contentVersionId,
+    contentId,
+    routeState?.inspectionSession,
+    studioHistoricalVersion,
+    studioViolationSignals.length,
+  ]);
+
+  useEffect(() => {
+    if (!routeState?.inspectionSession) return;
+    studioVersionRequestRef.current?.abort();
+    setStudioVersionOverride(null);
+    setStudioVersionError(null);
+    setStudioVersionPending(false);
+  }, [contentId, routeState?.inspectionSession]);
+
+  useEffect(() => () => studioVersionRequestRef.current?.abort(), []);
 
   useEffect(() => {
     if (!routeState?.inspectionSession) return undefined;
     const exitSession = (event: globalThis.KeyboardEvent) => {
       if (studioExiting) return;
+      if (event.target instanceof HTMLSelectElement) return;
       if (event.repeat && (
         ["0", "1", "ArrowLeft", "ArrowRight"].includes(event.key)
         || event.code === "Space"
@@ -1910,7 +1999,7 @@ export function ContentInspectionDetailPage() {
       if (exitConfirmationOpen) return;
       if (event.code === "Space") {
         event.preventDefault();
-        if (!studioReportReady || focusedStudioViolationIndex < 0) return;
+        if (!studioReportReady || studioHistoricalVersion || focusedStudioViolationIndex < 0) return;
         if (!studioViolationJudgments[focusedStudioViolationIndex]) return;
         setFocusedStudioViolationIndex(
           focusedStudioViolationIndex + 1 < studioViolationSignals.length
@@ -1921,7 +2010,7 @@ export function ContentInspectionDetailPage() {
       }
       if (event.key === "0" || event.key === "1") {
         event.preventDefault();
-        if (!studioReportReady) return;
+        if (!studioReportReady || studioHistoricalVersion) return;
         if (focusedStudioViolationIndex >= 0) {
           judgeStudioViolation(
             focusedStudioViolationIndex,
@@ -1952,6 +2041,7 @@ export function ContentInspectionDetailPage() {
     routeState?.inspectionSession,
     studioExiting,
     studioFinalFocused,
+    studioHistoricalVersion,
     studioReportReady,
     studioViolationJudgments,
     studioViolationSignals.length,
@@ -2142,6 +2232,42 @@ export function ContentInspectionDetailPage() {
                     : "이상 없음"}
               </em>
             </header>
+            <section
+              aria-label="콘텐츠 정보"
+              className="fuma-content-inspection-studio__content-meta"
+            >
+              <div>
+                <span>최초 등록일</span>
+                <strong>
+                  <time dateTime={content.submittedAt}>
+                    {formatInspectionDate(content.submittedAt)}
+                  </time>
+                </strong>
+              </div>
+              <div>
+                <span>마지막 수정</span>
+                <strong>
+                  <time dateTime={content.currentSnapshot.capturedAt}>
+                    {formatInspectionDate(content.currentSnapshot.capturedAt)}
+                  </time>
+                </strong>
+              </div>
+              <div>
+                <span>콘텐츠 유형</span>
+                <strong>{content.contentFormat}</strong>
+              </div>
+              <label>
+                <span>버전</span>
+                <Select
+                  aria-label="콘텐츠 버전"
+                  disabled={studioVersionPending}
+                  onChange={(event) => selectStudioVersion(Number(event.target.value))}
+                  options={studioVersionOptions}
+                  value={String(content.contentVersionId ?? studioLatestVersion?.contentVersionId ?? "")}
+                />
+              </label>
+              {studioVersionError ? <p role="alert">{studioVersionError}</p> : null}
+            </section>
             <section className="fuma-content-inspection-studio__report-summary">
               <span>콘텐츠 요약</span>
               <p>{content.aiSummary}</p>
@@ -2150,7 +2276,9 @@ export function ContentInspectionDetailPage() {
               <div>
                 <span>위반 사항</span>
                 <small>
-                  {studioReportReady
+                  {studioHistoricalVersion
+                    ? "이력"
+                    : studioReportReady
                     ? `${judgedStudioViolationCount}/${studioViolationSignals.length}`
                     : "-"}
                 </small>
