@@ -156,6 +156,7 @@ body:has(.fuma-content-inspection-studio) {
   font: inherit;
   font-size: 13px;
   font-weight: 750;
+  user-select: none;
   cursor: pointer;
   transition: color 140ms ease;
 }
