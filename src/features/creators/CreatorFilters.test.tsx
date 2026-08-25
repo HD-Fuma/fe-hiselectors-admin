@@ -294,15 +294,9 @@ describe("creator filters", () => {
     const target = within(panel).getByRole("complementary", { name: "제안 대상" });
     expect(target).toHaveTextContent("2명 선택됨");
     expect(within(target).getAllByRole("listitem")).toHaveLength(2);
-    expect(within(panel).getByText("김서연")).toBeInTheDocument();
-    expect(within(panel).getByText("Clevr TV")).toBeInTheDocument();
-    expect(target).toHaveTextContent("82,400");
-    expect(target).toHaveTextContent("830,000");
-    expect(target).toHaveTextContent("뷰티");
-    await waitFor(() => expect(target).toHaveTextContent("스킨케어"));
-    expect(within(panel).getByRole("combobox", { name: "제안 채널" }))
-      .toBeDisabled();
-    expect(within(panel).getByText("이메일 자동 발송")).toBeInTheDocument();
+    expect(within(target).getByText("김서연")).toBeInTheDocument();
+    expect(within(target).getByText("Clevr TV")).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: "수정" }));
     const subject = within(panel).getByRole("textbox", { name: "제목" });
     const message = within(panel).getByRole("textbox", { name: "제안 메시지" });
     expect(subject).toHaveAttribute("maxlength", "200");
@@ -350,6 +344,7 @@ describe("creator filters", () => {
     await user.click(within(table).getByRole("checkbox", { name: "현재 페이지 전체 선택" }));
     await user.click(screen.getByRole("button", { name: "선택 3명 제안 발송" }));
     const panel = await screen.findByRole("dialog", { name: "제안 발송" });
+    await user.click(within(panel).getByRole("button", { name: "수정" }));
     const subject = within(panel).getByRole("textbox", { name: "제목" });
     const message = within(panel).getByRole("textbox", { name: "제안 메시지" });
     await user.clear(subject);
@@ -631,8 +626,6 @@ test("single proposal acceptance does not append a completed history entry", asy
 
   await screen.findByText("이전에 발송한 제안 이력이 없습니다.");
   expect(screen.getByText("발송 작업을 요청하고 작업 진행상황에서 확인할 수 있습니다."))
-    .toBeInTheDocument();
-  expect(screen.getByText("요청 후 작업 진행상황에서 처리 상태를 확인할 수 있습니다."))
     .toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "제안 발송" }));
 

@@ -151,7 +151,9 @@ test("renders server task runs on an authenticated administrator route", async (
 
   const panel = await screen.findByRole("region", { name: "작업 진행상황" });
   expect(within(panel).getByText("콘텐츠 동기화")).toBeInTheDocument();
-  expect(within(panel).getByText("신규 콘텐츠 수집 중")).toBeInTheDocument();
+  expect(within(panel).getByText("신규 콘텐츠 수집")).toBeInTheDocument();
+  expect(within(panel).getByText("기존 콘텐츠 수집")).toBeInTheDocument();
+  expect(within(panel).getAllByText("진행 정보 확인 중")).toHaveLength(2);
   expect(within(panel).getAllByRole("listitem")).toHaveLength(1);
 });
 

@@ -3,6 +3,11 @@ export {
   getAdminApplication,
   getAdminApplicationAiReport,
   getAdminApplications,
+  getCachedAdminApplication,
+  getCachedAdminApplicationAiReport,
+  invalidateAdminApplicationCache,
+  prefetchAdminApplication,
+  resetAdminApplicationCache,
   updateAdminApplicationStatus,
 } from "./api";
 export type {

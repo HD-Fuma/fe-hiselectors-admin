@@ -14,16 +14,17 @@ export interface SidePanelProps {
   actions?: ReactNode;
   animateOnOpen?: boolean;
   children: ReactNode;
+  defaultWidth?: number;
   onClose: () => void;
   title: string;
 }
 
-export function SidePanel({ actions, animateOnOpen = true, children, onClose, title }: SidePanelProps) {
+export function SidePanel({ actions, animateOnOpen = true, children, defaultWidth, onClose, title }: SidePanelProps) {
   const titleId = useId();
   const backdropRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
   const resizeCleanupRef = useRef<(() => void) | null>(null);
-  const [panelWidth, setPanelWidth] = useState<number | null>(null);
+  const [panelWidth, setPanelWidth] = useState<number | null>(defaultWidth ?? null);
 
   useEffect(() => () => {
     resizeCleanupRef.current?.();

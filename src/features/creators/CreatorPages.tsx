@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import { Eye, Pencil } from "lucide-react";
+import { getAdministratorSession } from "../../lib/adminAuthentication";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { AlertDialog } from "../../components/ui/AlertDialog";
@@ -41,7 +44,6 @@ const PROPOSAL_PAGE_SIZE = 20;
 const PROPOSAL_LIST_FETCH_SIZE = 100;
 const CREATOR_LIST_PAGE_SIZE = 20;
 const CREATOR_POOL_RESET_CONFIRMATION = "초기화";
-const PROPOSAL_CHANNEL_OPTIONS = [{ label: "이메일", value: "이메일" }] as const;
 const DEFAULT_PROPOSAL_SUBJECT = "[셀렉터스] ${creatorName}님, 크리에이터 활동을 제안드립니다";
 const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
 셀렉터스 운영팀입니다.
@@ -59,10 +61,7 @@ const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
 \${proposalLink}
 
 감사합니다.
-셀렉터스 운영팀 드림
-
-담당자: \${adminName} \${adminPosition}
-이메일: \${adminEmail}`;
+셀렉터스 운영팀 드림`;
 
 const CREATOR_PLATFORM_OPTIONS = [
   { label: "전체", value: "" },
@@ -274,14 +273,66 @@ function resizeProposalMessage(textarea: HTMLTextAreaElement) {
   textarea.style.height = `${textarea.scrollHeight}px`;
 }
 
+const PROPOSAL_VARIABLE_LABELS: Record<string, string> = {
+  adminEmail: "담당자 이메일",
+  adminPosition: "담당자 직책",
+};
+
+const PROPOSAL_APPLY_BASE_URL = "https://hiselectors.shop/apply";
+const PROPOSAL_VARIABLE_PATTERN = /\$\{(\w+)\}/g;
+
+function proposalLinkFor(creator: CreatorSummary) {
+  return `${PROPOSAL_APPLY_BASE_URL}?creatorId=${creator.id}`;
+}
+
+/** ${creatorName} 같은 코드 표기를 실제 값(대상 정보·로그인한 담당자 정보)이나 남은 항목은 안내 칩으로 바꿔 보여준다. */
+function renderProposalPreview(text: string, creator: CreatorSummary) {
+  const adminName = getAdministratorSession()?.name ?? null;
+  const nodes: ReactNode[] = [];
+  let lastIndex = 0;
+  let key = 0;
+  PROPOSAL_VARIABLE_PATTERN.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = PROPOSAL_VARIABLE_PATTERN.exec(text))) {
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
+    const variableName = match[1];
+    if (variableName === "creatorName") {
+      nodes.push(
+        <strong className="fuma-proposal-preview__value" key={key++}>
+          {creator.creatorName || creator.accountId}
+        </strong>,
+      );
+    } else if (variableName === "proposalLink") {
+      nodes.push(
+        <strong className="fuma-proposal-preview__value" key={key++}>
+          {proposalLinkFor(creator)}
+        </strong>,
+      );
+    } else if (variableName === "adminName" && adminName) {
+      nodes.push(
+        <strong className="fuma-proposal-preview__value" key={key++}>
+          {adminName}
+        </strong>,
+      );
+    } else {
+      nodes.push(
+        <span className="fuma-proposal-preview__var" key={key++}>
+          {PROPOSAL_VARIABLE_LABELS[variableName] ?? variableName}
+        </span>,
+      );
+    }
+    lastIndex = PROPOSAL_VARIABLE_PATTERN.lastIndex;
+  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes;
+}
+
 function BatchProposalPanel({
-  categoryOptions,
   creators,
   onClose,
   onComplete,
   onFailed,
 }: {
-  categoryOptions: readonly { label: string; value: string }[];
   creators: CreatorSummary[];
   onClose: () => void;
   onComplete: (count: number) => void;
@@ -291,7 +342,10 @@ function BatchProposalPanel({
   const [error, setError] = useState("");
   const [subject, setSubject] = useState(DEFAULT_PROPOSAL_SUBJECT);
   const [message, setMessage] = useState(DEFAULT_PROPOSAL_MESSAGE);
+  const [composeMode, setComposeMode] = useState<"edit" | "preview">("preview");
+  const [previewCreatorId, setPreviewCreatorId] = useState(creators[0]?.id ?? null);
   const proposalInvalid = !subject.trim() || !message.trim();
+  const previewCreator = creators.find((creator) => creator.id === previewCreatorId) ?? creators[0] ?? null;
 
   const sendProposals = async () => {
     if (sending || creators.length === 0) return;
@@ -338,6 +392,7 @@ function BatchProposalPanel({
           {sending ? "요청 중..." : `${creators.length}명에게 제안 발송`}
         </Button>
       )}
+      defaultWidth={1160}
       onClose={() => { if (!sending) onClose(); }}
       title="제안 발송"
     >
@@ -347,32 +402,32 @@ function BatchProposalPanel({
             <p>CREATOR OUTREACH</p>
             <h2>{creators.length}명의 크리에이터에게 보낼 제안을 작성합니다.</h2>
           </div>
-          <span>발송 전 내용을 다시 확인해 주세요.</span>
         </div>
         {error ? <p role="alert">{error}</p> : null}
         <div className="fuma-proposal-compose__layout fuma-proposal-compose__layout--panel">
-          <aside aria-label="제안 대상" className="fuma-proposal-compose__creator fuma-proposal-compose__creator--batch">
+          <aside aria-label="제안 대상" className="fuma-proposal-compose__creator--batch">
             <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
             <strong>{creators.length}명 선택됨</strong>
-            <ul>
-              {creators.map((creator) => {
-                const platform = platformFor(creator.snsCode);
-                const audienceLabel = platform === "Instagram" ? "팔로워" : "구독자";
-                return (
-                  <li key={creator.id}>
-                    <strong>{creator.creatorName || creator.accountId}</strong>
-                    <span>
-                      {platform} · {audienceLabel}{" "}
-                      {creator.followerCount === null ? "-" : formatNumber(creator.followerCount)} ·{" "}
-                      {visibleCategoryLabel(creator.category, categoryOptions)}
+            <ul className="fuma-proposal-compose__creator-cards">
+              {creators.map((creator) => (
+                <li key={creator.id}>
+                  <button
+                    aria-pressed={creator.id === previewCreator?.id}
+                    className="fuma-proposal-compose__creator-card"
+                    onClick={() => setPreviewCreatorId(creator.id)}
+                    type="button"
+                  >
+                    <span className="fuma-proposal-compose__creator-photo">
+                      <CreatorProfilePhoto
+                        creatorName={creator.creatorName || creator.accountId}
+                        src={creator.profileImageUrl ?? ""}
+                      />
                     </span>
-                  </li>
-                );
-              })}
+                    <span>{creator.creatorName || creator.accountId}</span>
+                  </button>
+                </li>
+              ))}
             </ul>
-            <p className="fuma-proposal-compose__creator-note">
-              템플릿 변수는 대상별 정보로 바뀌어 순차 발송됩니다.
-            </p>
           </aside>
           <form
             aria-busy={sending}
@@ -386,45 +441,69 @@ function BatchProposalPanel({
           >
             <div className="fuma-proposal-compose__form-heading">
               <h2>제안 내용</h2>
-              <span>필수 항목을 입력해 주세요.</span>
             </div>
-            <FormRow label="제안 채널" required>
-              <Select aria-label="제안 채널" defaultValue="이메일" disabled options={PROPOSAL_CHANNEL_OPTIONS} />
-            </FormRow>
-            <FormRow label="발송 방식">
-              <div className="fuma-proposal-compose__delivery">
-                <strong>이메일 자동 발송</strong>
-                <span>선택한 {creators.length}명에게 개별 메일로 순차 발송합니다.</span>
+            {composeMode === "edit" ? (
+              <>
+                <div className="fuma-proposal-compose__edit-heading">
+                  <span>제안 내용 편집</span>
+                  <button
+                    className="fuma-proposal-compose__edit-toggle fuma-proposal-compose__edit-toggle--subtle"
+                    onClick={() => setComposeMode("preview")}
+                    type="button"
+                  >
+                    <Eye aria-hidden="true" size={13} />
+                    미리보기
+                  </button>
+                </div>
+                <FormRow label="제목" required>
+                  <TextInput
+                    aria-label="제목"
+                    disabled={sending}
+                    maxLength={200}
+                    onChange={(event) => setSubject(event.target.value)}
+                    required
+                    value={subject}
+                  />
+                </FormRow>
+                <FormRow label="제안 메시지" required>
+                  <textarea
+                    aria-label="제안 메시지"
+                    className="hsas-control fuma-proposal-compose__textarea"
+                    disabled={sending}
+                    maxLength={10_000}
+                    onChange={(event) => setMessage(event.target.value)}
+                    onInput={(event) => resizeProposalMessage(event.currentTarget)}
+                    ref={(textarea) => {
+                      if (textarea) resizeProposalMessage(textarea);
+                    }}
+                    required
+                    value={message}
+                  />
+                </FormRow>
+                <p className="fuma-proposal-compose__creator-note">
+                  {"제목·메시지에 ${creatorName}, ${proposalLink}, ${adminName}을 넣으면 발송 시 자동으로 채워집니다."}
+                </p>
+              </>
+            ) : previewCreator ? (
+              <div className="fuma-proposal-preview">
+                <div className="fuma-proposal-preview__email">
+                  <button
+                    aria-label="수정"
+                    className="fuma-proposal-compose__edit-toggle-emoji"
+                    onClick={() => setComposeMode("edit")}
+                    type="button"
+                  >
+                    <Pencil aria-hidden="true" size={14} />
+                  </button>
+                  <strong className="fuma-proposal-preview__subject">
+                    {renderProposalPreview(subject, previewCreator)}
+                  </strong>
+                  <div className="fuma-proposal-preview__body">
+                    {renderProposalPreview(message, previewCreator)}
+                  </div>
+                </div>
               </div>
-            </FormRow>
-            <FormRow label="제목" required>
-              <TextInput
-                aria-label="제목"
-                disabled={sending}
-                maxLength={200}
-                onChange={(event) => setSubject(event.target.value)}
-                required
-                value={subject}
-              />
-            </FormRow>
-            <FormRow label="제안 메시지" required>
-              <textarea
-                aria-label="제안 메시지"
-                className="hsas-control fuma-proposal-compose__textarea"
-                disabled={sending}
-                maxLength={10_000}
-                onChange={(event) => setMessage(event.target.value)}
-                onInput={(event) => resizeProposalMessage(event.currentTarget)}
-                ref={(textarea) => {
-                  if (textarea) resizeProposalMessage(textarea);
-                }}
-                required
-                value={message}
-              />
-            </FormRow>
-            <footer className="fuma-proposal-compose__footer">
-              <span>요청 후 작업 진행상황에서 처리 상태를 확인할 수 있습니다.</span>
-            </footer>
+            ) : null}
           </form>
         </div>
       </div>
@@ -959,7 +1038,6 @@ export function CreatorListPage() {
     ) : null}
     {proposalPanelOpen ? (
       <BatchProposalPanel
-        categoryOptions={[...categoryOptions, ...CREATOR_CATEGORY_OPTIONS]}
         creators={profileProposalCreator ? [profileProposalCreator] : [...selectedCreators.values()]}
         onClose={() => {
           setProfileProposalCreator(null);
@@ -1210,7 +1288,6 @@ export function ProposalComposePage() {
               </ul>
             )}
             <footer className="fuma-proposal-compose__footer">
-              <span>요청 후 작업 진행상황에서 처리 상태를 확인할 수 있습니다.</span>
               <div>
                 <Button onClick={() => navigate(-1)}>취소</Button>
                 <Button

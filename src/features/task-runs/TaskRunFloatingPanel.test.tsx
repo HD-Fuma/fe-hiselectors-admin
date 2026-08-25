@@ -34,6 +34,12 @@ const runningCreatorSync: TaskRun = {
 const runningContentSync: TaskRun = {
   ...runningCreatorSync,
   taskType: "CONTENT_SYNC",
+  currentStep: "NEW_CONTENT_SYNC",
+};
+
+const runningSettlement: TaskRun = {
+  ...runningCreatorSync,
+  taskType: "SETTLEMENT_CALCULATION",
 };
 
 test("keeps an empty polite announcement mounted without a visual section", () => {
@@ -53,11 +59,11 @@ test("keeps an empty polite announcement mounted without a visual section", () =
 });
 
 test("shows determinate progress and administrator context", () => {
-  render(<TaskRunFloatingPanel runs={[runningContentSync]} />);
+  render(<TaskRunFloatingPanel runs={[runningSettlement]} />);
 
   const panel = screen.getByRole("region", { name: "작업 진행상황" });
   expect(panel).not.toHaveAttribute("tabindex");
-  expect(within(panel).getByText("콘텐츠 동기화")).toBeInTheDocument();
+  expect(within(panel).getByText("정산 계산")).toBeInTheDocument();
   expect(within(panel).getByText("프로필 정보를 동기화하는 중")).toBeInTheDocument();
   expect(within(panel).getByText("김관리자 실행")).toBeInTheDocument();
   expect(within(panel).getByText("84 / 120")).toBeInTheDocument();
@@ -67,17 +73,17 @@ test("shows determinate progress and administrator context", () => {
     "hsas-status-pill--approved",
   );
   expect(
-    within(panel).getByRole("progressbar", { name: "콘텐츠 동기화 진행률" }),
+    within(panel).getByRole("progressbar", { name: "정산 계산 진행률" }),
   ).toHaveAttribute("max", "120");
   expect(
-    within(panel).getByRole("progressbar", { name: "콘텐츠 동기화 진행률" }),
+    within(panel).getByRole("progressbar", { name: "정산 계산 진행률" }),
   ).toHaveAttribute("value", "84");
 });
 
 test("clamps over-total determinate progress at one hundred percent", () => {
   render(
     <TaskRunFloatingPanel
-      runs={[{ ...runningContentSync, processedCount: 150 }]}
+      runs={[{ ...runningSettlement, processedCount: 150 }]}
     />,
   );
 
@@ -89,7 +95,7 @@ test("clamps over-total determinate progress at one hundred percent", () => {
 test("clamps negative determinate progress at zero percent", () => {
   render(
     <TaskRunFloatingPanel
-      runs={[{ ...runningContentSync, processedCount: -12 }]}
+      runs={[{ ...runningSettlement, processedCount: -12 }]}
     />,
   );
 
@@ -98,16 +104,184 @@ test("clamps negative determinate progress at zero percent", () => {
   expect(screen.getByRole("progressbar")).toHaveAttribute("value", "0");
 });
 
-test("does not divide by zero or expose an invalid progressbar", () => {
+test("shows both content phases as indeterminate when step progress is missing", () => {
   render(
     <TaskRunFloatingPanel
-      runs={[{ ...runningContentSync, processedCount: 0, totalCount: 0 }]}
+      runs={[{
+        ...runningContentSync,
+        progressMessage: "legacy content progress",
+      }]}
     />,
   );
 
-  expect(screen.getByRole("status", { name: "진행 상황 확인 중" })).toBeInTheDocument();
-  expect(screen.queryByText(/%/)).not.toBeInTheDocument();
-  expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  expect(screen.getByText("신규 콘텐츠 수집")).toBeInTheDocument();
+  expect(screen.getByText("기존 콘텐츠 수집")).toBeInTheDocument();
+  expect(screen.getAllByText("진행 정보 확인 중")).toHaveLength(2);
+  expect(screen.getAllByRole("progressbar")).toHaveLength(2);
+  expect(screen.getByRole("progressbar", {
+    name: "신규 콘텐츠 수집 진행률",
+  })).not.toHaveAttribute("value");
+  expect(screen.getByRole("progressbar", {
+    name: "기존 콘텐츠 수집 진행률",
+  })).not.toHaveAttribute("value");
+  expect(screen.queryByText("신규 콘텐츠 수집 중")).not.toBeInTheDocument();
+  expect(screen.queryByText("legacy content progress")).not.toBeInTheDocument();
+});
+
+test("keeps both content phases indeterminate when either step key is missing", () => {
+  render(
+    <TaskRunFloatingPanel
+      runs={[{
+        ...runningContentSync,
+        stepProgress: {
+          NEW_CONTENT_SYNC: { processedCount: 3, totalCount: 10 },
+        },
+      }]}
+    />,
+  );
+
+  expect(screen.getAllByText("진행 정보 확인 중")).toHaveLength(2);
+  expect(screen.getAllByRole("progressbar")).toHaveLength(2);
+  expect(screen.getAllByRole("progressbar").every(
+    (progressbar) => !progressbar.hasAttribute("value"),
+  )).toBe(true);
+  expect(screen.queryByText("3 / 10건")).not.toBeInTheDocument();
+});
+
+test("shows new collection activity and keeps unknown stored collection waiting", () => {
+  render(
+    <TaskRunFloatingPanel
+      runs={[{
+        ...runningContentSync,
+        stepProgress: {
+          NEW_CONTENT_SYNC: { processedCount: 7, totalCount: null },
+          STORED_CONTENT_SYNC: { processedCount: 0, totalCount: null },
+        },
+      }]}
+    />,
+  );
+
+  const newProgress = screen.getByRole("progressbar", {
+    name: "신규 콘텐츠 수집 진행률",
+  });
+  const storedProgress = screen.getByRole("progressbar", {
+    name: "기존 콘텐츠 수집 진행률",
+  });
+  expect(newProgress).not.toHaveAttribute("value");
+  expect(screen.getByText("7건 처리")).toBeInTheDocument();
+  expect(storedProgress).toHaveAttribute("max", "1");
+  expect(storedProgress).toHaveAttribute("value", "0");
+  expect(screen.getByText("대기 중")).toBeInTheDocument();
+});
+
+test("shows determinate progress for both content collection phases", () => {
+  render(
+    <TaskRunFloatingPanel
+      runs={[{
+        ...runningContentSync,
+        currentStep: "STORED_CONTENT_SYNC",
+        stepProgress: {
+          NEW_CONTENT_SYNC: { processedCount: 10, totalCount: 10 },
+          STORED_CONTENT_SYNC: { processedCount: 3, totalCount: 8 },
+        },
+      }]}
+    />,
+  );
+
+  expect(screen.getByText("10건 완료")).toBeInTheDocument();
+  expect(screen.getByText("3 / 8건")).toBeInTheDocument();
+  expect(screen.getByText("100%")).toBeInTheDocument();
+  expect(screen.getByText("38%")).toBeInTheDocument();
+  expect(screen.getByRole("progressbar", {
+    name: "신규 콘텐츠 수집 진행률",
+  })).toHaveAttribute("value", "10");
+  expect(screen.getByRole("progressbar", {
+    name: "기존 콘텐츠 수집 진행률",
+  })).toHaveAttribute("value", "3");
+});
+
+test.each([
+  { expectedPercentage: "0%", expectedValue: "0", processedCount: -2 },
+  { expectedPercentage: "100%", expectedValue: "10", processedCount: 12 },
+])(
+  "clamps content progress for processed count $processedCount",
+  ({ expectedPercentage, expectedValue, processedCount }) => {
+    render(
+      <TaskRunFloatingPanel
+        runs={[{
+          ...runningContentSync,
+          stepProgress: {
+            NEW_CONTENT_SYNC: { processedCount, totalCount: 10 },
+            STORED_CONTENT_SYNC: { processedCount: 0, totalCount: null },
+          },
+        }]}
+      />,
+    );
+
+    expect(screen.getByText(`${processedCount} / 10건`)).toBeInTheDocument();
+    expect(screen.getByText(expectedPercentage)).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", {
+      name: "신규 콘텐츠 수집 진행률",
+    })).toHaveAttribute("value", expectedValue);
+  },
+);
+
+test("treats a zero stored total as completed", () => {
+  render(
+    <TaskRunFloatingPanel
+      runs={[{
+        ...runningContentSync,
+        currentStep: "STORED_CONTENT_SYNC",
+        stepProgress: {
+          NEW_CONTENT_SYNC: { processedCount: 2, totalCount: 2 },
+          STORED_CONTENT_SYNC: { processedCount: 0, totalCount: 0 },
+        },
+      }]}
+    />,
+  );
+
+  expect(screen.getByText("0건 완료")).toBeInTheDocument();
+  expect(screen.getByRole("progressbar", {
+    name: "기존 콘텐츠 수집 진행률",
+  })).toHaveAttribute("max", "1");
+  expect(screen.getByRole("progressbar", {
+    name: "기존 콘텐츠 수집 진행률",
+  })).toHaveAttribute("value", "1");
+});
+
+test("announces content collection progress updates politely on rerender", () => {
+  const { rerender } = render(
+    <TaskRunFloatingPanel
+      runs={[{
+        ...runningContentSync,
+        stepProgress: {
+          NEW_CONTENT_SYNC: { processedCount: 1, totalCount: 4 },
+          STORED_CONTENT_SYNC: { processedCount: 0, totalCount: null },
+        },
+      }]}
+    />,
+  );
+
+  expect(screen.getByRole("status", { name: "콘텐츠 수집 진행 상황" }))
+    .toHaveAttribute("aria-live", "polite");
+  expect(screen.getByText("1 / 4건")).toBeInTheDocument();
+
+  rerender(
+    <TaskRunFloatingPanel
+      runs={[{
+        ...runningContentSync,
+        currentStep: "STORED_CONTENT_SYNC",
+        stepProgress: {
+          NEW_CONTENT_SYNC: { processedCount: 4, totalCount: 4 },
+          STORED_CONTENT_SYNC: { processedCount: 2, totalCount: null },
+        },
+      }]}
+    />,
+  );
+
+  expect(screen.getByText("4건 완료")).toBeInTheDocument();
+  expect(screen.getByText("2건 처리")).toBeInTheDocument();
+  expect(screen.queryByText("1 / 4건")).not.toBeInTheDocument();
 });
 
 test("shows an accessible loading status for a scheduled task with an unknown total", () => {
@@ -212,6 +386,29 @@ test("uses the creator collection message as the terminal summary", () => {
   );
 
   expect(screen.getByText(progressMessage)).toBeInTheDocument();
+  expect(screen.queryByText("84건 작업을 완료했습니다")).not.toBeInTheDocument();
+});
+
+test("uses the content collection message as the terminal summary", () => {
+  const progressMessage = "신규 콘텐츠 7건 수집, 기존 콘텐츠 12건 수집";
+
+  render(
+    <TaskRunFloatingPanel
+      runs={[{
+        ...runningContentSync,
+        progressMessage,
+        status: "SUCCEEDED",
+        stepProgress: {
+          NEW_CONTENT_SYNC: { processedCount: 7, totalCount: 7 },
+          STORED_CONTENT_SYNC: { processedCount: 12, totalCount: 12 },
+        },
+      }]}
+    />,
+  );
+
+  expect(screen.getByText(progressMessage)).toBeInTheDocument();
+  expect(screen.queryByText("신규 콘텐츠 수집")).not.toBeInTheDocument();
+  expect(screen.queryByText("기존 콘텐츠 수집")).not.toBeInTheDocument();
   expect(screen.queryByText("84건 작업을 완료했습니다")).not.toBeInTheDocument();
 });
 
@@ -1144,6 +1341,7 @@ test.each([
   ["RECALCULATE", "정산 재계산 중"],
   ["YOUTUBE_CREATOR_SYNC", "YouTube 크리에이터 동기화 중"],
   ["INSTAGRAM_CREATOR_SYNC", "Instagram 크리에이터 동기화 중"],
+  ["STORED_CONTENT_SYNC", "기존 콘텐츠 수집 중"],
 ])("shows a friendly label for the %s step", (currentStep, label) => {
   render(
     <TaskRunFloatingPanel runs={[{ ...runningCreatorSync, currentStep }]} />,
