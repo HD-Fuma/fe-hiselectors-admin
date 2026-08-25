@@ -108,12 +108,23 @@ body:has(.fuma-content-inspection-studio) {
   gap: 7px;
 }
 
-.fuma-content-inspection-studio__profile-meta > span {
+.fuma-content-inspection-studio__profile-meta > span,
+.fuma-content-inspection-studio__profile-meta > a {
   overflow: hidden;
   color: rgb(32 34 36 / 58%);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.fuma-content-inspection-studio__profile-meta > a {
+  text-decoration: none;
+}
+
+.fuma-content-inspection-studio__profile-meta > a:hover {
+  color: #202224;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .fuma-content-inspection-studio__profile-meta .fuma-platform-icon {

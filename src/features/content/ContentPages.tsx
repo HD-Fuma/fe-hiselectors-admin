@@ -67,7 +67,7 @@ import {
   type ContentSnapshot,
   type InspectionStatus,
 } from "../../entities/content";
-import { getSelector, type SelectorDetail } from "../../entities/selectors";
+import { getSelector, snsAccountHref, type SelectorDetail } from "../../entities/selectors";
 import { getTaskRun } from "../../entities/task-run";
 import { formatCompactCount, formatNumber, formatWon } from "../../lib/formatters";
 
@@ -1891,7 +1891,15 @@ export function ContentInspectionDetailPage() {
 
   if (routeState?.inspectionSession) {
     const snsAccount = studioSelector?.snsAccount;
-    const snsId = snsAccount?.accountId ?? content?.accountId ?? content?.author ?? "-";
+    const accountId = snsAccount?.accountId ?? content?.accountId;
+    const snsId = accountId ?? content?.author ?? "-";
+    const snsIdLabel = snsId.startsWith("http")
+      ? "프로필 보기"
+      : snsId.startsWith("@") || snsId === "-" ? snsId : `@${snsId}`;
+    const profileUrl = snsAccountHref(
+      content ? contentPlatform(content.sourcePlatform) : null,
+      accountId,
+    );
     const followerCount = snsAccount?.followerCount;
     const generationSales = studioSelector?.generations.find(
       ({ generationName }) => generationName === content?.cohort,
@@ -1925,7 +1933,11 @@ export function ContentInspectionDetailPage() {
                 <div>
                   <strong>{studioSelector?.nickname ?? content.author}</strong>
                   <span className="fuma-content-inspection-studio__profile-meta">
-                    <span>{snsId.startsWith("@") || snsId === "-" ? snsId : `@${snsId}`}</span>
+                    {profileUrl ? (
+                      <a href={profileUrl} rel="noreferrer" target="_blank">
+                        {snsIdLabel}
+                      </a>
+                    ) : <span>{snsIdLabel}</span>}
                     <PlatformIcon platform={contentPlatform(content.sourcePlatform)} />
                   </span>
                 </div>
