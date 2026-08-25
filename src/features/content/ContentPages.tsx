@@ -67,12 +67,9 @@ import {
   type ContentSnapshot,
   type InspectionStatus,
 } from "../../entities/content";
-import {
-  getSettlementSelectorDetail,
-  type SettlementSelectorDetail,
-} from "../../entities/settlement";
+import { getSelector, type SelectorDetail } from "../../entities/selectors";
 import { getTaskRun } from "../../entities/task-run";
-import { formatCompactCount, formatWon } from "../../lib/formatters";
+import { formatCompactCount, formatNumber, formatWon } from "../../lib/formatters";
 
 const CONTENT_INSPECTION_PAGE_SIZE = 20;
 type ContentInspectionCategory =
@@ -1775,7 +1772,7 @@ export function ContentInspectionDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [studioDecision, setStudioDecision] = useState<"approve" | "reject" | null>(null);
-  const [studioSelector, setStudioSelector] = useState<SettlementSelectorDetail | null>(null);
+  const [studioSelector, setStudioSelector] = useState<SelectorDetail | null>(null);
   const [studioExiting, setStudioExiting] = useState(false);
   const { contentId } = useParams();
   const numericContentId = Number(contentId);
@@ -1883,7 +1880,7 @@ export function ContentInspectionDetailPage() {
     if (!routeState?.inspectionSession || !content?.selectorsId) return undefined;
     const controller = new AbortController();
 
-    void getSettlementSelectorDetail(content.selectorsId, controller.signal)
+    void getSelector(content.selectorsId, controller.signal)
       .then((selector) => {
         if (!controller.signal.aborted) setStudioSelector(selector);
       })
@@ -1893,10 +1890,15 @@ export function ContentInspectionDetailPage() {
   }, [content?.selectorsId, routeState?.inspectionSession]);
 
   if (routeState?.inspectionSession) {
-    const profile = studioSelector?.profile;
-    const snsId = profile?.accountId ?? content?.accountId ?? content?.author ?? "-";
-    const followerCount = profile?.followerCount;
-    const cumulativeSales = studioSelector?.settlementSummary.cumulativeSalesAmount;
+    const snsAccount = studioSelector?.snsAccount;
+    const snsId = snsAccount?.accountId ?? content?.accountId ?? content?.author ?? "-";
+    const followerCount = snsAccount?.followerCount;
+    const generationSales = studioSelector?.generations.find(
+      ({ generationName }) => generationName === content?.cohort,
+    )?.totalSales;
+    const registeredContentCount = studioSelector?.contents.filter(
+      ({ id }) => String(id) !== content?.id,
+    ).length;
 
     return (
       <main
@@ -1911,22 +1913,25 @@ export function ContentInspectionDetailPage() {
             <aside aria-label="셀렉터스 프로필" className="fuma-content-inspection-studio__profile">
               <div className="fuma-content-inspection-studio__profile-identity">
                 <span className="fuma-content-inspection-studio__profile-avatar">
-                  {(profile?.profileImageUrl ?? content.profileImageUrl)
+                  {(snsAccount?.profileImageUrl ?? content.profileImageUrl)
                     ? (
                         <CreatorProfilePhoto
-                          creatorName={profile?.selectorsNickname ?? content.author}
-                          src={profile?.profileImageUrl ?? content.profileImageUrl ?? ""}
+                          creatorName={studioSelector?.nickname ?? content.author}
+                          src={snsAccount?.profileImageUrl ?? content.profileImageUrl ?? ""}
                         />
                       )
                     : <UserRound aria-label="익명 프로필 이미지" role="img" size={24} />}
                 </span>
                 <div>
-                  <strong>{profile?.selectorsNickname ?? content.author}</strong>
-                  <span>{snsId.startsWith("@") || snsId === "-" ? snsId : `@${snsId}`}</span>
+                  <strong>{studioSelector?.nickname ?? content.author}</strong>
+                  <span className="fuma-content-inspection-studio__profile-meta">
+                    <span>{snsId.startsWith("@") || snsId === "-" ? snsId : `@${snsId}`}</span>
+                    <PlatformIcon platform={contentPlatform(content.sourcePlatform)} />
+                  </span>
                 </div>
                 <span className="fuma-content-inspection-studio__profile-id">
                   <small>셀렉터스 ID</small>
-                  <b>{profile?.selectorsCode ?? (content.selectorsId ? `#${content.selectorsId}` : "-")}</b>
+                  <b>{studioSelector?.selectorsCode ?? (content.selectorsId ? `#${content.selectorsId}` : "-")}</b>
                 </span>
               </div>
               <dl>
@@ -1935,8 +1940,12 @@ export function ContentInspectionDetailPage() {
                   <dd>{followerCount == null ? "-" : `${formatCompactCount(followerCount)}명`}</dd>
                 </div>
                 <div>
-                  <dt>누적 매출</dt>
-                  <dd>{cumulativeSales == null ? "-" : formatWon(cumulativeSales)}</dd>
+                  <dt>이번 기수 매출</dt>
+                  <dd>{generationSales == null ? "-" : formatWon(generationSales)}</dd>
+                </div>
+                <div>
+                  <dt>등록 게시글 (현재 제외)</dt>
+                  <dd>{registeredContentCount == null ? "-" : `${formatNumber(registeredContentCount)}건`}</dd>
                 </div>
               </dl>
             </aside>

@@ -45,7 +45,7 @@ body:has(.fuma-content-inspection-studio) {
   top: 28px;
   left: 28px;
   z-index: 2;
-  width: min(390px, calc(100vw - 56px));
+  width: min(450px, calc(100vw - 56px));
   padding: 20px 22px 18px;
   border: 1px solid rgb(255 255 255 / 78%);
   border-radius: 26px;
@@ -85,10 +85,11 @@ body:has(.fuma-content-inspection-studio) {
 
 .fuma-content-inspection-studio__profile-identity > div {
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .fuma-content-inspection-studio__profile-identity strong,
-.fuma-content-inspection-studio__profile-identity > div > span {
+.fuma-content-inspection-studio__profile-meta {
   display: block;
 }
 
@@ -100,13 +101,30 @@ body:has(.fuma-content-inspection-studio) {
   white-space: nowrap;
 }
 
-.fuma-content-inspection-studio__profile-identity > div > span {
+.fuma-content-inspection-studio__profile-meta {
+  display: flex;
   margin-top: 2px;
+  align-items: center;
+  gap: 7px;
+}
+
+.fuma-content-inspection-studio__profile-meta > span {
   overflow: hidden;
   color: rgb(32 34 36 / 58%);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.fuma-content-inspection-studio__profile-meta .fuma-platform-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+.fuma-content-inspection-studio__profile-meta .fuma-platform-icon svg {
+  width: 13px;
+  height: 13px;
 }
 
 .fuma-content-inspection-studio__profile-id {
@@ -136,7 +154,7 @@ body:has(.fuma-content-inspection-studio) {
   display: grid;
   margin: 17px 0 0;
   padding: 15px 0 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border-top: 1px solid rgb(255 255 255 / 66%);
 }
 
@@ -147,7 +165,14 @@ body:has(.fuma-content-inspection-studio) {
 
 .fuma-content-inspection-studio__profile dl > div:first-child {
   padding-left: 0;
-  border-right: 1px solid rgb(255 255 255 / 62%);
+}
+
+.fuma-content-inspection-studio__profile dl > div + div {
+  border-left: 1px solid rgb(255 255 255 / 62%);
+}
+
+.fuma-content-inspection-studio__profile dl > div:last-child {
+  padding-right: 0;
 }
 
 .fuma-content-inspection-studio__profile dl dt,
