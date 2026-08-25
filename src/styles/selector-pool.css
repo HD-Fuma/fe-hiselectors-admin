@@ -340,7 +340,8 @@
   display: grid;
   gap: var(--hsas-space-16);
   align-items: center;
-  padding: var(--hsas-space-16);
+  margin-top: var(--hsas-space-8);
+  padding: var(--hsas-space-22) var(--hsas-space-18) var(--hsas-space-18);
   border: 1px solid var(--hsas-border);
   border-radius: 16px;
   background: var(--hsas-surface);
@@ -375,8 +376,22 @@
 
 .hsas-selector-hero__platform {
   position: absolute;
-  right: 0;
-  bottom: 4px;
+  right: -2px;
+  bottom: 2px;
+  display: flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--hsas-surface);
+  border-radius: 50%;
+  background: var(--hsas-surface);
+}
+
+.hsas-selector-hero__platform .fuma-platform-icon,
+.hsas-selector-hero__platform .fuma-platform-icon svg {
+  width: 26px;
+  height: 26px;
 }
 
 .hsas-selector-hero__identity {
@@ -410,9 +425,47 @@
   font-size: var(--hsas-font-12);
 }
 
-.hsas-selector-hero__channel a {
-  color: var(--hsas-teal);
+/* 채널 링크는 아이콘 + 핸들 알약으로 */
+.hsas-selector-hero__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hsas-space-6);
+  padding: var(--hsas-space-4) var(--hsas-space-10);
+  border: 1px solid var(--hsas-border);
+  border-radius: 999px;
+  background: var(--hsas-surface);
+  color: var(--hsas-text);
+  font-size: var(--hsas-font-12);
   font-weight: 600;
+  text-decoration: none;
+}
+
+.hsas-selector-hero__link:hover {
+  border-color: var(--hsas-teal);
+  color: var(--hsas-teal);
+}
+
+.hsas-selector-hero__link .fuma-platform-icon,
+.hsas-selector-hero__link .fuma-platform-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.hsas-selector-hero__link > span:last-child {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-11);
+}
+
+.hsas-selector-hero__link.is-plain {
+  border-style: dashed;
+}
+
+/* 팔로워 수는 태그 없이 큰 글자로 */
+.hsas-selector-hero__followers {
+  align-self: center;
+  color: var(--hsas-text);
+  font-size: var(--hsas-font-16);
+  font-weight: 700;
 }
 
 .hsas-selector-hero__code strong {

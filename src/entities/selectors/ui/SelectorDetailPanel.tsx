@@ -479,10 +479,18 @@ function SelectorModalHero({ detail }: { detail: SelectorDetail }) {
         <h3>{detail.nickname}</h3>
         <p className="hsas-selector-hero__channel">
           {handle && channelHref ? (
-            <a href={channelHref} rel="noreferrer" target="_blank">{handle}</a>
-          ) : handle ? <span>{handle}</span> : null}
-          {handle && audienceLabel ? <span aria-hidden="true">·</span> : null}
-          {audienceLabel ? <span>{audienceLabel}</span> : null}
+            <a className="hsas-selector-hero__link" href={channelHref} rel="noreferrer" target="_blank">
+              {platform ? <PlatformIcon decorative platform={platform} /> : null}
+              <span>{handle}</span>
+              <span aria-hidden="true">↗</span>
+            </a>
+          ) : handle ? (
+            <span className="hsas-selector-hero__link is-plain">
+              {platform ? <PlatformIcon decorative platform={platform} /> : null}
+              <span>{handle}</span>
+            </span>
+          ) : null}
+          {audienceLabel ? <span className="hsas-selector-hero__followers">{audienceLabel}</span> : null}
         </p>
         <p className="hsas-selector-hero__code">
           셀렉터스 코드 <strong>{displayText(detail.selectorsCode)}</strong>
