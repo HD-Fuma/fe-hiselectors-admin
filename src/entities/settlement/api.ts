@@ -4,6 +4,8 @@ import type {
   ApiResult,
   SettlementEstimate,
   SettlementEstimateRequest,
+  SettlementEstimateSummary,
+  SettlementEstimateSummaryRequest,
   SettlementSelectorDetail,
   SettlementStatus,
   SpringPage,
@@ -53,7 +55,10 @@ function authorizationHeaders() {
   return headers;
 }
 
-function requestedStatuses(request: SettlementEstimateRequest) {
+function requestedStatuses(request: {
+  status?: SettlementStatus;
+  statuses?: readonly SettlementStatus[];
+}) {
   if (request.statuses && request.statuses.length > 0) return request.statuses;
   if (request.status) return [request.status];
   return undefined;
@@ -85,6 +90,7 @@ async function fetchSettlementEstimatePage(
   request: {
     activityMonth?: string;
     page: number;
+    selectorsId?: number;
     size: number;
     status?: SettlementStatus;
   },
@@ -96,6 +102,7 @@ async function fetchSettlementEstimatePage(
   });
 
   if (request.activityMonth) searchParams.set("activityMonth", request.activityMonth);
+  if (request.selectorsId) searchParams.set("selectorsId", String(request.selectorsId));
   if (request.status) searchParams.set("status", request.status);
 
   const response = await adminFetch(
@@ -124,6 +131,7 @@ export async function getSettlementEstimates(
     return fetchSettlementEstimatePage({
       activityMonth: request.activityMonth,
       page: request.page,
+      selectorsId: request.selectorsId,
       size: request.size,
       status: statuses?.[0],
     }, signal);
@@ -132,11 +140,82 @@ export async function getSettlementEstimates(
   const pages = await Promise.all(statuses.map((status) => fetchSettlementEstimatePage({
     activityMonth: request.activityMonth,
     page: 0,
+    selectorsId: request.selectorsId,
     size: COMBINED_STATUS_FETCH_SIZE,
     status,
   }, signal)));
 
   return mergeEstimatePages(pages, request.page, request.size);
+}
+
+async function fetchSettlementEstimateSummary(
+  request: SettlementEstimateSummaryRequest,
+  signal?: AbortSignal,
+): Promise<SettlementEstimateSummary> {
+  const searchParams = new URLSearchParams();
+  if (request.activityMonth) searchParams.set("activityMonth", request.activityMonth);
+  if (request.selectorsId) searchParams.set("selectorsId", String(request.selectorsId));
+  if (request.status) searchParams.set("status", request.status);
+
+  const response = await adminFetch(
+    `${API_BASE_URL}/api/admin/settlements/estimates/summary?${searchParams.toString()}`,
+    { headers: authorizationHeaders(), signal },
+  );
+
+  if (!response.ok) {
+    throw new Error(await errorMessage(response, "정산 요약 조회에 실패했습니다."));
+  }
+
+  const result = await response.json() as ApiResult<SettlementEstimateSummary>;
+  if (!result.success || !result.data) {
+    throw new Error(result.message || "정산 요약 조회에 실패했습니다.");
+  }
+
+  return result.data;
+}
+
+export async function getSettlementEstimateSummary(
+  request: SettlementEstimateSummaryRequest,
+  signal?: AbortSignal,
+): Promise<SettlementEstimateSummary> {
+  const statuses = requestedStatuses(request);
+  if (!statuses || statuses.length <= 1) {
+    return fetchSettlementEstimateSummary({
+      activityMonth: request.activityMonth,
+      selectorsId: request.selectorsId,
+      status: statuses?.[0],
+    }, signal);
+  }
+
+  const summaries = await Promise.all(statuses.map((status) => (
+    fetchSettlementEstimateSummary({
+      activityMonth: request.activityMonth,
+      selectorsId: request.selectorsId,
+      status,
+    }, signal)
+  )));
+  const summary = summaries.reduce<SettlementEstimateSummary>((total, item) => ({
+    activityMonth: item.activityMonth || total.activityMonth,
+    commissionToSalesRate: 0,
+    confirmedPurchaseCount: total.confirmedPurchaseCount + item.confirmedPurchaseCount,
+    confirmedSalesAmount: total.confirmedSalesAmount + item.confirmedSalesAmount,
+    settlementAmount: total.settlementAmount + item.settlementAmount,
+    settlementCount: total.settlementCount + item.settlementCount,
+  }), {
+    activityMonth: request.activityMonth ?? "",
+    commissionToSalesRate: 0,
+    confirmedPurchaseCount: 0,
+    confirmedSalesAmount: 0,
+    settlementAmount: 0,
+    settlementCount: 0,
+  });
+
+  return {
+    ...summary,
+    commissionToSalesRate: summary.confirmedSalesAmount === 0
+      ? 0
+      : summary.settlementAmount / summary.confirmedSalesAmount * 100,
+  };
 }
 
 export async function getSettlementSelectorDetail(

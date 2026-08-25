@@ -1,0 +1,23 @@
+.fuma-settlement-summary__formula {
+  display: block;
+  margin-top: var(--hsas-space-2);
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-9);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.fuma-settlement-summary__state {
+  min-height: 49px;
+  margin: 0;
+  padding: var(--hsas-space-16);
+  border: 1px solid var(--hsas-border);
+  border-top: 2px solid var(--hsas-teal);
+  background: var(--hsas-surface);
+  color: var(--hsas-text-muted);
+  text-align: center;
+}
+
+.fuma-settlement-summary__state--error {
+  color: var(--hsas-color-danger);
+}
