@@ -40,21 +40,26 @@ body:has(.fuma-content-inspection-studio) {
   display: none;
 }
 
-.fuma-content-inspection-studio__profile {
-  position: absolute;
-  top: 28px;
-  left: 28px;
-  z-index: 2;
-  width: min(420px, calc(100vw - 56px));
-  padding: 17px 18px 15px;
+.fuma-content-inspection-studio__profile,
+.fuma-content-inspection-studio__queue,
+.fuma-content-inspection-studio__report {
   border: 1px solid rgb(255 255 255 / 78%);
-  border-radius: 23px;
   color: #202224;
   background: rgb(255 255 255 / 42%);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 72%),
     0 18px 48px rgb(54 65 72 / 12%);
   backdrop-filter: blur(24px) saturate(1.15);
+}
+
+.fuma-content-inspection-studio__profile {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  z-index: 2;
+  width: min(400px, calc(100vw - 56px));
+  padding: 17px 18px 15px;
+  border-radius: 23px;
 }
 
 .fuma-content-inspection-studio__profile-identity {
@@ -212,14 +217,7 @@ body:has(.fuma-content-inspection-studio) {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  border: 1px solid rgb(255 255 255 / 78%);
   border-radius: 22px;
-  color: #202224;
-  background: rgb(255 255 255 / 42%);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 72%),
-    0 18px 48px rgb(54 65 72 / 12%);
-  backdrop-filter: blur(24px) saturate(1.15);
 }
 
 .fuma-content-inspection-studio__queue-progress {
@@ -314,6 +312,154 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__queue-actions button:disabled {
   opacity: 0.3;
   cursor: default;
+}
+
+.fuma-content-inspection-studio__report {
+  position: absolute;
+  top: 122px;
+  right: 28px;
+  z-index: 2;
+  width: min(340px, calc(100vw - 56px));
+  max-height: calc(100dvh - 242px);
+  padding: 18px;
+  overflow-y: auto;
+  border-radius: 23px;
+}
+
+.fuma-content-inspection-studio__report > header,
+.fuma-content-inspection-studio__report > header > div > span,
+.fuma-content-inspection-studio__report > header > div > strong {
+  display: flex;
+}
+
+.fuma-content-inspection-studio__report > header {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fuma-content-inspection-studio__report > header > div > span,
+.fuma-content-inspection-studio__report-summary > span,
+.fuma-content-inspection-studio__report-evidence > div > span {
+  color: rgb(32 34 36 / 48%);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.fuma-content-inspection-studio__report > header > div > strong {
+  margin-top: 3px;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.fuma-content-inspection-studio__report > header em {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #a84239;
+  background: rgb(207 71 59 / 10%);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 750;
+}
+
+.fuma-content-inspection-studio__report > header em[data-clear="true"] {
+  color: #23795f;
+  background: rgb(34 185 139 / 10%);
+}
+
+.fuma-content-inspection-studio__report-summary {
+  margin-top: 15px;
+  padding: 13px 14px;
+  border: 1px solid rgb(255 255 255 / 68%);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 34%);
+}
+
+.fuma-content-inspection-studio__report-summary p {
+  margin: 7px 0 0;
+  color: rgb(32 34 36 / 76%);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.fuma-content-inspection-studio__report-evidence {
+  margin-top: 17px;
+}
+
+.fuma-content-inspection-studio__report-evidence > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fuma-content-inspection-studio__report-evidence > div > small {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 50%;
+  color: rgb(32 34 36 / 64%);
+  background: rgb(255 255 255 / 46%);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.fuma-content-inspection-studio__report-evidence ul {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fuma-content-inspection-studio__report-evidence li {
+  display: grid;
+  padding: 11px 0;
+  grid-template-columns: 7px minmax(0, 1fr);
+  gap: 10px;
+  border-top: 1px solid rgb(255 255 255 / 58%);
+}
+
+.fuma-content-inspection-studio__report-evidence li > i {
+  width: 7px;
+  height: 7px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #d29a43;
+}
+
+.fuma-content-inspection-studio__report-evidence li[data-tone="critical"] > i {
+  background: #cf473b;
+}
+
+.fuma-content-inspection-studio__report-evidence li > div > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fuma-content-inspection-studio__report-evidence li strong {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.fuma-content-inspection-studio__report-evidence li small {
+  flex: 0 0 auto;
+  color: rgb(32 34 36 / 42%);
+  font-size: 9px;
+}
+
+.fuma-content-inspection-studio__report-evidence li p,
+.fuma-content-inspection-studio__report-empty {
+  margin: 4px 0 0;
+  color: rgb(32 34 36 / 60%);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.fuma-content-inspection-studio__report-empty {
+  padding: 14px 0 2px;
+  text-align: center;
 }
 
 .fuma-content-inspection-studio__decision {

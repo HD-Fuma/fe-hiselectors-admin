@@ -1916,6 +1916,7 @@ export function ContentInspectionDetailPage() {
     const inspectionProgress = currentPendingIndex >= 0 && pendingContents.length > 0
       ? ((currentPendingIndex + 1) / pendingContents.length) * 100
       : 0;
+    const violationSignals = content?.report.signals.filter(({ tone }) => tone !== "pass") ?? [];
 
     return (
       <main
@@ -1965,7 +1966,7 @@ export function ContentInspectionDetailPage() {
                   <dd>{generationSales == null ? "-" : formatWon(generationSales)}</dd>
                 </div>
                 <div>
-                  <dt>등록 게시글 (현재 제외)</dt>
+                  <dt>등록 콘텐츠 수 (현재 제외)</dt>
                   <dd>{registeredContentCount == null ? "-" : `${formatNumber(registeredContentCount)}건`}</dd>
                 </div>
               </dl>
@@ -2010,6 +2011,42 @@ export function ContentInspectionDetailPage() {
             </button>
           </span>
         </nav>
+        {content ? (
+          <aside aria-label="AI 검수 리포트" className="fuma-content-inspection-studio__report">
+            <header>
+              <div>
+                <span>AI ANALYSIS</span>
+                <strong>검수 리포트</strong>
+              </div>
+              <em data-clear={violationSignals.length === 0}>
+                {violationSignals.length > 0 ? `${violationSignals.length}건 감지` : "이상 없음"}
+              </em>
+            </header>
+            <section className="fuma-content-inspection-studio__report-summary">
+              <span>콘텐츠 요약</span>
+              <p>{content.aiSummary}</p>
+            </section>
+            <section className="fuma-content-inspection-studio__report-evidence">
+              <div>
+                <span>검수 근거</span>
+                <small>{violationSignals.length}</small>
+              </div>
+              {violationSignals.length > 0 ? (
+                <ul>
+                  {violationSignals.map((signal, index) => (
+                    <li data-tone={signal.tone} key={`${signal.title}-${signal.source}-${index}`}>
+                      <i aria-hidden="true" />
+                      <div>
+                        <div><strong>{signal.title}</strong><small>{signal.source}</small></div>
+                        <p>{signal.evidence || signal.detail}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="fuma-content-inspection-studio__report-empty">위반 후보가 없습니다.</p>}
+            </section>
+          </aside>
+        ) : null}
         <div aria-label="최종 검수" className="fuma-content-inspection-studio__decision" role="group">
           <button
             aria-pressed={studioDecision === "reject"}
