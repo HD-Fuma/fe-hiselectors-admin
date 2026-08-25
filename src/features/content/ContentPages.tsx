@@ -1816,7 +1816,7 @@ export function ContentInspectionDetailPage() {
   };
 
   useEffect(() => {
-    if (routeState?.inspectionSession || invalidContentId || !contentId) return undefined;
+    if (invalidContentId || !contentId) return undefined;
 
     const routeContents = routeState?.contents
       ?? (routeState?.content ? [routeState.content] : []);
