@@ -46,7 +46,7 @@ body:has(.fuma-content-inspection-studio) {
   left: 50%;
   z-index: 2;
   display: flex;
-  gap: 28px;
+  gap: 18px;
   transform: translateX(-50%);
 }
 
