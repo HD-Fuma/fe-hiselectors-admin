@@ -36,6 +36,7 @@ export interface DenseTableProps<T extends object> {
   emptyMessage?: ReactNode;
   footer?: ReactNode;
   onRowClick?: (row: T) => void;
+  onRowHover?: (row: T) => void;
   selectedRowKeys?: readonly Key[];
 }
 
@@ -80,6 +81,7 @@ export function DenseTable<T extends object>({
   emptyMessage = "조회 결과가 없습니다.",
   footer,
   onRowClick,
+  onRowHover,
   selectedRowKeys,
   rowKey,
   rows,
@@ -144,7 +146,9 @@ export function DenseTable<T extends object>({
                   className="hsas-dense-table__row"
                   key={key}
                   onClick={rowIsInteractive ? (event) => handleRowClick(event, row) : undefined}
+                  onFocus={onRowHover ? () => onRowHover(row) : undefined}
                   onKeyDown={rowIsInteractive ? (event) => handleRowKeyDown(event, row) : undefined}
+                  onMouseEnter={onRowHover ? () => onRowHover(row) : undefined}
                   tabIndex={rowIsInteractive ? 0 : undefined}
                 >
                   {columns.map((column) => (
