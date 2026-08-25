@@ -79,18 +79,20 @@ body:has(.fuma-content-inspection-studio) {
 }
 
 .fuma-content-inspection-studio__decision button[aria-pressed="true"] {
-  color: #fff;
-  transform: translateY(1px);
+  transform: none;
 }
 
 .fuma-content-inspection-studio__decision button.is-reject[aria-pressed="true"] {
-  border-color: #b5473e;
-  background: #b5473e;
+  border-color: #dedede;
+  color: #353535;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgb(181 71 62 / 24%);
 }
 
 .fuma-content-inspection-studio__decision button.is-approve[aria-pressed="true"] {
-  border-color: #000;
-  background: #000;
+  border-color: #171717;
+  background: #171717;
+  box-shadow: 0 0 0 4px rgb(25 116 93 / 28%);
 }
 
 .fuma-content-inspection-studio__decision kbd {
