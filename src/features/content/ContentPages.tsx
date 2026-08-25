@@ -72,6 +72,8 @@ import { getTaskRun } from "../../entities/task-run";
 import { formatCompactCount, formatNumber, formatWon } from "../../lib/formatters";
 
 const CONTENT_INSPECTION_PAGE_SIZE = 20;
+const STUDIO_CONTENT_SLIDE_EXIT_MS = 180;
+const STUDIO_CONTENT_SLIDE_ENTER_MS = 260;
 type ContentInspectionCategory =
   | "전체"
   | "신규 등록"
@@ -138,6 +140,11 @@ type InspectionIssueSignal = ContentInspectionFixture["report"]["signals"][numbe
 };
 
 type InspectionJudgment = "위반" | "정상";
+type StudioContentDirection = "previous" | "next";
+type StudioContentTransition =
+  | "idle"
+  | `exit-${StudioContentDirection}`
+  | `enter-${StudioContentDirection}`;
 
 function inspectionIssueSignals(content: ContentInspectionFixture): InspectionIssueSignal[] {
   return content.report.signals
@@ -1791,6 +1798,7 @@ export function ContentInspectionDetailPage() {
   const [focusedStudioViolationIndex, setFocusedStudioViolationIndex] = useState(-1);
   const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
   const [studioExiting, setStudioExiting] = useState(false);
+  const [studioContentTransition, setStudioContentTransition] = useState<StudioContentTransition>("idle");
   const studioReportRef = useRef<HTMLElement>(null);
   const studioDecisionRef = useRef<HTMLDivElement>(null);
   const studioVersionsRef = useRef<HTMLElement>(null);
@@ -1799,6 +1807,8 @@ export function ContentInspectionDetailPage() {
   const studioDetailRequestRef = useRef<AbortController | null>(null);
   const studioWheelLockedRef = useRef(false);
   const studioWheelReleaseTimerRef = useRef<number | null>(null);
+  const studioContentTransitionRef = useRef<StudioContentTransition>("idle");
+  const studioContentTransitionTimerRef = useRef<number | null>(null);
   const { contentId } = useParams();
   const numericContentId = Number(contentId);
   const invalidContentId = !Number.isSafeInteger(numericContentId) || numericContentId <= 0;
@@ -1882,26 +1892,47 @@ export function ContentInspectionDetailPage() {
     : pendingContents.length;
   const navigateStudioContent = useCallback((
     target?: ContentInspectionFixture,
+    direction: StudioContentDirection = "next",
     contents: ContentInspectionFixture[] = detailContents,
   ) => {
-    if (!target) return;
+    if (!target || studioContentTransitionRef.current !== "idle") return;
     studioHistoryRequestRef.current?.abort();
     studioActionRequestRef.current?.abort();
     studioActionRequestRef.current = null;
-    setStudioDecision(null);
-    setStudioSelector(null);
-    setStudioHistoricalContents([]);
-    setStudioHistoryError(null);
-    setStudioHistoryPending(false);
-    setStudioActionPending(null);
-    setStudioActionError(null);
-    setStudioActionFeedback(null);
-    setStudioReportRefreshVersionId(null);
-    setStudioViolationJudgments([]);
-    setFocusedStudioViolationIndex(-1);
-    navigate(`/content/inspections/${target.id}`, {
-      state: { ...routeState, content: target, contents, inspectionSession: true },
-    });
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const exitDuration = reducedMotion ? 0 : STUDIO_CONTENT_SLIDE_EXIT_MS;
+    const enterDuration = reducedMotion ? 0 : STUDIO_CONTENT_SLIDE_ENTER_MS;
+    const exitTransition = `exit-${direction}` as const;
+    const enterTransition = `enter-${direction}` as const;
+
+    studioContentTransitionRef.current = exitTransition;
+    setStudioContentTransition(exitTransition);
+    if (studioContentTransitionTimerRef.current != null) {
+      window.clearTimeout(studioContentTransitionTimerRef.current);
+    }
+    studioContentTransitionTimerRef.current = window.setTimeout(() => {
+      setStudioDecision(null);
+      setStudioSelector(null);
+      setStudioHistoricalContents([]);
+      setStudioHistoryError(null);
+      setStudioHistoryPending(false);
+      setStudioActionPending(null);
+      setStudioActionError(null);
+      setStudioActionFeedback(null);
+      setStudioReportRefreshVersionId(null);
+      setStudioViolationJudgments([]);
+      setFocusedStudioViolationIndex(-1);
+      navigate(`/content/inspections/${target.id}`, {
+        state: { ...routeState, content: target, contents, inspectionSession: true },
+      });
+      studioContentTransitionRef.current = enterTransition;
+      setStudioContentTransition(enterTransition);
+      studioContentTransitionTimerRef.current = window.setTimeout(() => {
+        studioContentTransitionRef.current = "idle";
+        studioContentTransitionTimerRef.current = null;
+        setStudioContentTransition("idle");
+      }, enterDuration);
+    }, exitDuration);
   }, [detailContents, navigate, routeState]);
 
   const judgeStudioViolation = useCallback((
@@ -2080,7 +2111,7 @@ export function ContentInspectionDetailPage() {
       const target = remainingContents.find((item) => item.id === preferredNextId)
         ?? remainingContents[0];
       if (target) {
-        navigateStudioContent(target, confirmedContents);
+        navigateStudioContent(target, "next", confirmedContents);
         return;
       }
     } catch (error: unknown) {
@@ -2268,6 +2299,9 @@ export function ContentInspectionDetailPage() {
     if (studioWheelReleaseTimerRef.current != null) {
       window.clearTimeout(studioWheelReleaseTimerRef.current);
     }
+    if (studioContentTransitionTimerRef.current != null) {
+      window.clearTimeout(studioContentTransitionTimerRef.current);
+    }
   }, []);
 
   useEffect(() => {
@@ -2367,7 +2401,12 @@ export function ContentInspectionDetailPage() {
 
     const navigateOnWheel = (event: globalThis.WheelEvent) => {
       if (event.ctrlKey || Math.abs(event.deltaY) < 4) return;
-      if (studioExiting || exitConfirmationOpen || studioActionPending) {
+      if (
+        studioExiting
+        || exitConfirmationOpen
+        || studioActionPending
+        || studioContentTransition !== "idle"
+      ) {
         event.preventDefault();
         return;
       }
@@ -2390,12 +2429,13 @@ export function ContentInspectionDetailPage() {
         if (canScroll) return;
       }
 
-      const target = event.deltaY > 0 ? nextContent : previousContent;
+      const direction: StudioContentDirection = event.deltaY > 0 ? "next" : "previous";
+      const target = direction === "next" ? nextContent : previousContent;
       if (!target) return;
       event.preventDefault();
       studioWheelLockedRef.current = true;
       releaseWheelAfterIdle();
-      navigateStudioContent(target);
+      navigateStudioContent(target, direction);
     };
 
     window.addEventListener("wheel", navigateOnWheel, { passive: false });
@@ -2407,6 +2447,7 @@ export function ContentInspectionDetailPage() {
     previousContent,
     routeState?.inspectionSession,
     studioActionPending,
+    studioContentTransition,
     studioExiting,
   ]);
 
@@ -2484,7 +2525,11 @@ export function ContentInspectionDetailPage() {
 
     return (
       <main
-        aria-busy={studioActionPending !== null || studioHistoryPending}
+        aria-busy={
+          studioActionPending !== null
+          || studioHistoryPending
+          || studioContentTransition !== "idle"
+        }
         aria-label="집중 검수 스튜디오"
         aria-modal="true"
         className="fuma-content-inspection-studio"
@@ -2495,7 +2540,7 @@ export function ContentInspectionDetailPage() {
           aria-keyshortcuts="Escape"
           aria-label="검수 화면 나가기"
           className="fuma-content-inspection-studio__exit-button"
-          disabled={studioActionPending !== null}
+          disabled={studioActionPending !== null || studioContentTransition !== "idle"}
           onClick={() => setExitConfirmationOpen(true)}
           type="button"
         >
@@ -2552,6 +2597,7 @@ export function ContentInspectionDetailPage() {
               aria-label="콘텐츠 버전 비교"
               className="fuma-content-inspection-studio__versions"
               data-content-format={contentCollectionFormatKey(content.contentFormat)}
+              data-content-transition={studioContentTransition}
               data-revised={studioHistoricalVersionSummaries.length > 0}
               ref={studioVersionsRef}
             >
@@ -2618,8 +2664,12 @@ export function ContentInspectionDetailPage() {
           <span className="fuma-content-inspection-studio__queue-actions">
             <button
               aria-label="이전 콘텐츠"
-              disabled={!previousContent || studioActionPending !== null}
-              onClick={() => navigateStudioContent(previousContent)}
+              disabled={
+                !previousContent
+                || studioActionPending !== null
+                || studioContentTransition !== "idle"
+              }
+              onClick={() => navigateStudioContent(previousContent, "previous")}
               type="button"
             >
               <ChevronLeft aria-hidden="true" size={20} />
@@ -2627,10 +2677,14 @@ export function ContentInspectionDetailPage() {
             </button>
             <button
               aria-label={studioShowFinish ? "검수 마침" : "다음 콘텐츠"}
-              disabled={studioActionPending !== null || (!studioInspectionComplete && !nextContent)}
+              disabled={
+                studioActionPending !== null
+                || studioContentTransition !== "idle"
+                || (!studioInspectionComplete && !nextContent)
+              }
               onClick={() => studioInspectionComplete
                 ? setStudioExiting(true)
-                : navigateStudioContent(nextContent)}
+                : navigateStudioContent(nextContent, "next")}
               type="button"
             >
               <span>{studioShowFinish ? "마침" : "다음"}</span>
