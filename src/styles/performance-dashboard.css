@@ -616,6 +616,24 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
   height: 148px;
 }
 
+.fuma-echarts-period-plot {
+  position: relative;
+}
+
+.fuma-echarts-period-plot > [data-series],
+.fuma-echarts-period-plot > [data-period-date],
+.fuma-echarts-period-plot [data-metric-value] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  white-space: nowrap;
+}
+
 .fuma-content-cohort-chart__grid {
   stroke: #edf0ef;
   stroke-width: 1;
@@ -650,13 +668,21 @@ body:has(.fuma-performance-page) .hsas-admin-shell__content {
 .fuma-content-cohort-chart > p { margin: var(--hsas-space-24) 0; color: #8b9691; font-size: var(--hsas-font-11); text-align: center; }
 
 .fuma-content-upload-status__formats .fuma-analysis-format-breakdown {
-  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-columns: 88px minmax(0, 1fr);
   gap: var(--hsas-space-12);
   margin-top: var(--hsas-space-10);
+  min-width: 0;
 }
 
-.fuma-content-upload-status__formats .fuma-analysis-format-breakdown__donut { width: 88px; }
-.fuma-content-upload-status__formats .fuma-analysis-format-breakdown__legend { gap: var(--hsas-space-5); }
+.fuma-content-upload-status__formats .fuma-analysis-format-breakdown__donut {
+  width: 88px;
+  max-width: 88px;
+}
+
+.fuma-content-upload-status__formats .fuma-analysis-format-breakdown__legend {
+  gap: var(--hsas-space-5);
+  min-width: 0;
+}
 
 .fuma-content-performance-results .fuma-result-toolbar__actions { gap: var(--hsas-space-8); margin-left: var(--hsas-space-12); }
 .fuma-content-performance-results .fuma-settlement-result-meta > span { color: var(--hsas-color-neutral-600); font-size: var(--hsas-font-11); font-variant-numeric: tabular-nums; font-weight: 600; }
