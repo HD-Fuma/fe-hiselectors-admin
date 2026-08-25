@@ -1,12 +1,7 @@
-import ReactEChartsCoreImport from "echarts-for-react/esm/core";
+import { useEffect, useRef } from "react";
+import type { EChartsType } from "echarts/core";
 import { echarts } from "./echartsSetup";
 import type { HsEChartsProps } from "./HsEChartsProps";
-
-const ReactEChartsCore = (
-  typeof ReactEChartsCoreImport === "function"
-    ? ReactEChartsCoreImport
-    : (ReactEChartsCoreImport as { default: typeof ReactEChartsCoreImport }).default
-);
 
 export function HsEChartsRuntime({
   className,
@@ -15,18 +10,57 @@ export function HsEChartsRuntime({
   style,
   width,
 }: HsEChartsProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<EChartsType | null>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const chart = echarts.init(container, undefined, {
+      height: height ?? "auto",
+      renderer: "canvas",
+      width: width ?? "auto",
+    });
+    chartRef.current = chart;
+    chart.setOption(option, { lazyUpdate: true, notMerge: true });
+
+    const observer = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(() => {
+          chart.resize();
+        });
+    observer?.observe(container);
+
+    return () => {
+      observer?.disconnect();
+      chart.dispose();
+      chartRef.current = null;
+    };
+    // Initialize once; option/size updates are handled below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    chartRef.current?.setOption(option, { lazyUpdate: true, notMerge: true });
+  }, [option]);
+
+  useEffect(() => {
+    if (!chartRef.current) {
+      return;
+    }
+    chartRef.current.resize({
+      height: height ?? undefined,
+      width: width ?? undefined,
+    });
+  }, [height, width]);
+
   return (
-    <ReactEChartsCore
+    <div
       className={className}
-      echarts={echarts}
-      lazyUpdate
-      notMerge
-      option={option}
-      opts={{
-        height: height ?? "auto",
-        renderer: "canvas",
-        width: width ?? "auto",
-      }}
+      ref={containerRef}
       style={{ width: "100%", height: "100%", ...style }}
     />
   );

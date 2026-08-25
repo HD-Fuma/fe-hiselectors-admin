@@ -9,6 +9,8 @@ interface SparklineSeries {
 
 interface SparklineChartProps {
   ariaLabel: string;
+  categories: readonly string[];
+  categoryLabels: readonly string[];
   endLabel: string;
   series: readonly SparklineSeries[];
   startLabel: string;
@@ -16,10 +18,20 @@ interface SparklineChartProps {
 
 export function SparklineChart({
   ariaLabel,
+  categories,
+  categoryLabels,
   endLabel,
   series,
   startLabel,
 }: SparklineChartProps) {
+  const accessibleSummary = categories.map((category, index) => {
+    const label = categoryLabels[index] || category;
+    const values = series
+      .map((item) => `${item.name} ${Number(item.data[index] ?? 0).toLocaleString("ko-KR")}`)
+      .join(", ");
+    return `${label}: ${values}`;
+  }).join(". ");
+
   const option: EChartsOption = {
     animation: false,
     grid: {
@@ -89,7 +101,7 @@ export function SparklineChart({
 
   return (
     <div
-      aria-label={ariaLabel}
+      aria-label={accessibleSummary ? `${ariaLabel}. ${accessibleSummary}` : ariaLabel}
       className="fuma-content-cohort-chart__plot fuma-content-table-trend__plot fuma-echarts-period-plot is-all"
       role="img"
     >

@@ -107,6 +107,8 @@ function ContentTableTrendChart({ content }: { content: ContentInfluence }) {
     <div className="fuma-content-table-trend">
       <SparklineChart
         ariaLabel="날짜별 조회수 및 좋아요 추이"
+        categories={dates}
+        categoryLabels={dates.map((date) => trendDateLabel(date))}
         endLabel={trendDateLabel(dates.at(-1))}
         series={[
           {
