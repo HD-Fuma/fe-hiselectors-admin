@@ -44,11 +44,19 @@ export interface CreatorDetail {
   snsCode: "INSTAGRAM" | "YOUTUBE";
   accountId: string;
   creatorName: string | null;
-  email: string;
+  email?: string;
   followerCount: number | null;
   engagementRate: number | null;
   lastContentAt: string | null;
   category: string | null;
+  categoryShares: { categoryCode: string; totalShare: number }[];
+  brandScore: number | null;
+  brandHits: string | null;
+  igHandle: string | null;
+  igConfidence: number | null;
+  registeredAt: string;
+  firstDiscoveredAt: string | null;
+  updatedAt: string;
 }
 
 export interface ProposalHistoryEntry {

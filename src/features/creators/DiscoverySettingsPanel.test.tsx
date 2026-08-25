@@ -37,7 +37,8 @@ test("hides category creation and edits an existing category", async () => {
 
   await user.click(screen.getByRole("button", { name: "발굴 설정" }));
   const panel = await screen.findByRole("dialog", { name: "발굴 카테고리·키워드 설정" });
-  expect(within(panel).getByRole("button", { name: /패션FASHION/ })).toBeInTheDocument();
+  expect(within(panel).getByRole("button", { name: /패션.*키워드 1개/ })).toBeInTheDocument();
+  expect(within(panel).queryByText("FASHION")).not.toBeInTheDocument();
   expect(within(panel).getByText("데일리룩")).toBeInTheDocument();
   expect(within(panel).queryByRole("button", { name: "카테고리 추가" })).not.toBeInTheDocument();
   expect(within(panel).queryByText("활성")).not.toBeInTheDocument();
@@ -53,7 +54,7 @@ test("hides category creation and edits an existing category", async () => {
   await user.click(within(panel).getByRole("button", { name: "저장" }));
 
   expect(await within(panel).findByText("카테고리를 수정했습니다.")).toBeInTheDocument();
-  expect(within(panel).getByRole("button", { name: /패션\/잡화FASHION/ })).toBeInTheDocument();
+  expect(within(panel).getByRole("button", { name: /패션\/잡화.*키워드 1개/ })).toBeInTheDocument();
   expect(vi.mocked(fetch).mock.calls.find(([, init]) => init?.method === "PATCH")?.[1]).toMatchObject({
     method: "PATCH",
     body: JSON.stringify({ name: "패션/잡화", displayOrder: 1, enabled: true }),

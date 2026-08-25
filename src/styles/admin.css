@@ -3362,6 +3362,108 @@
   grid-template-columns: 118px minmax(0, 1fr);
 }
 
+.fuma-creator-account-cell {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--hsas-space-4);
+}
+
+.fuma-creator-account-cell__profile {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: var(--hsas-space-8);
+  padding: var(--hsas-space-4);
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fuma-creator-account-cell__profile:hover {
+  background: var(--hsas-surface-muted);
+}
+
+.fuma-creator-account-cell__profile:focus-visible {
+  outline: 2px solid var(--hsas-sidebar-active);
+  outline-offset: 1px;
+}
+
+.fuma-creator-account-cell__portrait {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+}
+
+.fuma-creator-account-cell__portrait > img,
+.fuma-creator-account-cell__portrait > .fuma-creator-profile-fallback {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--hsas-color-line-250);
+  border-radius: 50%;
+  background: var(--hsas-surface-muted);
+  object-fit: cover;
+}
+
+.fuma-creator-account-cell__portrait > .fuma-platform-icon {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 15px;
+  height: 15px;
+  padding: var(--hsas-space-2);
+  border: 2px solid var(--hsas-surface);
+  border-radius: 50%;
+  background: var(--hsas-surface);
+}
+
+.fuma-creator-account-cell__identity {
+  display: grid;
+  min-width: 0;
+  gap: var(--hsas-space-2);
+}
+
+.fuma-creator-account-cell__identity strong,
+.fuma-creator-account-cell__identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-creator-account-cell__identity strong {
+  color: var(--hsas-color-ink-900);
+  font-size: var(--hsas-font-12);
+}
+
+.fuma-creator-account-cell__identity small {
+  color: var(--hsas-color-ink-500);
+  font-size: var(--hsas-font-10);
+}
+
+.fuma-creator-account-cell__external {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--hsas-color-line-250);
+  border-radius: 6px;
+  color: var(--hsas-color-ink-600);
+  text-decoration: none;
+}
+
+.fuma-creator-account-cell__external:hover {
+  border-color: var(--hsas-sidebar-active);
+  color: var(--hsas-sidebar-active);
+}
+
 .fuma-applicant-search .hsas-search-panel__fields {
   grid-template-columns: repeat(3, minmax(180px, 1fr));
   column-gap: var(--hsas-space-20);
@@ -7281,6 +7383,11 @@
   text-decoration: none;
 }
 
+.fuma-social-profile__handle {
+  color: var(--hsas-color-ink-600);
+  font-size: var(--hsas-font-12);
+}
+
 .fuma-social-profile__metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -7414,6 +7521,78 @@
 .fuma-creator-detail-main .fuma-creator-analysis-report { margin: 0; }
 .fuma-creator-detail-main .fuma-creator-analysis-overview { margin: var(--hsas-space-16) var(--hsas-space-16) 0; }
 .fuma-creator-detail-main > .fuma-content-section { border-radius: 8px; }
+
+.fuma-creator-pool-profile {
+  display: grid;
+  gap: var(--hsas-space-12);
+}
+
+.fuma-creator-pool-profile__section {
+  overflow: hidden;
+}
+
+.fuma-creator-pool-profile__section .fuma-content-section__header > div {
+  display: grid;
+  gap: var(--hsas-space-2);
+}
+
+.fuma-creator-pool-profile__body,
+.fuma-creator-pool-profile__shares {
+  padding: var(--hsas-space-14);
+}
+
+.fuma-creator-pool-profile__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hsas-space-6) var(--hsas-space-12);
+}
+
+.fuma-creator-pool-profile__links a {
+  color: var(--hsas-sidebar-active);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.fuma-creator-pool-profile__links small {
+  color: var(--hsas-color-ink-500);
+}
+
+.fuma-creator-pool-profile__shares {
+  display: grid;
+  gap: var(--hsas-space-12);
+  margin: 0;
+  list-style: none;
+}
+
+.fuma-creator-pool-profile__shares li {
+  display: grid;
+  gap: var(--hsas-space-6);
+}
+
+.fuma-creator-pool-profile__shares li > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hsas-space-12);
+  color: var(--hsas-color-ink-700);
+  font-size: var(--hsas-font-12);
+}
+
+.fuma-creator-pool-profile__shares progress {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--hsas-sidebar-active);
+}
+
+.fuma-creator-pool-profile__action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fuma-creator-pool-profile__action .hsas-button {
+  min-width: 140px;
+  justify-content: center;
+}
 
 @media (max-width: 760px) {
   .fuma-detail-panel__body:has(.fuma-creator-detail-page) { overflow-y: auto; }

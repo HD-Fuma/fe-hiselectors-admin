@@ -20,6 +20,7 @@ export interface ProfileDetailProfile {
   audienceLabel: string;
   audienceValue: ReactNode;
   contentCount: ReactNode;
+  contentLabel?: string;
   engagementValue: ReactNode;
   gallery: readonly ProfileDetailGalleryItem[];
   handle: string;
@@ -27,7 +28,7 @@ export interface ProfileDetailProfile {
   name: string;
   platform: SocialPlatform;
   profileImageUrl: string;
-  profileUrl: string;
+  profileUrl: string | null;
   status: ReactNode;
 }
 
@@ -92,28 +93,32 @@ function ProfileDetailSidebar({
           <div>
             {profile.status}
             <h2>{profile.name}</h2>
-            <a href={profile.profileUrl} rel="noreferrer" target="_blank">{profile.handle} ↗</a>
+            {profile.profileUrl ? (
+              <a href={profile.profileUrl} rel="noreferrer" target="_blank">{profile.handle} ↗</a>
+            ) : <span className="fuma-social-profile__handle">{profile.handle}</span>}
           </div>
         </div>
         <dl className="fuma-social-profile__metrics">
-          <div><dt>게시물</dt><dd>{profile.contentCount}</dd></div>
+          <div><dt>{profile.contentLabel ?? "게시물"}</dt><dd>{profile.contentCount}</dd></div>
           <div><dt>{profile.audienceLabel}</dt><dd>{profile.audienceValue}</dd></div>
           <div><dt>ER</dt><dd>{profile.engagementValue}</dd></div>
         </dl>
-        <div aria-label="대표 콘텐츠" className="fuma-social-profile__gallery">
-          {profile.gallery.map((item) => item.url ? (
-            <a
-              aria-label={`${profile.name} 대표 게시글: ${item.title} 원본 열기`}
-              className="fuma-creator-media"
-              href={item.url}
-              key={item.id}
-              rel="noreferrer"
-              target="_blank"
-            >
-              <GalleryImage item={item} name={profile.name} />
-            </a>
-          ) : <GalleryImage item={item} key={item.id} name={profile.name} />)}
-        </div>
+        {profile.gallery.length > 0 ? (
+          <div aria-label="대표 콘텐츠" className="fuma-social-profile__gallery">
+            {profile.gallery.map((item) => item.url ? (
+              <a
+                aria-label={`${profile.name} 대표 게시글: ${item.title} 원본 열기`}
+                className="fuma-creator-media"
+                href={item.url}
+                key={item.id}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <GalleryImage item={item} name={profile.name} />
+              </a>
+            ) : <GalleryImage item={item} key={item.id} name={profile.name} />)}
+          </div>
+        ) : null}
       </section>
 
       <section className="fuma-creator-detail-sidebar__info">
