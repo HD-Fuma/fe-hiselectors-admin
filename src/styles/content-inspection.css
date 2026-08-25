@@ -21,7 +21,7 @@ body:has(.fuma-content-inspection-studio) {
     radial-gradient(ellipse 42% 18% at 50% 78%, rgb(255 255 255 / 18%), transparent 72%),
     radial-gradient(circle at 50% 28%, rgb(255 255 255 / 22%) 0, rgb(248 249 249 / 18%) 32%, rgb(233 236 238 / 21%) 100%);
   animation: fuma-content-inspection-studio-enter 650ms cubic-bezier(0.22, 1, 0.36, 1);
-  backdrop-filter: blur(36px) saturate(0.72);
+  backdrop-filter: blur(30px) saturate(0.72);
 }
 
 .fuma-content-inspection-studio__versions {
