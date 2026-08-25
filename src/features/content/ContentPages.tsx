@@ -1773,9 +1773,13 @@ export function ContentInspectionDetailPage() {
   const navigate = useNavigate();
   const [studioDecision, setStudioDecision] = useState<"approve" | "reject" | null>(null);
   const [studioSelector, setStudioSelector] = useState<SelectorDetail | null>(null);
-  const [studioVersionOverride, setStudioVersionOverride] = useState<ContentInspectionFixture | null>(null);
-  const [studioVersionError, setStudioVersionError] = useState<string | null>(null);
-  const [studioVersionPending, setStudioVersionPending] = useState(false);
+  const [studioHistoricalContents, setStudioHistoricalContents] = useState<ContentInspectionFixture[]>([]);
+  const [studioHistoryError, setStudioHistoryError] = useState<string | null>(null);
+  const [studioHistoryPending, setStudioHistoryPending] = useState(false);
+  const [studioActionPending, setStudioActionPending] = useState<"report" | "confirmation" | null>(null);
+  const [studioActionError, setStudioActionError] = useState<string | null>(null);
+  const [studioActionFeedback, setStudioActionFeedback] = useState<string | null>(null);
+  const [studioReportRefreshVersionId, setStudioReportRefreshVersionId] = useState<number | null>(null);
   const [studioViolationJudgments, setStudioViolationJudgments] = useState<
     Array<"violation" | "clear" | null>
   >([]);
@@ -1784,7 +1788,9 @@ export function ContentInspectionDetailPage() {
   const [studioExiting, setStudioExiting] = useState(false);
   const studioReportRef = useRef<HTMLElement>(null);
   const studioDecisionRef = useRef<HTMLDivElement>(null);
-  const studioVersionRequestRef = useRef<AbortController | null>(null);
+  const studioHistoryRequestRef = useRef<AbortController | null>(null);
+  const studioActionRequestRef = useRef<AbortController | null>(null);
+  const studioDetailRequestRef = useRef<AbortController | null>(null);
   const { contentId } = useParams();
   const numericContentId = Number(contentId);
   const invalidContentId = !Number.isSafeInteger(numericContentId) || numericContentId <= 0;
@@ -1801,49 +1807,43 @@ export function ContentInspectionDetailPage() {
   );
   const [loadError, setLoadError] = useState<{ id: string; message: string } | null>(null);
   const baseContent = detailContents.find((item) => item.id === contentId);
-  const content = routeState?.inspectionSession && studioVersionOverride?.id === contentId
-    ? studioVersionOverride
-    : baseContent;
-  const studioVersionSource = studioVersionOverride?.versions?.length
-    ? studioVersionOverride
-    : baseContent;
-  const studioLatestVersion = studioVersionSource
-    ? latestContentVersion(studioVersionSource)
+  const content = baseContent;
+  const studioLatestVersion = baseContent
+    ? latestContentVersion(baseContent)
     : null;
-  const studioVersions = studioVersionSource
-    ? [...(studioVersionSource.versions ?? [])].sort((left, right) => right.versionNo - left.versionNo)
+  const studioVersions = baseContent
+    ? [...(baseContent.versions ?? [])].sort((left, right) => right.versionNo - left.versionNo)
     : [];
-  const studioVersionOptions = studioLatestVersion
-    ? (studioVersions.length > 0 ? studioVersions : [studioLatestVersion]).map((version) => ({
-        label: [
-          `v${version.versionNo}`,
-          versionCreationReasonLabel(version.creationReason),
-          version.contentVersionId === studioLatestVersion.contentVersionId ? "최신 버전" : null,
-        ].filter(Boolean).join(" · "),
-        value: String(version.contentVersionId),
-      }))
+  const studioHistoricalVersionSummaries = studioLatestVersion
+    ? studioVersions
+        .filter(({ contentVersionId }) => contentVersionId !== studioLatestVersion.contentVersionId)
+        .sort((left, right) => left.versionNo - right.versionNo)
     : [];
-  const studioHistoricalVersion = Boolean(
-    content
-    && studioLatestVersion
-    && currentDisplayedVersionNo(content) < studioLatestVersion.versionNo,
-  );
+  const studioHistoryVersionKey = studioHistoricalVersionSummaries
+    .map(({ contentVersionId }) => contentVersionId)
+    .join(",");
+  const visibleStudioHistoricalContents = studioHistoricalContents
+    .filter((item) => item.id === contentId)
+    .sort((left, right) => currentDisplayedVersionNo(left) - currentDisplayedVersionNo(right));
+  const studioReviewReadOnly = content != null && content.inspectionStatus !== "검수 대기";
   const studioViolationSignals = useMemo(
     () => content
-      ? studioHistoricalVersion
+      ? studioReviewReadOnly
         ? inspectionIssueSignals(content)
         : pendingInspectionCandidates(content)
       : [],
-    [content, studioHistoricalVersion],
+    [content, studioReviewReadOnly],
   );
   const studioReportReady = content?.aiStatus === "ready";
   const studioViolationReviewComplete = studioReportReady
-    && !studioHistoricalVersion
+    && !studioReviewReadOnly
+    && studioReportRefreshVersionId === null
     && studioViolationJudgments.length === studioViolationSignals.length
     && studioViolationJudgments.every(Boolean);
   const studioFinalFocused = studioViolationReviewComplete
     && focusedStudioViolationIndex < 0;
   const judgedStudioViolationCount = studioViolationJudgments.filter(Boolean).length;
+  const hasStudioViolationJudgment = studioViolationJudgments.includes("violation");
   const visibleError = loadError !== null && loadError.id === contentId
     ? loadError.message
     : null;
@@ -1859,48 +1859,27 @@ export function ContentInspectionDetailPage() {
   const remainingCount = currentPendingIndex >= 0
     ? Math.max(0, pendingContents.length - currentPendingIndex - 1)
     : pendingContents.length;
-  const selectStudioVersion = useCallback((contentVersionId: number) => {
-    if (!baseContent) return;
-    studioVersionRequestRef.current?.abort();
-    setStudioVersionError(null);
-    if (contentVersionId === baseContent.contentVersionId) {
-      setStudioVersionOverride(null);
-      setStudioVersionPending(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    studioVersionRequestRef.current = controller;
-    setStudioVersionPending(true);
-    void getContentVersionDetail(Number(baseContent.id), contentVersionId, controller.signal)
-      .then((detail) => {
-        if (!controller.signal.aborted) {
-          setStudioVersionOverride(adaptContentInspectionDetail(detail, baseContent));
-        }
-      })
-      .catch((error: unknown) => {
-        if (error instanceof Error && error.name === "AbortError") return;
-        setStudioVersionError(error instanceof Error
-          ? error.message
-          : "콘텐츠 버전 조회에 실패했습니다.");
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setStudioVersionPending(false);
-      });
-  }, [baseContent]);
-
-  const navigateStudioContent = useCallback((target?: ContentInspectionFixture) => {
+  const navigateStudioContent = useCallback((
+    target?: ContentInspectionFixture,
+    contents: ContentInspectionFixture[] = detailContents,
+  ) => {
     if (!target) return;
-    studioVersionRequestRef.current?.abort();
+    studioHistoryRequestRef.current?.abort();
+    studioActionRequestRef.current?.abort();
+    studioActionRequestRef.current = null;
     setStudioDecision(null);
     setStudioSelector(null);
-    setStudioVersionOverride(null);
-    setStudioVersionError(null);
-    setStudioVersionPending(false);
+    setStudioHistoricalContents([]);
+    setStudioHistoryError(null);
+    setStudioHistoryPending(false);
+    setStudioActionPending(null);
+    setStudioActionError(null);
+    setStudioActionFeedback(null);
+    setStudioReportRefreshVersionId(null);
     setStudioViolationJudgments([]);
     setFocusedStudioViolationIndex(-1);
     navigate(`/content/inspections/${target.id}`, {
-      state: { ...routeState, content: target, contents: detailContents, inspectionSession: true },
+      state: { ...routeState, content: target, contents, inspectionSession: true },
     });
   }, [detailContents, navigate, routeState]);
 
@@ -1918,6 +1897,187 @@ export function ContentInspectionDetailPage() {
     });
   }, [studioViolationSignals.length]);
 
+  const generateStudioReport = useCallback(async () => {
+    if (
+      !baseContent
+      || !studioLatestVersion
+      || studioActionPending
+      || studioActionRequestRef.current
+    ) return;
+    if (studioLatestVersion.contentVersionId <= 0) {
+      setStudioActionError("검수할 콘텐츠 버전 ID가 없습니다.");
+      return;
+    }
+
+    const controller = new AbortController();
+    studioDetailRequestRef.current?.abort();
+    studioDetailRequestRef.current = null;
+    studioActionRequestRef.current = controller;
+    setStudioActionPending("report");
+    setStudioActionError(null);
+    setStudioActionFeedback(null);
+    let inspectedVersionId = studioReportRefreshVersionId;
+    let versionCreated: boolean | null = null;
+    try {
+      if (inspectedVersionId == null) {
+        const result = await inspectContentVersion(
+          studioLatestVersion.contentVersionId,
+          controller.signal,
+        );
+        inspectedVersionId = result.inspectedContentVersionId;
+        versionCreated = result.versionCreated;
+        setStudioReportRefreshVersionId(inspectedVersionId);
+      }
+      const detail = await getContentVersionDetail(
+        Number(baseContent.id),
+        inspectedVersionId,
+        controller.signal,
+      );
+      const adapted = adaptContentInspectionDetail(detail, baseContent);
+      const refreshedSignals = pendingInspectionCandidates(adapted);
+      setDetailContents((current) => (
+        current.some((item) => item.id === adapted.id)
+          ? current.map((item) => item.id === adapted.id ? adapted : item)
+          : [adapted, ...current]
+      ));
+      setStudioHistoryError(null);
+      setStudioReportRefreshVersionId(null);
+      setStudioViolationJudgments(Array(refreshedSignals.length).fill(null));
+      setFocusedStudioViolationIndex(refreshedSignals.length > 0 ? 0 : -1);
+      setStudioDecision(null);
+      setStudioActionFeedback(versionCreated === true
+        ? `v${detail.selectedVersion.versionNo} 리포트를 생성했습니다.`
+        : versionCreated === false
+          ? `v${detail.selectedVersion.versionNo} 리포트를 갱신했습니다.`
+          : `v${detail.selectedVersion.versionNo} 리포트를 불러왔습니다.`);
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      if (inspectedVersionId != null) {
+        setStudioReportRefreshVersionId(inspectedVersionId);
+        setStudioActionError(versionCreated == null
+          ? "생성된 리포트를 불러오지 못했습니다. 다시 눌러 불러오세요."
+          : "리포트 생성은 완료됐지만 불러오지 못했습니다. 다시 눌러 불러오세요.");
+      } else {
+        setStudioActionError(error instanceof Error
+          ? error.message
+          : "리포트 생성에 실패했습니다.");
+      }
+    } finally {
+      if (studioActionRequestRef.current === controller) {
+        studioActionRequestRef.current = null;
+        if (!controller.signal.aborted) setStudioActionPending(null);
+      }
+    }
+  }, [
+    baseContent,
+    studioActionPending,
+    studioLatestVersion,
+    studioReportRefreshVersionId,
+  ]);
+
+  const submitStudioDecision = useCallback(async (selected: "approve" | "reject") => {
+    if (
+      !content
+      || !baseContent
+      || !content.contentVersionId
+      || !studioFinalFocused
+      || studioReviewReadOnly
+      || studioActionPending
+      || studioActionRequestRef.current
+    ) return;
+    if (selected === "reject" ? !hasStudioViolationJudgment : hasStudioViolationJudgment) {
+      setStudioActionError(hasStudioViolationJudgment
+        ? "위반 판정이 있어 최종 반려만 가능합니다."
+        : "모든 항목이 위반 아님이므로 최종 승인만 가능합니다.");
+      return;
+    }
+    if (studioViolationSignals.some((signal) => signal.violationItemId == null)) {
+      setStudioActionError("확정할 위반 항목 ID가 없습니다.");
+      return;
+    }
+
+    const contentVersionId = content.contentVersionId;
+    const preferredNextId = nextContent?.id;
+    const controller = new AbortController();
+    studioActionRequestRef.current = controller;
+    setStudioDecision(selected);
+    setStudioActionPending("confirmation");
+    setStudioActionError(null);
+    setStudioActionFeedback(null);
+    let confirmed = false;
+    try {
+      const result = await confirmContentInspection(
+        Number(content.id),
+        contentVersionId,
+        {
+          decision: selected === "approve" ? "APPROVED" : "REJECTED",
+          violations: studioViolationSignals.map((signal, index) => ({
+            status: studioViolationJudgments[index] === "violation"
+              ? "VIOLATION_CONFIRMED"
+              : "DISMISSED",
+            violationItemId: signal.violationItemId as number,
+          })),
+        },
+        controller.signal,
+      );
+      confirmed = true;
+      const [detail, listedContents] = await Promise.all([
+        getContentVersionDetail(Number(content.id), contentVersionId, controller.signal),
+        getCurrentGenerationContents(controller.signal),
+      ]);
+      const refreshedContents = listedContents.map(adaptContentInspection);
+      const adapted = adaptContentInspectionDetail(
+        detail,
+        refreshedContents.find((item) => item.id === content.id) ?? baseContent,
+      );
+      const confirmedContents = refreshedContents.some((item) => item.id === adapted.id)
+        ? refreshedContents.map((item) => item.id === adapted.id ? adapted : item)
+        : [adapted, ...refreshedContents];
+      setDetailContents(confirmedContents);
+      setStudioActionFeedback(
+        `${selected === "approve" ? "승인" : "반려"} 처리했습니다. 위반 항목 ${result.updatedCount}건을 갱신했습니다.`,
+      );
+
+      const remainingContents = inspectionRequiredContents(confirmedContents)
+        .filter((item) => item.id !== content.id);
+      const target = remainingContents.find((item) => item.id === preferredNextId)
+        ?? remainingContents[0];
+      if (target) {
+        navigateStudioContent(target, confirmedContents);
+        return;
+      }
+      setStudioActionPending(null);
+      setStudioExiting(true);
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      if (confirmed) {
+        setStudioActionFeedback("검수는 완료됐지만 화면 갱신에 실패해 목록으로 돌아갑니다.");
+        setStudioActionPending(null);
+        setStudioExiting(true);
+        return;
+      }
+      setStudioActionError(error instanceof Error
+        ? error.message
+        : "콘텐츠 검수 확정에 실패했습니다.");
+    } finally {
+      if (studioActionRequestRef.current === controller) {
+        studioActionRequestRef.current = null;
+        if (!controller.signal.aborted) setStudioActionPending(null);
+      }
+    }
+  }, [
+    baseContent,
+    content,
+    hasStudioViolationJudgment,
+    navigateStudioContent,
+    nextContent?.id,
+    studioActionPending,
+    studioFinalFocused,
+    studioReviewReadOnly,
+    studioViolationJudgments,
+    studioViolationSignals,
+  ]);
+
   useEffect(() => {
     if (invalidContentId || !contentId) return undefined;
 
@@ -1925,11 +2085,14 @@ export function ContentInspectionDetailPage() {
       ?? (routeState?.content ? [routeState.content] : []);
     const hasRouteContent = routeContents.some((item) => item.id === contentId);
     const controller = new AbortController();
+    studioDetailRequestRef.current?.abort();
+    studioDetailRequestRef.current = controller;
 
     void Promise.all([
       hasRouteContent
-        ? Promise.resolve(routeContents)
-        : getCurrentGenerationContents(controller.signal).then((result) => result.map(adaptContentInspection)),
+        && !routeState?.inspectionSession
+          ? Promise.resolve(routeContents)
+          : getCurrentGenerationContents(controller.signal).then((result) => result.map(adaptContentInspection)),
       getContentDetail(numericContentId, controller.signal),
     ])
       .then(([contents, detail]) => {
@@ -1942,6 +2105,7 @@ export function ContentInspectionDetailPage() {
             ? contents.map((item) => item.id === adapted.id ? adapted : item)
             : [adapted, ...contents],
         );
+        setLoadError((current) => current?.id === contentId ? null : current);
       })
       .catch((error: unknown) => {
         if (error instanceof Error && error.name === "AbortError") return;
@@ -1949,41 +2113,125 @@ export function ContentInspectionDetailPage() {
           id: contentId,
           message: error instanceof Error ? error.message : "콘텐츠 상세 조회에 실패했습니다.",
         });
+      })
+      .finally(() => {
+        if (studioDetailRequestRef.current === controller) {
+          studioDetailRequestRef.current = null;
+        }
       });
 
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (studioDetailRequestRef.current === controller) {
+        studioDetailRequestRef.current = null;
+      }
+    };
   }, [contentId, invalidContentId, numericContentId, routeState]);
 
   useEffect(() => {
-    if (!routeState?.inspectionSession) return;
-    setStudioViolationJudgments(Array(studioViolationSignals.length).fill(null));
-    setFocusedStudioViolationIndex(
-      !studioHistoricalVersion && studioViolationSignals.length > 0 ? 0 : -1,
-    );
-    setStudioDecision(null);
+    if (!routeState?.inspectionSession || !baseContent) return undefined;
+
+    studioHistoryRequestRef.current?.abort();
+    const controller = new AbortController();
+    studioHistoryRequestRef.current = controller;
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setStudioHistoricalContents([]);
+      setStudioHistoryError(null);
+      setStudioHistoryPending(studioHistoryVersionKey.length > 0);
+    });
+
+    if (!studioHistoryVersionKey) {
+      return () => {
+        active = false;
+        controller.abort();
+        if (studioHistoryRequestRef.current === controller) {
+          studioHistoryRequestRef.current = null;
+        }
+      };
+    }
+
+    const versionIds = studioHistoryVersionKey.split(",").map(Number);
+    void Promise.all(versionIds.map((contentVersionId) => (
+      getContentVersionDetail(Number(baseContent.id), contentVersionId, controller.signal)
+    )))
+      .then((details) => {
+        if (controller.signal.aborted) return;
+        setStudioHistoricalContents(
+          details.map((detail) => adaptContentInspectionDetail(detail, baseContent)),
+        );
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") return;
+        setStudioHistoryError(error instanceof Error
+          ? error.message
+          : "과거 콘텐츠를 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setStudioHistoryPending(false);
+        if (studioHistoryRequestRef.current === controller) {
+          studioHistoryRequestRef.current = null;
+        }
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+      if (studioHistoryRequestRef.current === controller) {
+        studioHistoryRequestRef.current = null;
+      }
+    };
+  }, [baseContent, routeState?.inspectionSession, studioHistoryVersionKey]);
+
+  useEffect(() => {
+    if (!routeState?.inspectionSession) return undefined;
+    const resetFrame = window.requestAnimationFrame(() => {
+      setStudioViolationJudgments(Array(studioViolationSignals.length).fill(null));
+      setFocusedStudioViolationIndex(
+        !studioReviewReadOnly && studioViolationSignals.length > 0 ? 0 : -1,
+      );
+      setStudioDecision(null);
+    });
+
+    return () => window.cancelAnimationFrame(resetFrame);
   }, [
     content?.contentVersionId,
     contentId,
     routeState?.inspectionSession,
-    studioHistoricalVersion,
+    studioReviewReadOnly,
     studioViolationSignals.length,
   ]);
 
   useEffect(() => {
-    if (!routeState?.inspectionSession) return;
-    studioVersionRequestRef.current?.abort();
-    setStudioVersionOverride(null);
-    setStudioVersionError(null);
-    setStudioVersionPending(false);
+    if (!routeState?.inspectionSession) return undefined;
+    studioActionRequestRef.current?.abort();
+    studioActionRequestRef.current = null;
+    const resetFrame = window.requestAnimationFrame(() => {
+      setStudioActionPending(null);
+      setStudioActionError(null);
+      setStudioActionFeedback(null);
+      setStudioReportRefreshVersionId(null);
+    });
+
+    return () => window.cancelAnimationFrame(resetFrame);
   }, [contentId, routeState?.inspectionSession]);
 
-  useEffect(() => () => studioVersionRequestRef.current?.abort(), []);
+  useEffect(() => () => {
+    studioHistoryRequestRef.current?.abort();
+    studioActionRequestRef.current?.abort();
+    studioDetailRequestRef.current?.abort();
+  }, []);
 
   useEffect(() => {
     if (!routeState?.inspectionSession) return undefined;
     const exitSession = (event: globalThis.KeyboardEvent) => {
       if (studioExiting) return;
       if (event.target instanceof HTMLSelectElement) return;
+      if (studioActionPending) {
+        event.preventDefault();
+        return;
+      }
       if (event.repeat && (
         ["0", "1", "ArrowLeft", "ArrowRight"].includes(event.key)
         || event.code === "Space"
@@ -1999,7 +2247,12 @@ export function ContentInspectionDetailPage() {
       if (exitConfirmationOpen) return;
       if (event.code === "Space") {
         event.preventDefault();
-        if (!studioReportReady || studioHistoricalVersion || focusedStudioViolationIndex < 0) return;
+        if (
+          !studioReportReady
+          || studioReviewReadOnly
+          || studioReportRefreshVersionId !== null
+          || focusedStudioViolationIndex < 0
+        ) return;
         if (!studioViolationJudgments[focusedStudioViolationIndex]) return;
         setFocusedStudioViolationIndex(
           focusedStudioViolationIndex + 1 < studioViolationSignals.length
@@ -2010,7 +2263,7 @@ export function ContentInspectionDetailPage() {
       }
       if (event.key === "0" || event.key === "1") {
         event.preventDefault();
-        if (!studioReportReady || studioHistoricalVersion) return;
+        if (!studioReportReady || studioReviewReadOnly || studioReportRefreshVersionId !== null) return;
         if (focusedStudioViolationIndex >= 0) {
           judgeStudioViolation(
             focusedStudioViolationIndex,
@@ -2019,7 +2272,7 @@ export function ContentInspectionDetailPage() {
           return;
         }
         if (studioFinalFocused) {
-          setStudioDecision(event.key === "0" ? "reject" : "approve");
+          void submitStudioDecision(event.key === "0" ? "reject" : "approve");
         }
         return;
       }
@@ -2039,12 +2292,15 @@ export function ContentInspectionDetailPage() {
     nextContent,
     previousContent,
     routeState?.inspectionSession,
+    studioActionPending,
     studioExiting,
     studioFinalFocused,
-    studioHistoricalVersion,
     studioReportReady,
+    studioReportRefreshVersionId,
+    studioReviewReadOnly,
     studioViolationJudgments,
     studioViolationSignals.length,
+    submitStudioDecision,
   ]);
 
   useEffect(() => {
@@ -2093,7 +2349,7 @@ export function ContentInspectionDetailPage() {
       .catch(() => undefined);
 
     return () => controller.abort();
-  }, [content?.selectorsId, routeState?.inspectionSession]);
+  }, [content?.selectorsId, contentId, routeState?.inspectionSession]);
 
   if (routeState?.inspectionSession) {
     const snsAccount = studioSelector?.snsAccount;
@@ -2110,15 +2366,16 @@ export function ContentInspectionDetailPage() {
     const generationSales = studioSelector?.generations.find(
       ({ generationName }) => generationName === content?.cohort,
     )?.totalSales;
-    const registeredContentCount = studioSelector?.contents.filter(
-      ({ id }) => String(id) !== content?.id,
-    ).length;
+    const registeredContentCount = studioSelector?.performance.contentCount == null
+      ? null
+      : Math.max(0, studioSelector.performance.contentCount - 1);
     const inspectionProgress = currentPendingIndex >= 0 && pendingContents.length > 0
       ? ((currentPendingIndex + 1) / pendingContents.length) * 100
       : 0;
 
     return (
       <main
+        aria-busy={studioActionPending !== null || studioHistoryPending}
         aria-label="집중 검수 스튜디오"
         aria-modal="true"
         className="fuma-content-inspection-studio"
@@ -2170,12 +2427,53 @@ export function ContentInspectionDetailPage() {
                 </div>
               </dl>
             </aside>
-            <MinimalVersionCard
-              content={content}
-              label="콘텐츠 원문"
-              showAnnotations={false}
-              snapshot={content.currentSnapshot}
-            />
+            <section
+              aria-label="콘텐츠 버전 비교"
+              className="fuma-content-inspection-studio__versions"
+              data-content-format={contentCollectionFormatKey(content.contentFormat)}
+              data-revised={studioHistoricalVersionSummaries.length > 0}
+            >
+              {studioHistoricalVersionSummaries.length > 0 ? (
+                <div className="fuma-content-inspection-studio__history">
+                  <strong>이전 버전</strong>
+                  {studioHistoryPending || (!studioHistoryError && visibleStudioHistoricalContents.length === 0) ? (
+                    <p>과거 콘텐츠를 불러오는 중입니다.</p>
+                  ) : studioHistoryError ? (
+                    <p role="alert">{studioHistoryError}</p>
+                  ) : visibleStudioHistoricalContents.map((historicalContent) => (
+                    <div
+                      className="fuma-content-inspection-studio__version"
+                      data-latest="false"
+                      key={historicalContent.contentVersionId}
+                    >
+                      <span className="fuma-content-inspection-studio__version-tag">
+                        v{currentDisplayedVersionNo(historicalContent)} · 과거 콘텐츠
+                      </span>
+                      <MinimalVersionCard
+                        content={historicalContent}
+                        label={`v${currentDisplayedVersionNo(historicalContent)} 과거 콘텐츠`}
+                        showAnnotations={false}
+                        snapshot={historicalContent.currentSnapshot}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <div
+                className="fuma-content-inspection-studio__version"
+                data-latest="true"
+              >
+                <span className="fuma-content-inspection-studio__version-tag">
+                  v{currentDisplayedVersionNo(content)} · 최신 콘텐츠
+                </span>
+                <MinimalVersionCard
+                  content={content}
+                  label="최신 콘텐츠"
+                  showAnnotations={false}
+                  snapshot={content.currentSnapshot}
+                />
+              </div>
+            </section>
           </>
         ) : null}
         <nav aria-label="검수 콘텐츠 이동" className="fuma-content-inspection-studio__queue">
@@ -2192,7 +2490,7 @@ export function ContentInspectionDetailPage() {
           <span className="fuma-content-inspection-studio__queue-actions">
             <button
               aria-label="이전 콘텐츠"
-              disabled={!previousContent}
+              disabled={!previousContent || studioActionPending !== null}
               onClick={() => navigateStudioContent(previousContent)}
               type="button"
             >
@@ -2201,7 +2499,7 @@ export function ContentInspectionDetailPage() {
             </button>
             <button
               aria-label="다음 콘텐츠"
-              disabled={!nextContent}
+              disabled={!nextContent || studioActionPending !== null}
               onClick={() => navigateStudioContent(nextContent)}
               type="button"
             >
@@ -2234,12 +2532,32 @@ export function ContentInspectionDetailPage() {
             </header>
             <button
               className="fuma-content-inspection-studio__report-generate"
-              title="수동 배치 연동 예정"
+              data-pending={studioActionPending === "report"}
+              disabled={
+                studioActionPending !== null
+                || !studioLatestVersion?.contentVersionId
+              }
+              onClick={() => void generateStudioReport()}
               type="button"
             >
               <RefreshCw aria-hidden="true" size={14} />
-              리포트 생성하기
+              {studioActionPending === "report"
+                ? studioReportRefreshVersionId == null ? "리포트 생성 중" : "리포트 불러오는 중"
+                : studioReportRefreshVersionId == null ? "리포트 생성하기" : "리포트 불러오기"}
             </button>
+            {studioActionError || visibleError ? (
+              <p
+                className="fuma-content-inspection-studio__report-feedback"
+                data-error="true"
+                role="alert"
+              >
+                {studioActionError ?? visibleError}
+              </p>
+            ) : studioActionFeedback ? (
+              <p className="fuma-content-inspection-studio__report-feedback" role="status">
+                {studioActionFeedback}
+              </p>
+            ) : null}
             <section
               aria-label="콘텐츠 정보"
               className="fuma-content-inspection-studio__content-meta"
@@ -2264,17 +2582,6 @@ export function ContentInspectionDetailPage() {
                 <span>콘텐츠 유형</span>
                 <strong>{content.contentFormat}</strong>
               </div>
-              <label>
-                <span>버전</span>
-                <Select
-                  aria-label="콘텐츠 버전"
-                  disabled={studioVersionPending}
-                  onChange={(event) => selectStudioVersion(Number(event.target.value))}
-                  options={studioVersionOptions}
-                  value={String(content.contentVersionId ?? studioLatestVersion?.contentVersionId ?? "")}
-                />
-              </label>
-              {studioVersionError ? <p role="alert">{studioVersionError}</p> : null}
             </section>
             <section className="fuma-content-inspection-studio__report-summary">
               <span>콘텐츠 요약</span>
@@ -2284,11 +2591,11 @@ export function ContentInspectionDetailPage() {
               <div>
                 <span>위반 사항</span>
                 <small>
-                  {studioHistoricalVersion
-                    ? "이력"
+                  {studioReviewReadOnly
+                    ? "완료"
                     : studioReportReady
-                    ? `${judgedStudioViolationCount}/${studioViolationSignals.length}`
-                    : "-"}
+                      ? `${judgedStudioViolationCount}/${studioViolationSignals.length}`
+                      : "-"}
                 </small>
               </div>
               {!studioReportReady ? (
@@ -2329,6 +2636,10 @@ export function ContentInspectionDetailPage() {
                               <button
                                 aria-keyshortcuts="0"
                                 aria-pressed={judgment === "violation"}
+                                disabled={
+                                  studioActionPending !== null
+                                  || studioReportRefreshVersionId !== null
+                                }
                                 onClick={() => judgeStudioViolation(index, "violation")}
                                 type="button"
                               >
@@ -2337,6 +2648,10 @@ export function ContentInspectionDetailPage() {
                               <button
                                 aria-keyshortcuts="1"
                                 aria-pressed={judgment === "clear"}
+                                disabled={
+                                  studioActionPending !== null
+                                  || studioReportRefreshVersionId !== null
+                                }
                                 onClick={() => judgeStudioViolation(index, "clear")}
                                 type="button"
                               >
@@ -2372,22 +2687,34 @@ export function ContentInspectionDetailPage() {
           <button
             aria-pressed={studioDecision === "reject"}
             className="is-reject"
-            disabled={!studioFinalFocused}
-            onClick={() => setStudioDecision("reject")}
+            disabled={
+              !studioFinalFocused
+              || !hasStudioViolationJudgment
+              || studioActionPending !== null
+            }
+            onClick={() => void submitStudioDecision("reject")}
             type="button"
           >
             <kbd>0</kbd>
-            최종 반려
+            {studioActionPending === "confirmation" && studioDecision === "reject"
+              ? "반려 처리 중"
+              : "최종 반려"}
           </button>
           <button
             aria-pressed={studioDecision === "approve"}
             className="is-approve"
-            disabled={!studioFinalFocused}
-            onClick={() => setStudioDecision("approve")}
+            disabled={
+              !studioFinalFocused
+              || hasStudioViolationJudgment
+              || studioActionPending !== null
+            }
+            onClick={() => void submitStudioDecision("approve")}
             type="button"
           >
             <kbd>1</kbd>
-            최종 승인
+            {studioActionPending === "confirmation" && studioDecision === "approve"
+              ? "승인 처리 중"
+              : "최종 승인"}
           </button>
         </div>
         {exitConfirmationOpen ? (
