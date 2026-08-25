@@ -2462,7 +2462,6 @@ export function ContentInspectionDetailPage() {
           onClick={() => setExitConfirmationOpen(true)}
           type="button"
         >
-          <ArrowLeft aria-hidden="true" size={16} />
           나가기
         </button>
         {content ? (
