@@ -2232,6 +2232,14 @@ export function ContentInspectionDetailPage() {
                     : "이상 없음"}
               </em>
             </header>
+            <button
+              className="fuma-content-inspection-studio__report-generate"
+              title="수동 배치 연동 예정"
+              type="button"
+            >
+              <RefreshCw aria-hidden="true" size={14} />
+              리포트 생성하기
+            </button>
             <section
               aria-label="콘텐츠 정보"
               className="fuma-content-inspection-studio__content-meta"
