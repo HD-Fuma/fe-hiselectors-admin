@@ -846,7 +846,12 @@ body:has(.fuma-content-inspection-studio) {
   left: 50%;
   z-index: 2;
   display: flex;
-  gap: 18px;
+  width: 274px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  column-gap: 18px;
+  row-gap: 10px;
   opacity: 0.38;
   outline: none;
   transform: translateX(-50%);
@@ -941,6 +946,16 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__decision button.is-approve kbd {
   color: #fff;
   background: rgb(255 255 255 / 18%);
+}
+
+.fuma-content-inspection-studio__decision > .fuma-content-inspection-studio__report-choice-tooltip kbd {
+  display: inline-flex;
+  width: auto;
+  height: auto;
+  padding: 2px 5px;
+  flex: 0 0 auto;
+  border-radius: 5px;
+  background: rgb(255 255 255 / 16%);
 }
 
 .fuma-content-inspection-studio__exit-layer {

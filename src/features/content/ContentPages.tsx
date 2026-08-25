@@ -1906,6 +1906,7 @@ export function ContentInspectionDetailPage() {
     index: number,
     judgment: "violation" | "clear",
   ) => {
+    setStudioDecision(null);
     setStudioViolationJudgments((current) => {
       const next = Array.from(
         { length: studioViolationSignals.length },
@@ -2295,14 +2296,19 @@ export function ContentInspectionDetailPage() {
           !studioReportReady
           || studioReviewReadOnly
           || studioReportRefreshVersionId !== null
-          || focusedStudioViolationIndex < 0
         ) return;
-        if (!studioViolationJudgments[focusedStudioViolationIndex]) return;
-        setFocusedStudioViolationIndex(
-          focusedStudioViolationIndex + 1 < studioViolationSignals.length
-            ? focusedStudioViolationIndex + 1
-            : -1,
-        );
+        if (focusedStudioViolationIndex >= 0) {
+          if (!studioViolationJudgments[focusedStudioViolationIndex]) return;
+          setFocusedStudioViolationIndex(
+            focusedStudioViolationIndex + 1 < studioViolationSignals.length
+              ? focusedStudioViolationIndex + 1
+              : -1,
+          );
+          return;
+        }
+        if (studioFinalFocused && studioDecision) {
+          void submitStudioDecision(studioDecision);
+        }
         return;
       }
       if (event.key === "0" || event.key === "1") {
@@ -2316,7 +2322,10 @@ export function ContentInspectionDetailPage() {
           return;
         }
         if (studioFinalFocused) {
-          void submitStudioDecision(event.key === "0" ? "reject" : "approve");
+          const selected = event.key === "0" ? "reject" : "approve";
+          if ((selected === "reject") !== hasStudioViolationJudgment) return;
+          setStudioActionError(null);
+          setStudioDecision(selected);
         }
         return;
       }
@@ -2327,9 +2336,11 @@ export function ContentInspectionDetailPage() {
   }, [
     exitConfirmationOpen,
     focusedStudioViolationIndex,
+    hasStudioViolationJudgment,
     judgeStudioViolation,
     routeState?.inspectionSession,
     studioActionPending,
+    studioDecision,
     studioExiting,
     studioFinalFocused,
     studioReportReady,
@@ -2835,6 +2846,14 @@ export function ContentInspectionDetailPage() {
               ? "승인 처리 중"
               : "최종 승인"}
           </button>
+          {studioFinalFocused && studioDecision && studioActionPending === null ? (
+            <span
+              className="fuma-content-inspection-studio__report-choice-tooltip"
+              role="status"
+            >
+              <kbd>Space</kbd> 바를 눌러 검수를 확정하세요
+            </span>
+          ) : null}
         </div>
         {exitConfirmationOpen ? (
           <div className="fuma-content-inspection-studio__exit-layer">
