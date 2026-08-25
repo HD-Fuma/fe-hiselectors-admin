@@ -107,9 +107,24 @@ export interface ApiResult<T> {
 export interface SettlementEstimateRequest {
   activityMonth?: string;
   page: number;
+  selectorsId?: number;
   size: number;
   status?: SettlementStatus;
   statuses?: readonly SettlementStatus[];
+}
+
+export type SettlementEstimateSummaryRequest = Pick<
+  SettlementEstimateRequest,
+  "activityMonth" | "selectorsId" | "status" | "statuses"
+>;
+
+export interface SettlementEstimateSummary {
+  activityMonth: string;
+  commissionToSalesRate: number;
+  confirmedPurchaseCount: number;
+  confirmedSalesAmount: number;
+  settlementAmount: number;
+  settlementCount: number;
 }
 
 export interface SettlementSelectorProfile {

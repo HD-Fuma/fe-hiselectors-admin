@@ -88,6 +88,23 @@ const SETTLEMENTS = [
     status: "SETTLED",
     updatedAt: "2026-08-01T03:00:00",
   },
+  {
+    calculatedAt: "2026-08-01T03:00:00",
+    settlementRate: 3,
+    confirmedPurchaseCount: 5,
+    settlementAmount: 3_000,
+    confirmedSalesAmount: 100_000,
+    selectorsCode: "SEL-0012",
+    selectorsId: 47,
+    selectorsNickname: "초여름셀렉터",
+    settlementId: 106,
+    activityMonth: "2026-07",
+    settlementMonth: "2026-08",
+    paymentMonth: "2026-09",
+    settlementSourceCode: "DAILY_BATCH",
+    status: "EXPIRED",
+    updatedAt: "2026-08-01T03:00:00",
+  },
 ] as const;
 
 function currentMonth() {
@@ -111,6 +128,26 @@ function pageResponse({
   return new Response(JSON.stringify({
     code: "OK",
     data: { content, number, size, totalElements, totalPages },
+    message: null,
+    success: true,
+  }), {
+    headers: { "Content-Type": "application/json" },
+    status: 200,
+  });
+}
+
+function summaryResponse(overrides: Record<string, unknown> = {}) {
+  return new Response(JSON.stringify({
+    code: "OK",
+    data: {
+      activityMonth: "2026-07",
+      commissionToSalesRate: 4.48,
+      confirmedPurchaseCount: 1_389,
+      confirmedSalesAmount: 4_400_000,
+      settlementAmount: 197_000,
+      settlementCount: 42,
+      ...overrides,
+    },
     message: null,
     success: true,
   }), {
@@ -187,7 +224,7 @@ function selectorDetailResponse() {
         joinedAt: "2026-07-02T12:00:00",
         totalSales: 1_500_000,
         confirmedPurchaseCount: 12,
-        paidCommissionAmount: 320000,
+        paidCommissionAmount: 320_000,
       }],
       snsAccount: {
         id: 11,
@@ -226,6 +263,7 @@ function settlementFetchResponse(input: RequestInfo | URL) {
     return detailResponse();
   }
   if (/\/api\/admin\/selectors\/\d+(?:\?|$)/.test(url)) return selectorDetailResponse();
+  if (url.includes("/api/admin/settlements/estimates/summary")) return summaryResponse();
   return pageResponse();
 }
 
@@ -277,10 +315,11 @@ test("requests and renders the current-month settlement page", async () => {
     "정산 수수료",
     "지급 상태",
   ]);
-  expect(within(results).getByText("1,234")).toBeInTheDocument();
-  expect(within(results).getByText("2,500,000원")).toBeInTheDocument();
-  expect(within(results).getByText("3%")).toBeInTheDocument();
-  expect(within(results).getByText("75,000원")).toBeInTheDocument();
+  const summerRow = within(results).getByRole("row", { name: /SEL-0007/ });
+  expect(within(summerRow).getByText("1,234")).toBeInTheDocument();
+  expect(within(summerRow).getByText("2,500,000원")).toBeInTheDocument();
+  expect(within(summerRow).getByText("3%")).toBeInTheDocument();
+  expect(within(summerRow).getByText("75,000원")).toBeInTheDocument();
   expect(within(results).getByText("계산 중")).toHaveClass("hsas-status-pill--neutral");
   expect(within(results).getByText("지급 대기")).toHaveClass("hsas-status-pill--pending");
   expect(within(results).getAllByText("정산 보류")).toHaveLength(2);
@@ -288,9 +327,21 @@ test("requests and renders the current-month settlement page", async () => {
     expect(hold).toHaveClass("hsas-status-pill--danger");
   }
   expect(within(results).getByText("지급 완료")).toHaveClass("hsas-status-pill--approved");
+  expect(within(results).getByText("지급 만료")).toHaveClass("hsas-status-pill--rejected");
   expect(screen.getByText("총 42건")).toBeInTheDocument();
 
-  expect(fetchMock).toHaveBeenCalledTimes(1);
+  const summary = screen.getByRole("region", { name: "정산 요약" });
+  expect(within(summary).getByText("총 매출액")).toBeInTheDocument();
+  expect(within(summary).getByText("4,400,000원")).toBeInTheDocument();
+  expect(within(summary).getByText("총 수수료")).toBeInTheDocument();
+  expect(within(summary).getByText("197,000원")).toBeInTheDocument();
+  expect(within(summary).getByText("매출 대비 수수료율")).toBeInTheDocument();
+  expect(within(summary).getByText("총 수수료 ÷ 총 매출액 × 100")).toBeInTheDocument();
+  expect(within(summary).getByText("4.48%")).toBeInTheDocument();
+  expect(within(summary).getByText("구매 확정")).toBeInTheDocument();
+  expect(within(summary).getByText("1,389건")).toBeInTheDocument();
+
+  expect(fetchMock).toHaveBeenCalledTimes(2);
   const [input, init] = fetchMock.mock.calls[0];
   const url = new URL(String(input));
   expect(url.pathname).toBe("/api/admin/settlements/estimates");
@@ -302,11 +353,19 @@ test("requests and renders the current-month settlement page", async () => {
   expect(new Headers((init as RequestInit).headers).get("Authorization")).toBe(
     "Bearer admin.jwt",
   );
+  const [summaryInput, summaryInit] = fetchMock.mock.calls[1];
+  const summaryUrl = new URL(String(summaryInput));
+  expect(summaryUrl.pathname).toBe("/api/admin/settlements/estimates/summary");
+  expect(summaryUrl.searchParams.get("activityMonth")).toBe(currentMonth());
+  expect(summaryUrl.searchParams.has("status")).toBe(false);
+  expect(new Headers((summaryInit as RequestInit).headers).get("Authorization")).toBe(
+    "Bearer admin.jwt",
+  );
 
-  fireEvent.click(within(results).getByRole("row", { name: /SEL-0007/ }));
-  expect(await screen.findByRole("dialog", { name: "셀렉터스 상세" })).toBeInTheDocument();
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-  const detailPaths = fetchMock.mock.calls.slice(1).map((call) => requestedUrl(call).pathname).sort();
+  fireEvent.click(summerRow);
+  expect(await screen.findByRole("dialog", { name: "셀렉터스 정산 상세" })).toBeInTheDocument();
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+  const detailPaths = fetchMock.mock.calls.slice(2).map((call) => requestedUrl(call).pathname).sort();
   expect(detailPaths).toEqual([
     "/api/admin/selectors/42",
     "/api/admin/settlements/selectors/42/detail",
@@ -316,16 +375,21 @@ test("requests and renders the current-month settlement page", async () => {
   ));
   expect(detailCall).toBeDefined();
   const detailUrl = requestedUrl(detailCall ?? []);
+  expect(detailUrl.pathname).toBe("/api/admin/settlements/selectors/42/detail");
   expect(detailUrl.searchParams.get("page")).toBe("0");
   expect(detailUrl.searchParams.get("size")).toBe("12");
   const [, detailInit] = detailCall ?? [];
   expect(new Headers((detailInit as RequestInit).headers).get("Authorization")).toBe(
     "Bearer admin.jwt",
   );
-  const detail = screen.getByRole("dialog", { name: "셀렉터스 상세" });
+  const detail = screen.getByRole("dialog", { name: "셀렉터스 정산 상세" });
   expect(within(detail).getByRole("heading", { name: "API 여름셀렉터" })).toBeInTheDocument();
-  expect(within(detail).getByText("동의 및 수신 정보")).toBeInTheDocument();
+  expect(within(detail).queryByText("동의 및 수신 정보")).not.toBeInTheDocument();
+  expect(within(detail).queryByText("간략 성과")).not.toBeInTheDocument();
+  expect(within(detail).queryByText("등록 콘텐츠")).not.toBeInTheDocument();
+  expect(within(detail).queryByText("참여 기수 이력")).not.toBeInTheDocument();
   expect(within(detail).getByText("정산 정보")).toBeInTheDocument();
+  expect(within(detail).queryByText("활동 중")).not.toBeInTheDocument();
   expect(within(detail).getByRole("link", { name: "@api_selector" })).toHaveAttribute(
     "href",
     "https://www.instagram.com/api_selector",
@@ -344,19 +408,41 @@ test("requests and renders the current-month settlement page", async () => {
     "정산 수수료",
     "지급 상태",
   ]);
-  expect(within(historyTable).getByText("1,234")).toBeInTheDocument();
-  expect(within(historyTable).getByText("2,500,000원")).toBeInTheDocument();
-  expect(within(historyTable).getByText("3%")).toBeInTheDocument();
-  expect(within(historyTable).getByText("75,000원")).toBeInTheDocument();
-  expect(within(historyTable).getByText("계산 중")).toHaveClass("hsas-status-pill--neutral");
+  const firstHistoryRow = within(historyTable).getAllByRole("row")[1];
+  expect(within(firstHistoryRow).getByText("1,234")).toBeInTheDocument();
+  expect(within(firstHistoryRow).getByText("2,500,000원")).toBeInTheDocument();
+  expect(within(firstHistoryRow).getByText("3%")).toBeInTheDocument();
+  expect(within(firstHistoryRow).getByText("75,000원")).toBeInTheDocument();
+  expect(within(firstHistoryRow).getByText("계산 중")).toHaveClass("hsas-status-pill--neutral");
   fireEvent.click(screen.getByRole("button", { name: "상세 패널 닫기" }));
-  await waitFor(() => expect(screen.queryByRole("dialog", { name: "셀렉터스 상세" }))
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "셀렉터스 정산 상세" }))
     .not.toBeInTheDocument());
 });
 
 test("applies the month on search and requests status and pages immediately", async () => {
   const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
-    const requestedPage = Number(new URL(String(input)).searchParams.get("page") ?? 0);
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/summary")) {
+      const status = url.searchParams.get("status");
+      if (status === "PAYMENT_HOLD_INFO") {
+        return Promise.resolve(summaryResponse({
+          confirmedPurchaseCount: 10,
+          confirmedSalesAmount: 1_000_000,
+          settlementAmount: 100_000,
+          settlementCount: 1,
+        }));
+      }
+      if (status === "PAYMENT_HOLD_BLACK") {
+        return Promise.resolve(summaryResponse({
+          confirmedPurchaseCount: 20,
+          confirmedSalesAmount: 3_000_000,
+          settlementAmount: 150_000,
+          settlementCount: 2,
+        }));
+      }
+      return Promise.resolve(summaryResponse());
+    }
+    const requestedPage = Number(url.searchParams.get("page") ?? 0);
     return Promise.resolve(pageResponse({ number: requestedPage }));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -368,37 +454,50 @@ test("applies the month on search and requests status and pages immediately", as
   fireEvent.change(within(search).getByLabelText("활동월"), {
     target: { value: "2026-06" },
   });
-  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(fetchMock).toHaveBeenCalledTimes(2);
 
   fireEvent.click(within(search).getByRole("button", { name: "조회" }));
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-  expect(requestedUrl(fetchMock.mock.calls[1]).searchParams.get("activityMonth")).toBe("2026-06");
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+  expect(requestedUrl(fetchMock.mock.calls[2]).searchParams.get("activityMonth")).toBe("2026-06");
+  expect(requestedUrl(fetchMock.mock.calls[3]).searchParams.get("activityMonth")).toBe("2026-06");
 
   fireEvent.click(screen.getByRole("button", { name: "정산 보류" }));
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
-  const holdStatuses = fetchMock.mock.calls.slice(2, 4)
-    .map((call) => requestedUrl(call).searchParams.get("status"))
-    .sort();
-  expect(holdStatuses).toEqual(["PAYMENT_HOLD_BLACK", "PAYMENT_HOLD_INFO"]);
-  expect(fetchMock.mock.calls.slice(2, 4).every((call) => (
-    requestedUrl(call).searchParams.get("page") === "0"
-  ))).toBe(true);
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(8));
+  const holdCalls = fetchMock.mock.calls.slice(4, 8);
+  const holdEstimateCalls = holdCalls.filter((call) => (
+    requestedUrl(call).pathname === "/api/admin/settlements/estimates"
+  ));
+  const holdSummaryCalls = holdCalls.filter((call) => (
+    requestedUrl(call).pathname === "/api/admin/settlements/estimates/summary"
+  ));
+  expect(holdEstimateCalls.map((call) => requestedUrl(call).searchParams.get("status")).sort())
+    .toEqual(["PAYMENT_HOLD_BLACK", "PAYMENT_HOLD_INFO"]);
+  expect(holdSummaryCalls.map((call) => requestedUrl(call).searchParams.get("status")).sort())
+    .toEqual(["PAYMENT_HOLD_BLACK", "PAYMENT_HOLD_INFO"]);
+  expect(holdEstimateCalls.every((call) => requestedUrl(call).searchParams.get("page") === "0"))
+    .toBe(true);
+  const summary = screen.getByRole("region", { name: "정산 요약" });
+  expect(within(summary).getByText("4,000,000원")).toBeInTheDocument();
+  expect(within(summary).getByText("250,000원")).toBeInTheDocument();
+  expect(within(summary).getByText("6.25%")).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "지급 대기" }));
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
-  const statusUrl = requestedUrl(fetchMock.mock.calls[4]);
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(10));
+  const statusUrl = requestedUrl(fetchMock.mock.calls[8]);
   expect(statusUrl.searchParams.get("status")).toBe("PAYMENT_PENDING");
   expect(statusUrl.searchParams.get("page")).toBe("0");
+  expect(requestedUrl(fetchMock.mock.calls[9]).searchParams.get("status"))
+    .toBe("PAYMENT_PENDING");
 
   fireEvent.click(screen.getByRole("button", { name: "다음 페이지" }));
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(6));
-  expect(requestedUrl(fetchMock.mock.calls[5]).searchParams.get("page")).toBe("1");
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(12));
+  expect(requestedUrl(fetchMock.mock.calls[10]).searchParams.get("page")).toBe("1");
 });
 
 test("shows loading, empty, and error states", async () => {
-  let resolveRequest: ((response: Response) => void) | undefined;
+  const pendingResponses: Array<(response: Response) => void> = [];
   const fetchMock = vi.fn().mockImplementation(() => new Promise<Response>((resolve) => {
-    resolveRequest = resolve;
+    pendingResponses.push(resolve);
   }));
   vi.stubGlobal("fetch", fetchMock);
 
@@ -407,8 +506,19 @@ test("shows loading, empty, and error states", async () => {
     "role",
     "status",
   );
-  resolveRequest?.(pageResponse({ content: [], totalElements: 0, totalPages: 0 }));
+  expect(screen.getByText("정산 요약을 불러오는 중입니다.")).toHaveAttribute("role", "status");
+  await waitFor(() => expect(pendingResponses).toHaveLength(2));
+  pendingResponses[0](pageResponse({ content: [], totalElements: 0, totalPages: 0 }));
+  pendingResponses[1](summaryResponse({
+    commissionToSalesRate: 0,
+    confirmedPurchaseCount: 0,
+    confirmedSalesAmount: 0,
+    settlementAmount: 0,
+    settlementCount: 0,
+  }));
   expect(await screen.findByText("조회된 정산 내역이 없습니다.")).toBeInTheDocument();
+  expect(screen.getAllByText("0원")).toHaveLength(2);
+  expect(screen.getByText("0.00%")).toBeInTheDocument();
   expect(screen.queryByRole("navigation", { name: "페이지 이동" })).not.toBeInTheDocument();
   unmount();
 
@@ -423,6 +533,7 @@ test("shows loading, empty, and error states", async () => {
     "role",
     "alert",
   );
+  expect(screen.getByText("정산 요약 조회에 실패했습니다.")).toHaveAttribute("role", "alert");
 });
 
 test("ignores a stale response after a newer filter request", async () => {
@@ -433,8 +544,9 @@ test("ignores a stale response after a newer filter request", async () => {
   vi.stubGlobal("fetch", fetchMock);
 
   renderRoute("/settlements");
-  await waitFor(() => expect(pendingResponses).toHaveLength(1));
+  await waitFor(() => expect(pendingResponses).toHaveLength(2));
   pendingResponses[0](pageResponse());
+  pendingResponses[1](summaryResponse());
   await screen.findByText("SEL-0007");
 
   const search = screen.getByRole("search", { name: "검색 조건" });
@@ -442,26 +554,30 @@ test("ignores a stale response after a newer filter request", async () => {
     target: { value: "2026-06" },
   });
   fireEvent.click(within(search).getByRole("button", { name: "조회" }));
-  await waitFor(() => expect(pendingResponses).toHaveLength(2));
+  await waitFor(() => expect(pendingResponses).toHaveLength(4));
 
   fireEvent.change(within(search).getByLabelText("활동월"), {
     target: { value: "2026-05" },
   });
   fireEvent.click(within(search).getByRole("button", { name: "조회" }));
-  await waitFor(() => expect(pendingResponses).toHaveLength(3));
+  await waitFor(() => expect(pendingResponses).toHaveLength(6));
 
-  pendingResponses[2](pageResponse({
+  pendingResponses[4](pageResponse({
     content: [{ ...SETTLEMENTS[0], selectorsCode: "LATEST" }],
     totalElements: 1,
     totalPages: 1,
   }));
+  pendingResponses[5](summaryResponse({ settlementAmount: 123_000 }));
   expect(await screen.findByText("LATEST")).toBeInTheDocument();
+  expect(screen.getByText("123,000원")).toBeInTheDocument();
 
-  pendingResponses[1](pageResponse({
+  pendingResponses[2](pageResponse({
     content: [{ ...SETTLEMENTS[0], selectorsCode: "STALE" }],
     totalElements: 1,
     totalPages: 1,
   }));
+  pendingResponses[3](summaryResponse({ settlementAmount: 999_000 }));
   await waitFor(() => expect(screen.queryByText("STALE")).not.toBeInTheDocument());
+  expect(screen.queryByText("999,000원")).not.toBeInTheDocument();
   expect(screen.getByText("LATEST")).toBeInTheDocument();
 });

@@ -396,11 +396,13 @@ function SelectorDetailListSection({
 function SelectorApiDetailContent({
   detail,
   settlementEmptyMessage,
+  settlementOnly = false,
   settlementRows,
   settlementSummary,
 }: {
   detail: SelectorDetail;
   settlementEmptyMessage: ReactNode;
+  settlementOnly?: boolean;
   settlementRows: SelectorSettlementTableRow[];
   settlementSummary: SettlementSelectorDetail["settlementSummary"] | undefined;
 }) {
@@ -462,6 +464,8 @@ function SelectorApiDetailContent({
         </div>
       </section>
 
+      {settlementOnly ? null : (
+        <>
       <SelectorDetailListSection title="동의 및 수신 정보" titleId="selector-consent-title">
         <div aria-label="셀렉터스 동의 및 수신 정보" className="fuma-wide-table fuma-settlement-table" role="region">
           <DenseTable
@@ -526,6 +530,8 @@ function SelectorApiDetailContent({
           />
         </div>
       </SelectorDetailListSection>
+        </>
+      )}
 
       <SelectorDetailListSection
         meta={<span>마지막 갱신 {displayDateTime(latestTimestamp(settlementRows.map((row) => row.updatedAt)))}</span>}
@@ -574,6 +580,7 @@ export function SelectorDetailPanel({
   settlementDetail,
   settlementDetailError = false,
   settlementDetailLoading = false,
+  settlementOnly = false,
 }: {
   onClose: () => void;
   selector?: SelectorFixture;
@@ -583,6 +590,7 @@ export function SelectorDetailPanel({
   settlementDetail?: SettlementSelectorDetail | null;
   settlementDetailError?: boolean;
   settlementDetailLoading?: boolean;
+  settlementOnly?: boolean;
 }) {
   const fixtureDetail = selector ? getSelectorDetailData(selector) : null;
   const apiProfile = settlementDetail?.profile;
@@ -630,7 +638,7 @@ export function SelectorDetailPanel({
     : undefined;
 
   return (
-    <SidePanel onClose={onClose} title="셀렉터스 상세">
+    <SidePanel onClose={onClose} title={settlementOnly ? "셀렉터스 정산 상세" : "셀렉터스 상세"}>
       {selectorDetailLoading ? (
         <div className="fuma-detail-panel__content">
           <section aria-live="polite" className="fuma-empty-state" role="status">
@@ -648,6 +656,7 @@ export function SelectorDetailPanel({
         <SelectorApiDetailContent
           detail={selectorDetail}
           settlementEmptyMessage={settlementEmptyMessage}
+          settlementOnly={settlementOnly}
           settlementRows={settlementRows}
           settlementSummary={settlementSummary}
         />
@@ -672,7 +681,9 @@ export function SelectorDetailPanel({
               <div className="fuma-creator-detail-hero__identity">
                 <div className="fuma-creator-detail-hero__title-row">
                   <h2>{apiProfile?.selectorsNickname ?? selector.name}</h2>
-                  <StatusPill tone={selectorStatusTone(selector.status)}>{selector.status}</StatusPill>
+                  {settlementOnly ? null : (
+                    <StatusPill tone={selectorStatusTone(selector.status)}>{selector.status}</StatusPill>
+                  )}
                 </div>
                 {primarySns ? (
                   <a className="fuma-creator-detail-hero__channel" href={primarySns.url} rel="noreferrer" target="_blank">
@@ -695,11 +706,12 @@ export function SelectorDetailPanel({
                 </div>
               </div>
               <p className="fuma-unified-detail-hero__summary">
-                {selector.cohort} · {selector.status} · 마지막 수집 {displayDateTime(apiProfile?.lastCollectedAt ?? selector.recentActivity)}
-                {settlementDetail ? ` · 활동월 ${displayText(settlementSummary?.currentMonth)} · 지급월 ${displayText(settlementSummary?.nextPaymentMonth)}` : null}
+                {settlementOnly
+                  ? `활동월 ${displayText(settlementSummary?.currentMonth)} · 지급월 ${displayText(settlementSummary?.nextPaymentMonth)}`
+                  : `${selector.cohort} · ${selector.status} · 마지막 수집 ${displayDateTime(apiProfile?.lastCollectedAt ?? selector.recentActivity)}${settlementDetail ? ` · 활동월 ${displayText(settlementSummary?.currentMonth)} · 지급월 ${displayText(settlementSummary?.nextPaymentMonth)}` : ""}`}
               </p>
               <dl className="fuma-creator-detail-hero__metrics">
-                {settlementDetail ? (
+                {settlementOnly || settlementDetail ? (
                   <>
                     <div><dt>{audienceLabel}</dt><dd>{displayNumber(apiProfile?.followerCount)}</dd></div>
                     <div><dt>누적 구매 전환</dt><dd>{displayCount(settlementSummary?.cumulativePurchaseConversionCount)}</dd></div>
@@ -720,62 +732,66 @@ export function SelectorDetailPanel({
             </div>
           </section>
 
-          <SelectorDetailListSection
-            meta={<span>최근 {fixtureDetail.contents.length}건</span>}
-            title="업로드 콘텐츠"
-            titleId="selector-contents-title"
-          >
-            <div className="fuma-selector-content-list">
-              {fixtureDetail.contents.map((content) => (
-                <article key={content.id}>
-                  <div className="fuma-selector-content-list__media">
-                    <img alt="" src={content.thumbnailUrl} />
-                    <span>{content.format}</span>
-                  </div>
-                  <div className="fuma-selector-content-list__body">
-                    <div className="fuma-selector-content-list__meta">
-                      <time>{content.publishedAt}</time>
-                      <StatusPill tone={content.status === "승인" ? "approved" : "pending"}>
-                        {content.status}
-                      </StatusPill>
-                    </div>
-                    <h4>{content.title}</h4>
-                    <p>{content.campaign}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </SelectorDetailListSection>
+          {settlementOnly ? null : (
+            <>
+              <SelectorDetailListSection
+                meta={<span>최근 {fixtureDetail.contents.length}건</span>}
+                title="업로드 콘텐츠"
+                titleId="selector-contents-title"
+              >
+                <div className="fuma-selector-content-list">
+                  {fixtureDetail.contents.map((content) => (
+                    <article key={content.id}>
+                      <div className="fuma-selector-content-list__media">
+                        <img alt="" src={content.thumbnailUrl} />
+                        <span>{content.format}</span>
+                      </div>
+                      <div className="fuma-selector-content-list__body">
+                        <div className="fuma-selector-content-list__meta">
+                          <time>{content.publishedAt}</time>
+                          <StatusPill tone={content.status === "승인" ? "approved" : "pending"}>
+                            {content.status}
+                          </StatusPill>
+                        </div>
+                        <h4>{content.title}</h4>
+                        <p>{content.campaign}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </SelectorDetailListSection>
 
-          <SelectorDetailListSection
-            meta={<span>{fixtureDetail.cohortHistory.length}개 기수</span>}
-            title="이전 기수 활동 내역"
-            titleId="selector-cohort-history-title"
-          >
-              <div className="fuma-selector-cohort-history">
-                {fixtureDetail.cohortHistory.length > 0 ? fixtureDetail.cohortHistory.map((activity) => (
-                  <article key={activity.cohort}>
-                    <div>
-                      <strong>{activity.cohort}</strong>
-                      <StatusPill tone="neutral">{activity.result}</StatusPill>
-                    </div>
-                    <p>{activity.period}</p>
-                    <dl>
+              <SelectorDetailListSection
+                meta={<span>{fixtureDetail.cohortHistory.length}개 기수</span>}
+                title="이전 기수 활동 내역"
+                titleId="selector-cohort-history-title"
+              >
+                <div className="fuma-selector-cohort-history">
+                  {fixtureDetail.cohortHistory.length > 0 ? fixtureDetail.cohortHistory.map((activity) => (
+                    <article key={activity.cohort}>
                       <div>
-                        <dt>참여 캠페인</dt>
-                        <dd>{activity.campaignCount}건</dd>
+                        <strong>{activity.cohort}</strong>
+                        <StatusPill tone="neutral">{activity.result}</StatusPill>
                       </div>
-                      <div>
-                        <dt>등록 콘텐츠</dt>
-                        <dd>{activity.contentCount}건</dd>
-                      </div>
-                    </dl>
-                  </article>
-                )) : (
-                  <p className="fuma-selector-detail-empty">이전 기수 활동 내역이 없습니다.</p>
-                )}
-              </div>
-          </SelectorDetailListSection>
+                      <p>{activity.period}</p>
+                      <dl>
+                        <div>
+                          <dt>참여 캠페인</dt>
+                          <dd>{activity.campaignCount}건</dd>
+                        </div>
+                        <div>
+                          <dt>등록 콘텐츠</dt>
+                          <dd>{activity.contentCount}건</dd>
+                        </div>
+                      </dl>
+                    </article>
+                  )) : (
+                    <p className="fuma-selector-detail-empty">이전 기수 활동 내역이 없습니다.</p>
+                  )}
+                </div>
+              </SelectorDetailListSection>
+            </>
+          )}
 
           <SelectorDetailListSection
             meta={<span>총 {settlementCount.toLocaleString("ko-KR")}건</span>}

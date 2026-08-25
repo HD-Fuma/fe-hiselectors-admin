@@ -7,7 +7,7 @@ export function formatWon(amount: number) {
 }
 
 export function formatCompactCount(value: number) {
-  if (value >= 100000000) return `${(value / 100000000).toFixed(1)}억`;
-  if (value >= 10000) return `${(value / 10000).toFixed(1)}만`;
-  return formatNumber(value);
+  return value >= 10000
+    ? value.toLocaleString("ko-KR", { maximumFractionDigits: 1, notation: "compact" })
+    : formatNumber(value);
 }

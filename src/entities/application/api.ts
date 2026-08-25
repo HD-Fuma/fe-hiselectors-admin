@@ -243,3 +243,39 @@ export function updateAdminApplicationStatus(id: number, status: Exclude<Applica
     { method: "PATCH", body: JSON.stringify({ status }) },
   );
 }
+
+const applicationDetailCache = new Map<number, Promise<AdminApplicationDetail>>();
+const applicationAiReportCache = new Map<number, Promise<AdminApplicationAiReport | null>>();
+
+/** 목록에서 행에 마우스를 올렸을 때 상세·AI 리포트를 미리 요청해 캐시해 둔다. 이미 요청 중이거나 캐시돼 있으면 아무 것도 하지 않는다. */
+export function prefetchAdminApplication(id: number) {
+  if (!applicationDetailCache.has(id)) {
+    const request = getAdminApplication(id).catch((reason: unknown) => {
+      applicationDetailCache.delete(id);
+      throw reason;
+    });
+    applicationDetailCache.set(id, request);
+  }
+  if (!applicationAiReportCache.has(id)) {
+    applicationAiReportCache.set(id, getAdminApplicationAiReport(id));
+  }
+}
+
+export function getCachedAdminApplication(id: number) {
+  return applicationDetailCache.get(id) ?? null;
+}
+
+export function getCachedAdminApplicationAiReport(id: number) {
+  return applicationAiReportCache.get(id) ?? null;
+}
+
+export function invalidateAdminApplicationCache(id: number) {
+  applicationDetailCache.delete(id);
+  applicationAiReportCache.delete(id);
+}
+
+/** 테스트 간 격리를 위한 캐시 초기화. 프로덕션 코드에서는 사용하지 않는다. */
+export function resetAdminApplicationCache() {
+  applicationDetailCache.clear();
+  applicationAiReportCache.clear();
+}
