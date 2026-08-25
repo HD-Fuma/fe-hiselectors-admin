@@ -2593,32 +2593,34 @@ export function ContentInspectionDetailPage() {
                 <span>AI ANALYSIS</span>
                 <strong>검수 리포트</strong>
               </div>
-              <em
-                data-clear={studioReportReady && studioViolationSignals.length === 0}
-                data-loading={!studioReportReady}
-              >
-                {!studioReportReady
-                  ? "불러오는 중"
-                  : studioViolationSignals.length > 0
-                    ? `${studioViolationSignals.length}건 감지`
-                    : "이상 없음"}
-              </em>
+              <div className="fuma-content-inspection-studio__report-tools">
+                <em
+                  data-clear={studioReportReady && studioViolationSignals.length === 0}
+                  data-loading={!studioReportReady}
+                >
+                  {!studioReportReady
+                    ? "불러오는 중"
+                    : studioViolationSignals.length > 0
+                      ? `${studioViolationSignals.length}건 감지`
+                      : "이상 없음"}
+                </em>
+                <button
+                  className="fuma-content-inspection-studio__report-generate"
+                  data-pending={studioActionPending === "report"}
+                  disabled={
+                    studioActionPending !== null
+                    || !studioLatestVersion?.contentVersionId
+                  }
+                  onClick={() => void generateStudioReport()}
+                  type="button"
+                >
+                  <RefreshCw aria-hidden="true" size={12} />
+                  {studioActionPending === "report"
+                    ? studioReportRefreshVersionId == null ? "생성 중" : "불러오는 중"
+                    : studioReportRefreshVersionId == null ? "리포트 생성" : "리포트 불러오기"}
+                </button>
+              </div>
             </header>
-            <button
-              className="fuma-content-inspection-studio__report-generate"
-              data-pending={studioActionPending === "report"}
-              disabled={
-                studioActionPending !== null
-                || !studioLatestVersion?.contentVersionId
-              }
-              onClick={() => void generateStudioReport()}
-              type="button"
-            >
-              <RefreshCw aria-hidden="true" size={14} />
-              {studioActionPending === "report"
-                ? studioReportRefreshVersionId == null ? "리포트 생성 중" : "리포트 불러오는 중"
-                : studioReportRefreshVersionId == null ? "리포트 생성하기" : "리포트 불러오기"}
-            </button>
             {studioActionError || visibleError ? (
               <p
                 className="fuma-content-inspection-studio__report-feedback"
