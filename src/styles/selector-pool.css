@@ -15,6 +15,62 @@
   cursor: grab;
 }
 
+/* 우상단 카테고리 범례 — 누르면 해당 클러스터로 카메라가 이동한다. */
+.hsas-selector-pool__legend {
+  position: absolute;
+  top: var(--hsas-space-16);
+  right: var(--hsas-space-14);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--hsas-space-4);
+  max-width: 320px;
+}
+
+.hsas-selector-pool__chip {
+  --hsas-pool-chip: rgb(17 24 39 / 55%);
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hsas-space-6);
+  padding: var(--hsas-space-4) var(--hsas-space-10);
+  border: 1px solid rgb(17 24 39 / 10%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 92%);
+  color: rgb(17 24 39 / 78%);
+  font-size: var(--hsas-font-11);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hsas-selector-pool__chip:hover {
+  border-color: var(--hsas-pool-chip);
+}
+
+.hsas-selector-pool__chip[aria-pressed="true"] {
+  border-color: var(--hsas-pool-chip);
+  background: var(--hsas-pool-chip);
+  color: #fff;
+}
+
+.hsas-selector-pool__chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hsas-pool-chip);
+}
+
+.hsas-selector-pool__chip[aria-pressed="true"] .hsas-selector-pool__chip-dot {
+  background: rgb(255 255 255 / 90%);
+}
+
+.hsas-selector-pool__chip em {
+  color: inherit;
+  font-size: var(--hsas-font-10);
+  font-style: normal;
+  opacity: 0.65;
+}
+
 /* 화면에 보이는 버블을 좌측 플로팅 목록으로 고정 노출 */
 .hsas-selector-pool__dock {
   position: absolute;

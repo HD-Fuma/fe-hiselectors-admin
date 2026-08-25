@@ -1,14 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { categoryLabel } from "../../entities/creator";
 import type { SelectorSummary } from "../../entities/selectors";
 import { assetUrl } from "../../lib/assetUrl";
+import { formatNumber } from "../../lib/formatters";
 import "../../styles/selector-pool.css";
 
-const CATEGORY_RADIUS = 52;
+const CATEGORY_RADIUS = 64;
 const ORBIT_GAP = 26;
 const DAMPING = 0.86;
 const GOLDEN_ANGLE = 2.39996;
+const INK = "17 24 39";
+// 작은 버블은 색을 통일하고, 색 구분은 카테고리 쪽에서만 한다.
+const NODE_TINT = "30 157 139"; // 브랜드 틸
 
 interface PoolNode {
   x: number;
@@ -31,18 +36,14 @@ interface PoolCategory {
   rgb: string;
 }
 
+// 한 계열(브랜드 틸)의 명도 차이로만 카테고리를 구분한다.
 const CATEGORY_COLORS = [
-  "129 209 255", // 하늘
-  "255 138 178", // 핑크
-  "255 196 106", // 앰버
-  "138 226 168", // 민트
-  "192 160 255", // 라벤더
-  "255 160 122", // 코럴
-  "126 226 226", // 시안
-  "222 214 130", // 라임
-  "170 190 255", // 인디고
-  "244 154 224", // 마젠타
+  "30 157 139",
+  "13 100 92",
+  "116 201 190",
+  "7 63 58",
 ];
+
 
 // 백엔드 필드명이 확정 전이라 카테고리로 쓸 수 있는 키를 순서대로 훑는다.
 const CATEGORY_KEYS = ["category", "categoryName", "categoryCode", "representativeCategory"];
@@ -68,22 +69,36 @@ function initialOf(selector: SelectorSummary) {
 }
 
 function nodeRadius(followerCount: number | null) {
-  return 17 + Math.min(15, Math.log10((followerCount ?? 0) + 1) * 3);
+  return 26 + Math.min(20, Math.log10((followerCount ?? 0) + 1) * 4);
 }
 
-/** 카테고리 중심을 황금각 나선으로 흩뿌려 캔버스 곳곳에 배치한다. */
+/** 카테고리 중심을 큰 원 하나 위에 고르게 배치한다. */
 function layoutCategories(counts: Map<string, number>): PoolCategory[] {
-  return [...counts.entries()].map(([label, count], index) => {
-    const angle = index * GOLDEN_ANGLE;
-    const distance = 300 * Math.sqrt(index);
+  const entries = [...counts.entries()];
+  // 각 클러스터가 차지하는 반지름을 먼저 재고, 서로 닿지 않을 만큼 큰 원을 잡는다.
+  const clusterReach = Math.max(
+    ...entries.map(([, count]) => clusterRadius(count)),
+    CATEGORY_RADIUS * 2,
+  );
+  const ring = entries.length < 2
+    ? 0
+    : Math.max(320, (clusterReach * 2.3 * entries.length) / (2 * Math.PI));
+
+  return entries.map(([label, count], index) => {
+    const angle = (index / entries.length) * Math.PI * 2 - Math.PI / 2;
     return {
       label,
       count,
       rgb: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
-      x: Math.cos(angle) * distance,
-      y: Math.sin(angle) * distance,
+      x: Math.cos(angle) * ring,
+      y: Math.sin(angle) * ring,
     };
   });
+}
+
+/** 카테고리 하나가 차지하는 반지름(가장 바깥 궤도까지). */
+function clusterRadius(count: number) {
+  return CATEGORY_RADIUS + ORBIT_GAP + Math.max(0, Math.ceil(count / 8) - 1) * 96 + 46;
 }
 
 function buildNodes(selectors: SelectorSummary[], categories: PoolCategory[]) {
@@ -96,7 +111,7 @@ function buildNodes(selectors: SelectorSummary[], categories: PoolCategory[]) {
     seats.set(categoryIndex, seat + 1);
     const category = categories[categoryIndex];
     const angle = seat * GOLDEN_ANGLE;
-    const orbit = CATEGORY_RADIUS + ORBIT_GAP + Math.floor(seat / 10) * 66 + 30;
+    const orbit = CATEGORY_RADIUS + ORBIT_GAP + Math.floor(seat / 8) * 96 + 46;
     return {
       x: category.x + Math.cos(angle) * orbit,
       y: category.y + Math.sin(angle) * orbit,
@@ -159,6 +174,27 @@ function step(nodes: PoolNode[], categories: PoolCategory[]) {
   });
 }
 
+/** 살짝 휜 유기적인 연결선. */
+function drawCurve(
+  context: CanvasRenderingContext2D,
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+) {
+  const midX = (fromX + toX) / 2;
+  const midY = (fromY + toY) / 2;
+  const bend = 0.12;
+  context.beginPath();
+  context.moveTo(fromX, fromY);
+  context.quadraticCurveTo(
+    midX - (toY - fromY) * bend,
+    midY + (toX - fromX) * bend,
+    toX,
+    toY,
+  );
+  context.stroke();
+}
 
 function drawBubble(
   context: CanvasRenderingContext2D,
@@ -167,7 +203,19 @@ function drawBubble(
   y: number,
   radius: number,
   image: HTMLImageElement | undefined,
+  tint: string,
 ) {
+  // 흰 배경에서 떠 보이도록 부드러운 그림자 위에 흰 테를 깐다.
+  context.save();
+  context.shadowColor = `rgb(${INK} / 22%)`;
+  context.shadowBlur = 14;
+  context.shadowOffsetY = 5;
+  context.fillStyle = "#fff";
+  context.beginPath();
+  context.arc(x, y, radius + 2.5, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+
   context.save();
   context.beginPath();
   context.arc(x, y, radius, 0, Math.PI * 2);
@@ -175,10 +223,13 @@ function drawBubble(
   if (image) {
     context.drawImage(image, x - radius, y - radius, radius * 2, radius * 2);
   } else {
-    context.fillStyle = "#243043";
+    const blob = context.createLinearGradient(x - radius, y - radius, x + radius, y + radius);
+    blob.addColorStop(0, `rgb(${tint} / 92%)`);
+    blob.addColorStop(1, `rgb(${tint} / 62%)`);
+    context.fillStyle = blob;
     context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-    context.fillStyle = "rgb(255 255 255 / 78%)";
-    context.font = `600 ${Math.round(radius)}px Pretendard, sans-serif`;
+    context.fillStyle = "#fff";
+    context.font = `700 ${Math.round(radius)}px Pretendard, sans-serif`;
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillText(initialOf(node.selector), x, y);
@@ -214,7 +265,21 @@ export interface SelectorPoolCanvasProps {
 export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const selectRef = useRef(onSelect);
+  const focusRef = useRef<string | null>(null);
+  const cameraRef = useRef<((label: string | null) => void) | null>(null);
+  const spotlightRef = useRef<((selectorId: number | null) => void) | null>(null);
+  // 도크를 훑는 동안에는 목록을 고정한다(화면이 움직여 목록이 바뀌는 되먹임 방지).
+  const dockHoverRef = useRef(false);
   const [visible, setVisible] = useState<SelectorSummary[]>([]);
+  const [focus, setFocus] = useState<string | null>(null);
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>();
+    selectors.forEach((selector) => {
+      const label = categoryOf(selector);
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    });
+    return layoutCategories(counts);
+  }, [selectors]);
   const [dockOpen, setDockOpen] = useState(true);
 
   useEffect(() => {
@@ -226,27 +291,19 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
     const context = canvas?.getContext("2d");
     if (!canvas || !context) return;
 
-    const counts = new Map<string, number>();
-    selectors.forEach((selector) => {
-      const label = categoryOf(selector);
-      counts.set(label, (counts.get(label) ?? 0) + 1);
-    });
     if (import.meta.env.DEV && selectors.length && !rawCategory(selectors[0])) {
-      console.warn("[selector-pool] 목록 응답에 카테고리 필드가 없습니다. 응답 키:", Object.keys(selectors[0]));
+      console.warn(`[selector-pool] 목록 응답에 카테고리 필드가 없습니다. 응답 키: ${Object.keys(selectors[0]).join(", ")}`);
     }
-    const categories = layoutCategories(counts);
     if (!categories.length) return;
     const nodes = buildNodes(selectors, categories);
     const images = loadImages(nodes);
-    const stars = Array.from({ length: 260 }, (_, index) => ({
-      x: Math.sin(index * 12.9898) * 2600,
-      y: Math.cos(index * 78.233) * 2600,
-      r: (index % 3) * 0.4 + 0.4,
-    }));
 
+    // view 는 지금 보이는 화면, camera 는 목표값. 매 프레임 부드럽게 따라간다.
     const view = { x: 0, y: 0, scale: 0.8 };
+    const camera = { x: 0, y: 0, scale: 0.8 };
     const pointer = { x: 0, y: 0 };
     let hovered: PoolNode | null = null;
+    let spotlight: PoolNode | null = null;
     let dragging = false;
     let moved = 0;
     let frame = 0;
@@ -255,34 +312,72 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
       const ratio = window.devicePixelRatio || 1;
       const top = canvas.parentElement?.getBoundingClientRect().top ?? 0;
       canvas.parentElement?.style.setProperty("--hsas-pool-top", `${Math.round(top)}px`);
-      const bounds = canvas.getBoundingClientRect();
-      canvas.width = Math.max(1, Math.round(bounds.width * ratio));
-      canvas.height = Math.max(1, Math.round(bounds.height * ratio));
+      const box = canvas.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.round(box.width * ratio));
+      canvas.height = Math.max(1, Math.round(box.height * ratio));
     };
     resize();
-    // 처음 열었을 때 전체 성단이 한눈에 들어오도록 맞춘다.
-    const box = canvas.getBoundingClientRect();
-    const reach = Math.max(
-      ...nodes.map((node) => Math.hypot(node.x, node.y) + node.r),
-      CATEGORY_RADIUS * 3,
-    );
-    view.scale = Math.min(1.1, Math.max(0.25, Math.min(box.width, box.height) / (reach * 2.2)));
-    view.x = box.width / 2;
-    view.y = box.height / 2;
+
+    const fitAll = () => {
+      const box = canvas.getBoundingClientRect();
+      const reach = Math.max(
+        ...nodes.map((node) => Math.hypot(node.x, node.y) + node.r),
+        CATEGORY_RADIUS * 3,
+      );
+      camera.scale = Math.min(1.1, Math.max(0.25, Math.min(box.width, box.height) / (reach * 2.2)));
+      camera.x = box.width / 2;
+      camera.y = box.height / 2;
+    };
+    fitAll();
+    view.x = camera.x;
+    view.y = camera.y;
+    view.scale = camera.scale;
+
+    // 카테고리 칩을 누르면 해당 클러스터로 카메라가 이동한다.
+    cameraRef.current = (label) => {
+      focusRef.current = label;
+      if (!label) {
+        fitAll();
+        return;
+      }
+      const category = categories.find((item) => item.label === label);
+      if (!category) return;
+      const members = nodes.filter((node) => categories[node.categoryIndex].label === label);
+      const box = canvas.getBoundingClientRect();
+      const reach = Math.max(
+        ...members.map((node) => Math.hypot(node.x - category.x, node.y - category.y) + node.r),
+        CATEGORY_RADIUS * 2,
+      );
+      camera.scale = Math.min(1.8, Math.max(0.4, Math.min(box.width, box.height) / (reach * 2.4)));
+      camera.x = box.width / 2 - category.x * camera.scale;
+      camera.y = box.height / 2 - category.y * camera.scale;
+    };
+
+    spotlightRef.current = (id) => {
+      spotlight = id == null ? null : nodes.find((node) => node.selector.id === id) ?? null;
+      if (!spotlight) return;
+      const box = canvas.getBoundingClientRect();
+      camera.x = box.width / 2 - spotlight.x * camera.scale;
+      camera.y = box.height / 2 - spotlight.y * camera.scale;
+    };
+
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
     window.addEventListener("resize", resize);
 
     const toWorld = (clientX: number, clientY: number) => {
-      const bounds = canvas.getBoundingClientRect();
+      const box = canvas.getBoundingClientRect();
       return {
-        x: (clientX - bounds.left - view.x) / view.scale,
-        y: (clientY - bounds.top - view.y) / view.scale,
+        x: (clientX - box.left - view.x) / view.scale,
+        y: (clientY - box.top - view.y) / view.scale,
       };
     };
 
     const hitTest = (worldX: number, worldY: number) => (
-      nodes.find((node) => Math.hypot(node.x - worldX, node.y - worldY) <= node.r + 4) ?? null
+      nodes.find((node) => (
+        (!focusRef.current || categories[node.categoryIndex].label === focusRef.current)
+        && Math.hypot(node.x - worldX, node.y - worldY) <= node.r + 4
+      )) ?? null
     );
 
     const onPointerDown = (event: PointerEvent) => {
@@ -299,6 +394,8 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
         moved += Math.abs(dx) + Math.abs(dy);
         view.x += dx;
         view.y += dy;
+        camera.x = view.x;
+        camera.y = view.y;
       }
       pointer.x = event.clientX;
       pointer.y = event.clientY;
@@ -309,8 +406,8 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
     const onPointerUp = (event: PointerEvent) => {
       if (dragging && moved < 5) {
         const world = toWorld(event.clientX, event.clientY);
-        const target = hitTest(world.x, world.y);
-        if (target) selectRef.current(target.selector);
+        const picked = hitTest(world.x, world.y);
+        if (picked) selectRef.current(picked.selector);
       }
       dragging = false;
       canvas.releasePointerCapture(event.pointerId);
@@ -320,13 +417,13 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
     };
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
-      const bounds = canvas.getBoundingClientRect();
-      const cursorX = event.clientX - bounds.left;
-      const cursorY = event.clientY - bounds.top;
-      const next = Math.min(2.4, Math.max(0.2, view.scale * (event.deltaY < 0 ? 1.1 : 1 / 1.1)));
-      view.x = cursorX - (cursorX - view.x) * (next / view.scale);
-      view.y = cursorY - (cursorY - view.y) * (next / view.scale);
-      view.scale = next;
+      const box = canvas.getBoundingClientRect();
+      const cursorX = event.clientX - box.left;
+      const cursorY = event.clientY - box.top;
+      const next = Math.min(2.4, Math.max(0.2, camera.scale * (event.deltaY < 0 ? 1.12 : 1 / 1.12)));
+      camera.x = cursorX - (cursorX - camera.x) * (next / camera.scale);
+      camera.y = cursorY - (cursorY - camera.y) * (next / camera.scale);
+      camera.scale = next;
     };
 
     canvas.addEventListener("pointerdown", onPointerDown);
@@ -344,9 +441,10 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
     let visibleCheckedAt = 0;
     /** 화면 안에 들어온 버블만 골라 왼쪽 목록에 넘긴다(초당 4회, 목록이 바뀔 때만 리렌더). */
     const syncVisible = (time: number, width: number, height: number) => {
-      if (time - visibleCheckedAt < 250) return;
+      if (dockHoverRef.current || time - visibleCheckedAt < 250) return;
       visibleCheckedAt = time;
       const inView = nodes.filter((node) => {
+        if (focusRef.current && categories[node.categoryIndex].label !== focusRef.current) return false;
         const screenX = node.x * view.scale + view.x;
         const screenY = node.y * view.scale + view.y;
         const radius = node.r * view.scale;
@@ -363,6 +461,10 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
       frame = requestAnimationFrame(render);
       step(nodes, categories);
 
+      view.x += (camera.x - view.x) * 0.12;
+      view.y += (camera.y - view.y) * 0.12;
+      view.scale += (camera.scale - view.scale) * 0.12;
+
       const ratio = window.devicePixelRatio || 1;
       const width = canvas.width / ratio;
       const height = canvas.height / ratio;
@@ -376,107 +478,206 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
       context.translate(view.x, view.y);
       context.scale(view.scale, view.scale);
 
-      context.fillStyle = "rgb(27 36 48 / 8%)";
-      stars.forEach((star) => {
+      const focused = focusRef.current;
+      const lit = hovered ?? spotlight;
+      const weightOf = (categoryIndex: number) => (
+        !focused || categories[categoryIndex].label === focused ? 1 : 0.12
+      );
+
+      // 카테고리를 꿰는 큰 원 하나
+      const ringRadius = Math.hypot(categories[0].x, categories[0].y);
+      if (ringRadius > 0) {
+        context.save();
+        context.strokeStyle = `rgb(${INK} / 10%)`;
+        context.lineWidth = 1.2;
+        context.setLineDash([2, 10]);
         context.beginPath();
-        context.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+        context.arc(0, 0, ringRadius, 0, Math.PI * 2);
+        context.stroke();
+        context.restore();
+
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillStyle = `rgb(${INK} / 38%)`;
+        context.font = "700 26px Pretendard, sans-serif";
+        context.fillText("셀렉터스 풀", 0, -26);
+        context.fillStyle = `rgb(${INK} / 70%)`;
+        context.font = "800 52px Pretendard, sans-serif";
+        context.fillText(String(nodes.length), 0, 18);
+      }
+
+      // 클러스터마다 옅은 색 안개를 깔아 영역이 구분되게 한다.
+      categories.forEach((category, categoryIndex) => {
+        const spread = CATEGORY_RADIUS * 5.5;
+        const wash = context.createRadialGradient(
+          category.x, category.y, 0,
+          category.x, category.y, spread,
+        );
+        wash.addColorStop(0, `rgb(${category.rgb} / ${12 * weightOf(categoryIndex)}%)`);
+        wash.addColorStop(1, `rgb(${category.rgb} / 0%)`);
+        context.fillStyle = wash;
+        context.beginPath();
+        context.arc(category.x, category.y, spread, 0, Math.PI * 2);
         context.fill();
       });
 
-      context.lineWidth = 0.7;
+      context.lineWidth = 0.9;
       nodes.forEach((node, index) => {
         const category = categories[node.categoryIndex];
+        const weight = weightOf(node.categoryIndex);
         const position = floatOf(node, time);
-        context.strokeStyle = `rgb(${category.rgb} / ${hovered === node ? "75%" : "24%"})`;
-        context.beginPath();
-        context.moveTo(category.x, category.y);
-        context.lineTo(position.x, position.y);
-        context.stroke();
+        const near = lit === node || lit?.categoryIndex === node.categoryIndex;
+        context.strokeStyle = `rgb(${category.rgb} / ${(near ? 55 : 22) * weight}%)`;
+        drawCurve(context, category.x, category.y, position.x, position.y);
 
         const sibling = nodes[index + 1];
         if (sibling && sibling.categoryIndex === node.categoryIndex) {
           const siblingPosition = floatOf(sibling, time);
-          context.strokeStyle = `rgb(${category.rgb} / 14%)`;
-          context.beginPath();
-          context.moveTo(position.x, position.y);
-          context.lineTo(siblingPosition.x, siblingPosition.y);
-          context.stroke();
+          context.strokeStyle = `rgb(${category.rgb} / ${14 * weight}%)`;
+          drawCurve(context, position.x, position.y, siblingPosition.x, siblingPosition.y);
         }
       });
 
-      categories.forEach((category) => {
+      categories.forEach((category, categoryIndex) => {
+        const pulse = 1 + Math.sin(time / 1800 + categoryIndex) * 0.02;
+        const core = CATEGORY_RADIUS * pulse;
+
+        context.save();
+        context.globalAlpha = weightOf(categoryIndex);
+
+        // 은은한 후광
         const glow = context.createRadialGradient(
-          category.x, category.y, CATEGORY_RADIUS * 0.2,
-          category.x, category.y, CATEGORY_RADIUS * 2.4,
+          category.x, category.y, core * 0.4,
+          category.x, category.y, core * 2.2,
         );
-        glow.addColorStop(0, `rgb(${category.rgb} / 40%)`);
+        glow.addColorStop(0, `rgb(${category.rgb} / 22%)`);
         glow.addColorStop(1, `rgb(${category.rgb} / 0%)`);
         context.fillStyle = glow;
         context.beginPath();
-        context.arc(category.x, category.y, CATEGORY_RADIUS * 2.4, 0, Math.PI * 2);
+        context.arc(category.x, category.y, core * 2.2, 0, Math.PI * 2);
         context.fill();
 
-        context.fillStyle = "rgb(19 32 56 / 92%)";
-        context.strokeStyle = `rgb(${category.rgb} / 70%)`;
-        context.lineWidth = 1.6;
+        // 천천히 도는 점선 궤도
+        context.save();
+        context.translate(category.x, category.y);
+        context.rotate(time / 11000 + categoryIndex);
+        context.strokeStyle = `rgb(${category.rgb} / 32%)`;
+        context.lineWidth = 1;
+        context.setLineDash([9, 13]);
         context.beginPath();
-        context.arc(category.x, category.y, CATEGORY_RADIUS, 0, Math.PI * 2);
+        context.arc(0, 0, core * 1.55, 0, Math.PI * 2);
+        context.stroke();
+        context.restore();
+
+        // 흰 코어 + 색 링
+        context.save();
+        context.shadowColor = `rgb(${category.rgb} / 40%)`;
+        context.shadowBlur = 24;
+        context.shadowOffsetY = 6;
+        context.fillStyle = "#fff";
+        context.beginPath();
+        context.arc(category.x, category.y, core, 0, Math.PI * 2);
         context.fill();
+        context.restore();
+
+        context.strokeStyle = `rgb(${category.rgb})`;
+        context.lineWidth = 3;
+        context.beginPath();
+        context.arc(category.x, category.y, core - 1.5, 0, Math.PI * 2);
         context.stroke();
 
         context.textAlign = "center";
         context.textBaseline = "middle";
-        context.fillStyle = "#eaf2ff";
-        context.font = "600 15px Pretendard, sans-serif";
+        context.fillStyle = `rgb(${INK})`;
+        context.font = "700 15px Pretendard, sans-serif";
         context.fillText(category.label, category.x, category.y - 6);
-        context.fillStyle = "rgb(234 242 255 / 62%)";
-        context.font = "500 11px Pretendard, sans-serif";
-        context.fillText(`${category.count}명`, category.x, category.y + 13);
+
+        context.font = "600 11px Pretendard, sans-serif";
+        const countLabel = `${category.count}명`;
+        const chipWidth = context.measureText(countLabel).width + 16;
+        context.fillStyle = `rgb(${category.rgb} / 16%)`;
+        context.beginPath();
+        context.roundRect(category.x - chipWidth / 2, category.y + 6, chipWidth, 17, 9);
+        context.fill();
+        context.fillStyle = `rgb(${category.rgb})`;
+        context.fillText(countLabel, category.x, category.y + 15);
+        context.restore();
       });
 
       nodes.forEach((node) => {
         const position = floatOf(node, time);
-        const active = hovered === node;
-        const radius = node.r * (active ? 1.25 : 1);
-        const tint = categories[node.categoryIndex].rgb;
+        const active = lit === node;
+        const radius = node.r * (active ? 1.22 : 1);
+
+        context.save();
+        context.globalAlpha = weightOf(node.categoryIndex);
 
         if (active) {
-          context.strokeStyle = `rgb(${tint} / 55%)`;
+          context.strokeStyle = `rgb(${NODE_TINT} / 45%)`;
           context.lineWidth = 2;
           context.beginPath();
-          context.arc(position.x, position.y, radius + 6 + Math.sin(time / 220) * 3, 0, Math.PI * 2);
+          context.arc(position.x, position.y, radius + 8 + Math.sin(time / 240) * 3, 0, Math.PI * 2);
           context.stroke();
         }
 
-        drawBubble(context, node, position.x, position.y, radius, images.get(node.selector.id));
+        drawBubble(context, node, position.x, position.y, radius, images.get(node.selector.id), NODE_TINT);
 
-        context.strokeStyle = active ? `rgb(${tint} / 95%)` : `rgb(${tint} / 55%)`;
-        context.lineWidth = active ? 2.4 : 1.5;
+        context.strokeStyle = active ? `rgb(${NODE_TINT})` : `rgb(${INK} / 12%)`;
+        context.lineWidth = active ? 2.6 : 1.6;
         context.beginPath();
-        context.arc(position.x, position.y, radius, 0, Math.PI * 2);
+        context.arc(position.x, position.y, radius + 1, 0, Math.PI * 2);
         context.stroke();
-
-        if (active) {
-          const label = node.selector.snsDisplayName
-            || node.selector.snsAccountId
-            || node.selector.nickname;
-          context.font = "600 12px Pretendard, sans-serif";
-          context.textAlign = "center";
-          context.textBaseline = "middle";
-          const labelWidth = context.measureText(label).width + 16;
-          context.fillStyle = "rgb(24 32 46 / 92%)";
-          context.beginPath();
-          context.roundRect(position.x - labelWidth / 2, position.y + radius + 8, labelWidth, 22, 11);
-          context.fill();
-          context.fillStyle = "#eaf2ff";
-          context.fillText(label, position.x, position.y + radius + 19);
-        }
+        context.restore();
       });
+
+      // 호버한 버블의 정보 카드는 항상 맨 위에 그린다.
+      if (lit) {
+        const position = floatOf(lit, time);
+        const radius = lit.r * 1.22;
+        const name = lit.selector.snsDisplayName || lit.selector.nickname;
+        const account = lit.selector.snsAccountId || "-";
+        const followers = lit.selector.followerCount == null
+          ? null
+          : `팔로워 ${formatNumber(lit.selector.followerCount)}`;
+
+        context.font = "700 12px Pretendard, sans-serif";
+        const nameWidth = context.measureText(name).width;
+        context.font = "500 11px Pretendard, sans-serif";
+        const metaWidth = Math.max(
+          context.measureText(account).width,
+          followers ? context.measureText(followers).width : 0,
+        );
+        const cardWidth = Math.max(nameWidth, metaWidth) + 26;
+        const cardHeight = followers ? 60 : 44;
+        const cardY = position.y + radius + 10;
+
+        context.save();
+        context.shadowColor = `rgb(${INK} / 22%)`;
+        context.shadowBlur = 18;
+        context.shadowOffsetY = 6;
+        context.fillStyle = "#fff";
+        context.beginPath();
+        context.roundRect(position.x - cardWidth / 2, cardY, cardWidth, cardHeight, 12);
+        context.fill();
+        context.restore();
+
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillStyle = `rgb(${INK})`;
+        context.font = "700 12px Pretendard, sans-serif";
+        context.fillText(name, position.x, cardY + 16);
+        context.fillStyle = `rgb(${INK} / 60%)`;
+        context.font = "500 11px Pretendard, sans-serif";
+        context.fillText(account, position.x, cardY + 32);
+        if (followers) context.fillText(followers, position.x, cardY + 48);
+      }
     };
     frame = requestAnimationFrame(render);
 
     return () => {
       cancelAnimationFrame(frame);
+      cameraRef.current = null;
+      spotlightRef.current = null;
       observer.disconnect();
       window.removeEventListener("resize", resize);
       canvas.removeEventListener("pointerdown", onPointerDown);
@@ -485,7 +686,12 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
       canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("wheel", onWheel);
     };
-  }, [selectors]);
+  }, [categories, selectors]);
+
+  const focusCategory = (label: string | null) => {
+    setFocus(label);
+    cameraRef.current?.(label);
+  };
 
   return (
     <div className="hsas-selector-pool">
@@ -495,9 +701,37 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
         ref={canvasRef}
         role="img"
       />
+      <div className="hsas-selector-pool__legend">
+        <button
+          aria-pressed={focus === null}
+          className="hsas-selector-pool__chip"
+          onClick={() => focusCategory(null)}
+          type="button"
+        >
+          전체 보기
+        </button>
+        {categories.map((category) => (
+          <button
+            aria-pressed={focus === category.label}
+            className="hsas-selector-pool__chip"
+            key={category.label}
+            onClick={() => focusCategory(focus === category.label ? null : category.label)}
+            style={{ "--hsas-pool-chip": `rgb(${category.rgb})` } as CSSProperties}
+            type="button"
+          >
+            <span aria-hidden="true" className="hsas-selector-pool__chip-dot" />
+            {category.label}
+            <em>{category.count}</em>
+          </button>
+        ))}
+      </div>
       <aside
         aria-label="현재 화면의 셀렉터스"
         className={`hsas-selector-pool__dock${dockOpen ? "" : " is-collapsed"}`}
+        onBlurCapture={() => { dockHoverRef.current = false; }}
+        onFocusCapture={() => { dockHoverRef.current = true; }}
+        onMouseEnter={() => { dockHoverRef.current = true; }}
+        onMouseLeave={() => { dockHoverRef.current = false; }}
       >
         <button
           aria-expanded={dockOpen}
@@ -514,7 +748,11 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
               <li key={selector.id}>
                 <button
                   className="hsas-selector-pool__dock-item"
+                  onBlur={() => spotlightRef.current?.(null)}
                   onClick={() => onSelect(selector)}
+                  onFocus={() => spotlightRef.current?.(selector.id)}
+                  onMouseEnter={() => spotlightRef.current?.(selector.id)}
+                  onMouseLeave={() => spotlightRef.current?.(null)}
                   type="button"
                 >
                   <PoolAvatar selector={selector} />

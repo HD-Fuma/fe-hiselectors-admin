@@ -534,7 +534,7 @@ const SELECTOR_COLUMNS: DenseTableColumn<SelectorSummary>[] = [
 ];
 
 const SELECTOR_PAGE_SIZE = 20;
-const POOL_PAGE_SIZE = 120;
+const POOL_PAGE_SIZE = 200;
 const SELECTOR_VIEW_OPTIONS = [
   { label: "버블", value: "pool" },
   { label: "표", value: "table" },
