@@ -86,13 +86,19 @@ body:has(.fuma-content-inspection-studio) {
   border-color: #dedede;
   color: #353535;
   background: #fff;
-  box-shadow: 0 0 0 4px rgb(181 71 62 / 24%);
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 7px rgb(207 71 59 / 72%),
+    0 0 28px rgb(207 71 59 / 58%);
 }
 
 .fuma-content-inspection-studio__decision button.is-approve[aria-pressed="true"] {
   border-color: #171717;
   background: #171717;
-  box-shadow: 0 0 0 4px rgb(25 116 93 / 28%);
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 7px rgb(34 185 139 / 76%),
+    0 0 30px rgb(34 185 139 / 62%);
 }
 
 .fuma-content-inspection-studio__decision kbd {
