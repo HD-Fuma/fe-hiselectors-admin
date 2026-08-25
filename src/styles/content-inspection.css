@@ -1118,7 +1118,7 @@ body:has(.fuma-content-inspection-studio) {
 }
 
 .fuma-content-inspection-studio__version > .fuma-minimal-version-card[data-content-format="youtube-long"] {
-  width: min(860px, calc(100vw - 96px));
+  width: min(760px, calc(100vw - 96px));
 }
 
 .fuma-content-inspection-studio__versions[data-revised="true"]
@@ -1140,7 +1140,7 @@ body:has(.fuma-content-inspection-studio) {
 }
 
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-copy {
-  padding: 16px;
+  padding: 14px;
   border: 1px solid #e5e5e5;
   border-top: 0;
   border-radius: 0 0 12px 12px;
@@ -1148,9 +1148,14 @@ body:has(.fuma-content-inspection-studio) {
 }
 
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-copy h4 {
+  display: -webkit-box;
+  overflow: hidden;
   font-size: 19px;
   font-weight: 600;
   line-height: 28px;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-toolbar,
@@ -1278,6 +1283,13 @@ body:has(.fuma-content-inspection-studio) {
   color: #0f0f0f;
   font-size: 15px;
   line-height: 20px;
+}
+
+.fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-description p {
+  max-height: 60px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  scrollbar-width: thin;
 }
 
 .fuma-content-inspection-studio__version > .fuma-minimal-version-card[data-content-format="youtube-shorts"] {
