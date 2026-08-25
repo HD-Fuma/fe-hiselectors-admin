@@ -67,7 +67,12 @@ import {
   type ContentSnapshot,
   type InspectionStatus,
 } from "../../entities/content";
+import {
+  getSettlementSelectorDetail,
+  type SettlementSelectorDetail,
+} from "../../entities/settlement";
 import { getTaskRun } from "../../entities/task-run";
+import { formatCompactCount, formatWon } from "../../lib/formatters";
 
 const CONTENT_INSPECTION_PAGE_SIZE = 20;
 type ContentInspectionCategory =
@@ -1770,6 +1775,7 @@ export function ContentInspectionDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [studioDecision, setStudioDecision] = useState<"approve" | "reject" | null>(null);
+  const [studioSelector, setStudioSelector] = useState<SettlementSelectorDetail | null>(null);
   const [studioExiting, setStudioExiting] = useState(false);
   const { contentId } = useParams();
   const numericContentId = Number(contentId);
@@ -1862,7 +1868,25 @@ export function ContentInspectionDetailPage() {
     };
   }, [navigate, returnPath, routeState?.inspectionSession]);
 
+  useEffect(() => {
+    if (!routeState?.inspectionSession || !content?.selectorsId) return undefined;
+    const controller = new AbortController();
+
+    void getSettlementSelectorDetail(content.selectorsId, controller.signal)
+      .then((selector) => {
+        if (!controller.signal.aborted) setStudioSelector(selector);
+      })
+      .catch(() => undefined);
+
+    return () => controller.abort();
+  }, [content?.selectorsId, routeState?.inspectionSession]);
+
   if (routeState?.inspectionSession) {
+    const profile = studioSelector?.profile;
+    const snsId = profile?.accountId ?? content?.accountId ?? content?.author ?? "-";
+    const followerCount = profile?.followerCount;
+    const cumulativeSales = studioSelector?.settlementSummary.cumulativeSalesAmount;
+
     return (
       <main
         aria-label="집중 검수 스튜디오"
@@ -1872,12 +1896,46 @@ export function ContentInspectionDetailPage() {
         role="dialog"
       >
         {content ? (
-          <MinimalVersionCard
-            content={content}
-            label="콘텐츠 원문"
-            showAnnotations={false}
-            snapshot={content.currentSnapshot}
-          />
+          <>
+            <aside aria-label="셀렉터스 프로필" className="fuma-content-inspection-studio__profile">
+              <div className="fuma-content-inspection-studio__profile-identity">
+                <span className="fuma-content-inspection-studio__profile-avatar">
+                  {(profile?.profileImageUrl ?? content.profileImageUrl)
+                    ? (
+                        <CreatorProfilePhoto
+                          creatorName={profile?.selectorsNickname ?? content.author}
+                          src={profile?.profileImageUrl ?? content.profileImageUrl ?? ""}
+                        />
+                      )
+                    : <UserRound aria-label="익명 프로필 이미지" role="img" size={24} />}
+                </span>
+                <div>
+                  <strong>{profile?.selectorsNickname ?? content.author}</strong>
+                  <span>{snsId.startsWith("@") || snsId === "-" ? snsId : `@${snsId}`}</span>
+                </div>
+                <span className="fuma-content-inspection-studio__profile-id">
+                  <small>셀렉터스 ID</small>
+                  <b>{profile?.selectorsCode ?? (content.selectorsId ? `#${content.selectorsId}` : "-")}</b>
+                </span>
+              </div>
+              <dl>
+                <div>
+                  <dt>팔로워</dt>
+                  <dd>{followerCount == null ? "-" : `${formatCompactCount(followerCount)}명`}</dd>
+                </div>
+                <div>
+                  <dt>누적 매출</dt>
+                  <dd>{cumulativeSales == null ? "-" : formatWon(cumulativeSales)}</dd>
+                </div>
+              </dl>
+            </aside>
+            <MinimalVersionCard
+              content={content}
+              label="콘텐츠 원문"
+              showAnnotations={false}
+              snapshot={content.currentSnapshot}
+            />
+          </>
         ) : null}
         <div aria-label="최종 검수" className="fuma-content-inspection-studio__decision" role="group">
           <button
