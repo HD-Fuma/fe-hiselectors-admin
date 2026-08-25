@@ -1907,6 +1907,9 @@ export function ContentInspectionDetailPage() {
     const registeredContentCount = studioSelector?.contents.filter(
       ({ id }) => String(id) !== content?.id,
     ).length;
+    const inspectionProgress = currentPendingIndex >= 0 && pendingContents.length > 0
+      ? ((currentPendingIndex + 1) / pendingContents.length) * 100
+      : 0;
 
     return (
       <main
@@ -1970,12 +1973,15 @@ export function ContentInspectionDetailPage() {
           </>
         ) : null}
         <nav aria-label="검수 콘텐츠 이동" className="fuma-content-inspection-studio__queue">
-          <div>
+          <div className="fuma-content-inspection-studio__queue-progress">
             <span>검수 진행</span>
             <strong>
-              {currentPendingIndex >= 0 ? currentPendingIndex + 1 : 0}
+              <b>{currentPendingIndex >= 0 ? currentPendingIndex + 1 : 0}</b>
               <small> / {pendingContents.length}</small>
             </strong>
+            <span aria-hidden="true" className="fuma-content-inspection-studio__queue-track">
+              <i style={{ width: `${inspectionProgress}%` }} />
+            </span>
           </div>
           <span className="fuma-content-inspection-studio__queue-actions">
             <button
@@ -1985,6 +1991,7 @@ export function ContentInspectionDetailPage() {
               type="button"
             >
               <ChevronLeft aria-hidden="true" size={20} />
+              이전
             </button>
             <button
               aria-label="다음 콘텐츠"
@@ -1992,6 +1999,7 @@ export function ContentInspectionDetailPage() {
               onClick={() => navigateStudioContent(nextContent)}
               type="button"
             >
+              다음
               <ChevronRight aria-hidden="true" size={20} />
             </button>
           </span>
