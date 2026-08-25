@@ -1773,6 +1773,7 @@ export function ContentInspectionDetailPage() {
   const navigate = useNavigate();
   const [studioDecision, setStudioDecision] = useState<"approve" | "reject" | null>(null);
   const [studioSelector, setStudioSelector] = useState<SelectorDetail | null>(null);
+  const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
   const [studioExiting, setStudioExiting] = useState(false);
   const { contentId } = useParams();
   const numericContentId = Number(contentId);
@@ -1852,29 +1853,34 @@ export function ContentInspectionDetailPage() {
 
   useEffect(() => {
     if (!routeState?.inspectionSession) return undefined;
-    let exitTimer: number | undefined;
     const exitSession = (event: globalThis.KeyboardEvent) => {
+      if (studioExiting) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setExitConfirmationOpen((open) => !open);
+        return;
+      }
+      if (exitConfirmationOpen) return;
       if (event.key === "0" || event.key === "1") {
         event.preventDefault();
         setStudioDecision(event.key === "0" ? "reject" : "approve");
-        return;
       }
-      if (event.key !== "Escape" || exitTimer) return;
-      event.preventDefault();
-      setStudioExiting(true);
-      exitTimer = window.setTimeout(() => {
-        navigate(typeof returnPath === "string" ? returnPath : "/content/inspections", {
-          replace: true,
-        });
-      }, 260);
     };
 
     window.addEventListener("keydown", exitSession);
-    return () => {
-      window.removeEventListener("keydown", exitSession);
-      if (exitTimer) window.clearTimeout(exitTimer);
-    };
-  }, [navigate, returnPath, routeState?.inspectionSession]);
+    return () => window.removeEventListener("keydown", exitSession);
+  }, [exitConfirmationOpen, routeState?.inspectionSession, studioExiting]);
+
+  useEffect(() => {
+    if (!routeState?.inspectionSession || !studioExiting) return undefined;
+    const exitTimer = window.setTimeout(() => {
+      navigate(typeof returnPath === "string" ? returnPath : "/content/inspections", {
+        replace: true,
+      });
+    }, 260);
+
+    return () => window.clearTimeout(exitTimer);
+  }, [navigate, returnPath, routeState?.inspectionSession, studioExiting]);
 
   useEffect(() => {
     if (!routeState?.inspectionSession || !content?.selectorsId) return undefined;
@@ -2024,6 +2030,35 @@ export function ContentInspectionDetailPage() {
             승인
           </button>
         </div>
+        {exitConfirmationOpen ? (
+          <div className="fuma-content-inspection-studio__exit-layer">
+            <section
+              aria-describedby="fuma-inspection-exit-description"
+              aria-labelledby="fuma-inspection-exit-title"
+              aria-modal="true"
+              className="fuma-content-inspection-studio__exit-dialog"
+              role="alertdialog"
+            >
+              <span>ESC</span>
+              <h2 id="fuma-inspection-exit-title">검수가 완료되지 않았습니다.</h2>
+              <p id="fuma-inspection-exit-description">그래도 검수 화면에서 나가시겠습니까?</p>
+              <div>
+                <button autoFocus onClick={() => setExitConfirmationOpen(false)} type="button">
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    setExitConfirmationOpen(false);
+                    setStudioExiting(true);
+                  }}
+                  type="button"
+                >
+                  확인
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
       </main>
     );
   }
