@@ -1,8 +1,16 @@
-export { getRecentTaskRuns, getTaskRun, getTaskRunPanel } from "./api";
+export {
+  getRecentTaskRuns,
+  getTaskRun,
+  getTaskRunPanel,
+  streamTaskRunProgress,
+} from "./api";
 export type {
   SpringPage,
   TaskRun,
   TaskRunPanel,
+  TaskRunProgressEvent,
+  TaskRunProgressStepKey,
+  TaskRunProgressStreamOutcome,
   TaskRunStatus,
   TaskType,
   TriggerType,
