@@ -2518,7 +2518,6 @@ export function ContentInspectionDetailPage() {
             >
               {studioHistoricalVersionSummaries.length > 0 ? (
                 <div className="fuma-content-inspection-studio__history">
-                  <strong>이전 버전</strong>
                   {studioHistoryPending || (!studioHistoryError && visibleStudioHistoricalContents.length === 0) ? (
                     <p>과거 콘텐츠를 불러오는 중입니다.</p>
                   ) : studioHistoryError ? (
