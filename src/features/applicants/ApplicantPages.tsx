@@ -20,6 +20,10 @@ import {
   getAdminApplication,
   getAdminApplicationAiReport,
   getAdminApplications,
+  getCachedAdminApplication,
+  getCachedAdminApplicationAiReport,
+  invalidateAdminApplicationCache,
+  prefetchAdminApplication,
   updateAdminApplicationStatus,
   type AdminApplicationAiReport,
   type AdminApplicationDetail,
@@ -548,6 +552,7 @@ export function ApplicantListPage() {
                   ? <span aria-live="polite" role="status">지원자를 불러오는 중입니다.</span>
                   : "검색 결과가 없습니다."}
                 onRowClick={openApplicant}
+                onRowHover={(applicant) => prefetchAdminApplication(applicant.id)}
                 rowKey={(applicant) => applicant.id}
                 rows={applicants}
               />
@@ -625,8 +630,13 @@ export function ApplicantDetailPage({
     if (invalidApplicantId) return;
     const controller = new AbortController();
     let pollTimeout: number | undefined;
+    let useCache = true;
     const loadApplication = () => {
-      getAdminApplication(numericApplicantId, controller.signal).then((applicant) => {
+      const request = useCache
+        ? getCachedAdminApplication(numericApplicantId) ?? getAdminApplication(numericApplicantId, controller.signal)
+        : getAdminApplication(numericApplicantId, controller.signal);
+      useCache = false;
+      request.then((applicant) => {
         if (controller.signal.aborted) return;
         setDetailState({ id: numericApplicantId, applicant, error: "" });
         const pending = applicant.mediaCollectionStatus === "PENDING"
@@ -657,7 +667,9 @@ export function ApplicantDetailPage({
   useEffect(() => {
     if (invalidApplicantId) return;
     const controller = new AbortController();
-    getAdminApplicationAiReport(numericApplicantId, controller.signal).then((report) => {
+    const request = getCachedAdminApplicationAiReport(numericApplicantId)
+      ?? getAdminApplicationAiReport(numericApplicantId, controller.signal);
+    request.then((report) => {
       if (!controller.signal.aborted) setAiReport({ id: numericApplicantId, report });
     });
     return () => controller.abort();
@@ -778,6 +790,7 @@ export function ApplicantDetailPage({
       return;
     }
 
+    invalidateAdminApplicationCache(numericApplicantId);
     onStatusChanged?.();
     onDecisionConfirmed?.(applicant?.applicantName ?? "지원자", status);
     (onClose ?? (() => navigate("/applicants")))();
