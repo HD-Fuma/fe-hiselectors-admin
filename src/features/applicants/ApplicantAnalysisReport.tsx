@@ -81,6 +81,23 @@ function narrativeValues(raw: string | undefined, fallback: string) {
   return values.length > 0 ? values : [fallback];
 }
 
+const YOUTUBE_VIDEO_ID_PATTERN = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
+const INSTAGRAM_POST_PATTERN = /instagram\.com\/(p|reel|tv)\/([A-Za-z0-9_-]+)/;
+
+function youtubeEmbedUrl(url: string) {
+  const videoId = YOUTUBE_VIDEO_ID_PATTERN.exec(url)?.[1];
+  return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1` : null;
+}
+
+function instagramEmbedUrl(url: string) {
+  const match = INSTAGRAM_POST_PATTERN.exec(url);
+  return match ? `https://www.instagram.com/${match[1]}/${match[2]}/embed` : null;
+}
+
+function representativeEmbedUrl(snsCode: "INSTAGRAM" | "YOUTUBE", url: string) {
+  return snsCode === "YOUTUBE" ? youtubeEmbedUrl(url) : instagramEmbedUrl(url);
+}
+
 function representativeContentTypeLabel(type: ApplicationRepresentativeContentType) {
   if (type === "SHORT_FORM") return "숏폼";
   if (type === "FEED") return "피드";
@@ -168,26 +185,30 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
     aiReport?.representativeViewCount ?? null,
     collectionDone ? applicant.metrics.averageViewCount.value : null,
   );
+  const representativeMatchedContent = aiReport?.representativeContentUrl
+    ? applicant.contents.find((content) => content.contentUrl === aiReport.representativeContentUrl)
+    : null;
   const representativeContent = aiReport?.representativeContentUrl && aiReport.representativeContentType
     ? {
       basisBars: basis.bars,
       basisInsight: basis.insight,
       category: categoryLabel(aiReport.representativeCategory || aiReport.category || null),
       contentTypeLabel: representativeContentTypeLabel(aiReport.representativeContentType),
+      embedUrl: representativeEmbedUrl(applicant.snsCode, aiReport.representativeContentUrl),
       isVideo: aiReport.representativeContentType !== "FEED",
       keywords: excludeGenericUiTokens(
         aiReport.representativeKeywords?.length ? aiReport.representativeKeywords : aiReport.keywords,
       ),
       mediaAlt: `${applicant.applicantName} 대표 콘텐츠`,
       mediaUrl: (() => {
-        const matched = applicant.contents.find(
-          (content) => content.contentUrl === aiReport.representativeContentUrl,
-        );
-        const thumbnailUrl = matched?.thumbnailUrl
-          ?? (matched?.mediaType === "IMAGE" ? matched.mediaUrl : null);
+        const thumbnailUrl = representativeMatchedContent?.thumbnailUrl
+          ?? (representativeMatchedContent?.mediaType === "IMAGE" ? representativeMatchedContent.mediaUrl : null);
         return thumbnailUrl ? assetUrl(thumbnailUrl) : null;
       })(),
       url: aiReport.representativeContentUrl,
+      videoUrl: representativeMatchedContent?.mediaType === "VIDEO" && representativeMatchedContent.mediaUrl
+        ? assetUrl(representativeMatchedContent.mediaUrl)
+        : null,
       viewCountLabel: aiReport.representativeViewCount === null
         ? null
         : `조회수 ${formatCompactCount(aiReport.representativeViewCount)}`,

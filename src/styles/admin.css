@@ -3917,10 +3917,75 @@
   color: var(--hsas-color-white);
 }
 
+.fuma-proposal-compose__creator--batch {
+  align-self: start;
+}
+
 .fuma-proposal-compose__creator--batch > strong { display: block; margin: var(--hsas-space-4) 0 var(--hsas-space-14); color: #273a31; font-size: var(--hsas-font-16); }
-.fuma-proposal-compose__creator--batch ul { display: grid; gap: var(--hsas-space-7); margin: 0; padding: 0; list-style: none; }
-.fuma-proposal-compose__creator--batch li { display: flex; align-items: baseline; justify-content: space-between; gap: var(--hsas-space-8); padding: var(--hsas-space-9) 0; border-bottom: 1px solid #e4ebe7; color: #34453d; font-size: var(--hsas-font-12); font-weight: 700; }
-.fuma-proposal-compose__creator--batch li span { color: #77847e; font-size: var(--hsas-font-10); font-weight: 400; text-align: right; }
+
+.fuma-proposal-compose__creator-cards {
+  display: grid;
+  gap: var(--hsas-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fuma-proposal-compose__creator-card {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: var(--hsas-space-12);
+  padding: var(--hsas-space-14) var(--hsas-space-16);
+  border: 1px solid #e4ebe7;
+  border-radius: 16px;
+  background: #fff;
+  color: #273a31;
+  font: inherit;
+  font-size: var(--hsas-font-14);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.fuma-proposal-compose__creator-card:hover {
+  border-color: #bcd6c9;
+}
+
+.fuma-proposal-compose__creator-card[aria-pressed="true"] {
+  border-color: #1d7a52;
+  background: #eef4f1;
+}
+
+.fuma-proposal-compose__creator-photo {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.fuma-proposal-compose__creator-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.fuma-proposal-compose__creator-photo .fuma-creator-profile-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  font-size: var(--hsas-font-18);
+}
 
 .fuma-creator-mosaic {
   display: grid;
@@ -4259,25 +4324,53 @@
   font-size: var(--hsas-font-10);
 }
 
+.fuma-proposal-compose__edit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hsas-space-4);
+  margin-bottom: var(--hsas-space-10);
+  padding: var(--hsas-space-4) var(--hsas-space-10);
+  border: 1px solid #d7e0dc;
+  border-radius: 999px;
+  background: #fff;
+  color: #344139;
+  font-size: var(--hsas-font-10);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, color .2s ease;
+}
+
+.fuma-proposal-compose__edit-toggle:hover {
+  border-color: #1d7a52;
+  background: #eef4f1;
+}
+
+.fuma-proposal-compose__edit-toggle--primary {
+  border-color: #1d7a52;
+  background: #1d7a52;
+  color: #fff;
+}
+
+.fuma-proposal-compose__edit-toggle--primary:hover {
+  border-color: #17603f;
+  background: #17603f;
+}
+
+.fuma-proposal-compose__edit-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--hsas-space-18) var(--hsas-space-8);
+}
+
+.fuma-proposal-compose__edit-heading > span {
+  color: #454b4f;
+  font-size: var(--hsas-font-11);
+  font-weight: 700;
+}
+
 .fuma-proposal-compose__form .hsas-form-row {
   padding-inline: var(--hsas-space-18);
-}
-
-.fuma-proposal-compose__delivery strong,
-.fuma-proposal-compose__delivery span {
-  display: block;
-}
-
-.fuma-proposal-compose__delivery strong {
-  color: #344139;
-  font-size: var(--hsas-font-11);
-}
-
-.fuma-proposal-compose__delivery span {
-  margin-top: var(--hsas-space-3);
-  color: #79827e;
-  font-size: var(--hsas-font-10);
-  line-height: 1.4;
 }
 
 .fuma-proposal-compose__textarea {
@@ -4291,16 +4384,11 @@
 .fuma-proposal-compose__footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--hsas-space-16);
   padding: var(--hsas-space-12) var(--hsas-space-18);
   border-top: 1px solid #e8edeb;
   background: #fafcfb;
-}
-
-.fuma-proposal-compose__footer > span {
-  color: #79827e;
-  font-size: var(--hsas-font-10);
 }
 
 .fuma-proposal-compose__footer > div {
@@ -4311,6 +4399,79 @@
 .fuma-proposal-compose__submit.hsas-button--primary,
 .fuma-proposal-compose__submit.hsas-button--primary:hover:not(:disabled) {
   border-color: transparent;
+}
+
+.fuma-proposal-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hsas-space-12);
+  padding: var(--hsas-space-12) var(--hsas-space-18) var(--hsas-space-18);
+}
+
+.fuma-proposal-compose__edit-toggle-emoji {
+  position: absolute;
+  top: var(--hsas-space-10);
+  right: var(--hsas-space-10);
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: #9aa39e;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+
+.fuma-proposal-compose__edit-toggle-emoji:hover {
+  background: #eef2f0;
+  color: #454b4f;
+}
+
+.fuma-proposal-preview__email {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hsas-space-10);
+  padding: var(--hsas-space-16);
+  padding-right: var(--hsas-space-40);
+  border: 1px solid #e4ebe7;
+  border-radius: var(--hsas-radius-10);
+  background: #fff;
+}
+
+.fuma-proposal-preview__subject {
+  display: block;
+  padding-bottom: var(--hsas-space-10);
+  border-bottom: 1px solid #eef2f0;
+  color: #273a31;
+  font-size: var(--hsas-font-17);
+  font-weight: 700;
+}
+
+.fuma-proposal-preview__body {
+  white-space: pre-wrap;
+  color: #34453d;
+  font-size: var(--hsas-font-15);
+  line-height: 1.8;
+}
+
+.fuma-proposal-preview__value {
+  color: #1d7a52;
+  font-weight: 700;
+}
+
+.fuma-proposal-preview__var {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--hsas-space-6);
+  border-radius: var(--hsas-radius-4);
+  background: #eef4f1;
+  color: #4a6459;
+  font-size: 0.92em;
+  font-weight: 600;
 }
 
 .fuma-proposal-delivery-detail {
@@ -8466,24 +8627,55 @@
   content: none;
 }
 
-.fuma-representative-card__media:focus-visible {
+.fuma-representative-card__media-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.fuma-representative-card__media-link:focus-visible,
+.fuma-representative-card__video:focus-visible {
   outline: var(--hsas-space-2) solid var(--hsas-sidebar-active);
   outline-offset: var(--hsas-space-3);
 }
 
-.fuma-representative-card__media img {
+.fuma-representative-card__media img,
+.fuma-representative-card__video {
   display: block;
   width: 100%;
   height: 100%;
   margin: 0;
+  border: 0;
   border-radius: inherit;
   box-shadow: none;
   object-fit: cover;
   object-position: center;
-  transition: transform 0.35s ease;
+  background: #000;
 }
 
-.fuma-representative-card__media:hover img { transform: scale(1.05); }
+.fuma-representative-card__media img { transition: transform 0.35s ease; }
+
+.fuma-representative-card__media-link:hover img { transform: scale(1.05); }
+
+.fuma-representative-card__original-link {
+  position: absolute;
+  z-index: 2;
+  top: 9px;
+  right: 9px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(24, 20, 23, 0.55);
+  backdrop-filter: blur(2px);
+  color: var(--hsas-color-white);
+  transition: background .2s ease;
+}
+
+.fuma-representative-card__original-link:hover { background: rgba(24, 20, 23, 0.8); }
 
 .fuma-representative-card__media-empty {
   display: grid;
@@ -9918,6 +10110,71 @@
   border-color: var(--hsas-border);
 }
 
+:root[data-theme="dark"] .fuma-proposal-compose__edit-toggle {
+  border-color: var(--hsas-border);
+  background: var(--hsas-surface);
+  color: var(--hsas-text);
+}
+
+:root[data-theme="dark"] .fuma-proposal-compose__edit-toggle:hover {
+  border-color: var(--hsas-teal);
+  background: var(--hsas-teal-soft);
+}
+
+:root[data-theme="dark"] .fuma-proposal-compose__edit-toggle--primary,
+:root[data-theme="dark"] .fuma-proposal-compose__edit-toggle--primary:hover {
+  border-color: var(--hsas-teal);
+  background: var(--hsas-teal);
+  color: var(--hsas-color-white);
+}
+
+:root[data-theme="dark"] .fuma-proposal-compose__edit-heading > span {
+  color: var(--hsas-text-muted);
+}
+
+:root[data-theme="dark"] .fuma-proposal-compose__creator-card {
+  border-color: var(--hsas-border);
+  background: var(--hsas-surface);
+  color: var(--hsas-text);
+}
+
+:root[data-theme="dark"] .fuma-proposal-compose__creator-card[aria-pressed="true"] {
+  border-color: var(--hsas-teal);
+  background: var(--hsas-teal-soft);
+}
+
+:root[data-theme="dark"] .fuma-proposal-preview__email {
+  border-color: var(--hsas-border);
+  background: var(--hsas-surface);
+}
+
+:root[data-theme="dark"] .fuma-proposal-compose__edit-toggle-emoji {
+  color: var(--hsas-text-muted);
+}
+
+:root[data-theme="dark"] .fuma-proposal-compose__edit-toggle-emoji:hover {
+  background: var(--hsas-teal-soft);
+  color: var(--hsas-text);
+}
+
+:root[data-theme="dark"] .fuma-proposal-preview__subject {
+  border-color: var(--hsas-border);
+  color: var(--hsas-text);
+}
+
+:root[data-theme="dark"] .fuma-proposal-preview__body {
+  color: var(--hsas-text);
+}
+
+:root[data-theme="dark"] .fuma-proposal-preview__value {
+  color: var(--hsas-teal);
+}
+
+:root[data-theme="dark"] .fuma-proposal-preview__var {
+  background: var(--hsas-teal-soft);
+  color: var(--hsas-text-muted);
+}
+
 :root[data-theme="dark"] .fuma-creator-detail-hero__categories span {
   background: var(--hsas-teal-soft);
   color: var(--hsas-text-muted);
@@ -10017,7 +10274,6 @@
 :root[data-theme="dark"] .fuma-campaign-detail-preview figcaption strong,
 :root[data-theme="dark"] .fuma-proposal-compose__creator-metrics dd,
 :root[data-theme="dark"] .fuma-proposal-compose__form-heading h2,
-:root[data-theme="dark"] .fuma-proposal-compose__delivery strong,
 :root[data-theme="dark"] .fuma-proposal-delivery-detail__list dd,
 :root[data-theme="dark"] .fuma-analysis-engagement__header strong,
 :root[data-theme="dark"] .fuma-analysis-engagement__card dd,

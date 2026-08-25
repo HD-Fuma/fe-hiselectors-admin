@@ -1,4 +1,4 @@
-import { Images, Play, Siren } from "lucide-react";
+import { ExternalLink, Images, Play, Siren } from "lucide-react";
 import type { AnalysisBarDatum } from "../charts/AnalysisBarRows";
 import { AnalysisBarRows } from "../charts/AnalysisBarRows";
 import type { AnalysisFormatSegment } from "../charts/AnalysisFormatDonut";
@@ -30,11 +30,13 @@ export interface ProfileAnalysisRepresentativeContent {
   basisInsight: string | null;
   category: string | null;
   contentTypeLabel: string;
+  embedUrl: string | null;
   isVideo: boolean;
   keywords: readonly string[];
   mediaAlt: string;
   mediaUrl: string | null;
   url: string;
+  videoUrl: string | null;
   viewCountLabel: string | null;
 }
 
@@ -110,7 +112,11 @@ export function ProfileAnalysisReport({
           <section aria-label="대표 콘텐츠" className="fuma-creator-analysis-block fuma-representative-card-wrap">
             <div className="fuma-creator-analysis-block__heading">
               <h3>AI PICK</h3>
-              <span>커버를 눌러 원본 콘텐츠 보기</span>
+              <span>
+                {representativeContent.isVideo && (representativeContent.videoUrl || representativeContent.embedUrl)
+                  ? "커버를 눌러 바로 재생"
+                  : "커버를 눌러 원본 콘텐츠 보기"}
+              </span>
             </div>
             <article
               className="fuma-representative-card"
@@ -118,29 +124,75 @@ export function ProfileAnalysisReport({
               data-format={representativeFormatFor(representativeContent.contentTypeLabel, representativeContent.isVideo)}
               data-media={representativeContent.isVideo ? "video" : "image"}
             >
-              <a
-                aria-label={`${representativeContent.mediaAlt} 원본 열기`}
-                className="fuma-representative-card__media"
-                href={representativeContent.url}
-                rel="noreferrer"
-                target="_blank"
-              >
-                {representativeContent.mediaUrl ? (
-                  <img alt={representativeContent.mediaAlt} src={representativeContent.mediaUrl} />
+              <div className="fuma-representative-card__media">
+                {representativeContent.isVideo && representativeContent.videoUrl ? (
+                  <>
+                    <video
+                      className="fuma-representative-card__video"
+                      controls
+                      playsInline
+                      poster={representativeContent.mediaUrl ?? undefined}
+                      preload="none"
+                    >
+                      <source src={representativeContent.videoUrl} />
+                    </video>
+                    <a
+                      aria-label={`${representativeContent.mediaAlt} 원본 새 창에서 열기`}
+                      className="fuma-representative-card__original-link"
+                      href={representativeContent.url}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <ExternalLink aria-hidden="true" size={13} />
+                    </a>
+                  </>
+                ) : representativeContent.isVideo && representativeContent.embedUrl ? (
+                  <>
+                    <iframe
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      className="fuma-representative-card__video"
+                      loading="lazy"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      src={representativeContent.embedUrl}
+                      title={`${representativeContent.mediaAlt} 영상`}
+                    />
+                    <a
+                      aria-label={`${representativeContent.mediaAlt} 원본 새 창에서 열기`}
+                      className="fuma-representative-card__original-link"
+                      href={representativeContent.url}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <ExternalLink aria-hidden="true" size={13} />
+                    </a>
+                  </>
                 ) : (
-                  <span className="fuma-representative-card__media-empty">
-                    <Images aria-hidden="true" size={26} />
-                  </span>
+                  <a
+                    aria-label={`${representativeContent.mediaAlt} 원본 열기`}
+                    className="fuma-representative-card__media-link"
+                    href={representativeContent.url}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {representativeContent.mediaUrl ? (
+                      <img alt={representativeContent.mediaAlt} src={representativeContent.mediaUrl} />
+                    ) : (
+                      <span className="fuma-representative-card__media-empty">
+                        <Images aria-hidden="true" size={26} />
+                      </span>
+                    )}
+                    {representativeContent.isVideo ? (
+                      <span className="fuma-representative-card__play">
+                        <Play aria-hidden="true" fill="currentColor" size={16} />
+                      </span>
+                    ) : null}
+                  </a>
                 )}
-                {representativeContent.isVideo ? (
-                  <span className="fuma-representative-card__play">
-                    <Play aria-hidden="true" fill="currentColor" size={16} />
-                  </span>
-                ) : null}
                 <span className="fuma-representative-card__format-badge">
                   {representativeContent.contentTypeLabel}
                 </span>
-              </a>
+              </div>
               <div className="fuma-representative-card__info">
                 <div className="fuma-representative-card__intro">
                   <span>REPRESENTATIVE CONTENT</span>
