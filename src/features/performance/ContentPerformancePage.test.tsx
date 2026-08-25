@@ -162,7 +162,9 @@ test("content performance opens card and list details in a side panel", async ()
   expect(within(list).queryByRole("columnheader", { name: "조회수 추이" })).not.toBeInTheDocument();
   expect(within(list).queryByRole("columnheader", { name: "좋아요 수 추이" })).not.toBeInTheDocument();
   const firstListRow = within(list).getAllByRole("row")[1];
-  const tableTrend = within(firstListRow).getByRole("img", { name: "날짜별 조회수 및 좋아요 추이" });
+  const tableTrend = within(firstListRow).getByRole("img", { name: /날짜별 조회수 및 좋아요 추이/ });
+  expect(tableTrend).toHaveAccessibleName(/08\.18: 조회수 3,000, 좋아요 100/);
+  expect(tableTrend).toHaveAccessibleName(/08\.19: 조회수 9,000, 좋아요 420/);
   expect(tableTrend.querySelectorAll("[data-series]")).toHaveLength(2);
   await user.click(firstListRow);
   expect(screen.getByRole("dialog", { name: "콘텐츠 상세" })).toBeInTheDocument();

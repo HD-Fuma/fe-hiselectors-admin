@@ -51,6 +51,7 @@
 | 상세 drawer | `SidePanel` |
 | 크리에이터·지원자 상세 | `ProfileDetailShell`, `ProfileAnalysisReport` |
 | SNS 표시 | `PlatformIcon`, `SOCIAL_PLATFORM_FILTER_OPTIONS` |
+| 차트·그래프 | ECharts (`HsECharts`, `PeriodLineChart`, `AnalysisFormatDonut` 등) |
 
 Modal과 SidePanel은 공통 focus trap, scroll lock, inert 처리를 사용합니다. feature에서 overlay lifecycle을 다시 구현하지 않습니다.
 

@@ -1,6 +1,9 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AnalysisFormatBreakdown } from "../../components/charts/AnalysisFormatBreakdown";
+import { COHORT_SERIES_COLORS } from "../../components/charts/chartColors";
 import type { AnalysisFormatSegment } from "../../components/charts/AnalysisFormatDonut";
+import { PeriodLineChart } from "../../components/charts/PeriodLineChart";
+import { SparklineChart } from "../../components/charts/SparklineChart";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { ContentCollectionCard } from "../../components/ui/ContentCollectionCard";
 import { contentCollectionFormatKey } from "../../components/ui/contentCollectionFormat";
@@ -100,62 +103,27 @@ function ContentTableTrendChart({ content }: { content: ContentInfluence }) {
     );
   }
 
-  const chartWidth = 220;
-  const series = [
-    {
-      label: "조회수",
-      value: "views",
-      values: dates.map((date) => content.viewsTrend.find((point) => point.recordedAt === date)?.views ?? 0),
-    },
-    {
-      label: "좋아요",
-      value: "likes",
-      values: dates.map((date) => content.reactionTrend.find((point) => point.recordedAt === date)?.likes ?? 0),
-    },
-  ] as const;
-  const chartSeries = series.map((item) => {
-    const maximum = Math.max(1, ...item.values);
-    return {
-      ...item,
-      points: item.values.map((value, index) => ({
-        x: dates.length === 1 ? chartWidth / 2 : 16 + index * ((chartWidth - 32) / (dates.length - 1)),
-        y: 8 + (1 - value / maximum) * 30,
-      })),
-    };
-  });
-
   return (
     <div className="fuma-content-table-trend">
-      <svg
-        aria-label="날짜별 조회수 및 좋아요 추이"
-        className="fuma-content-cohort-chart__plot fuma-content-table-trend__plot is-all"
-        role="img"
-        viewBox={`0 0 ${chartWidth} 56`}
-      >
-        <line className="fuma-content-cohort-chart__grid" x1="8" x2={chartWidth - 8} y1="8" y2="8" />
-        <line className="fuma-content-cohort-chart__grid" x1="8" x2={chartWidth - 8} y1="23" y2="23" />
-        <line className="fuma-content-cohort-chart__grid" x1="8" x2={chartWidth - 8} y1="38" y2="38" />
-        {chartSeries.map((item) => (
-          <g className={`fuma-content-cohort-chart__series is-${item.value}`} data-series={item.value} key={item.value}>
-            <path className="fuma-content-cohort-chart__line" d={smoothLinePath(item.points)} />
-            {item.points.map((point, index) => (
-              <circle
-                className="fuma-content-cohort-chart__point"
-                cx={point.x}
-                cy={point.y}
-                key={`${dates[index]}-${item.value}`}
-                r="2.5"
-              />
-            ))}
-          </g>
-        ))}
-        <text className="fuma-content-cohort-chart__label" textAnchor="start" x="8" y="53">
-          {trendDateLabel(dates[0])}
-        </text>
-        <text className="fuma-content-cohort-chart__label" textAnchor="end" x={chartWidth - 8} y="53">
-          {trendDateLabel(dates.at(-1))}
-        </text>
-      </svg>
+      <SparklineChart
+        ariaLabel="날짜별 조회수 및 좋아요 추이"
+        categories={dates}
+        categoryLabels={dates.map((date) => trendDateLabel(date))}
+        endLabel={trendDateLabel(dates.at(-1))}
+        series={[
+          {
+            id: "views",
+            name: "조회수",
+            data: dates.map((date) => content.viewsTrend.find((point) => point.recordedAt === date)?.views ?? 0),
+          },
+          {
+            id: "likes",
+            name: "좋아요",
+            data: dates.map((date) => content.reactionTrend.find((point) => point.recordedAt === date)?.likes ?? 0),
+          },
+        ]}
+        startLabel={trendDateLabel(dates[0])}
+      />
     </div>
   );
 }
@@ -260,23 +228,6 @@ const CONTENT_DETAIL_TREND_OPTIONS: readonly {
   { label: "댓글 수", value: "comments" },
 ];
 
-function smoothLinePath(points: readonly { x: number; y: number }[]) {
-  if (points.length === 0) return "";
-  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
-
-  return points.slice(0, -1).reduce((path, point, index) => {
-    const previous = points[index - 1] ?? point;
-    const next = points[index + 1];
-    const afterNext = points[index + 2] ?? next;
-    const control1X = point.x + (next.x - previous.x) / 6;
-    const control1Y = point.y + (next.y - previous.y) / 6;
-    const control2X = next.x - (afterNext.x - point.x) / 6;
-    const control2Y = next.y - (afterNext.y - point.y) / 6;
-
-    return `${path} C ${control1X} ${control1Y}, ${control2X} ${control2Y}, ${next.x} ${next.y}`;
-  }, `M ${points[0].x} ${points[0].y}`);
-}
-
 function ContentOverview({
   contents,
   uploadSummary,
@@ -375,16 +326,6 @@ function ContentOverview({
   const visibleCohortSeries = cohortChartMode === "all"
     ? COHORT_CHART_SERIES
     : COHORT_CHART_SERIES.filter((series) => series.value === cohortChartMode);
-  const cohortChartSeries = visibleCohortSeries.map((series) => {
-    const maximum = Math.max(1, ...periodMetrics.map((metric) => metric[series.value]));
-    return {
-      ...series,
-      points: periodMetrics.map((metric, index) => ({
-        x: 42 + index * periodPointGap,
-        y: 25 + (1 - metric[series.value] / maximum) * 168,
-      })),
-    };
-  });
   const formatSegments = uploadSummary ? contentFormatSegments(uploadSummary) : [];
   const cohortChange = !uploadSummary || uploadSummary.previousGenerationContentCount === 0
     ? "-"
@@ -477,46 +418,25 @@ function ContentOverview({
             ref={chartScrollRef}
             role="region"
           >
-            <svg
-              aria-label={cohortChartMode === "all" ? "기간별 전체 성과 추이" : `기간별 ${cohortChartSeries[0].label} 추이`}
-              className={`fuma-content-cohort-chart__plot fuma-content-period-chart__plot is-${cohortChartMode}`}
-              role="img"
-              style={{ width: `${cohortChartWidth}px` }}
-              viewBox={`0 0 ${cohortChartWidth} 246`}
-            >
-              <line className="fuma-content-cohort-chart__grid" x1="18" x2={cohortChartWidth - 18} y1="25" y2="25" />
-              <line className="fuma-content-cohort-chart__grid" x1="18" x2={cohortChartWidth - 18} y1="109" y2="109" />
-              <line className="fuma-content-cohort-chart__grid" x1="18" x2={cohortChartWidth - 18} y1="193" y2="193" />
-              {cohortChartSeries.map((series) => (
-                <g className={`fuma-content-cohort-chart__series is-${series.value}`} data-series={series.value} key={series.value}>
-                  <path className="fuma-content-cohort-chart__line" d={smoothLinePath(series.points)} />
-                  {periodMetrics.map((metric, index) => {
-                    const point = series.points[index];
-                    const value = metric[series.value];
-                    return (
-                      <g data-metric-date={metric.date} data-metric-value={value} key={metric.date}>
-                        <circle className="fuma-content-cohort-chart__point" cx={point.x} cy={point.y} r="3.5" />
-                        {cohortChartMode !== "all" ? (
-                          <text className="fuma-content-cohort-chart__value" textAnchor="middle" x={point.x} y={point.y - 11}>
-                            {formatCount(value)}
-                          </text>
-                        ) : null}
-                      </g>
-                    );
-                  })}
-                </g>
-              ))}
-              {periodMetrics.map((metric, index) => {
-                const x = 42 + index * periodPointGap;
-                return (
-                  <g data-period-date={metric.date} key={metric.date}>
-                    <text className="fuma-content-cohort-chart__label" textAnchor="middle" x={x} y="228">
-                      {trendDateLabel(metric.date)}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
+            <PeriodLineChart
+              ariaLabel={cohortChartMode === "all"
+                ? "기간별 전체 성과 추이"
+                : `기간별 ${visibleCohortSeries[0].label} 추이`}
+              categories={periodMetrics.map((metric) => metric.date)}
+              categoryLabels={periodMetrics.map((metric) => trendDateLabel(metric.date))}
+              className="fuma-content-period-chart__plot"
+              formatValue={formatCount}
+              height={246}
+              modeClass={cohortChartMode}
+              series={visibleCohortSeries.map((series) => ({
+                color: COHORT_SERIES_COLORS[series.value],
+                data: periodMetrics.map((metric) => metric[series.value]),
+                id: series.value,
+                name: series.label,
+              }))}
+              showValueLabels={cohortChartMode !== "all"}
+              width={cohortChartWidth}
+            />
           </div>
         ) : <p>조회 기간에 표시할 콘텐츠 성과가 없습니다.</p>}
       </article>
@@ -598,24 +518,16 @@ function ContentPerformanceDetailPanel({
     .filter((series): series is typeof series & { value: ContentDetailTrendMetric } => (
       series.value !== "contentCount" && (trendMode === "all" || series.value === trendMode)
     ))
-    .map((series) => {
-      const values = trendDates.map((date) => {
+    .map((series) => ({
+      ...series,
+      data: trendDates.map((date) => {
         if (series.value === "views") {
           return content.viewsTrend.find((point) => point.recordedAt === date)?.views ?? 0;
         }
         const reaction = content.reactionTrend.find((point) => point.recordedAt === date);
         return reaction?.[series.value] ?? 0;
-      });
-      const maximum = Math.max(1, ...values);
-      return {
-        ...series,
-        points: values.map((value, index) => ({
-          value,
-          x: 42 + index * 92,
-          y: 25 + (1 - value / maximum) * 76,
-        })),
-      };
-    });
+      }),
+    }));
 
   return (
     <SidePanel onClose={onClose} title="콘텐츠 상세">
@@ -667,43 +579,22 @@ function ContentPerformanceDetailPanel({
                   <li className={`is-${series.value}`} key={series.value}><i />{series.label}</li>
                 ))}
               </ul>
-              <svg
-                aria-label="콘텐츠 조회 및 반응 추이"
-                className={`fuma-content-cohort-chart__plot is-${trendMode}`}
-                role="img"
-                style={{ width: `${trendChartWidth}px` }}
-                viewBox={`0 0 ${trendChartWidth} 148`}
-              >
-                <line className="fuma-content-cohort-chart__grid" x1="18" x2={trendChartWidth - 18} y1="25" y2="25" />
-                <line className="fuma-content-cohort-chart__grid" x1="18" x2={trendChartWidth - 18} y1="63" y2="63" />
-                <line className="fuma-content-cohort-chart__grid" x1="18" x2={trendChartWidth - 18} y1="101" y2="101" />
-                {detailTrendSeries.map((series) => (
-                  <g className={`fuma-content-cohort-chart__series is-${series.value}`} data-series={series.value} key={series.value}>
-                    <path className="fuma-content-cohort-chart__line" d={smoothLinePath(series.points)} />
-                    {series.points.map((point, index) => (
-                      <g key={trendDates[index]}>
-                        <circle className="fuma-content-cohort-chart__point" cx={point.x} cy={point.y} r="4" />
-                        {trendMode !== "all" ? (
-                          <text className="fuma-content-cohort-chart__value" textAnchor="middle" x={point.x} y={point.y - 11}>
-                            {formatCount(point.value)}
-                          </text>
-                        ) : null}
-                      </g>
-                    ))}
-                  </g>
-                ))}
-                {trendDates.map((date, index) => (
-                  <text
-                    className="fuma-content-cohort-chart__label"
-                    key={date}
-                    textAnchor="middle"
-                    x={42 + index * 92}
-                    y="126"
-                  >
-                    {trendDateLabel(date)}
-                  </text>
-                ))}
-              </svg>
+              <PeriodLineChart
+                ariaLabel="콘텐츠 조회 및 반응 추이"
+                categories={trendDates}
+                categoryLabels={trendDates.map((date) => trendDateLabel(date))}
+                formatValue={formatCount}
+                height={148}
+                modeClass={trendMode}
+                series={detailTrendSeries.map((series) => ({
+                  color: COHORT_SERIES_COLORS[series.value],
+                  data: series.data,
+                  id: series.value,
+                  name: series.label,
+                }))}
+                showValueLabels={trendMode !== "all"}
+                width={trendChartWidth}
+              />
             </div>
           ) : <p>표시할 날짜별 성과가 없습니다.</p>}
         </section>

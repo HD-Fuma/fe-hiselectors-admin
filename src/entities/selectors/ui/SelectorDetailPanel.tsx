@@ -219,7 +219,7 @@ const GENERATION_COLUMNS: DenseTableColumn<SelectorGeneration>[] = [
     id: "activityPeriod",
     header: "활동 기간",
     align: "center",
-    render: (generation) => displayDateRange(generation.joinedAt, generation.activityEndDate),
+    render: (generation) => displayDateRange(generation.activityStartDate, generation.activityEndDate),
   },
   {
     key: "status",

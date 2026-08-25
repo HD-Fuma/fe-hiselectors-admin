@@ -71,6 +71,7 @@ ESLint가 일부 경계를 강제합니다. 규칙을 우회하는 disable comme
 - overlay: `Modal`, `AlertDialog`, `SidePanel`
 - 프로필 상세: `ProfileDetailShell` + `ProfileAnalysisReport`
 - 페이지 제목: `PageHeader`
+- 차트·그래프: ECharts 직접 통합 (`HsECharts` / `PeriodLineChart` / `AnalysisFormatDonut`). `echarts-for-react`나 다른 차트 래퍼·라이브러리를 쓰지 않습니다. feature에서 `echarts`를 직접 import하거나 SVG로 차트를 새로 그리지 않습니다.
 
 동일한 DOM과 class를 feature에서 복사하지 않습니다. 두 화면 이상에서 같은 패턴이 실제로 필요할 때만 공통 컴포넌트로 추출합니다.
 
