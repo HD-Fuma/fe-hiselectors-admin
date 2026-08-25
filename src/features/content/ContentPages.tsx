@@ -2342,6 +2342,14 @@ export function ContentInspectionDetailPage() {
                               >
                                 위반 아님
                               </button>
+                              {judgment ? (
+                                <span
+                                  className="fuma-content-inspection-studio__report-choice-tooltip"
+                                  role="status"
+                                >
+                                  <kbd>Space</kbd> 바를 눌러 다음으로 이동하세요
+                                </span>
+                              ) : null}
                             </div>
                           ) : null}
                         </div>

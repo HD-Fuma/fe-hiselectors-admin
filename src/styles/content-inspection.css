@@ -543,6 +543,7 @@ body:has(.fuma-content-inspection-studio) {
 
 .fuma-content-inspection-studio__report-evidence .fuma-content-inspection-studio__report-choices {
   margin-top: 9px;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
@@ -582,6 +583,34 @@ body:has(.fuma-content-inspection-studio) {
     0 0 0 2px rgb(255 255 255 / 90%),
     0 0 0 4px rgb(32 34 36 / 22%),
     0 8px 20px rgb(54 65 72 / 18%);
+}
+
+.fuma-content-inspection-studio__report-choice-tooltip {
+  display: flex;
+  width: 100%;
+  padding: 7px 9px;
+  flex: 1 0 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 10px;
+  color: #fff;
+  background: rgb(23 23 23 / 86%);
+  box-shadow: 0 8px 20px rgb(54 65 72 / 18%);
+  font-size: 9px;
+  font-weight: 650;
+  animation: fuma-content-inspection-tooltip-enter 120ms ease-out both;
+}
+
+.fuma-content-inspection-studio__report-choice-tooltip kbd {
+  padding: 2px 5px;
+  border: 0;
+  border-radius: 5px;
+  color: inherit;
+  background: rgb(255 255 255 / 16%);
+  font: inherit;
+  font-weight: 800;
 }
 
 .fuma-content-inspection-studio__decision {
@@ -1030,6 +1059,13 @@ body:has(.fuma-content-inspection-studio) {
   from {
     opacity: 0;
     transform: translateY(4px) scale(0.985);
+  }
+}
+
+@keyframes fuma-content-inspection-tooltip-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
   }
 }
 
