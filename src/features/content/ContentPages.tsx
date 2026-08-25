@@ -1796,6 +1796,8 @@ export function ContentInspectionDetailPage() {
   const studioHistoryRequestRef = useRef<AbortController | null>(null);
   const studioActionRequestRef = useRef<AbortController | null>(null);
   const studioDetailRequestRef = useRef<AbortController | null>(null);
+  const studioWheelLockedRef = useRef(false);
+  const studioWheelReleaseTimerRef = useRef<number | null>(null);
   const { contentId } = useParams();
   const numericContentId = Number(contentId);
   const invalidContentId = !Number.isSafeInteger(numericContentId) || numericContentId <= 0;
@@ -2239,6 +2241,9 @@ export function ContentInspectionDetailPage() {
     studioHistoryRequestRef.current?.abort();
     studioActionRequestRef.current?.abort();
     studioDetailRequestRef.current?.abort();
+    if (studioWheelReleaseTimerRef.current != null) {
+      window.clearTimeout(studioWheelReleaseTimerRef.current);
+    }
   }, []);
 
   useEffect(() => {
@@ -2251,7 +2256,7 @@ export function ContentInspectionDetailPage() {
         return;
       }
       if (event.repeat && (
-        ["0", "1", "ArrowLeft", "ArrowRight"].includes(event.key)
+        ["0", "1"].includes(event.key)
         || event.code === "Space"
       )) {
         event.preventDefault();
@@ -2294,10 +2299,6 @@ export function ContentInspectionDetailPage() {
         }
         return;
       }
-      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-        event.preventDefault();
-        navigateStudioContent(event.key === "ArrowLeft" ? previousContent : nextContent);
-      }
     };
 
     window.addEventListener("keydown", exitSession);
@@ -2306,9 +2307,6 @@ export function ContentInspectionDetailPage() {
     exitConfirmationOpen,
     focusedStudioViolationIndex,
     judgeStudioViolation,
-    navigateStudioContent,
-    nextContent,
-    previousContent,
     routeState?.inspectionSession,
     studioActionPending,
     studioExiting,
@@ -2319,6 +2317,63 @@ export function ContentInspectionDetailPage() {
     studioViolationJudgments,
     studioViolationSignals.length,
     submitStudioDecision,
+  ]);
+
+  useEffect(() => {
+    if (!routeState?.inspectionSession) return undefined;
+
+    const releaseWheelAfterIdle = () => {
+      if (studioWheelReleaseTimerRef.current != null) {
+        window.clearTimeout(studioWheelReleaseTimerRef.current);
+      }
+      studioWheelReleaseTimerRef.current = window.setTimeout(() => {
+        studioWheelLockedRef.current = false;
+      }, 180);
+    };
+
+    const navigateOnWheel = (event: globalThis.WheelEvent) => {
+      if (event.ctrlKey || Math.abs(event.deltaY) < 4) return;
+      if (studioExiting || exitConfirmationOpen || studioActionPending) {
+        event.preventDefault();
+        return;
+      }
+
+      if (studioWheelLockedRef.current) {
+        event.preventDefault();
+        releaseWheelAfterIdle();
+        return;
+      }
+
+      const scrollSurface = event.target instanceof Element
+        ? event.target.closest<HTMLElement>(
+            ".fuma-content-inspection-studio__report, .fuma-content-inspection-studio__history",
+          )
+        : null;
+      if (scrollSurface) {
+        const canScroll = event.deltaY > 0
+          ? scrollSurface.scrollTop + scrollSurface.clientHeight < scrollSurface.scrollHeight - 1
+          : scrollSurface.scrollTop > 1;
+        if (canScroll) return;
+      }
+
+      const target = event.deltaY > 0 ? nextContent : previousContent;
+      if (!target) return;
+      event.preventDefault();
+      studioWheelLockedRef.current = true;
+      releaseWheelAfterIdle();
+      navigateStudioContent(target);
+    };
+
+    window.addEventListener("wheel", navigateOnWheel, { passive: false });
+    return () => window.removeEventListener("wheel", navigateOnWheel);
+  }, [
+    exitConfirmationOpen,
+    navigateStudioContent,
+    nextContent,
+    previousContent,
+    routeState?.inspectionSession,
+    studioActionPending,
+    studioExiting,
   ]);
 
   useEffect(() => {
