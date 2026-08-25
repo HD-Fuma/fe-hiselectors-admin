@@ -50,7 +50,7 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__history > strong {
   align-self: flex-start;
   color: rgb(32 34 36 / 48%);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.04em;
 }
 
@@ -62,7 +62,7 @@ body:has(.fuma-content-inspection-studio) {
   border-radius: 18px;
   color: rgb(32 34 36 / 58%);
   background: rgb(255 255 255 / 34%);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
   backdrop-filter: blur(18px);
 }
@@ -86,7 +86,7 @@ body:has(.fuma-content-inspection-studio) {
   color: rgb(32 34 36 / 62%);
   background: rgb(255 255 255 / 56%);
   box-shadow: 0 8px 24px rgb(54 65 72 / 10%);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 750;
   white-space: nowrap;
   backdrop-filter: blur(18px);
@@ -189,7 +189,7 @@ body:has(.fuma-content-inspection-studio) {
 
 .fuma-content-inspection-studio__profile-identity strong {
   overflow: hidden;
-  font-size: 17px;
+  font-size: 18px;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -206,7 +206,7 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__profile-meta > a {
   overflow: hidden;
   color: rgb(32 34 36 / 58%);
-  font-size: 12px;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -246,13 +246,13 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__profile-id small,
 .fuma-content-inspection-studio__profile dl dt {
   color: rgb(32 34 36 / 48%);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
 }
 
 .fuma-content-inspection-studio__profile-id b {
   margin-top: 2px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .fuma-content-inspection-studio__profile dl {
@@ -288,7 +288,7 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__profile dl dd {
   margin-top: 4px;
   overflow: hidden;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 750;
   letter-spacing: -0.02em;
   text-overflow: ellipsis;
@@ -320,7 +320,7 @@ body:has(.fuma-content-inspection-studio) {
 
 .fuma-content-inspection-studio__queue-progress > span:first-child {
   color: rgb(32 34 36 / 60%);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -332,13 +332,13 @@ body:has(.fuma-content-inspection-studio) {
 }
 
 .fuma-content-inspection-studio__queue-progress strong b {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
 }
 
 .fuma-content-inspection-studio__queue-progress strong small {
   color: rgb(32 34 36 / 58%);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -380,7 +380,7 @@ body:has(.fuma-content-inspection-studio) {
   background: rgb(255 255 255 / 88%);
   box-shadow: 0 7px 18px rgb(54 65 72 / 11%);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 750;
   line-height: 1;
   cursor: pointer;
@@ -431,14 +431,14 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__report-summary > span,
 .fuma-content-inspection-studio__report-evidence > div > span {
   color: rgb(32 34 36 / 48%);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 750;
   letter-spacing: 0.04em;
 }
 
 .fuma-content-inspection-studio__report > header > div > strong {
   margin-top: 3px;
-  font-size: 17px;
+  font-size: 18px;
   line-height: 1.3;
 }
 
@@ -447,7 +447,7 @@ body:has(.fuma-content-inspection-studio) {
   border-radius: 999px;
   color: rgb(32 34 36 / 58%);
   background: rgb(255 255 255 / 42%);
-  font-size: 10px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 750;
 }
@@ -465,7 +465,7 @@ body:has(.fuma-content-inspection-studio) {
   color: #fff;
   background: #171717;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
   cursor: pointer;
 }
@@ -486,7 +486,7 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__report-feedback {
   margin: 8px 2px 0;
   color: rgb(32 34 36 / 62%);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.4;
   text-align: center;
 }
@@ -512,7 +512,7 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__content-meta span {
   display: block;
   color: rgb(32 34 36 / 46%);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 750;
   letter-spacing: 0.02em;
 }
@@ -522,7 +522,7 @@ body:has(.fuma-content-inspection-studio) {
   margin-top: 4px;
   overflow: hidden;
   color: rgb(32 34 36 / 76%);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -539,7 +539,7 @@ body:has(.fuma-content-inspection-studio) {
   color: rgb(32 34 36 / 76%);
   background-color: rgb(255 255 255 / 56%);
   box-shadow: none;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 750;
 }
 
@@ -547,7 +547,7 @@ body:has(.fuma-content-inspection-studio) {
   margin: -4px 0 0;
   grid-column: 1 / -1;
   color: rgb(32 34 36 / 64%);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .fuma-content-inspection-studio__report-summary {
@@ -557,7 +557,7 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__report-summary p {
   margin: 7px 0 0;
   color: rgb(32 34 36 / 76%);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.55;
 }
 
@@ -580,7 +580,7 @@ body:has(.fuma-content-inspection-studio) {
   border-radius: 999px;
   color: rgb(32 34 36 / 64%);
   background: rgb(255 255 255 / 46%);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -618,14 +618,14 @@ body:has(.fuma-content-inspection-studio) {
 }
 
 .fuma-content-inspection-studio__report-evidence li strong {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
 }
 
 .fuma-content-inspection-studio__report-evidence li small {
   flex: 0 0 auto;
   color: rgb(32 34 36 / 42%);
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .fuma-content-inspection-studio__report-evidence li small[data-judgment="violation"],
@@ -641,7 +641,7 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__report-empty {
   margin: 4px 0 0;
   color: rgb(32 34 36 / 60%);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -669,7 +669,7 @@ body:has(.fuma-content-inspection-studio) {
   border: 1px solid transparent;
   border-radius: 999px;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
   cursor: pointer;
   transition: 140ms ease;
@@ -711,7 +711,7 @@ body:has(.fuma-content-inspection-studio) {
   color: #fff;
   background: rgb(23 23 23 / 86%);
   box-shadow: 0 8px 20px rgb(54 65 72 / 18%);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 650;
   animation: fuma-content-inspection-tooltip-enter 120ms ease-out both;
 }
@@ -754,7 +754,7 @@ body:has(.fuma-content-inspection-studio) {
   border: 1px solid transparent;
   border-radius: 999px;
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
   transition: 120ms ease;
@@ -816,7 +816,7 @@ body:has(.fuma-content-inspection-studio) {
   border-radius: 50%;
   background: rgb(0 0 0 / 7%);
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -854,14 +854,14 @@ body:has(.fuma-content-inspection-studio) {
   border-radius: 8px;
   color: #fff;
   background: #202224;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.04em;
 }
 
 .fuma-content-inspection-studio__exit-dialog h2 {
   margin: 12px 0 0;
-  font-size: 17px;
+  font-size: 18px;
   line-height: 1.35;
   letter-spacing: -0.025em;
 }
@@ -869,7 +869,7 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__exit-dialog p {
   margin: 5px 0 0;
   color: rgb(32 34 36 / 58%);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -887,7 +887,7 @@ body:has(.fuma-content-inspection-studio) {
   color: #202224;
   background: rgb(255 255 255 / 82%);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 750;
   cursor: pointer;
 }
@@ -954,6 +954,23 @@ body:has(.fuma-content-inspection-studio) {
   border: 0;
 }
 
+.fuma-content-inspection-studio .fuma-platform-inspection-frame__instagram-header strong {
+  font-size: 14px;
+}
+
+.fuma-content-inspection-studio .fuma-platform-inspection-frame__instagram-header small {
+  font-size: 12px;
+}
+
+.fuma-content-inspection-studio .fuma-platform-inspection-frame__instagram-copy p {
+  font-size: 13px;
+}
+
+.fuma-content-inspection-studio .fuma-platform-inspection-frame__instagram-copy time,
+.fuma-content-inspection-studio .fuma-platform-inspection-frame__player-controls small {
+  font-size: 11px;
+}
+
 .fuma-content-inspection-studio__version > .fuma-minimal-version-card[data-content-format="youtube-long"] {
   width: min(860px, calc(100vw - 96px));
 }
@@ -985,7 +1002,7 @@ body:has(.fuma-content-inspection-studio) {
 }
 
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-copy h4 {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 600;
   line-height: 28px;
 }
@@ -1016,14 +1033,14 @@ body:has(.fuma-content-inspection-studio) {
   align-items: center;
   gap: 4px;
   color: #0f0f0f;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 500;
   line-height: 22px;
 }
 
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-channel small {
   color: #606060;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 18px;
 }
 
@@ -1040,7 +1057,7 @@ body:has(.fuma-content-inspection-studio) {
   color: #0f0f0f;
   background: rgb(0 0 0 / 5%);
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
 }
@@ -1062,7 +1079,7 @@ body:has(.fuma-content-inspection-studio) {
   border-radius: 18px;
   color: #0f0f0f;
   background: rgb(0 0 0 / 5%);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
 }
 
@@ -1113,7 +1130,7 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-description > strong,
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-description p {
   color: #0f0f0f;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 20px;
 }
 
