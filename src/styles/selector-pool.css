@@ -504,102 +504,6 @@
 }
 
 
-/* 참여 기수 이력 — 타임라인 */
-.fuma-selector-timeline {
-  display: grid;
-  gap: var(--hsas-space-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.fuma-selector-timeline > li {
-  position: relative;
-  padding: var(--hsas-space-10) 0 var(--hsas-space-14) var(--hsas-space-24);
-}
-
-.fuma-selector-timeline > li::before {
-  position: absolute;
-  top: var(--hsas-space-18);
-  bottom: 0;
-  left: 5px;
-  width: 2px;
-  background: var(--hsas-border);
-  content: "";
-}
-
-.fuma-selector-timeline > li:last-child::before {
-  display: none;
-}
-
-.fuma-selector-timeline__marker {
-  position: absolute;
-  top: var(--hsas-space-12);
-  left: 0;
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--hsas-border-dark);
-  border-radius: 50%;
-  background: var(--hsas-surface);
-}
-
-.fuma-selector-timeline > li.is-active .fuma-selector-timeline__marker {
-  border-color: var(--hsas-teal);
-  background: var(--hsas-teal);
-  box-shadow: 0 0 0 4px rgb(30 157 139 / 16%);
-}
-
-.fuma-selector-timeline__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--hsas-space-8);
-}
-
-.fuma-selector-timeline__head strong {
-  font-size: var(--hsas-font-14);
-}
-
-.fuma-selector-timeline__head > span {
-  color: var(--hsas-text-muted);
-  font-size: var(--hsas-font-11);
-}
-
-.fuma-selector-timeline__metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--hsas-space-18);
-  margin-top: var(--hsas-space-6);
-  font-size: var(--hsas-font-12);
-  font-weight: 600;
-}
-
-.fuma-selector-timeline__metrics em {
-  margin-right: var(--hsas-space-4);
-  color: var(--hsas-text-muted);
-  font-size: var(--hsas-font-11);
-  font-style: normal;
-  font-weight: 500;
-}
-
-.fuma-selector-timeline__bar {
-  height: 4px;
-  margin-top: var(--hsas-space-8);
-  border-radius: 999px;
-  background: var(--hsas-surface-muted);
-}
-
-.fuma-selector-timeline__bar > span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: rgb(30 157 139 / 45%);
-}
-
-.fuma-selector-timeline > li.is-active .fuma-selector-timeline__bar > span {
-  background: var(--hsas-teal);
-}
-
 /* 성과 패널: KPI 스트립 + 조회수 추이(좌) + 반응 도넛(우) */
 .fuma-selector-performance {
   display: grid;
@@ -814,4 +718,88 @@
   gap: var(--hsas-space-20);
   padding: 0;
   grid-template-columns: minmax(0, 1fr);
+}
+
+
+/* 참여 기수 이력 — 펼침 카드 */
+.hsas-gen-list {
+  display: grid;
+  gap: var(--hsas-space-6);
+}
+
+.hsas-gen-list > details {
+  border: 1px solid var(--hsas-border);
+  border-radius: 12px;
+  background: var(--hsas-surface);
+}
+
+.hsas-gen-list > details.is-active {
+  border-color: rgb(30 157 139 / 45%);
+  background: rgb(30 157 139 / 4%);
+}
+
+.hsas-gen-list summary {
+  display: flex;
+  align-items: center;
+  gap: var(--hsas-space-10);
+  padding: var(--hsas-space-12) var(--hsas-space-14);
+  cursor: pointer;
+  list-style: none;
+}
+
+.hsas-gen-list summary::-webkit-details-marker {
+  display: none;
+}
+
+.hsas-gen-list__name {
+  display: flex;
+  align-items: center;
+  gap: var(--hsas-space-6);
+  font-size: var(--hsas-font-14);
+  font-weight: 700;
+}
+
+.hsas-gen-list__name em {
+  padding: 1px var(--hsas-space-6);
+  border-radius: 999px;
+  background: var(--hsas-teal);
+  color: var(--hsas-color-white);
+  font-size: var(--hsas-font-10);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.hsas-gen-list__sales {
+  margin-left: auto;
+  font-size: var(--hsas-font-14);
+  font-weight: 700;
+}
+
+.hsas-gen-list__chevron {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-16);
+  transition: transform 0.15s ease;
+}
+
+.hsas-gen-list > details[open] .hsas-gen-list__chevron {
+  transform: rotate(90deg);
+}
+
+.hsas-gen-list dl {
+  display: grid;
+  gap: var(--hsas-space-10);
+  margin: 0;
+  padding: 0 var(--hsas-space-14) var(--hsas-space-14);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.hsas-gen-list dt {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-11);
+}
+
+.hsas-gen-list dd {
+  margin: var(--hsas-space-2) 0 0;
+  font-size: var(--hsas-font-13);
+  font-weight: 600;
 }

@@ -522,7 +522,7 @@ function SelectorConsentChips({ detail }: { detail: SelectorDetail }) {
 }
 
 function SelectorGenerationCards({ generations }: { generations: SelectorGeneration[] }) {
-  // 활성 기수를 먼저, 그다음 최근 활동 순으로 보여준다.
+  // 활성 기수를 먼저, 그다음 최근 활동 순. 활성 기수만 기본으로 펼친다.
   const ordered = [...generations].sort((left, right) => {
     if (left.status !== right.status) return left.status === "ACTIVE" ? -1 : 1;
     const leftDate = left.activityEndDate ?? left.joinedAt ?? "";
@@ -532,36 +532,33 @@ function SelectorGenerationCards({ generations }: { generations: SelectorGenerat
 
   if (!ordered.length) return null;
 
-  const peakSales = Math.max(...ordered.map((generation) => generation.totalSales ?? 0), 0);
-
   return (
-    <ol className="fuma-selector-timeline">
+    <div className="hsas-gen-list">
       {ordered.map((generation) => {
         const active = generation.status === "ACTIVE";
-        const share = peakSales ? ((generation.totalSales ?? 0) / peakSales) * 100 : 0;
-
         return (
-          <li className={active ? "is-active" : undefined} key={generation.generationId}>
-            <span aria-hidden="true" className="fuma-selector-timeline__marker" />
-            <div className="fuma-selector-timeline__body">
-              <div className="fuma-selector-timeline__head">
-                <strong>{generation.generationName}</strong>
-                {active ? <StatusPill tone="approved">활동중</StatusPill> : null}
-                <span>{displayDateRange(generation.joinedAt, generation.activityEndDate)}</span>
-              </div>
-              <div className="fuma-selector-timeline__metrics">
-                <span><em>구매확정</em>{displayCount(generation.confirmedPurchaseCount)}</span>
-                <span><em>매출</em>{displayWon(generation.totalSales)}</span>
-                <span><em>지급 수수료</em>{displayWon(generation.paidCommissionAmount)}</span>
-              </div>
-              <div aria-hidden="true" className="fuma-selector-timeline__bar">
-                <span style={{ width: `${share}%` }} />
-              </div>
-            </div>
-          </li>
+          <details
+            className={active ? "is-active" : undefined}
+            key={generation.generationId}
+            open={active}
+          >
+            <summary>
+              <span className="hsas-gen-list__name">
+                {generation.generationName}
+                {active ? <em>활동중</em> : null}
+              </span>
+              <span className="hsas-gen-list__sales">{displayWon(generation.totalSales)}</span>
+              <span aria-hidden="true" className="hsas-gen-list__chevron">›</span>
+            </summary>
+            <dl>
+              <div><dt>활동 기간</dt><dd>{displayDateRange(generation.joinedAt, generation.activityEndDate)}</dd></div>
+              <div><dt>구매확정</dt><dd>{displayCount(generation.confirmedPurchaseCount)}</dd></div>
+              <div><dt>지급 수수료</dt><dd>{displayWon(generation.paidCommissionAmount)}</dd></div>
+            </dl>
+          </details>
         );
       })}
-    </ol>
+    </div>
   );
 }
 
