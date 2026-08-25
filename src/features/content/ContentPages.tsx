@@ -2346,7 +2346,7 @@ export function ContentInspectionDetailPage() {
 
       const scrollSurface = event.target instanceof Element
         ? event.target.closest<HTMLElement>(
-            ".fuma-content-inspection-studio__report, .fuma-content-inspection-studio__history",
+            ".fuma-content-inspection-studio__report, .fuma-content-inspection-studio__history, .fuma-platform-inspection-frame__youtube-description p",
           )
         : null;
       if (scrollSurface) {
