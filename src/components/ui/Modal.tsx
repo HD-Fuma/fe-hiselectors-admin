@@ -9,11 +9,13 @@ export interface ModalProps {
   actions?: ReactNode;
   ariaDescribedBy?: string;
   className?: string;
+  /** 배경(딤 영역)을 눌러도 닫히게 한다. 입력 폼 모달에서는 켜지 말 것. */
+  closeOnBackdrop?: boolean;
   onClose?: () => void;
   role?: "alertdialog" | "dialog";
 }
 
-export function Modal({ actions, ariaDescribedBy, children, className, onClose, open, role = "dialog", title }: ModalProps) {
+export function Modal({ actions, ariaDescribedBy, children, className, closeOnBackdrop = false, onClose, open, role = "dialog", title }: ModalProps) {
   const titleId = useId();
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
@@ -25,7 +27,13 @@ export function Modal({ actions, ariaDescribedBy, children, className, onClose, 
   }
 
   return createPortal(
-    <div className="hsas-modal-backdrop" ref={backdropRef}>
+    <div
+      className="hsas-modal-backdrop"
+      onMouseDown={(event) => {
+        if (closeOnBackdrop && event.target === backdropRef.current) onClose?.();
+      }}
+      ref={backdropRef}
+    >
       <section
         aria-describedby={ariaDescribedBy}
         aria-labelledby={titleId}

@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { PlatformIcon } from "../../../components/social/PlatformIcon";
 import { CreatorProfilePhoto } from "../../../components/ui/CreatorProfilePhoto";
 import { DenseTable, type DenseTableColumn } from "../../../components/ui/DenseTable";
+import { Modal } from "../../../components/ui/Modal";
 import { ResultToolbar } from "../../../components/ui/ResultToolbar";
 import { SidePanel } from "../../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../../components/ui/StatusPill";
@@ -207,6 +208,197 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SelectorSettlementTableRow>[] = [
   },
 ];
 
+/** 유튜브 주소에서 영상 ID를 뽑아 썸네일 주소를 만든다. 인스타는 공개 썸네일이 없다. */
+function contentThumbnail(content: SelectorContent) {
+  const url = content.contentUrl ?? "";
+  const match = /(?:youtu\.be\/|v=|\/shorts\/|\/embed\/)([\w-]{11})/.exec(url);
+  return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
+}
+
+function SelectorContentGallery({ contents }: { contents: SelectorContent[] }) {
+  const trackRef = useRef<HTMLUListElement>(null);
+  // 카드가 넘칠 때만 좌우 버튼을 보여준다.
+  const [overflowing, setOverflowing] = useState(false);
+  const newestFirst = [...contents].sort((left, right) => (
+    (right.createdAt ?? "").localeCompare(left.createdAt ?? "")
+  ));
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const measure = () => setOverflowing(track.scrollWidth - track.clientWidth > 4);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [contents]);
+
+  if (!newestFirst.length) {
+    return <p className="fuma-selector-content-gallery__empty">등록된 콘텐츠가 없습니다.</p>;
+  }
+
+  const slide = (direction: 1 | -1) => {
+    const track = trackRef.current;
+    if (!track) return;
+    const step = track.firstElementChild instanceof HTMLElement
+      ? track.firstElementChild.offsetWidth + 12
+      : track.clientWidth;
+    track.scrollBy({ behavior: "smooth", left: step * direction });
+  };
+
+  return (
+    <div className="fuma-selector-content-carousel">
+      {overflowing ? (
+        <button aria-label="이전 콘텐츠" onClick={() => slide(-1)} type="button">‹</button>
+      ) : null}
+      <ul className="fuma-selector-content-gallery" ref={trackRef}>
+      {newestFirst.map((content) => {
+        const thumbnail = contentThumbnail(content);
+        const platform = apiPlatform(content.snsCode);
+        return (
+          <li key={content.id}>
+            <a href={content.contentUrl} rel="noreferrer" target="_blank">
+              <span className="fuma-selector-content-gallery__thumb">
+                {thumbnail ? (
+                  <img alt="" loading="lazy" src={thumbnail} />
+                ) : (
+                  <span className="fuma-selector-content-gallery__fallback">
+                    {platform ? <PlatformIcon decorative platform={platform} /> : null}
+                  </span>
+                )}
+              </span>
+              <strong>{content.title || content.contentType || "콘텐츠"}</strong>
+              <span className="fuma-selector-content-gallery__meta">
+                <span>{displayDateTime(content.createdAt).slice(0, 10)}</span>
+                <span>조회 {displayNumber(content.viewCount)}</span>
+                <span>좋아요 {displayNumber(content.likeCount)}</span>
+              </span>
+            </a>
+          </li>
+        );
+      })}
+      </ul>
+      {overflowing ? (
+        <button aria-label="다음 콘텐츠" onClick={() => slide(1)} type="button">›</button>
+      ) : null}
+    </div>
+  );
+}
+
+/** 지표별 성과. 콘텐츠 한 건이 막대 하나, 카드 제목에 지표를 명시한다. */
+const PERFORMANCE_METRICS = [
+  { key: "viewCount", label: "조회수", unit: "회", total: "totalViewCount" },
+  { key: "likeCount", label: "좋아요", unit: "개", total: "totalLikeCount" },
+  { key: "commentCount", label: "댓글", unit: "개", total: "totalCommentCount" },
+] as const;
+
+const PERFORMANCE_BAR_LIMIT = 10;
+
+function SelectorPerformanceBars({ detail }: { detail: SelectorDetail }) {
+  const recent = [...detail.contents]
+    .filter((content) => content.createdAt)
+    .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+    .slice(-PERFORMANCE_BAR_LIMIT);
+
+  return (
+    <div className="fuma-selector-metric-cards">
+      {PERFORMANCE_METRICS.map((metric) => {
+        const values = recent.map((content) => content[metric.key] ?? 0);
+        const max = Math.max(...values, 0);
+        const total = detail.performance[metric.total];
+        const average = recent.length
+          ? Math.round(values.reduce((sum, value) => sum + value, 0) / recent.length)
+          : null;
+
+        return (
+          <figure className="fuma-selector-metric-card" key={metric.key}>
+            <figcaption>
+              <strong>{metric.label}</strong>
+              <span>최근 {recent.length}건 · 막대 1개 = 콘텐츠 1건</span>
+            </figcaption>
+            <p className="fuma-selector-metric-card__total">
+              {displayNumber(total)}
+              <span>{metric.unit} 누적</span>
+            </p>
+            <div
+              aria-label={`최근 콘텐츠 ${metric.label}`}
+              className="fuma-selector-metric-card__bars"
+              role="img"
+            >
+              {recent.map((content, index) => (
+                <span
+                  key={content.id}
+                  style={{ height: `${max ? Math.max(6, (values[index] / max) * 100) : 6}%` }}
+                  title={`${displayDateTime(content.createdAt).slice(0, 10)} · ${metric.label} ${displayNumber(content[metric.key])}${metric.unit}`}
+                />
+              ))}
+            </div>
+            <p className="fuma-selector-metric-card__foot">
+              <span>최고 {displayNumber(max)}{metric.unit}</span>
+              <span>평균 {displayNumber(average)}{metric.unit}</span>
+            </p>
+          </figure>
+        );
+      })}
+    </div>
+  );
+}
+
+function SelectorConsentChips({ detail }: { detail: SelectorDetail }) {
+  const items = [
+    { label: "SNS 인증", value: displayDateTime(detail.snsVerifiedAt).slice(0, 10) },
+    { label: "개인정보 동의", value: displayDateTime(detail.privacyAgreedAt).slice(0, 10) },
+    { label: "알림톡", value: detail.alimtalkAgreed ? "동의" : "미동의" },
+    { label: "최근 수정", value: displayDateTime(detail.updatedAt).slice(0, 10) },
+  ];
+
+  return (
+    <dl aria-label="동의 및 수신 정보" className="fuma-selector-consent-chips">
+      {items.map((item) => (
+        <div key={item.label}>
+          <dt>{item.label}</dt>
+          <dd>{item.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function SelectorGenerationCards({ generations }: { generations: SelectorGeneration[] }) {
+  // 활성 기수를 먼저, 그다음 최근 활동 순으로 보여준다.
+  const ordered = [...generations].sort((left, right) => {
+    if (left.status !== right.status) return left.status === "ACTIVE" ? -1 : 1;
+    const leftDate = left.activityEndDate ?? left.joinedAt ?? "";
+    const rightDate = right.activityEndDate ?? right.joinedAt ?? "";
+    return rightDate.localeCompare(leftDate) || right.generationId - left.generationId;
+  });
+
+  if (!generations.length) {
+    return <p className="fuma-selector-content-gallery__empty">참여 기수 이력이 없습니다.</p>;
+  }
+
+  return (
+    <ul className="fuma-selector-generation-cards">
+      {ordered.map((generation) => (
+        <li key={generation.generationId}>
+          <div className="fuma-selector-generation-cards__head">
+            <strong>{generation.generationName}</strong>
+            <StatusPill tone={generation.status === "ACTIVE" ? "approved" : "neutral"}>
+              {generation.status === "ACTIVE" ? "활성" : "비활성"}
+            </StatusPill>
+          </div>
+          <p>{displayDateRange(generation.joinedAt, generation.activityEndDate)}</p>
+          <dl>
+            <div><dt>구매확정</dt><dd>{displayCount(generation.confirmedPurchaseCount)}</dd></div>
+            <div><dt>총 매출</dt><dd>{displayWon(generation.totalSales)}</dd></div>
+            <div><dt>지급 수수료</dt><dd>{displayWon(generation.paidCommissionAmount)}</dd></div>
+          </dl>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function apiPlatform(snsCode: SelectorSnsCode | null) {
   if (snsCode === "INSTAGRAM") return "Instagram";
   if (snsCode === "YOUTUBE") return "YouTube";
@@ -394,12 +586,16 @@ function SelectorDetailListSection({
 }
 
 function SelectorApiDetailContent({
+  contentView = "table",
   detail,
+  hideSettlement = false,
   settlementEmptyMessage,
   settlementRows,
   settlementSummary,
 }: {
+  contentView?: "table" | "gallery";
   detail: SelectorDetail;
+  hideSettlement?: boolean;
   settlementEmptyMessage: ReactNode;
   settlementRows: SelectorSettlementTableRow[];
   settlementSummary: SettlementSelectorDetail["settlementSummary"] | undefined;
@@ -456,12 +652,22 @@ function SelectorApiDetailContent({
               <dt>셀렉터스명</dt>
               <dd title={detail.nickname || undefined}>{displayText(detail.nickname)}</dd>
             </div>
-            <div><dt>누적 구매수</dt><dd>{displayCount(settlementSummary?.cumulativePurchaseConversionCount)}</dd></div>
-            <div><dt>누적 매출</dt><dd>{displayWon(settlementSummary?.cumulativeSalesAmount)}</dd></div>
+            {hideSettlement ? null : (
+              <>
+                <div><dt>누적 구매수</dt><dd>{displayCount(settlementSummary?.cumulativePurchaseConversionCount)}</dd></div>
+                <div><dt>누적 매출</dt><dd>{displayWon(settlementSummary?.cumulativeSalesAmount)}</dd></div>
+              </>
+            )}
           </dl>
         </div>
+        {contentView === "gallery" ? (
+          <div className="fuma-selector-detail-aside">
+            <SelectorConsentChips detail={detail} />
+          </div>
+        ) : null}
       </section>
 
+      {contentView === "gallery" ? null : (
       <SelectorDetailListSection title="동의 및 수신 정보" titleId="selector-consent-title">
         <div aria-label="셀렉터스 동의 및 수신 정보" className="fuma-wide-table fuma-settlement-table" role="region">
           <DenseTable
@@ -477,7 +683,9 @@ function SelectorApiDetailContent({
           />
         </div>
       </SelectorDetailListSection>
+      )}
 
+      {contentView === "gallery" ? null : (
       <SelectorDetailListSection
         meta={<span>{activeGeneration ? `${activeGeneration.generationName} 기준` : "활성 기수 없음"}</span>}
         title="간략 성과"
@@ -493,22 +701,33 @@ function SelectorApiDetailContent({
           />
         </div>
       </SelectorDetailListSection>
+      )}
+
+      {contentView === "gallery" ? (
+        <SelectorDetailListSection title="콘텐츠 성과" titleId="selector-trend-title">
+          <SelectorPerformanceBars detail={detail} />
+        </SelectorDetailListSection>
+      ) : null}
 
       <SelectorDetailListSection
         meta={<span>최근 {detail.contents.length}건 · 전체 {displayCount(detail.performance.contentCount)}</span>}
         title="등록 콘텐츠"
         titleId="selector-api-contents-title"
       >
-        <div aria-label="셀렉터스 콘텐츠" className="fuma-wide-table fuma-settlement-table" role="region">
-          <DenseTable
-            columns={CONTENT_COLUMNS}
-            emptyMessage={detail.performance.contentCount == null
-              ? "콘텐츠 수집 전입니다."
-              : "등록된 콘텐츠가 없습니다."}
-            rowKey={(content) => content.id}
-            rows={detail.contents}
-          />
-        </div>
+        {contentView === "gallery" ? (
+          <SelectorContentGallery contents={detail.contents} />
+        ) : (
+          <div aria-label="셀렉터스 콘텐츠" className="fuma-wide-table fuma-settlement-table" role="region">
+            <DenseTable
+              columns={CONTENT_COLUMNS}
+              emptyMessage={detail.performance.contentCount == null
+                ? "콘텐츠 수집 전입니다."
+                : "등록된 콘텐츠가 없습니다."}
+              rowKey={(content) => content.id}
+              rows={detail.contents}
+            />
+          </div>
+        )}
       </SelectorDetailListSection>
 
       <SelectorDetailListSection
@@ -516,17 +735,22 @@ function SelectorApiDetailContent({
         title="참여 기수 이력"
         titleId="selector-generation-history-title"
       >
-        <div aria-label="셀렉터스 참여 기수 이력" className="fuma-wide-table fuma-settlement-table" role="region">
-          <DenseTable
-            align="center"
-            columns={GENERATION_COLUMNS}
-            emptyMessage="참여 기수 이력이 없습니다."
-            rowKey={(generation) => generation.generationId}
-            rows={generations}
-          />
-        </div>
+        {contentView === "gallery" ? (
+          <SelectorGenerationCards generations={generations} />
+        ) : (
+          <div aria-label="셀렉터스 참여 기수 이력" className="fuma-wide-table fuma-settlement-table" role="region">
+            <DenseTable
+              align="center"
+              columns={GENERATION_COLUMNS}
+              emptyMessage="참여 기수 이력이 없습니다."
+              rowKey={(generation) => generation.generationId}
+              rows={generations}
+            />
+          </div>
+        )}
       </SelectorDetailListSection>
 
+      {hideSettlement ? null : (
       <SelectorDetailListSection
         meta={<span>마지막 갱신 {displayDateTime(latestTimestamp(settlementRows.map((row) => row.updatedAt)))}</span>}
         title="정산 정보"
@@ -561,12 +785,15 @@ function SelectorApiDetailContent({
           />
         </div>
       </SelectorDetailListSection>
+      )}
     </div>
   );
 }
 
 export function SelectorDetailPanel({
+  hideSettlement = false,
   onClose,
+  presentation = "side",
   selector,
   selectorDetail,
   selectorDetailError = "",
@@ -575,7 +802,11 @@ export function SelectorDetailPanel({
   settlementDetailError = false,
   settlementDetailLoading = false,
 }: {
+  /** 정산 정보를 숨긴다(버블 뷰 모달처럼 정산이 필요 없는 곳). */
+  hideSettlement?: boolean;
   onClose: () => void;
+  /** 사이드 패널 대신 가운데 모달로 띄운다. */
+  presentation?: "side" | "modal";
   selector?: SelectorFixture;
   selectorDetail?: SelectorDetail | null;
   selectorDetailError?: string;
@@ -629,8 +860,8 @@ export function SelectorDetailPanel({
         : "조회된 정산 내역이 없습니다."
     : undefined;
 
-  return (
-    <SidePanel onClose={onClose} title="셀렉터스 상세">
+  const body = (
+    <>
       {selectorDetailLoading ? (
         <div className="fuma-detail-panel__content">
           <section aria-live="polite" className="fuma-empty-state" role="status">
@@ -646,7 +877,9 @@ export function SelectorDetailPanel({
         </div>
       ) : selectorDetail ? (
         <SelectorApiDetailContent
+          contentView={presentation === "modal" ? "gallery" : "table"}
           detail={selectorDetail}
+          hideSettlement={hideSettlement}
           settlementEmptyMessage={settlementEmptyMessage}
           settlementRows={settlementRows}
           settlementSummary={settlementSummary}
@@ -804,6 +1037,22 @@ export function SelectorDetailPanel({
           </section>
         </div>
       )}
-    </SidePanel>
+    </>
   );
+
+  if (presentation === "modal") {
+    return (
+      <Modal
+        className="hsas-selector-detail-modal"
+        closeOnBackdrop
+        onClose={onClose}
+        open
+        title="셀렉터스 상세"
+      >
+        {body}
+      </Modal>
+    );
+  }
+
+  return <SidePanel onClose={onClose} title="셀렉터스 상세">{body}</SidePanel>;
 }

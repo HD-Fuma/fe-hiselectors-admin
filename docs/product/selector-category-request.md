@@ -45,3 +45,20 @@
 ## 확인 필요
 - 지원자 → 셀렉터스 승인 플로우에서 AI 리포트가 항상 존재하는지(없으면 `null` 허용)
 - 리포트 재분석 시 셀렉터스 카테고리도 함께 갱신할지, 승인 시점 값으로 고정할지
+
+## 추가 요청: 성과 백분위(상위 %)
+
+버블 상세 모달에서 "타 셀렉터스 대비 상위 N%"를 보여주려면 개별 셀렉터스 응답만으로는 계산할 수 없다.
+`GET /api/admin/selectors/{id}` 의 `performance` 에 아래를 추가해 주면 프론트에서 바로 표시한다.
+
+```json
+"performance": {
+  "totalViewCount": 128000,
+  "viewCountPercentile": 12,
+  "likeCountPercentile": 25,
+  "commentCountPercentile": 40
+}
+```
+
+- `*Percentile`: 활동 중인 셀렉터스 전체 대비 상위 백분위(1 = 상위 1%), 값이 없으면 `null`
+- 기준 모집단(활성 셀렉터스 전체 / 같은 기수 / 같은 카테고리)은 백엔드에서 정하고 응답에 명시해 주면 라벨에 반영

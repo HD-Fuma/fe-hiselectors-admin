@@ -201,3 +201,298 @@
   width: 12px;
   height: 12px;
 }
+
+
+/* 버블에서 연 셀렉터스 상세는 넓고 둥근 가운데 모달로 */
+.hsas-selector-detail-modal {
+  width: min(1040px, 92vw);
+  max-width: min(1040px, 92vw);
+  max-height: 88vh;
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgb(17 24 39 / 22%);
+}
+
+.hsas-selector-detail-modal .hsas-modal__header {
+  padding: var(--hsas-space-20) var(--hsas-space-20) var(--hsas-space-12);
+}
+
+.hsas-selector-detail-modal .hsas-modal__body {
+  padding: var(--hsas-space-4) var(--hsas-space-20) var(--hsas-space-20);
+  overflow-y: auto;
+}
+
+.hsas-selector-detail-modal .fuma-detail-panel__content {
+  display: grid;
+  gap: var(--hsas-space-18);
+}
+
+/* 등록 콘텐츠 캐러셀 — 최신순, < > 로 넘긴다 */
+.fuma-selector-content-carousel {
+  display: flex;
+  align-items: center;
+  gap: var(--hsas-space-8);
+}
+
+.fuma-selector-content-carousel > button {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--hsas-border);
+  border-radius: 50%;
+  background: var(--hsas-surface);
+  color: var(--hsas-text);
+  font-size: var(--hsas-font-16);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.fuma-selector-content-carousel > button:hover {
+  border-color: var(--hsas-teal);
+  color: var(--hsas-teal);
+}
+
+.fuma-selector-content-gallery {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  gap: var(--hsas-space-12);
+  margin: 0;
+  padding: var(--hsas-space-2);
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.fuma-selector-content-gallery::-webkit-scrollbar {
+  display: none;
+}
+
+.fuma-selector-content-gallery > li {
+  flex: 0 0 190px;
+  scroll-snap-align: center;
+}
+
+.fuma-selector-content-gallery a {
+  display: grid;
+  height: 100%;
+  gap: var(--hsas-space-6);
+  padding: var(--hsas-space-8);
+  border: 1px solid var(--hsas-border);
+  border-radius: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.fuma-selector-content-gallery a:hover {
+  border-color: var(--hsas-teal);
+}
+
+.fuma-selector-content-gallery__thumb {
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  background: var(--hsas-surface-muted);
+}
+
+.fuma-selector-content-gallery__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fuma-selector-content-gallery__fallback {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.45;
+}
+
+.fuma-selector-content-gallery strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--hsas-font-12);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.fuma-selector-content-gallery__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hsas-space-6);
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-11);
+}
+
+.fuma-selector-content-gallery__empty {
+  margin: 0;
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-12);
+}
+
+/* 프로필 우측: 동의 요약 칩 + 성과 그래프 */
+.fuma-selector-detail-aside {
+  display: grid;
+  gap: var(--hsas-space-10);
+  min-width: 0;
+  padding: var(--hsas-space-16) var(--hsas-space-16) var(--hsas-space-16) 0;
+  align-content: start;
+}
+
+.fuma-selector-consent-chips {
+  display: grid;
+  gap: var(--hsas-space-6);
+  margin: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fuma-selector-consent-chips > div {
+  display: grid;
+  gap: var(--hsas-space-2);
+  padding: var(--hsas-space-8) var(--hsas-space-10);
+  border: 1px solid var(--hsas-border);
+  border-radius: 10px;
+  background: var(--hsas-surface-muted);
+}
+
+.fuma-selector-consent-chips dt {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-10);
+}
+
+.fuma-selector-consent-chips dd {
+  margin: 0;
+  font-size: var(--hsas-font-12);
+  font-weight: 600;
+}
+
+/* 참여 기수 이력 카드 */
+.fuma-selector-generation-cards {
+  display: grid;
+  gap: var(--hsas-space-10);
+  margin: 0;
+  padding: 0;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  list-style: none;
+}
+
+.fuma-selector-generation-cards > li {
+  display: grid;
+  gap: var(--hsas-space-6);
+  padding: var(--hsas-space-12);
+  border: 1px solid var(--hsas-border);
+  border-radius: 14px;
+  background: var(--hsas-surface);
+}
+
+.fuma-selector-generation-cards__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hsas-space-8);
+}
+
+.fuma-selector-generation-cards__head strong {
+  font-size: var(--hsas-font-14);
+}
+
+.fuma-selector-generation-cards p {
+  margin: 0;
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-11);
+}
+
+.fuma-selector-generation-cards dl {
+  display: grid;
+  gap: var(--hsas-space-4);
+  margin: 0;
+}
+
+.fuma-selector-generation-cards dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--hsas-space-8);
+  font-size: var(--hsas-font-12);
+}
+
+.fuma-selector-generation-cards dt {
+  color: var(--hsas-text-muted);
+}
+
+.fuma-selector-generation-cards dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* 지표별 성과 막대 카드 3종 */
+.fuma-selector-metric-cards {
+  display: grid;
+  gap: var(--hsas-space-12);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.fuma-selector-metric-card {
+  display: grid;
+  gap: var(--hsas-space-8);
+  margin: 0;
+  padding: var(--hsas-space-14);
+  border: 1px solid var(--hsas-border);
+  border-radius: 14px;
+  background: var(--hsas-surface);
+}
+
+.fuma-selector-metric-card figcaption {
+  display: grid;
+  gap: var(--hsas-space-2);
+}
+
+.fuma-selector-metric-card figcaption strong {
+  font-size: var(--hsas-font-13);
+}
+
+.fuma-selector-metric-card figcaption span {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-10);
+}
+
+.fuma-selector-metric-card__total {
+  display: flex;
+  align-items: baseline;
+  gap: var(--hsas-space-4);
+  margin: 0;
+  font-size: var(--hsas-font-24);
+  font-weight: 700;
+}
+
+.fuma-selector-metric-card__total span {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-11);
+  font-weight: 500;
+}
+
+.fuma-selector-metric-card__bars {
+  display: flex;
+  height: 84px;
+  align-items: flex-end;
+  gap: 3px;
+  padding-bottom: var(--hsas-space-2);
+  border-bottom: 1px solid var(--hsas-border);
+}
+
+.fuma-selector-metric-card__bars span {
+  flex: 1;
+  border-radius: 4px 4px 0 0;
+  background: var(--hsas-teal);
+}
+
+.fuma-selector-metric-card__foot {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-11);
+}

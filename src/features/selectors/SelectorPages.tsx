@@ -535,6 +535,17 @@ const SELECTOR_COLUMNS: DenseTableColumn<SelectorSummary>[] = [
 
 const SELECTOR_PAGE_SIZE = 20;
 const POOL_PAGE_SIZE = 200;
+// 버블/도크에 마우스를 올릴 때 상세를 미리 받아 둔다(모달이 즉시 뜨도록).
+const selectorDetailCache = new Map<number, Promise<SelectorDetail>>();
+
+function prefetchSelectorDetail(id: number) {
+  const cached = selectorDetailCache.get(id);
+  if (cached) return cached;
+  const pending = getSelector(id);
+  selectorDetailCache.set(id, pending);
+  pending.catch(() => selectorDetailCache.delete(id));
+  return pending;
+}
 const SELECTOR_VIEW_OPTIONS = [
   { label: "버블", value: "pool" },
   { label: "표", value: "table" },
@@ -544,6 +555,12 @@ type SelectorViewMode = (typeof SELECTOR_VIEW_OPTIONS)[number]["value"];
 export function SelectorOverviewPage() {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<SelectorViewMode>("pool");
+  // 버블에서 고른 셀렉터스는 화면 이동 없이 가운데 모달로 보여준다.
+  const [poolDetail, setPoolDetail] = useState<{
+    id: number;
+    detail: SelectorDetail | null;
+    error: string;
+  } | null>(null);
   const [keyword, setKeyword] = useState("");
   const [generationId, setGenerationId] = useState("");
   const [sns, setSns] = useState("");
@@ -592,6 +609,16 @@ export function SelectorOverviewPage() {
     });
     return () => controller.abort();
   }, [activeView, appliedGenerationId, appliedKeyword, appliedSns, page, selectedStatus]);
+
+  const openPoolDetail = (id: number) => {
+    setPoolDetail({ id, detail: null, error: "" });
+    prefetchSelectorDetail(id).then((detail) => {
+      setPoolDetail((current) => current?.id === id ? { ...current, detail } : current);
+    }).catch((reason: unknown) => {
+      const message = reason instanceof Error ? reason.message : "셀렉터스 상세 조회에 실패했습니다.";
+      setPoolDetail((current) => current?.id === id ? { ...current, error: message } : current);
+    });
+  };
 
   const applyFilters = () => {
     setAppliedKeyword(keyword.trim());
@@ -693,7 +720,8 @@ export function SelectorOverviewPage() {
           <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
         ) : activeView === "pool" ? (
           <SelectorPoolCanvas
-            onSelect={(selector) => navigate(`/selectors/${selector.id}`)}
+            onPrefetch={(selector) => { void prefetchSelectorDetail(selector.id); }}
+            onSelect={(selector) => openPoolDetail(selector.id)}
             selectors={pageData?.content ?? []}
           />
         ) : (
@@ -720,6 +748,16 @@ export function SelectorOverviewPage() {
           />
         ) : null}
       </div>
+      {poolDetail ? (
+        <SelectorDetailPanel
+          hideSettlement
+          onClose={() => setPoolDetail(null)}
+          presentation="modal"
+          selectorDetail={poolDetail.detail}
+          selectorDetailError={poolDetail.error}
+          selectorDetailLoading={!poolDetail.detail && !poolDetail.error}
+        />
+      ) : null}
     </section>
   );
 }

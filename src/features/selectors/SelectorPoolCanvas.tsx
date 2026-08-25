@@ -174,6 +174,30 @@ function step(nodes: PoolNode[], categories: PoolCategory[]) {
   });
 }
 
+/** 24x24 뷰박스 기준 플랫폼 로고(PlatformIcon 과 같은 패스). */
+const PLATFORM_MARK = {
+  INSTAGRAM: {
+    color: "225 48 108",
+    path: "M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069Zm0-2.163C8.741 0 8.332.014 7.052.072 2.695.272.273 2.69.073 7.052.014 8.332 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.332 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.668-.072-4.948-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0Zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324ZM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881Z",
+  },
+  YOUTUBE: {
+    color: "255 0 0",
+    path: "M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.121-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814ZM9.545 15.568V8.432L15.818 12l-6.273 3.568Z",
+  },
+} as const;
+
+const platformPaths = new Map<keyof typeof PLATFORM_MARK, Path2D>();
+
+function platformMark(snsCode: SelectorSummary["snsCode"]) {
+  const key = snsCode === "YOUTUBE" ? "YOUTUBE" : "INSTAGRAM";
+  let path = platformPaths.get(key);
+  if (!path) {
+    path = new Path2D(PLATFORM_MARK[key].path);
+    platformPaths.set(key, path);
+  }
+  return { color: PLATFORM_MARK[key].color, path };
+}
+
 /** 살짝 휜 유기적인 연결선. */
 function drawCurve(
   context: CanvasRenderingContext2D,
@@ -258,13 +282,16 @@ function PoolAvatar({ selector }: { selector: SelectorSummary }) {
 }
 
 export interface SelectorPoolCanvasProps {
+  /** 마우스를 올린 셀렉터스 상세를 미리 받아 두라는 신호. */
+  onPrefetch?: (selector: SelectorSummary) => void;
   onSelect: (selector: SelectorSummary) => void;
   selectors: SelectorSummary[];
 }
 
-export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasProps) {
+export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: SelectorPoolCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const selectRef = useRef(onSelect);
+  const prefetchRef = useRef(onPrefetch);
   const focusRef = useRef<string | null>(null);
   const cameraRef = useRef<((label: string | null) => void) | null>(null);
   const spotlightRef = useRef<((selectorId: number | null) => void) | null>(null);
@@ -284,7 +311,8 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
 
   useEffect(() => {
     selectRef.current = onSelect;
-  }, [onSelect]);
+    prefetchRef.current = onPrefetch;
+  }, [onPrefetch, onSelect]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -297,6 +325,8 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
     if (!categories.length) return;
     const nodes = buildNodes(selectors, categories);
     const images = loadImages(nodes);
+    const brandLogo = new Image();
+    brandLogo.src = assetUrl("/brand/thehyundai-hi.svg");
 
     // view 는 지금 보이는 화면, camera 는 목표값. 매 프레임 부드럽게 따라간다.
     const view = { x: 0, y: 0, scale: 0.8 };
@@ -400,7 +430,9 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
       pointer.x = event.clientX;
       pointer.y = event.clientY;
       const world = toWorld(event.clientX, event.clientY);
-      hovered = dragging ? null : hitTest(world.x, world.y);
+      const nextHovered = dragging ? null : hitTest(world.x, world.y);
+      if (nextHovered && nextHovered !== hovered) prefetchRef.current?.(nextHovered.selector);
+      hovered = nextHovered;
       canvas.style.cursor = dragging ? "grabbing" : hovered ? "pointer" : "grab";
     };
     const onPointerUp = (event: PointerEvent) => {
@@ -496,14 +528,11 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
         context.stroke();
         context.restore();
 
-        context.textAlign = "center";
-        context.textBaseline = "middle";
-        context.fillStyle = `rgb(${INK} / 38%)`;
-        context.font = "700 26px Pretendard, sans-serif";
-        context.fillText("셀렉터스 풀", 0, -26);
-        context.fillStyle = `rgb(${INK} / 70%)`;
-        context.font = "800 52px Pretendard, sans-serif";
-        context.fillText(String(nodes.length), 0, 18);
+        if (brandLogo.complete && brandLogo.naturalWidth) {
+          const logoWidth = 190;
+          const logoHeight = logoWidth * (brandLogo.naturalHeight / brandLogo.naturalWidth);
+          context.drawImage(brandLogo, -logoWidth / 2, -logoHeight / 2, logoWidth, logoHeight);
+        }
       }
 
       // 클러스터마다 옅은 색 안개를 깔아 영역이 구분되게 한다.
@@ -640,22 +669,26 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
           ? null
           : `팔로워 ${formatNumber(lit.selector.followerCount)}`;
 
+        const mark = platformMark(lit.selector.snsCode);
+
         context.font = "700 12px Pretendard, sans-serif";
         const nameWidth = context.measureText(name).width;
         context.font = "500 11px Pretendard, sans-serif";
+        const accountWidth = context.measureText(account).width + 18; // 로고 자리
         const metaWidth = Math.max(
-          context.measureText(account).width,
+          accountWidth,
           followers ? context.measureText(followers).width : 0,
         );
-        const cardWidth = Math.max(nameWidth, metaWidth) + 26;
-        const cardHeight = followers ? 60 : 44;
+        const cardWidth = Math.max(nameWidth, metaWidth) + 28;
+        const cardHeight = followers ? 62 : 46;
         const cardY = position.y + radius + 10;
 
+        // 흰 배경에 묻히지 않도록 어두운 카드 + 밝은 글자
         context.save();
-        context.shadowColor = `rgb(${INK} / 22%)`;
+        context.shadowColor = `rgb(${INK} / 30%)`;
         context.shadowBlur = 18;
         context.shadowOffsetY = 6;
-        context.fillStyle = "#fff";
+        context.fillStyle = `rgb(${INK} / 94%)`;
         context.beginPath();
         context.roundRect(position.x - cardWidth / 2, cardY, cardWidth, cardHeight, 12);
         context.fill();
@@ -663,13 +696,22 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
 
         context.textAlign = "center";
         context.textBaseline = "middle";
-        context.fillStyle = `rgb(${INK})`;
+        context.fillStyle = "#fff";
         context.font = "700 12px Pretendard, sans-serif";
-        context.fillText(name, position.x, cardY + 16);
-        context.fillStyle = `rgb(${INK} / 60%)`;
+        context.fillText(name, position.x, cardY + 17);
+
         context.font = "500 11px Pretendard, sans-serif";
-        context.fillText(account, position.x, cardY + 32);
-        if (followers) context.fillText(followers, position.x, cardY + 48);
+        const accountTextWidth = context.measureText(account).width;
+        const accountLeft = position.x - accountTextWidth / 2;
+        context.save();
+        context.translate(accountLeft - 16, cardY + 27);
+        context.scale(12 / 24, 12 / 24);
+        context.fillStyle = `rgb(${mark.color})`;
+        context.fill(mark.path);
+        context.restore();
+        context.fillStyle = "rgb(255 255 255 / 78%)";
+        context.fillText(account, position.x, cardY + 33);
+        if (followers) context.fillText(followers, position.x, cardY + 50);
       }
     };
     frame = requestAnimationFrame(render);
@@ -750,8 +792,14 @@ export function SelectorPoolCanvas({ onSelect, selectors }: SelectorPoolCanvasPr
                   className="hsas-selector-pool__dock-item"
                   onBlur={() => spotlightRef.current?.(null)}
                   onClick={() => onSelect(selector)}
-                  onFocus={() => spotlightRef.current?.(selector.id)}
-                  onMouseEnter={() => spotlightRef.current?.(selector.id)}
+                  onFocus={() => {
+                    spotlightRef.current?.(selector.id);
+                    onPrefetch?.(selector);
+                  }}
+                  onMouseEnter={() => {
+                    spotlightRef.current?.(selector.id);
+                    onPrefetch?.(selector);
+                  }}
                   onMouseLeave={() => spotlightRef.current?.(null)}
                   type="button"
                 >
