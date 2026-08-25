@@ -59,6 +59,7 @@ describe("creator filters", () => {
     snsCode: "INSTAGRAM",
     accountId: "seo.yeon",
     creatorName: "김서연",
+    profileImageUrl: "https://cdn.example.com/seo-yeon.jpg",
     followerCount: 82_400,
     engagementRate: 4.25,
     lastContentAt: "2026-08-12T20:00:00",
@@ -71,6 +72,7 @@ describe("creator filters", () => {
     snsCode: "YOUTUBE",
     accountId: "UCnMBn-PNx1M9TLF0s-sEDeQ",
     creatorName: "Clevr TV",
+    profileImageUrl: "https://cdn.example.com/clevr-list.jpg",
     followerCount: 830_000,
     engagementRate: 0.92,
     recent90DayContentCount: 25,
@@ -81,6 +83,7 @@ describe("creator filters", () => {
     id: 115,
     accountId: "17841400602400210",
     creatorName: "numeric.instagram",
+    profileImageUrl: null,
     followerCount: 12_345,
     engagementRate: 1.23,
     recent90DayContentCount: 4,
@@ -102,6 +105,7 @@ describe("creator filters", () => {
   };
   const youtubeCreatorDetail = {
     ...youtubeCreator,
+    profileImageUrl: "https://cdn.example.com/clevr-detail.jpg",
     categoryShares: [
       { categoryCode: "SKINCARE", totalShare: 0.7 },
       { categoryCode: "BEAUTY", totalShare: 0.3 },
@@ -179,6 +183,10 @@ describe("creator filters", () => {
 
     const table = screen.getByRole("region", { name: "크리에이터 목록" });
     expect(await within(table).findByRole("button", { name: "김서연 프로필 보기" })).toBeInTheDocument();
+    expect(within(table).getByRole("img", { name: "김서연 프로필 이미지" }))
+      .toHaveAttribute("src", "https://cdn.example.com/seo-yeon.jpg");
+    expect(within(table).getByRole("img", { name: "numeric.instagram 프로필 이미지 없음" }))
+      .toBeInTheDocument();
     expect(within(table).getByRole("button", { name: "Clevr TV 프로필 보기" })).toBeInTheDocument();
     expect(within(table).getByText("82,400")).toBeInTheDocument();
     expect(within(table).getByText("4.25%")).toBeInTheDocument();
@@ -236,8 +244,8 @@ describe("creator filters", () => {
 
     const panel = await screen.findByRole("dialog", { name: "크리에이터 프로필" });
     expect(await within(panel).findByRole("heading", { name: "Clevr TV" })).toBeInTheDocument();
-    expect(within(panel).getByRole("img", { name: "Clevr TV 프로필 이미지 없음" }))
-      .toBeInTheDocument();
+    expect(within(panel).getByRole("img", { name: "Clevr TV 프로필 이미지" }))
+      .toHaveAttribute("src", "https://cdn.example.com/clevr-detail.jpg");
     expect(within(panel).getByText("83만")).toBeInTheDocument();
     expect(within(panel).getByText("0.92%")).toBeInTheDocument();
     expect(within(panel).getByText("25+건")).toBeInTheDocument();

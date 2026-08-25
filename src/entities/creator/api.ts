@@ -7,6 +7,7 @@ export interface CreatorSummary {
   snsCode: "INSTAGRAM" | "YOUTUBE";
   accountId: string;
   creatorName: string | null;
+  profileImageUrl: string | null;
   followerCount: number | null;
   engagementRate: number | null;
   lastContentAt: string | null;
@@ -44,6 +45,7 @@ export interface CreatorDetail {
   snsCode: "INSTAGRAM" | "YOUTUBE";
   accountId: string;
   creatorName: string | null;
+  profileImageUrl: string | null;
   email?: string;
   followerCount: number | null;
   engagementRate: number | null;

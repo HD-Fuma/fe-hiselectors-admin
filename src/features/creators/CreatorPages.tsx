@@ -180,7 +180,7 @@ function CreatorAccountCell({
         type="button"
       >
         <span className="fuma-creator-account-cell__portrait">
-          <CreatorProfilePhoto creatorName={accountName} src="" />
+          <CreatorProfilePhoto creatorName={accountName} src={creator.profileImageUrl ?? ""} />
           <PlatformIcon platform={platform} />
         </span>
         <span className="fuma-creator-account-cell__identity">
@@ -556,7 +556,7 @@ function CreatorProfilePanel({
     infoFields: [],
     name: displayName,
     platform: platformFor(detail.snsCode),
-    profileImageUrl: "",
+    profileImageUrl: detail.profileImageUrl ?? creator.profileImageUrl ?? "",
     profileUrl,
     status: null,
   } : undefined;
