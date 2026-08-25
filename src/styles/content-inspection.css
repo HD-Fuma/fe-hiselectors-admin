@@ -212,6 +212,18 @@ body:has(.fuma-content-inspection-studio) {
   color: #202224;
 }
 
+.fuma-content-inspection-studio__exit-button kbd {
+  padding: var(--hsas-space-2) var(--hsas-space-5);
+  border: 1px solid rgb(32 34 36 / 18%);
+  border-radius: var(--hsas-space-5);
+  color: inherit;
+  background: rgb(255 255 255 / 48%);
+  font: inherit;
+  font-size: var(--hsas-font-10);
+  font-weight: 800;
+  line-height: 1;
+}
+
 .fuma-content-inspection-studio__exit-button:focus-visible {
   outline: 3px solid rgb(32 34 36 / 18%);
   outline-offset: 2px;

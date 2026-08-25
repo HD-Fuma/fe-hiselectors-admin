@@ -2492,6 +2492,7 @@ export function ContentInspectionDetailPage() {
         role="dialog"
       >
         <button
+          aria-keyshortcuts="Escape"
           aria-label="검수 화면 나가기"
           className="fuma-content-inspection-studio__exit-button"
           disabled={studioActionPending !== null}
@@ -2500,6 +2501,7 @@ export function ContentInspectionDetailPage() {
         >
           <ArrowLeft aria-hidden="true" size={16} />
           나가기
+          <kbd>ESC</kbd>
         </button>
         {content ? (
           <>
