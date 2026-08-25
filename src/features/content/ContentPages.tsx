@@ -897,6 +897,7 @@ function ViolationHighlightedText({
       <mark
         aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
         className="fuma-inspection-text-violation"
+        data-bubble={annotation.title}
         data-focused={focusedOrdinal === annotation.ordinal}
         data-ordinal={annotation.ordinal}
         data-severity={annotation.severity}
@@ -953,7 +954,7 @@ function MinimalVersionCard({
   const activeMedia = mediaItems[visibleIndex];
   const platform = contentPlatform(content.sourcePlatform);
   const isInstagram = platform === "Instagram";
-  const useCarouselTrack = isInstagram && mediaItems.length > 1 && !showAnnotations;
+  const useCarouselTrack = isInstagram && mediaItems.length > 1;
   const embedUrl = isInstagram ? null : youtubeEmbedUrl(snapshot.youtubeVideoId);
   const isVerticalVideo = content.contentFormat === "인스타 릴스" || content.contentFormat === "유튜브 쇼츠";
   const activeMediaAnnotations = annotations.filter((annotation) => (
@@ -1125,7 +1126,11 @@ function MinimalVersionCard({
                       type="button"
                     >
                       <span className="fuma-inspection-annotation-pin">{annotation.ordinal}</span>
-                      <small>{timeRange ? `${timeRange.start}–${timeRange.end}` : annotation.title}</small>
+                      <small>
+                        {timeRange
+                          ? `${annotation.title} · ${timeRange.start}–${timeRange.end}`
+                          : annotation.title}
+                      </small>
                     </button>
                   );
                 })}
@@ -1842,6 +1847,14 @@ export function ContentInspectionDetailPage() {
     && studioViolationJudgments.every(Boolean);
   const studioFinalFocused = studioViolationReviewComplete
     && focusedStudioViolationIndex < 0;
+  const studioCardFocusedViolation = useMemo(() => {
+    const focused = focusedStudioViolationIndex >= 0
+      ? studioViolationSignals[focusedStudioViolationIndex]
+      : undefined;
+    return focused
+      ? { ordinal: focused.ordinal, requestId: focusedStudioViolationIndex }
+      : null;
+  }, [focusedStudioViolationIndex, studioViolationSignals]);
   const judgedStudioViolationCount = studioViolationJudgments.filter(Boolean).length;
   const hasStudioViolationJudgment = studioViolationJudgments.includes("violation");
   const visibleError = loadError !== null && loadError.id === contentId
@@ -1896,6 +1909,11 @@ export function ContentInspectionDetailPage() {
       return next;
     });
   }, [studioViolationSignals.length]);
+
+  const selectStudioViolationFromContent = useCallback((ordinal: number) => {
+    const index = studioViolationSignals.findIndex((signal) => signal.ordinal === ordinal);
+    if (index >= 0) setFocusedStudioViolationIndex(index);
+  }, [studioViolationSignals]);
 
   const generateStudioReport = useCallback(async () => {
     if (
@@ -2468,8 +2486,9 @@ export function ContentInspectionDetailPage() {
                 </span>
                 <MinimalVersionCard
                   content={content}
+                  focusedViolation={studioCardFocusedViolation}
                   label="최신 콘텐츠"
-                  showAnnotations={false}
+                  onSelectViolation={selectStudioViolationFromContent}
                   snapshot={content.currentSnapshot}
                 />
               </div>
