@@ -1048,6 +1048,7 @@ function MinimalVersionCard({
             ) : activeMedia?.url ? (
               <img
                 alt={`${content.author} ${label} 미디어 ${visibleIndex + 1}`}
+                key={`${activeMedia.url}-${visibleIndex}`}
                 onLoad={(event) => {
                   const { naturalHeight, naturalWidth } = event.currentTarget;
                   if (naturalHeight > 0 && naturalWidth > 0) {
