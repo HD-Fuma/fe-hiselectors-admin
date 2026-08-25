@@ -1732,6 +1732,7 @@ function ContentInspectionDetailContent({
 export function ContentInspectionDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [studioExiting, setStudioExiting] = useState(false);
   const { contentId } = useParams();
   const numericContentId = Number(contentId);
   const invalidContentId = !Number.isSafeInteger(numericContentId) || numericContentId <= 0;
@@ -1762,7 +1763,7 @@ export function ContentInspectionDetailPage() {
     : pendingContents.length;
 
   useEffect(() => {
-    if (invalidContentId || !contentId) return undefined;
+    if (routeState?.inspectionSession || invalidContentId || !contentId) return undefined;
 
     const routeContents = routeState?.contents
       ?? (routeState?.content ? [routeState.content] : []);
@@ -1796,6 +1797,39 @@ export function ContentInspectionDetailPage() {
 
     return () => controller.abort();
   }, [contentId, invalidContentId, numericContentId, routeState]);
+
+  useEffect(() => {
+    if (!routeState?.inspectionSession) return undefined;
+    let exitTimer: number | undefined;
+    const exitSession = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape" || exitTimer) return;
+      event.preventDefault();
+      setStudioExiting(true);
+      exitTimer = window.setTimeout(() => {
+        navigate(typeof returnPath === "string" ? returnPath : "/content/inspections", {
+          replace: true,
+        });
+      }, 260);
+    };
+
+    window.addEventListener("keydown", exitSession);
+    return () => {
+      window.removeEventListener("keydown", exitSession);
+      if (exitTimer) window.clearTimeout(exitTimer);
+    };
+  }, [navigate, returnPath, routeState?.inspectionSession]);
+
+  if (routeState?.inspectionSession) {
+    return (
+      <main
+        aria-label="집중 검수 스튜디오"
+        aria-modal="true"
+        className="fuma-content-inspection-studio"
+        data-exiting={studioExiting}
+        role="dialog"
+      />
+    );
+  }
 
   return (
     <section className="fuma-page fuma-content-inspection-detail" data-visual-contract="content-inspection">
