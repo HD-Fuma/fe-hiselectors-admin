@@ -4,7 +4,7 @@ const THEME_STORAGE_KEY = "selectors-theme";
 
 export function getTheme(): Theme {
   const theme = localStorage.getItem(THEME_STORAGE_KEY);
-  return theme === "light" || theme === "dark" ? theme : "dark";
+  return theme === "light" || theme === "dark" ? theme : "light";
 }
 
 export function applyTheme(theme: Theme) {
