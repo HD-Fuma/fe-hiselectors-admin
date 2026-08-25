@@ -2787,7 +2787,7 @@ export function ContentInspectionDetailPage() {
                                 onClick={() => judgeStudioViolationAndAdvance(index, "clear")}
                                 type="button"
                               >
-                                위반 아님
+                                위반 허용
                               </button>
                               {judgment ? (
                                 <span
@@ -2866,7 +2866,6 @@ export function ContentInspectionDetailPage() {
               className="fuma-content-inspection-studio__exit-dialog"
               role="alertdialog"
             >
-              <span>ESC</span>
               <h2 id="fuma-inspection-exit-title">검수가 완료되지 않았습니다.</h2>
               <p id="fuma-inspection-exit-description">그래도 검수 화면에서 나가시겠습니까?</p>
               <div>
