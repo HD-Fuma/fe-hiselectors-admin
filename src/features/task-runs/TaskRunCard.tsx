@@ -44,9 +44,12 @@ function TerminalTaskRunIcon({ run }: { run: TaskRun }) {
 
 function ActiveTaskRunContent({ run }: { run: TaskRun }) {
   const taskLabel = TASK_LABELS[run.taskType];
-  const creatorSync = run.taskType === "CREATOR_SYNC";
-  const progressMessage = creatorSync ? run.progressMessage : null;
-  const progress = creatorSync ? null : determinateProgress(run);
+  const usesProgressMessage = run.taskType === "CREATOR_SYNC"
+    || run.taskType === "CONTENT_SYNC";
+  const progressMessage = usesProgressMessage
+    ? run.progressMessage?.trim() || null
+    : null;
+  const progress = usesProgressMessage ? null : determinateProgress(run);
   const showsIndeterminateProgress = progress == null && progressMessage == null;
 
   return (
@@ -102,7 +105,7 @@ function ActiveTaskRunContent({ run }: { run: TaskRun }) {
 
       <div className="fuma-task-run-card__meta">
         <span>{triggerLabel(run)}</span>
-        {!creatorSync && run.totalCount != null && run.failedCount > 0 && (
+        {!usesProgressMessage && run.totalCount != null && run.failedCount > 0 && (
           <strong className="fuma-task-run-card__failure">
             {run.failedCount}건 실패
           </strong>
