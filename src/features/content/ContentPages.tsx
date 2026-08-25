@@ -1806,14 +1806,14 @@ export function ContentInspectionDetailPage() {
   const remainingCount = currentPendingIndex >= 0
     ? Math.max(0, pendingContents.length - currentPendingIndex - 1)
     : pendingContents.length;
-  const navigateStudioContent = (target?: ContentInspectionFixture) => {
+  const navigateStudioContent = useCallback((target?: ContentInspectionFixture) => {
     if (!target) return;
     setStudioDecision(null);
     setStudioSelector(null);
     navigate(`/content/inspections/${target.id}`, {
       state: { ...routeState, content: target, contents: detailContents, inspectionSession: true },
     });
-  };
+  }, [detailContents, navigate, routeState]);
 
   useEffect(() => {
     if (invalidContentId || !contentId) return undefined;
@@ -1864,12 +1864,24 @@ export function ContentInspectionDetailPage() {
       if (event.key === "0" || event.key === "1") {
         event.preventDefault();
         setStudioDecision(event.key === "0" ? "reject" : "approve");
+        return;
+      }
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        event.preventDefault();
+        navigateStudioContent(event.key === "ArrowLeft" ? previousContent : nextContent);
       }
     };
 
     window.addEventListener("keydown", exitSession);
     return () => window.removeEventListener("keydown", exitSession);
-  }, [exitConfirmationOpen, routeState?.inspectionSession, studioExiting]);
+  }, [
+    exitConfirmationOpen,
+    navigateStudioContent,
+    nextContent,
+    previousContent,
+    routeState?.inspectionSession,
+    studioExiting,
+  ]);
 
   useEffect(() => {
     if (!routeState?.inspectionSession || !studioExiting) return undefined;
