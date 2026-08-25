@@ -567,6 +567,7 @@ export function ApplicantListPage() {
         <ApplicantDetailPage
           applicantIdOverride={detailApplicantId}
           embedded
+          initialSummary={pageData?.content.find((row) => String(row.id) === detailApplicantId) ?? null}
           onClose={() => navigate("/applicants")}
           onDecisionConfirmed={(name, status) => setDecisionModal({ name, status })}
           onStatusChanged={() => setListRequestVersion((version) => version + 1)}
@@ -593,6 +594,7 @@ export function ApplicantListPage() {
 interface ApplicantDetailPageProps {
   applicantIdOverride?: string;
   embedded?: boolean;
+  initialSummary?: AdminApplicationSummary | null;
   onClose?: () => void;
   onDecisionConfirmed?: (name: string, status: Exclude<ApplicationStatus, "PENDING">) => void;
   onStatusChanged?: () => void;
@@ -601,6 +603,7 @@ interface ApplicantDetailPageProps {
 export function ApplicantDetailPage({
   applicantIdOverride,
   embedded = false,
+  initialSummary = null,
   onClose,
   onDecisionConfirmed,
   onStatusChanged,
@@ -662,10 +665,51 @@ export function ApplicantDetailPage({
 
   const currentDetailState = detailState?.id === numericApplicantId ? detailState : null;
   const applicant = currentDetailState?.applicant ?? null;
-  const testApplicant = applicant ? isTestApplicant(applicant) : false;
-  const effectiveReviewStatus = applicant ? reviewStatusFor(applicant) : undefined;
-  const audienceLabel = applicant?.snsCode === "INSTAGRAM" ? "팔로워" : "구독자";
+  const currentInitialSummary = initialSummary?.id === numericApplicantId ? initialSummary : null;
+  const summarySource = applicant ?? currentInitialSummary;
+  const testApplicant = summarySource ? isTestApplicant(summarySource) : false;
+  const effectiveReviewStatus = summarySource ? reviewStatusFor(summarySource) : undefined;
+  const audienceLabel = summarySource?.snsCode === "INSTAGRAM" ? "팔로워" : "구독자";
   const representativeContents = applicant ? uniqueContentsByPost(applicant.contents) : [];
+  const fallbackReviewStatus = currentInitialSummary ? reviewStatusFor(currentInitialSummary) : undefined;
+  const fallbackProfile: ProfileDetailProfile | undefined = !applicant && currentInitialSummary && fallbackReviewStatus ? {
+    audienceLabel: currentInitialSummary.snsCode === "INSTAGRAM" ? "팔로워" : "구독자",
+    audienceValue: currentInitialSummary.followerCount === null ? "-" : formatNumber(currentInitialSummary.followerCount),
+    contentCount: currentInitialSummary.totalContentCount === null
+      ? "-"
+      : formatNumber(currentInitialSummary.totalContentCount),
+    engagementValue: currentInitialSummary.engagementRate === null
+      ? "-"
+      : `${currentInitialSummary.engagementRate.toFixed(2)}%`,
+    gallery: [],
+    handle: displaySnsName(currentInitialSummary),
+    infoFields: [
+      { label: "지원자 ID", value: currentInitialSummary.id },
+      { label: "SNS 계정", value: displaySnsName(currentInitialSummary) },
+      { label: "이메일", value: currentInitialSummary.email },
+      { label: "기수", value: currentInitialSummary.generationName },
+      { label: "최종 업데이트", value: dateTime(currentInitialSummary.updatedAt) },
+      {
+        label: currentInitialSummary.snsCode === "INSTAGRAM" ? "팔로워" : "구독자",
+        value: currentInitialSummary.followerCount === null ? "-" : formatNumber(currentInitialSummary.followerCount),
+      },
+      {
+        label: "최근 90일 콘텐츠",
+        value: currentInitialSummary.recent90DayContentCount === null
+          ? "-"
+          : `${formatNumber(currentInitialSummary.recent90DayContentCount)}건`,
+      },
+    ],
+    name: currentInitialSummary.applicantName,
+    platform: platformFor(currentInitialSummary.snsCode),
+    profileImageUrl: "",
+    profileUrl: profileUrl(currentInitialSummary),
+    status: (
+      <StatusPill tone={reviewStatusTone(fallbackReviewStatus)}>
+        {fallbackReviewStatus}
+      </StatusPill>
+    ),
+  } : undefined;
   const detailProfile: ProfileDetailProfile | undefined = applicant && effectiveReviewStatus ? {
     audienceLabel,
     audienceValue: applicant.followerCount === null ? "-" : formatNumber(applicant.followerCount),
@@ -718,10 +762,11 @@ export function ApplicantDetailPage({
       </StatusPill>
     ),
   } : undefined;
-  const loading = !invalidApplicantId && !currentDetailState;
   const detailError = invalidApplicantId
     ? "요청한 지원자 ID가 올바르지 않습니다."
     : currentDetailState?.error;
+  const profile = detailProfile ?? (detailError ? undefined : fallbackProfile);
+  const loading = !invalidApplicantId && !currentDetailState && !profile;
 
   const updateStatus = async (status: Exclude<ApplicationStatus, "PENDING">) => {
     setUpdatingStatus(status);
@@ -742,7 +787,7 @@ export function ApplicantDetailPage({
     <>
       {embedded ? null : <ApplicantListPage />}
       <ProfileDetailShell
-        actionSection={applicant?.status === "PENDING" && effectiveReviewStatus && !testApplicant ? (
+        actionSection={summarySource?.status === "PENDING" && effectiveReviewStatus && !testApplicant ? (
           <section className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions">
             <div className="fuma-applicant-detail-actions__heading">
               <span>심사 처리</span>
@@ -774,7 +819,7 @@ export function ApplicantDetailPage({
         emptyRole={loading ? "status" : "alert"}
         emptyTitle={loading ? "지원자 정보를 불러오는 중입니다" : "지원자를 찾을 수 없습니다"}
         onClose={onClose ?? (() => navigate("/applicants"))}
-        profile={detailProfile}
+        profile={profile}
         title="지원자 상세"
       >
         {applicant ? (
@@ -782,6 +827,22 @@ export function ApplicantDetailPage({
             aiReport={aiReport?.id === numericApplicantId ? aiReport.report : null}
             applicant={applicant}
           />
+        ) : profile ? (
+          <div aria-live="polite" className="fuma-applicant-report-skeleton" role="status">
+            <span className="fuma-applicant-report-skeleton__bar fuma-applicant-report-skeleton__bar--title" />
+            <span className="fuma-applicant-report-skeleton__bar" />
+            <span className="fuma-applicant-report-skeleton__bar fuma-applicant-report-skeleton__bar--short" />
+            <div className="fuma-applicant-report-skeleton__card" />
+            <div className="fuma-applicant-report-skeleton__grid">
+              <span className="fuma-applicant-report-skeleton__tile" />
+              <span className="fuma-applicant-report-skeleton__tile" />
+              <span className="fuma-applicant-report-skeleton__tile" />
+              <span className="fuma-applicant-report-skeleton__tile" />
+            </div>
+            <span className="fuma-applicant-report-skeleton__bar" />
+            <span className="fuma-applicant-report-skeleton__bar fuma-applicant-report-skeleton__bar--short" />
+            <span className="hsas-visually-hidden">상세 분석 리포트를 불러오는 중입니다...</span>
+          </div>
         ) : null}
       </ProfileDetailShell>
     </>

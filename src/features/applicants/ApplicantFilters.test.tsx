@@ -389,7 +389,8 @@ describe("applicant api pages", () => {
     )));
     renderApplicantPage("/applicants?detail=1");
     const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
-    expect(within(panel).getByRole("status")).toHaveTextContent("지원자 정보를 불러오는 중입니다.");
+    expect(await within(panel).findByRole("heading", { name: "김민지" })).toBeInTheDocument();
+    expect(within(panel).getByRole("status")).toHaveTextContent("상세 분석 리포트를 불러오는 중입니다...");
 
     await act(async () => pendingDetail.resolve(await json(applicantDetail)));
     expect(await within(panel).findByRole("heading", { name: "김민지" })).toBeInTheDocument();
