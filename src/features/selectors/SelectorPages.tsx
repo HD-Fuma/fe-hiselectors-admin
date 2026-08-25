@@ -36,6 +36,7 @@ import {
   getSettlementSelectorDetail,
   type SettlementSelectorDetail,
 } from "../../entities/settlement";
+import { SelectorPoolCanvas } from "./SelectorPoolCanvas";
 import { formatNumber } from "../../lib/formatters";
 import { paginate } from "../../lib/pagination";
 
@@ -533,9 +534,16 @@ const SELECTOR_COLUMNS: DenseTableColumn<SelectorSummary>[] = [
 ];
 
 const SELECTOR_PAGE_SIZE = 20;
+const POOL_PAGE_SIZE = 120;
+const SELECTOR_VIEW_OPTIONS = [
+  { label: "버블", value: "pool" },
+  { label: "표", value: "table" },
+] as const;
+type SelectorViewMode = (typeof SELECTOR_VIEW_OPTIONS)[number]["value"];
 
 export function SelectorOverviewPage() {
   const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState<SelectorViewMode>("pool");
   const [keyword, setKeyword] = useState("");
   const [generationId, setGenerationId] = useState("");
   const [sns, setSns] = useState("");
@@ -554,6 +562,8 @@ export function SelectorOverviewPage() {
       : selectedStatus === "BLACKLIST"
         ? "블랙리스트 목록"
         : "셀렉터스 목록";
+  // 버블 뷰는 상태 필터가 없는 전체 목록에서만 사용한다.
+  const activeView: SelectorViewMode = selectedStatus ? "table" : viewMode;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -571,7 +581,7 @@ export function SelectorOverviewPage() {
       nickname: appliedKeyword || undefined,
       snsCode: (appliedSns || undefined) as SelectorSnsCode | undefined,
       page: page - 1,
-      size: SELECTOR_PAGE_SIZE,
+      size: activeView === "pool" ? POOL_PAGE_SIZE : SELECTOR_PAGE_SIZE,
     }, controller.signal).then((result) => {
       setPageData(result);
       setListError("");
@@ -581,7 +591,7 @@ export function SelectorOverviewPage() {
       }
     });
     return () => controller.abort();
-  }, [appliedGenerationId, appliedKeyword, appliedSns, page, selectedStatus]);
+  }, [activeView, appliedGenerationId, appliedKeyword, appliedSns, page, selectedStatus]);
 
   const applyFilters = () => {
     setAppliedKeyword(keyword.trim());
@@ -659,6 +669,17 @@ export function SelectorOverviewPage() {
           value={selectedStatus}
         />
         <ResultToolbar
+          actions={selectedStatus ? null : (
+            <ChoiceTabs
+              ariaLabel="보기 방식"
+              onChange={(mode: SelectorViewMode) => {
+                setViewMode(mode);
+                setPage(1);
+              }}
+              options={SELECTOR_VIEW_OPTIONS}
+              value={viewMode}
+            />
+          )}
           className="fuma-simple-result-toolbar"
           meta={
             <>
@@ -668,14 +689,19 @@ export function SelectorOverviewPage() {
           }
           title={selectorListTitle}
         />
-        <div
-          aria-label={selectorListTitle}
-          className="fuma-wide-table fuma-settlement-table fuma-selector-list-table"
-          role="region"
-        >
-          {listError ? (
-            <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
-          ) : (
+        {listError ? (
+          <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
+        ) : activeView === "pool" ? (
+          <SelectorPoolCanvas
+            onSelect={(selector) => navigate(`/selectors/${selector.id}`)}
+            selectors={pageData?.content ?? []}
+          />
+        ) : (
+          <div
+            aria-label={selectorListTitle}
+            className="fuma-wide-table fuma-settlement-table fuma-selector-list-table"
+            role="region"
+          >
             <DenseTable
               columns={SELECTOR_COLUMNS}
               emptyMessage={pageData ? "셀렉터스가 없습니다." : "셀렉터스를 불러오는 중입니다."}
@@ -683,14 +709,16 @@ export function SelectorOverviewPage() {
               rowKey={(selector) => selector.id}
               rows={pageData?.content ?? []}
             />
-          )}
-        </div>
-        <Pagination
-          onPageChange={setPage}
-          page={page}
-          pageSize={SELECTOR_PAGE_SIZE}
-          totalPages={Math.max(1, pageData?.totalPages ?? 1)}
-        />
+          </div>
+        )}
+        {activeView === "table" ? (
+          <Pagination
+            onPageChange={setPage}
+            page={page}
+            pageSize={SELECTOR_PAGE_SIZE}
+            totalPages={Math.max(1, pageData?.totalPages ?? 1)}
+          />
+        ) : null}
       </div>
     </section>
   );

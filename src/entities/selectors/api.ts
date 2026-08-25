@@ -23,6 +23,8 @@ export interface SelectorSummary {
   followerCount: number | null;
   profileImageUrl: string | null;
   createdAt: string;
+  /** 지원자 AI 리포트에서 확정된 대표 카테고리(코드 또는 라벨). */
+  category?: string | null;
 }
 
 export interface SelectorGeneration {
