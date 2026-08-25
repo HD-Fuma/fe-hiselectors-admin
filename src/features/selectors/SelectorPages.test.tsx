@@ -233,7 +233,7 @@ describe("selector api pages", () => {
     expect(within(panel).queryByText(/등록 2026-/)).not.toBeInTheDocument();
     expect(within(panel).queryByRole("region", { name: "셀렉터스 SNS 계정" })).not.toBeInTheDocument();
     expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("3기");
-    expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("2026-07-02 ~ 2026-10-31");
+    expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("2026-08-01 ~ 2026-10-31");
     expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("12건");
     expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("1,500,000원");
     expect(within(panel).getByRole("region", { name: "셀렉터스 참여 기수 이력" })).toHaveTextContent("320,000원");

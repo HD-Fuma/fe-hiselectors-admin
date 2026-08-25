@@ -4,6 +4,8 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { COHORT_SERIES_COLORS } from "../../components/charts/chartColors";
+import { PeriodLineChart } from "../../components/charts/PeriodLineChart";
 import { SegmentedControl, Select, TextInput } from "../../components/ui/Controls";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { CreatorProfilePhoto } from "../../components/ui/CreatorProfilePhoto";
@@ -121,23 +123,6 @@ function compactNumber(value: number) {
 
 function contribution(value: number, total: number) {
   return total === 0 ? "0.0%" : `${((value / total) * 100).toFixed(1)}%`;
-}
-
-function smoothLinePath(points: readonly { x: number; y: number }[]) {
-  if (points.length === 0) return "";
-  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
-
-  return points.slice(0, -1).reduce((path, point, index) => {
-    const previous = points[index - 1] ?? point;
-    const next = points[index + 1];
-    const afterNext = points[index + 2] ?? next;
-    const control1X = point.x + (next.x - previous.x) / 6;
-    const control1Y = point.y + (next.y - previous.y) / 6;
-    const control2X = next.x - (afterNext.x - point.x) / 6;
-    const control2Y = next.y - (afterNext.y - point.y) / 6;
-
-    return `${path} C ${control1X} ${control1Y}, ${control2X} ${control2Y}, ${next.x} ${next.y}`;
-  }, `M ${points[0].x} ${points[0].y}`);
 }
 
 function productColumns(totalSales: number): DenseTableColumn<CampaignProductPerformance>[] {
@@ -339,16 +324,6 @@ function CampaignSalesOverview({
   const visibleSeries = trendMode === "all"
     ? TREND_SERIES
     : TREND_SERIES.filter((series) => series.value === trendMode);
-  const chartSeries = visibleSeries.map((series) => {
-    const maximum = Math.max(1, ...daily.map((metric) => metric[series.value]));
-    return {
-      ...series,
-      points: daily.map((metric, index) => ({
-        x: 42 + index * pointGap,
-        y: 25 + (1 - metric[series.value] / maximum) * 168,
-      })),
-    };
-  });
   const summary = performance?.summary;
 
   const startChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -429,56 +404,25 @@ function CampaignSalesOverview({
             ref={chartScrollRef}
             role="region"
           >
-            <svg
-              aria-label={trendMode === "all"
+            <PeriodLineChart
+              ariaLabel={trendMode === "all"
                 ? "기간별 전체 캠페인 성과 추이"
                 : `기간별 ${visibleSeries[0].label} 추이`}
-              className={`fuma-content-cohort-chart__plot fuma-content-period-chart__plot is-${trendMode}`}
-              role="img"
-              style={{ width: `${chartWidth}px` }}
-              viewBox={`0 0 ${chartWidth} 246`}
-            >
-              <line className="fuma-content-cohort-chart__grid" x1="18" x2={chartWidth - 18} y1="25" y2="25" />
-              <line className="fuma-content-cohort-chart__grid" x1="18" x2={chartWidth - 18} y1="109" y2="109" />
-              <line className="fuma-content-cohort-chart__grid" x1="18" x2={chartWidth - 18} y1="193" y2="193" />
-              {chartSeries.map((series) => (
-                <g
-                  className={`fuma-content-cohort-chart__series ${series.styleClass}`}
-                  data-series={series.value}
-                  key={series.value}
-                >
-                  <path
-                    className="fuma-content-cohort-chart__line"
-                    d={smoothLinePath(series.points)}
-                  />
-                  {daily.map((metric, index) => {
-                    const point = series.points[index];
-                    return (
-                      <g data-metric-date={metric.date} data-metric-value={metric[series.value]} key={metric.date}>
-                        <circle className="fuma-content-cohort-chart__point" cx={point.x} cy={point.y} r="3.5" />
-                        {trendMode !== "all" ? (
-                          <text className="fuma-content-cohort-chart__value" textAnchor="middle" x={point.x} y={point.y - 11}>
-                            {compactNumber(metric[series.value])}
-                          </text>
-                        ) : null}
-                      </g>
-                    );
-                  })}
-                </g>
-              ))}
-              {daily.map((metric, index) => (
-                <g data-period-date={metric.date} key={metric.date}>
-                  <text
-                    className="fuma-content-cohort-chart__label"
-                    textAnchor="middle"
-                    x={42 + index * pointGap}
-                    y="228"
-                  >
-                    {dateLabel(metric.date)}
-                  </text>
-                </g>
-              ))}
-            </svg>
+              categories={daily.map((metric) => metric.date)}
+              categoryLabels={daily.map((metric) => dateLabel(metric.date))}
+              className="fuma-content-period-chart__plot"
+              formatValue={compactNumber}
+              height={246}
+              modeClass={trendMode}
+              series={visibleSeries.map((series) => ({
+                color: COHORT_SERIES_COLORS[series.value],
+                data: daily.map((metric) => metric[series.value]),
+                id: series.value,
+                name: series.label,
+              }))}
+              showValueLabels={trendMode !== "all"}
+              width={chartWidth}
+            />
           </div>
         ) : <p>조회 기간에 표시할 매출 성과가 없습니다.</p>}
       </article>

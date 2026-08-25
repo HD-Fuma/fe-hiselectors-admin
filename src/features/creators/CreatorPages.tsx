@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Eye, Pencil } from "lucide-react";
-import { CreatorProfilePhoto } from "../../components/ui/CreatorProfilePhoto";
 import { getAdministratorSession } from "../../lib/adminAuthentication";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
@@ -14,11 +13,13 @@ import { FilterField } from "../../components/ui/FilterField";
 import { FormRow } from "../../components/ui/FormRow";
 import { Modal } from "../../components/ui/Modal";
 import { Pagination } from "../../components/ui/Pagination";
+import { CreatorProfilePhoto } from "../../components/ui/CreatorProfilePhoto";
+import { ProfileDetailShell, type ProfileDetailProfile } from "../../components/ui/ProfileDetailShell";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
-import { formatNumber } from "../../lib/formatters";
+import { formatCompactCount, formatNumber } from "../../lib/formatters";
 import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { DiscoverySettingsPanel } from "./DiscoverySettingsPanel";
@@ -105,38 +106,100 @@ function numericFilter(value: string) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
+function recentActivityLabel(count: number | null) {
+  if (count === null) return "-";
+  return count >= 25 ? "25+건" : `${formatNumber(count)}건`;
+}
+
+function visibleCategoryLabel(
+  code: string | null,
+  options: readonly { label: string; value: string }[],
+) {
+  if (!code) return "미분류";
+  const label = categoryLabel(code, options);
+  return !label || label === code ? "기타" : label;
+}
+
 function platformFor(code: CreatorSummary["snsCode"]): CreatorProfileFixture["platform"] {
   return code === "INSTAGRAM" ? "Instagram" : "YouTube";
 }
 
-function CreatorAccountLink({ creator }: { creator: CreatorSummary }) {
+type CreatorIdentity = Pick<CreatorSummary, "accountId" | "creatorName" | "snsCode">;
+
+function instagramUsernameFor(creator: CreatorIdentity) {
   const instagramUsernameCandidate = /^\d+$/.test(creator.accountId)
     ? creator.creatorName?.replace(/^@/, "")
     : creator.accountId.replace(/^@/, "");
-  const instagramUsername = instagramUsernameCandidate
+  return instagramUsernameCandidate
     && /^[A-Za-z0-9._]{1,30}$/.test(instagramUsernameCandidate)
     ? instagramUsernameCandidate
     : null;
-  const href = creator.snsCode === "YOUTUBE"
+}
+
+function creatorProfileUrl(creator: CreatorIdentity) {
+  const instagramUsername = instagramUsernameFor(creator);
+  return creator.snsCode === "YOUTUBE"
     ? `https://www.youtube.com/channel/${encodeURIComponent(creator.accountId)}`
     : instagramUsername
       ? `https://www.instagram.com/${encodeURIComponent(instagramUsername)}`
       : null;
-  const accountName = creator.creatorName
-    || (creator.snsCode === "INSTAGRAM" && instagramUsername
-      ? `@${instagramUsername}`
-      : creator.accountId);
+}
 
-  return href ? (
-    <a
-      aria-label={`${accountName} SNS 계정 열기 (새 창)`}
-      href={href}
-      rel="noreferrer"
-      target="_blank"
-    >
-      {accountName} ↗
-    </a>
-  ) : accountName;
+function creatorDisplayName(creator: CreatorIdentity) {
+  const instagramUsername = instagramUsernameFor(creator);
+  return creator.creatorName
+    || (creator.snsCode === "INSTAGRAM" && instagramUsername ? `@${instagramUsername}` : creator.accountId);
+}
+
+function creatorHandle(creator: CreatorIdentity) {
+  if (creator.snsCode === "INSTAGRAM") {
+    const username = instagramUsernameFor(creator);
+    return username ? `@${username}` : "Instagram 계정";
+  }
+  return creator.accountId.startsWith("UC") ? "YouTube 채널" : `@${creator.accountId.replace(/^@/, "")}`;
+}
+
+function CreatorAccountCell({
+  creator,
+  onOpen,
+}: {
+  creator: CreatorSummary;
+  onOpen: (creator: CreatorSummary) => void;
+}) {
+  const accountName = creatorDisplayName(creator);
+  const href = creatorProfileUrl(creator);
+  const platform = platformFor(creator.snsCode);
+
+  return (
+    <div className="fuma-creator-account-cell">
+      <button
+        aria-label={`${accountName} 프로필 보기`}
+        className="fuma-creator-account-cell__profile"
+        onClick={() => onOpen(creator)}
+        type="button"
+      >
+        <span className="fuma-creator-account-cell__portrait">
+          <CreatorProfilePhoto creatorName={accountName} src={creator.profileImageUrl ?? ""} />
+          <PlatformIcon platform={platform} />
+        </span>
+        <span className="fuma-creator-account-cell__identity">
+          <strong>{accountName}</strong>
+          <small>{creatorHandle(creator)}</small>
+        </span>
+      </button>
+      {href ? (
+        <a
+          aria-label={`${accountName} SNS 계정 열기 (새 창)`}
+          className="fuma-creator-account-cell__external"
+          href={href}
+          rel="noreferrer"
+          target="_blank"
+        >
+          <span aria-hidden="true">↗</span>
+        </a>
+      ) : null}
+    </div>
+  );
 }
 
 function PlatformLabel({ platform }: { platform: CreatorProfileFixture["platform"] }) {
@@ -150,15 +213,15 @@ function PlatformLabel({ platform }: { platform: CreatorProfileFixture["platform
 
 function creatorColumns(
   categoryOptions: readonly { label: string; value: string }[],
+  onOpen: (creator: CreatorSummary) => void,
 ): DenseTableColumn<CreatorSummary>[] {
   return [
   { key: "id", header: "크리에이터 ID", width: 92, align: "center" },
   {
     key: "creatorName",
-    header: "계정명",
-    width: 150,
-    align: "center",
-    render: (creator) => <CreatorAccountLink creator={creator} />,
+    header: "계정",
+    width: 220,
+    render: (creator) => <CreatorAccountCell creator={creator} onOpen={onOpen} />,
   },
   {
     id: "platform",
@@ -172,7 +235,7 @@ function creatorColumns(
     header: "카테고리",
     width: 110,
     align: "center",
-    render: (creator) => categoryLabel(creator.category, categoryOptions) ?? "-",
+    render: (creator) => visibleCategoryLabel(creator.category, categoryOptions),
   },
   {
     id: "followers",
@@ -193,11 +256,7 @@ function creatorColumns(
     header: "최근 90일 활동",
     width: 110,
     align: "right",
-    render: (creator) => creator.recent90DayContentCount === null
-      ? "-"
-      : creator.recent90DayContentCount >= 25
-        ? "25+건"
-        : `${formatNumber(creator.recent90DayContentCount)}건`,
+    render: (creator) => recentActivityLabel(creator.recent90DayContentCount),
   },
   {
     key: "lastContentAt",
@@ -359,7 +418,10 @@ function BatchProposalPanel({
                     type="button"
                   >
                     <span className="fuma-proposal-compose__creator-photo">
-                      <CreatorProfilePhoto creatorName={creator.creatorName || creator.accountId} src="" />
+                      <CreatorProfilePhoto
+                        creatorName={creator.creatorName || creator.accountId}
+                        src={creator.profileImageUrl ?? ""}
+                      />
                     </span>
                     <span>{creator.creatorName || creator.accountId}</span>
                   </button>
@@ -500,11 +562,184 @@ export function CreatorTestPage() {
   );
 }
 
+function shortDate(value: string | null | undefined) {
+  return value ? value.slice(0, 10).replaceAll("-", ".") : "-";
+}
+
+function instagramProfileUrl(handle: string | null) {
+  const username = handle?.replace(/^@/, "") ?? "";
+  return /^[A-Za-z0-9._]{1,30}$/.test(username)
+    ? `https://www.instagram.com/${encodeURIComponent(username)}`
+    : null;
+}
+
+function instagramConnectionLabel(confidence: number | null) {
+  if (confidence === null) return "발견되지 않음";
+  if (confidence >= 0.95) return "프로필 URL에서 발견";
+  if (confidence >= 0.75) return "채널 소개에서 발견 · 확인 필요";
+  return "채널 멘션에서 발견 · 확인 필요";
+}
+
+function CreatorProfilePanel({
+  categoryOptions,
+  creator,
+  onClose,
+  onProposal,
+}: {
+  categoryOptions: readonly { label: string; value: string }[];
+  creator: CreatorSummary;
+  onClose: () => void;
+  onProposal: (creator: CreatorSummary) => void;
+}) {
+  const [result, setResult] = useState<{
+    creatorId: number;
+    detail: CreatorDetail | null;
+    error: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getCreator(creator.id, controller.signal).then((detail) => {
+      if (!controller.signal.aborted) setResult({ creatorId: creator.id, detail, error: "" });
+    }).catch((reason: unknown) => {
+      if (!controller.signal.aborted) {
+        setResult({
+          creatorId: creator.id,
+          detail: null,
+          error: reason instanceof Error ? reason.message : "크리에이터 정보를 불러오지 못했습니다.",
+        });
+      }
+    });
+    return () => controller.abort();
+  }, [creator.id]);
+
+  const currentResult = result?.creatorId === creator.id ? result : null;
+  const detail = currentResult?.detail ?? null;
+  const loading = currentResult === null;
+  const displayName = detail ? creatorDisplayName(detail) : creatorDisplayName(creator);
+  const profileUrl = detail ? creatorProfileUrl(detail) : creatorProfileUrl(creator);
+  const connectedInstagramUrl = detail?.snsCode === "YOUTUBE"
+    ? instagramProfileUrl(detail.igHandle)
+    : null;
+  const categoryName = visibleCategoryLabel(detail?.category ?? creator.category, categoryOptions);
+  const shares = detail?.categoryShares ?? [];
+  const shareTotal = shares.reduce((total, share) => total + Number(share.totalShare), 0);
+  const profile: ProfileDetailProfile | undefined = detail ? {
+    audienceLabel: detail.snsCode === "INSTAGRAM" ? "팔로워" : "구독자",
+    audienceValue: detail.followerCount === null ? "-" : formatCompactCount(detail.followerCount),
+    contentCount: recentActivityLabel(creator.recent90DayContentCount),
+    contentLabel: "90일 활동",
+    engagementValue: detail.engagementRate === null ? "-" : `${detail.engagementRate.toFixed(2)}%`,
+    gallery: [],
+    handle: creatorHandle(detail),
+    infoFields: [],
+    name: displayName,
+    platform: platformFor(detail.snsCode),
+    profileImageUrl: detail.profileImageUrl ?? creator.profileImageUrl ?? "",
+    profileUrl,
+    status: null,
+  } : undefined;
+
+  return (
+    <ProfileDetailShell
+      actionSection={null}
+      emptyDescription={loading
+        ? "크리에이터 프로필을 불러오는 중입니다."
+        : currentResult?.error || "요청한 크리에이터 정보를 확인할 수 없습니다."}
+      emptyRole={loading ? "status" : "alert"}
+      emptyTitle={loading ? "프로필을 불러오는 중입니다" : "크리에이터를 찾을 수 없습니다"}
+      onClose={onClose}
+      profile={profile}
+      title="크리에이터 프로필"
+    >
+      {detail ? (
+        <div className="fuma-creator-pool-profile">
+          <section className="fuma-creator-analysis-overview">
+            <span>프로필 요약</span>
+            <p>공개 프로필에서 수집한 핵심 정보를 제안 검토에 필요한 항목만 정리했습니다.</p>
+            <dl>
+              <div><dt>주요 카테고리</dt><dd>{categoryName}</dd></div>
+              <div><dt>최근 활동</dt><dd>{shortDate(detail.lastContentAt)}</dd></div>
+              <div><dt>풀 등록일</dt><dd>{shortDate(detail.registeredAt)}</dd></div>
+            </dl>
+          </section>
+
+          <section className="fuma-content-section fuma-creator-pool-profile__section">
+            <header className="fuma-content-section__header">
+              <div>
+                <h2>발굴 정보</h2>
+                <span>발굴 과정에서 수집한 계정 판정 정보입니다.</span>
+              </div>
+            </header>
+            <div className="fuma-creator-pool-profile__body">
+              <dl className="fuma-creator-analysis-details">
+                {detail.snsCode === "YOUTUBE" ? (
+                  <div>
+                    <dt>추정 Instagram</dt>
+                    <dd className="fuma-creator-pool-profile__links">
+                      {connectedInstagramUrl ? (
+                        <a href={connectedInstagramUrl} rel="noreferrer" target="_blank">
+                          @{detail.igHandle?.replace(/^@/, "")} ↗
+                        </a>
+                      ) : null}
+                      <small>{instagramConnectionLabel(detail.igConfidence)}</small>
+                    </dd>
+                  </div>
+                ) : null}
+                <div>
+                  <dt>계정 유형</dt>
+                  <dd>{detail.brandScore === null
+                    ? "판정 정보가 없습니다."
+                    : detail.brandScore >= 2
+                      ? "브랜드 계정일 가능성이 있어 확인이 필요합니다."
+                      : "개인 크리에이터 후보로 분류되었습니다."}</dd>
+                </div>
+                {detail.brandHits ? <div><dt>확인 근거</dt><dd>{detail.brandHits}</dd></div> : null}
+                <div><dt>최초 발굴</dt><dd>{shortDate(detail.firstDiscoveredAt)}</dd></div>
+                <div><dt>최근 업데이트</dt><dd>{shortDate(detail.updatedAt)}</dd></div>
+              </dl>
+            </div>
+          </section>
+
+          {shares.length > 0 && shareTotal > 0 ? (
+            <section className="fuma-content-section fuma-creator-pool-profile__section">
+              <header className="fuma-content-section__header">
+                <div>
+                  <h2>카테고리 발굴 비중</h2>
+                  <span>어떤 분야의 검색에서 주로 발견됐는지 보여줍니다.</span>
+                </div>
+              </header>
+              <ul className="fuma-creator-pool-profile__shares">
+                {shares.map((share) => {
+                  const percentage = Math.round((Number(share.totalShare) / shareTotal) * 100);
+                  return (
+                    <li key={share.categoryCode}>
+                      <div>
+                        <strong>{visibleCategoryLabel(share.categoryCode, categoryOptions)}</strong>
+                        <span>{percentage}%</span>
+                      </div>
+                      <progress aria-label={`${visibleCategoryLabel(share.categoryCode, categoryOptions)} 발굴 비중`} max="100" value={percentage} />
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ) : null}
+          <div className="fuma-creator-pool-profile__action">
+            <Button onClick={() => onProposal(creator)} variant="primary">제안 작성</Button>
+          </div>
+        </div>
+      ) : null}
+    </ProfileDetailShell>
+  );
+}
+
 export function CreatorListPage() {
   const resetDescriptionId = useId();
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [selectedCreators, setSelectedCreators] = useState<Map<number, CreatorSummary>>(new Map());
+  const [profileCreator, setProfileCreator] = useState<CreatorSummary | null>(null);
   const [page, setPage] = useState(1);
   const [pageData, setPageData] = useState<Awaited<ReturnType<typeof getCreators>> | null>(null);
   const [error, setError] = useState("");
@@ -516,6 +751,7 @@ export function CreatorListPage() {
   const [resetError, setResetError] = useState("");
   const [discoverySettingsOpen, setDiscoverySettingsOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
+  const [profileProposalCreator, setProfileProposalCreator] = useState<CreatorSummary | null>(null);
   const [proposalRequestedCount, setProposalRequestedCount] = useState(0);
   const [categoryOptions, setCategoryOptions] = useState<readonly { label: string; value: string }[]>(
     CREATOR_CATEGORY_OPTIONS,
@@ -668,7 +904,7 @@ export function CreatorListPage() {
         />
       ),
     },
-    ...creatorColumns(categoryOptions),
+    ...creatorColumns(categoryOptions, setProfileCreator),
   ];
 
   return (
@@ -734,7 +970,10 @@ export function CreatorListPage() {
               <Button
                 aria-haspopup="dialog"
                 disabled={selectedCreators.size === 0}
-                onClick={() => setProposalPanelOpen(true)}
+                onClick={() => {
+                  setProfileProposalCreator(null);
+                  setProposalPanelOpen(true);
+                }}
                 variant="primary"
               >
                 선택 {selectedCreators.size}명 제안 발송
@@ -764,6 +1003,7 @@ export function CreatorListPage() {
             <DenseTable
               columns={columns}
               emptyMessage={pageData ? "검색 결과가 없습니다." : "크리에이터를 불러오는 중입니다."}
+              onRowClick={setProfileCreator}
               rowKey={(creator) => creator.id}
               rows={listedCreators}
               selectedRowKeys={[...selectedCreators.keys()]}
@@ -778,6 +1018,18 @@ export function CreatorListPage() {
         />
       </div>
     </section>
+    {profileCreator ? (
+      <CreatorProfilePanel
+        categoryOptions={categoryOptions}
+        creator={profileCreator}
+        onClose={() => setProfileCreator(null)}
+        onProposal={(creator) => {
+          setProfileProposalCreator(creator);
+          setProfileCreator(null);
+          setProposalPanelOpen(true);
+        }}
+      />
+    ) : null}
     {discoverySettingsOpen ? (
       <DiscoverySettingsPanel onClose={() => {
         setDiscoverySettingsOpen(false);
@@ -786,16 +1038,21 @@ export function CreatorListPage() {
     ) : null}
     {proposalPanelOpen ? (
       <BatchProposalPanel
-        creators={[...selectedCreators.values()]}
-        onClose={() => setProposalPanelOpen(false)}
+        creators={profileProposalCreator ? [profileProposalCreator] : [...selectedCreators.values()]}
+        onClose={() => {
+          setProfileProposalCreator(null);
+          setProposalPanelOpen(false);
+        }}
         onComplete={(count) => {
-          setSelectedCreators(new Map());
+          if (!profileProposalCreator) setSelectedCreators(new Map());
+          setProfileProposalCreator(null);
           setProposalPanelOpen(false);
           setProposalRequestedCount(count);
         }}
-        onFailed={(failed) => setSelectedCreators(
-          new Map(failed.map((creator) => [creator.id, creator])),
-        )}
+        onFailed={(failed) => {
+          if (profileProposalCreator) setProfileProposalCreator(failed[0] ?? null);
+          else setSelectedCreators(new Map(failed.map((creator) => [creator.id, creator])));
+        }}
       />
     ) : null}
     <AlertDialog

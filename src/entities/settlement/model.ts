@@ -1,5 +1,6 @@
 export const SETTLEMENT_STATUSES = [
   { label: "계산 중", value: "CALCULATING" },
+  { label: "지급 이월", value: "PAYMENT_CARRYOVER" },
   { label: "지급 대기", value: "PAYMENT_PENDING" },
   { label: "정산 보류", value: "PAYMENT_HOLD_INFO" },
   { label: "정산 보류", value: "PAYMENT_HOLD_BLACK" },
@@ -16,6 +17,7 @@ export const SETTLEMENT_HOLD_STATUSES = [
 
 export const SETTLEMENT_STATUS_FILTERS = [
   { label: "계산 중", value: "CALCULATING" },
+  { label: "지급 이월", value: "PAYMENT_CARRYOVER" },
   { label: "지급 대기", value: "PAYMENT_PENDING" },
   { label: "정산 보류", value: "SETTLEMENT_HOLD" },
   { label: "지급 완료", value: "SETTLED" },
@@ -23,6 +25,29 @@ export const SETTLEMENT_STATUS_FILTERS = [
 ] as const;
 
 export type SettlementStatusFilter = typeof SETTLEMENT_STATUS_FILTERS[number]["value"];
+
+export type SettlementStatusTone =
+  | "approved"
+  | "danger"
+  | "pending"
+  | "rejected"
+  | "neutral";
+
+const SETTLEMENT_STATUS_TONES: Record<SettlementStatus, SettlementStatusTone> = {
+  CALCULATING: "neutral",
+  EXPIRED: "rejected",
+  PAYMENT_CARRYOVER: "pending",
+  PAYMENT_HOLD_BLACK: "danger",
+  PAYMENT_HOLD_INFO: "danger",
+  PAYMENT_PENDING: "pending",
+  SETTLED: "approved",
+};
+
+export function settlementStatusTone(
+  status: SettlementStatus | null | undefined,
+): SettlementStatusTone {
+  return status ? SETTLEMENT_STATUS_TONES[status] ?? "neutral" : "neutral";
+}
 
 export function settlementStatusLabel(
   status: SettlementStatus | null | undefined,
@@ -49,6 +74,7 @@ export function primarySettlementPaymentStatus(
   if (present.has("PAYMENT_HOLD_BLACK")) return "PAYMENT_HOLD_BLACK";
   if (present.has("PAYMENT_HOLD_INFO")) return "PAYMENT_HOLD_INFO";
   if (present.has("PAYMENT_PENDING")) return "PAYMENT_PENDING";
+  if (present.has("PAYMENT_CARRYOVER")) return "PAYMENT_CARRYOVER";
   if (present.has("CALCULATING")) return "CALCULATING";
   if (present.has("SETTLED")) return "SETTLED";
   if (present.has("EXPIRED")) return "EXPIRED";
@@ -72,7 +98,7 @@ export interface SettlementEstimate {
   calculatedAt: string;
   confirmedPurchaseCount: number;
   confirmedSalesAmount: number;
-  paymentMonth: string;
+  paymentMonth: string | null;
   selectorsCode: string;
   selectorsId: number;
   selectorsNickname: string;
@@ -107,9 +133,35 @@ export interface ApiResult<T> {
 export interface SettlementEstimateRequest {
   activityMonth?: string;
   page: number;
+  selectorsId?: number;
   size: number;
   status?: SettlementStatus;
   statuses?: readonly SettlementStatus[];
+}
+
+export type SettlementEstimateSummaryRequest = Pick<
+  SettlementEstimateRequest,
+  "activityMonth" | "selectorsId"
+>;
+
+export interface SettlementMonthlySummary {
+  activityMonth: string;
+  commissionToSalesRate: number;
+  confirmedPurchaseCount: number;
+  confirmedSalesAmount: number;
+  settlementAmount: number;
+  settlementCount: number;
+}
+
+export interface SettlementStatusDistribution {
+  settlementAmount: number;
+  settlementCount: number;
+  status: SettlementStatus;
+}
+
+export interface SettlementEstimateSummary extends SettlementMonthlySummary {
+  monthlyTrend: SettlementMonthlySummary[];
+  statusDistribution: SettlementStatusDistribution[];
 }
 
 export interface SettlementSelectorProfile {
@@ -129,7 +181,7 @@ export interface SettlementSummary {
   currentMonth: string;
   currentMonthPurchaseConversionCount: number;
   nextMonthScheduledCommission: number;
-  nextPaymentMonth: string;
+  nextPaymentMonth: string | null;
   nextPaymentSettlementStatus: SettlementStatus | null;
   cumulativeSalesAmount?: number;
 }

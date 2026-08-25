@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useMemo } from "react";
+import { HsECharts, type EChartsOption } from "./HsECharts";
+import { resolveChartColor } from "./chartColors";
 
 export interface AnalysisFormatSegment {
   color: string;
@@ -21,10 +23,44 @@ export function AnalysisFormatDonut({
   total,
   totalLabel = "전체 콘텐츠",
 }: AnalysisFormatDonutProps) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const radius = 40;
-  const circumference = 2 * Math.PI * radius;
-  const activeSegment = activeIndex === null ? null : segments[activeIndex];
+  const option = useMemo<EChartsOption>(() => ({
+    animation: false,
+    tooltip: {
+      trigger: "item",
+      formatter: (params: unknown) => {
+        const item = (Array.isArray(params) ? params[0] : params) as {
+          data?: { name: string; value: number; percentage: number };
+        };
+        const data = item.data;
+        if (!data) {
+          return "";
+        }
+        return `${data.name}<br/>${data.value.toLocaleString("ko-KR")}건 · ${data.percentage.toFixed(1)}%`;
+      },
+    },
+    series: [
+      {
+        type: "pie",
+        radius: ["62%", "86%"],
+        center: ["50%", "50%"],
+        startAngle: 90,
+        silent: false,
+        label: { show: false },
+        labelLine: { show: false },
+        emphasis: {
+          scale: false,
+        },
+        data: segments.map((segment) => ({
+          name: segment.label,
+          value: segment.count,
+          percentage: segment.percentage,
+          itemStyle: {
+            color: resolveChartColor(segment.color),
+          },
+        })),
+      },
+    ],
+  }), [segments]);
 
   return (
     <div
@@ -34,45 +70,16 @@ export function AnalysisFormatDonut({
       className="fuma-analysis-format-breakdown__donut"
       role="group"
     >
-      <svg className="fuma-analysis-format-breakdown__chart" viewBox="0 0 100 100">
-        <circle className="fuma-analysis-format-breakdown__track" cx="50" cy="50" r={radius} />
-        {segments.map((segment, index) => {
-          const length = (segment.percentage / 100) * circumference;
-          const offset = -(segment.start / 100) * circumference;
-
-          return (
-            <circle
-              aria-label={`${segment.label} ${segment.count}건, ${segment.percentage.toFixed(1)}%`}
-              className="fuma-analysis-format-breakdown__segment"
-              cx="50"
-              cy="50"
-              key={segment.label}
-              onBlur={() => setActiveIndex(null)}
-              onFocus={() => setActiveIndex(index)}
-              onMouseEnter={() => setActiveIndex(index)}
-              onMouseLeave={() => setActiveIndex(null)}
-              r={radius}
-              role="img"
-              stroke={segment.color}
-              strokeDasharray={`${length} ${circumference - length}`}
-              strokeDashoffset={offset}
-              tabIndex={0}
-            />
-          );
-        })}
-      </svg>
+      <HsECharts
+        className="fuma-analysis-format-breakdown__chart"
+        option={option}
+        style={{ width: "100%", height: "100%" }}
+      />
       {showTotal ? (
-        <div>
+        <div className="fuma-analysis-format-breakdown__center">
           <strong>{total === null ? "-" : `${total.toLocaleString("ko-KR")}건`}</strong>
           <span>{totalLabel}</span>
         </div>
-      ) : null}
-      {activeSegment ? (
-        <span className="fuma-analysis-format-breakdown__tooltip" role="tooltip">
-          <i aria-hidden="true" style={{ backgroundColor: activeSegment.color }} />
-          <strong>{activeSegment.label}</strong>
-          <span>{activeSegment.count}건 · {activeSegment.percentage.toFixed(1)}%</span>
-        </span>
       ) : null}
     </div>
   );

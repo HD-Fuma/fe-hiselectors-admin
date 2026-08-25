@@ -1,0 +1,342 @@
+.fuma-settlement-dashboard {
+  overflow: hidden;
+  border: 1px solid var(--hsas-color-line-300);
+  border-radius: 8px;
+  background: var(--hsas-surface);
+  box-shadow: 0 var(--hsas-space-5) var(--hsas-space-18) var(--hsas-color-shadow-soft);
+}
+
+.fuma-settlement-dashboard__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hsas-space-16);
+  padding: var(--hsas-space-14) var(--hsas-space-18);
+  border-bottom: 1px solid var(--hsas-color-line-100);
+}
+
+.fuma-settlement-dashboard__header > div > span,
+.fuma-settlement-dashboard__panel :is(header, figcaption) > span,
+.fuma-settlement-dashboard__panel :is(header, figcaption) > div > span {
+  display: block;
+  color: var(--hsas-teal-dark);
+  font-size: var(--hsas-font-9);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.fuma-settlement-dashboard__header h2,
+.fuma-settlement-dashboard__panel h3 {
+  margin: var(--hsas-space-3) 0 0;
+  color: var(--hsas-text);
+  letter-spacing: -0.025em;
+}
+
+.fuma-settlement-dashboard__header h2 { font-size: var(--hsas-font-16); }
+.fuma-settlement-dashboard__panel h3 { font-size: var(--hsas-font-14); }
+
+.fuma-settlement-dashboard__header > small {
+  color: var(--hsas-color-neutral-500);
+  font-size: var(--hsas-font-10);
+  white-space: nowrap;
+}
+
+.fuma-settlement-dashboard__top {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.72fr) minmax(560px, 1.5fr);
+  min-width: 0;
+}
+
+.fuma-settlement-dashboard__spotlight {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--hsas-space-12);
+  min-width: 0;
+  padding: var(--hsas-space-20);
+  background: linear-gradient(135deg, var(--hsas-teal-soft), var(--hsas-surface));
+}
+
+.fuma-settlement-dashboard__spotlight-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: var(--hsas-space-40);
+  height: var(--hsas-space-40);
+  place-items: center;
+  border: 1px solid var(--hsas-status-approved-border);
+  border-radius: 10px;
+  color: var(--hsas-teal-dark);
+  background: var(--hsas-surface);
+}
+
+.fuma-settlement-dashboard__spotlight > div { min-width: 0; }
+
+.fuma-settlement-dashboard__spotlight > div > span {
+  display: block;
+  color: var(--hsas-color-neutral-500);
+  font-size: var(--hsas-font-10);
+  font-weight: 700;
+}
+
+.fuma-settlement-dashboard__spotlight > div > strong {
+  display: block;
+  max-width: 100%;
+  margin-top: var(--hsas-space-7);
+  overflow: hidden;
+  color: var(--hsas-teal-dark);
+  font-size: var(--hsas-font-28);
+  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-settlement-dashboard__spotlight p {
+  display: flex;
+  align-items: center;
+  gap: var(--hsas-space-4);
+  margin: var(--hsas-space-10) 0 0;
+  color: var(--hsas-color-neutral-600);
+  font-size: var(--hsas-font-10);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.fuma-settlement-dashboard__spotlight p > small {
+  margin-left: var(--hsas-space-4);
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-9);
+  font-weight: 500;
+}
+
+.fuma-settlement-dashboard__kpis {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border-left: 1px solid var(--hsas-color-line-200);
+}
+
+.fuma-settlement-dashboard__kpis > div {
+  min-width: 0;
+  padding: var(--hsas-space-20) var(--hsas-space-14);
+  border-left: 1px solid var(--hsas-color-line-100);
+}
+
+.fuma-settlement-dashboard__kpis > div:first-child { border-left: 0; }
+
+.fuma-settlement-dashboard__kpis :is(dt, dd) { margin: 0; }
+
+.fuma-settlement-dashboard__kpis dt {
+  color: var(--hsas-color-neutral-500);
+  font-size: var(--hsas-font-10);
+  font-weight: 700;
+}
+
+.fuma-settlement-dashboard__kpis dd {
+  margin-top: var(--hsas-space-8);
+  overflow: hidden;
+  color: var(--hsas-text);
+  font-size: var(--hsas-font-18);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-settlement-dashboard__kpis small {
+  display: block;
+  margin-top: var(--hsas-space-4);
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-8);
+  white-space: nowrap;
+}
+
+.fuma-settlement-dashboard__analytics {
+  display: grid;
+  grid-template-columns: minmax(520px, 1.6fr) minmax(320px, 0.8fr);
+  gap: var(--hsas-space-12);
+  min-width: 0;
+  padding: var(--hsas-space-14);
+  border-top: 1px solid var(--hsas-color-line-200);
+  background: var(--hsas-color-surface-subtle);
+}
+
+.fuma-settlement-dashboard__panel {
+  min-width: 0;
+  margin: 0;
+  padding: var(--hsas-space-15);
+  border: 1px solid var(--hsas-color-line-250);
+  border-radius: 7px;
+  background: var(--hsas-surface);
+}
+
+.fuma-settlement-trend figcaption {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--hsas-space-12);
+}
+
+.fuma-settlement-trend__legend {
+  display: flex;
+  align-items: center;
+  gap: var(--hsas-space-12);
+  margin: var(--hsas-space-4) 0 0;
+  padding: 0;
+  color: var(--hsas-color-neutral-600);
+  font-size: var(--hsas-font-9);
+  list-style: none;
+}
+
+.fuma-settlement-trend__legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--hsas-space-5);
+  white-space: nowrap;
+}
+
+.fuma-settlement-trend__legend i {
+  display: block;
+  width: var(--hsas-space-12);
+  height: var(--hsas-space-6);
+  border-radius: 2px;
+  background: var(--hsas-color-neutral-700);
+}
+
+.fuma-settlement-trend__legend i.is-rate {
+  height: var(--hsas-space-3);
+  border-radius: 99px;
+  background: var(--hsas-teal);
+}
+
+.fuma-settlement-trend__plot {
+  width: 100%;
+  height: 204px;
+  margin-top: var(--hsas-space-8);
+}
+
+.fuma-settlement-status-overview > header { margin-bottom: var(--hsas-space-12); }
+
+.fuma-settlement-status-overview__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hsas-space-7);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fuma-settlement-status-overview__list li {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--hsas-space-5);
+  padding: var(--hsas-space-8);
+  border: 1px solid var(--hsas-color-line-150);
+  border-radius: 5px;
+  background: var(--hsas-color-surface-soft);
+}
+
+.fuma-settlement-status-overview__list .hsas-status-pill {
+  width: max-content;
+  max-width: 100%;
+}
+
+.fuma-settlement-status-overview__list strong {
+  color: var(--hsas-text);
+  font-size: var(--hsas-font-12);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.fuma-settlement-status-overview__list li > span:last-child {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--hsas-color-neutral-500);
+  font-size: var(--hsas-font-9);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-settlement-status-overview__attention {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--hsas-space-8);
+  margin-top: var(--hsas-space-10);
+  padding: var(--hsas-space-9) var(--hsas-space-10);
+  border: 1px solid var(--hsas-status-rejected-border);
+  border-radius: 5px;
+  color: var(--hsas-status-rejected);
+  background: var(--hsas-status-rejected-bg);
+}
+
+.fuma-settlement-status-overview__attention > svg { flex: 0 0 auto; }
+
+.fuma-settlement-status-overview__attention :is(strong, span) { display: block; }
+
+.fuma-settlement-status-overview__attention strong {
+  font-size: var(--hsas-font-10);
+  font-variant-numeric: tabular-nums;
+}
+
+.fuma-settlement-status-overview__attention span {
+  margin-top: var(--hsas-space-3);
+  font-size: var(--hsas-font-9);
+}
+
+.fuma-settlement-dashboard__empty {
+  display: grid;
+  min-height: 190px;
+  margin: 0;
+  place-items: center;
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-10);
+  text-align: center;
+}
+
+.fuma-settlement-summary__state {
+  min-height: 49px;
+  margin: 0;
+  padding: var(--hsas-space-16);
+  border-top: 2px solid var(--hsas-teal);
+  color: var(--hsas-text-muted);
+  text-align: center;
+}
+
+.fuma-settlement-summary__state--error { color: var(--hsas-color-danger); }
+
+@media (max-width: 1180px) {
+  .fuma-settlement-dashboard__top {
+    grid-template-columns: minmax(250px, 0.65fr) minmax(480px, 1.35fr);
+  }
+
+  .fuma-settlement-dashboard__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fuma-settlement-dashboard__kpis > div:nth-child(n + 3) { border-top: 1px solid var(--hsas-color-line-100); }
+  .fuma-settlement-dashboard__kpis > div:nth-child(odd) { border-left: 0; }
+}
+
+@media (max-width: 960px) {
+  .fuma-settlement-dashboard__top,
+  .fuma-settlement-dashboard__analytics { grid-template-columns: minmax(0, 1fr); }
+
+  .fuma-settlement-dashboard__kpis { border-top: 1px solid var(--hsas-color-line-200); border-left: 0; }
+}
+
+@media (max-width: 640px) {
+  .fuma-settlement-dashboard__header,
+  .fuma-settlement-trend figcaption { align-items: flex-start; flex-direction: column; }
+
+  .fuma-settlement-dashboard__header > small { white-space: normal; }
+  .fuma-settlement-dashboard__spotlight > div > strong { font-size: var(--hsas-font-24); }
+  .fuma-settlement-dashboard__kpis { grid-template-columns: minmax(0, 1fr); }
+  .fuma-settlement-dashboard__kpis > div { border-top: 1px solid var(--hsas-color-line-100); border-left: 0; }
+  .fuma-settlement-dashboard__kpis > div:first-child { border-top: 0; }
+  .fuma-settlement-status-overview__list { grid-template-columns: minmax(0, 1fr); }
+}

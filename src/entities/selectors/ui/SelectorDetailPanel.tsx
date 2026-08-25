@@ -9,6 +9,7 @@ import { StatusPill, type StatusPillProps } from "../../../components/ui/StatusP
 import { formatCompactCount, formatNumber, formatWon } from "../../../lib/formatters";
 import {
   settlementStatusLabel,
+  settlementStatusTone,
   type SettlementSelectorDetail,
   type SettlementStatus,
 } from "../../settlement";
@@ -49,7 +50,7 @@ interface SelectorSettlementTableRow {
   updatedAt?: string | null;
 }
 
-function settlementStatusTone(
+function legacySettlementStatusTone(
   status: string,
 ): NonNullable<StatusPillProps["tone"]> {
   if (status === "지급 완료" || status === "SETTLED") return "approved";
@@ -71,7 +72,7 @@ function accountHandle(accountId: string) {
   return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
 }
 
-function snsAccountHref(
+export function snsAccountHref(
   platform: "Instagram" | "YouTube" | null,
   accountId: string | null | undefined,
 ) {
@@ -201,7 +202,9 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SelectorSettlementTableRow>[] = [
     width: 130,
     align: "center",
     render: (settlement) => (
-      <StatusPill tone={settlementStatusTone(settlement.status)}>
+      <StatusPill tone={settlement.statusCode
+        ? settlementStatusTone(settlement.statusCode)
+        : legacySettlementStatusTone(settlement.status)}>
         {settlement.status}
       </StatusPill>
     ),
@@ -574,7 +577,7 @@ const GENERATION_COLUMNS: DenseTableColumn<SelectorGeneration>[] = [
     id: "activityPeriod",
     header: "활동 기간",
     align: "center",
-    render: (generation) => displayDateRange(generation.joinedAt, generation.activityEndDate),
+    render: (generation) => displayDateRange(generation.activityStartDate, generation.activityEndDate),
   },
   {
     key: "status",
@@ -753,6 +756,7 @@ function SelectorApiDetailContent({
   detail,
   hideSettlement = false,
   settlementEmptyMessage,
+  settlementOnly = false,
   settlementRows,
   settlementSummary,
 }: {
@@ -760,6 +764,7 @@ function SelectorApiDetailContent({
   detail: SelectorDetail;
   hideSettlement?: boolean;
   settlementEmptyMessage: ReactNode;
+  settlementOnly?: boolean;
   settlementRows: SelectorSettlementTableRow[];
   settlementSummary: SettlementSelectorDetail["settlementSummary"] | undefined;
 }) {
@@ -827,7 +832,7 @@ function SelectorApiDetailContent({
       </section>
       )}
 
-      {contentView === "gallery" ? null : (
+      {contentView === "gallery" || settlementOnly ? null : (
       <SelectorDetailListSection title="동의 및 수신 정보" titleId="selector-consent-title">
         <div aria-label="셀렉터스 동의 및 수신 정보" className="fuma-wide-table fuma-settlement-table" role="region">
           <DenseTable
@@ -845,7 +850,7 @@ function SelectorApiDetailContent({
       </SelectorDetailListSection>
       )}
 
-      {contentView === "gallery" ? null : (
+      {contentView === "gallery" || settlementOnly ? null : (
       <SelectorDetailListSection
         meta={<span>{activeGeneration ? `${activeGeneration.generationName} 기준` : "활성 기수 없음"}</span>}
         title="간략 성과"
@@ -863,13 +868,13 @@ function SelectorApiDetailContent({
       </SelectorDetailListSection>
       )}
 
-      {contentView === "gallery" ? (
+      {contentView === "gallery" && !settlementOnly ? (
         <SelectorDetailListSection title="콘텐츠 성과" titleId="selector-trend-title">
           <SelectorPerformancePanel detail={detail} />
         </SelectorDetailListSection>
       ) : null}
 
-      {contentView === "gallery" && !detail.contents.length ? null : (
+      {settlementOnly || (contentView === "gallery" && !detail.contents.length) ? null : (
       <SelectorDetailListSection
         meta={<span>최근 {detail.contents.length}건 · 전체 {displayCount(detail.performance.contentCount)}</span>}
         title="등록 콘텐츠"
@@ -892,7 +897,7 @@ function SelectorApiDetailContent({
       </SelectorDetailListSection>
       )}
 
-      {contentView === "gallery" && !generations.length ? null : (
+      {settlementOnly || (contentView === "gallery" && !generations.length) ? null : (
       <SelectorDetailListSection
         meta={<span>총 {generations.length}건</span>}
         title="참여 기수 이력"
@@ -965,6 +970,7 @@ export function SelectorDetailPanel({
   settlementDetail,
   settlementDetailError = false,
   settlementDetailLoading = false,
+  settlementOnly = false,
 }: {
   /** 정산 정보를 숨긴다(버블 뷰 모달처럼 정산이 필요 없는 곳). */
   hideSettlement?: boolean;
@@ -978,6 +984,7 @@ export function SelectorDetailPanel({
   settlementDetail?: SettlementSelectorDetail | null;
   settlementDetailError?: boolean;
   settlementDetailLoading?: boolean;
+  settlementOnly?: boolean;
 }) {
   const fixtureDetail = selector ? getSelectorDetailData(selector) : null;
   const apiProfile = settlementDetail?.profile;
@@ -1024,6 +1031,8 @@ export function SelectorDetailPanel({
         : "조회된 정산 내역이 없습니다."
     : undefined;
 
+  const panelTitle = settlementOnly ? "셀렉터스 정산 상세" : "셀렉터스 상세";
+
   const body = (
     <>
       {selectorDetailLoading ? (
@@ -1045,6 +1054,7 @@ export function SelectorDetailPanel({
           detail={selectorDetail}
           hideSettlement={hideSettlement}
           settlementEmptyMessage={settlementEmptyMessage}
+          settlementOnly={settlementOnly}
           settlementRows={settlementRows}
           settlementSummary={settlementSummary}
         />
@@ -1069,7 +1079,9 @@ export function SelectorDetailPanel({
               <div className="fuma-creator-detail-hero__identity">
                 <div className="fuma-creator-detail-hero__title-row">
                   <h2>{apiProfile?.selectorsNickname ?? selector.name}</h2>
-                  <StatusPill tone={selectorStatusTone(selector.status)}>{selector.status}</StatusPill>
+                  {settlementOnly ? null : (
+                    <StatusPill tone={selectorStatusTone(selector.status)}>{selector.status}</StatusPill>
+                  )}
                 </div>
                 {primarySns ? (
                   <a className="fuma-creator-detail-hero__channel" href={primarySns.url} rel="noreferrer" target="_blank">
@@ -1092,11 +1104,12 @@ export function SelectorDetailPanel({
                 </div>
               </div>
               <p className="fuma-unified-detail-hero__summary">
-                {selector.cohort} · {selector.status} · 마지막 수집 {displayDateTime(apiProfile?.lastCollectedAt ?? selector.recentActivity)}
-                {settlementDetail ? ` · 활동월 ${displayText(settlementSummary?.currentMonth)} · 지급월 ${displayText(settlementSummary?.nextPaymentMonth)}` : null}
+                {settlementOnly
+                  ? `활동월 ${displayText(settlementSummary?.currentMonth)} · 지급월 ${displayText(settlementSummary?.nextPaymentMonth)}`
+                  : `${selector.cohort} · ${selector.status} · 마지막 수집 ${displayDateTime(apiProfile?.lastCollectedAt ?? selector.recentActivity)}${settlementDetail ? ` · 활동월 ${displayText(settlementSummary?.currentMonth)} · 지급월 ${displayText(settlementSummary?.nextPaymentMonth)}` : ""}`}
               </p>
               <dl className="fuma-creator-detail-hero__metrics">
-                {settlementDetail ? (
+                {settlementOnly || settlementDetail ? (
                   <>
                     <div><dt>{audienceLabel}</dt><dd>{displayNumber(apiProfile?.followerCount)}</dd></div>
                     <div><dt>누적 구매 전환</dt><dd>{displayCount(settlementSummary?.cumulativePurchaseConversionCount)}</dd></div>
@@ -1117,62 +1130,66 @@ export function SelectorDetailPanel({
             </div>
           </section>
 
-          <SelectorDetailListSection
-            meta={<span>최근 {fixtureDetail.contents.length}건</span>}
-            title="업로드 콘텐츠"
-            titleId="selector-contents-title"
-          >
-            <div className="fuma-selector-content-list">
-              {fixtureDetail.contents.map((content) => (
-                <article key={content.id}>
-                  <div className="fuma-selector-content-list__media">
-                    <img alt="" src={content.thumbnailUrl} />
-                    <span>{content.format}</span>
-                  </div>
-                  <div className="fuma-selector-content-list__body">
-                    <div className="fuma-selector-content-list__meta">
-                      <time>{content.publishedAt}</time>
-                      <StatusPill tone={content.status === "승인" ? "approved" : "pending"}>
-                        {content.status}
-                      </StatusPill>
-                    </div>
-                    <h4>{content.title}</h4>
-                    <p>{content.campaign}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </SelectorDetailListSection>
+          {settlementOnly ? null : (
+            <>
+              <SelectorDetailListSection
+                meta={<span>최근 {fixtureDetail.contents.length}건</span>}
+                title="업로드 콘텐츠"
+                titleId="selector-contents-title"
+              >
+                <div className="fuma-selector-content-list">
+                  {fixtureDetail.contents.map((content) => (
+                    <article key={content.id}>
+                      <div className="fuma-selector-content-list__media">
+                        <img alt="" src={content.thumbnailUrl} />
+                        <span>{content.format}</span>
+                      </div>
+                      <div className="fuma-selector-content-list__body">
+                        <div className="fuma-selector-content-list__meta">
+                          <time>{content.publishedAt}</time>
+                          <StatusPill tone={content.status === "승인" ? "approved" : "pending"}>
+                            {content.status}
+                          </StatusPill>
+                        </div>
+                        <h4>{content.title}</h4>
+                        <p>{content.campaign}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </SelectorDetailListSection>
 
-          <SelectorDetailListSection
-            meta={<span>{fixtureDetail.cohortHistory.length}개 기수</span>}
-            title="이전 기수 활동 내역"
-            titleId="selector-cohort-history-title"
-          >
-              <div className="fuma-selector-cohort-history">
-                {fixtureDetail.cohortHistory.length > 0 ? fixtureDetail.cohortHistory.map((activity) => (
-                  <article key={activity.cohort}>
-                    <div>
-                      <strong>{activity.cohort}</strong>
-                      <StatusPill tone="neutral">{activity.result}</StatusPill>
-                    </div>
-                    <p>{activity.period}</p>
-                    <dl>
+              <SelectorDetailListSection
+                meta={<span>{fixtureDetail.cohortHistory.length}개 기수</span>}
+                title="이전 기수 활동 내역"
+                titleId="selector-cohort-history-title"
+              >
+                <div className="fuma-selector-cohort-history">
+                  {fixtureDetail.cohortHistory.length > 0 ? fixtureDetail.cohortHistory.map((activity) => (
+                    <article key={activity.cohort}>
                       <div>
-                        <dt>참여 캠페인</dt>
-                        <dd>{activity.campaignCount}건</dd>
+                        <strong>{activity.cohort}</strong>
+                        <StatusPill tone="neutral">{activity.result}</StatusPill>
                       </div>
-                      <div>
-                        <dt>등록 콘텐츠</dt>
-                        <dd>{activity.contentCount}건</dd>
-                      </div>
-                    </dl>
-                  </article>
-                )) : (
-                  <p className="fuma-selector-detail-empty">이전 기수 활동 내역이 없습니다.</p>
-                )}
-              </div>
-          </SelectorDetailListSection>
+                      <p>{activity.period}</p>
+                      <dl>
+                        <div>
+                          <dt>참여 캠페인</dt>
+                          <dd>{activity.campaignCount}건</dd>
+                        </div>
+                        <div>
+                          <dt>등록 콘텐츠</dt>
+                          <dd>{activity.contentCount}건</dd>
+                        </div>
+                      </dl>
+                    </article>
+                  )) : (
+                    <p className="fuma-selector-detail-empty">이전 기수 활동 내역이 없습니다.</p>
+                  )}
+                </div>
+              </SelectorDetailListSection>
+            </>
+          )}
 
           <SelectorDetailListSection
             meta={<span>총 {settlementCount.toLocaleString("ko-KR")}건</span>}
@@ -1211,12 +1228,12 @@ export function SelectorDetailPanel({
         closeOnBackdrop
         onClose={onClose}
         open
-        title="셀렉터스 상세"
+        title={panelTitle}
       >
         {body}
       </Modal>
     );
   }
 
-  return <SidePanel onClose={onClose} title="셀렉터스 상세">{body}</SidePanel>;
+  return <SidePanel onClose={onClose} title={panelTitle}>{body}</SidePanel>;
 }
