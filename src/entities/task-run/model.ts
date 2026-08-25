@@ -22,6 +22,27 @@ export interface TaskStepProgress {
   readonly processedCount: number;
 }
 
+export type TaskRunProgressStepKey = "NEW_CONTENT_SYNC" | "STORED_CONTENT_SYNC";
+
+export interface TaskRunProgressEvent {
+  readonly runId: string;
+  readonly stepKey: TaskRunProgressStepKey;
+  readonly totalCount: number | null;
+  readonly processedCount: number;
+}
+
+export type TaskRunProgressStreamOutcome =
+  | {
+    readonly type: "retryable";
+    readonly reason: "eof" | "http" | "content-type" | "missing-body" | "network";
+    readonly status?: number;
+  }
+  | {
+    readonly type: "terminal";
+    readonly reason: "aborted" | "unauthorized" | "forbidden";
+    readonly status?: 401 | 403;
+  };
+
 export interface TaskRun {
   readonly runId: string;
   readonly taskType: TaskType;
