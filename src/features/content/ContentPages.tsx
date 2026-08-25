@@ -1872,6 +1872,9 @@ export function ContentInspectionDetailPage() {
   const nextContent = currentPendingIndex >= 0
     ? pendingContents[currentPendingIndex + 1]
     : pendingContents[0];
+  const studioInspectionComplete = studioReviewReadOnly
+    && currentPendingIndex < 0
+    && !nextContent;
   const remainingCount = currentPendingIndex >= 0
     ? Math.max(0, pendingContents.length - currentPendingIndex - 1)
     : pendingContents.length;
@@ -2077,8 +2080,6 @@ export function ContentInspectionDetailPage() {
         navigateStudioContent(target, confirmedContents);
         return;
       }
-      setStudioActionPending(null);
-      setStudioExiting(true);
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "AbortError") return;
       if (confirmed) {
@@ -2462,7 +2463,9 @@ export function ContentInspectionDetailPage() {
     const registeredContentCount = studioSelector?.performance.contentCount == null
       ? null
       : Math.max(0, studioSelector.performance.contentCount - 1);
-    const inspectionProgress = currentPendingIndex >= 0 && pendingContents.length > 0
+    const inspectionProgress = studioInspectionComplete
+      ? 100
+      : currentPendingIndex >= 0 && pendingContents.length > 0
       ? ((currentPendingIndex + 1) / pendingContents.length) * 100
       : 0;
 
@@ -2584,8 +2587,14 @@ export function ContentInspectionDetailPage() {
           <div className="fuma-content-inspection-studio__queue-progress">
             <span>검수 진행</span>
             <strong>
-              <b>{currentPendingIndex >= 0 ? currentPendingIndex + 1 : 0}</b>
-              <small> / {pendingContents.length}</small>
+              {studioInspectionComplete ? (
+                <b>완료</b>
+              ) : (
+                <>
+                  <b>{currentPendingIndex >= 0 ? currentPendingIndex + 1 : 0}</b>
+                  <small> / {pendingContents.length}</small>
+                </>
+              )}
             </strong>
             <span aria-hidden="true" className="fuma-content-inspection-studio__queue-track">
               <i style={{ width: `${inspectionProgress}%` }} />
@@ -2602,13 +2611,17 @@ export function ContentInspectionDetailPage() {
               <span>이전</span>
             </button>
             <button
-              aria-label="다음 콘텐츠"
-              disabled={!nextContent || studioActionPending !== null}
-              onClick={() => navigateStudioContent(nextContent)}
+              aria-label={studioInspectionComplete ? "검수 마침" : "다음 콘텐츠"}
+              disabled={studioActionPending !== null || (!studioInspectionComplete && !nextContent)}
+              onClick={() => studioInspectionComplete
+                ? setStudioExiting(true)
+                : navigateStudioContent(nextContent)}
               type="button"
             >
-              <span>다음</span>
-              <ChevronRight aria-hidden="true" size={20} />
+              <span>{studioInspectionComplete ? "마침" : "다음"}</span>
+              {studioInspectionComplete
+                ? <CheckCircle2 aria-hidden="true" size={19} />
+                : <ChevronRight aria-hidden="true" size={20} />}
             </button>
           </span>
         </nav>
