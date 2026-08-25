@@ -2536,18 +2536,74 @@ export function ContentInspectionDetailPage() {
         data-exiting={studioExiting}
         role="dialog"
       >
-        <button
-          aria-keyshortcuts="Escape"
-          aria-label="검수 화면 나가기"
-          className="fuma-content-inspection-studio__exit-button"
-          disabled={studioActionPending !== null || studioContentTransition !== "idle"}
-          onClick={() => setExitConfirmationOpen(true)}
-          type="button"
-        >
-          <ArrowLeft aria-hidden="true" size={16} />
-          나가기
-          <kbd>ESC</kbd>
-        </button>
+        <header className="fuma-content-inspection-studio__header">
+          <button
+            aria-keyshortcuts="Escape"
+            aria-label="검수 화면 나가기"
+            className="fuma-content-inspection-studio__exit-button"
+            disabled={studioActionPending !== null || studioContentTransition !== "idle"}
+            onClick={() => setExitConfirmationOpen(true)}
+            type="button"
+          >
+            <ArrowLeft aria-hidden="true" size={16} />
+            나가기
+            <kbd>ESC</kbd>
+          </button>
+          <div className="fuma-content-inspection-studio__header-title">
+            <span>CONTENT INSPECTION</span>
+            <strong>콘텐츠 집중 검수</strong>
+          </div>
+          <nav aria-label="검수 콘텐츠 이동" className="fuma-content-inspection-studio__queue">
+            <div className="fuma-content-inspection-studio__queue-progress">
+              <span>검수 진행</span>
+              <strong>
+                {studioInspectionComplete ? (
+                  <b>완료</b>
+                ) : (
+                  <>
+                    <b>{currentPendingIndex >= 0 ? currentPendingIndex + 1 : 0}</b>
+                    <small> / {pendingContents.length}</small>
+                  </>
+                )}
+              </strong>
+              <span aria-hidden="true" className="fuma-content-inspection-studio__queue-track">
+                <i style={{ width: `${inspectionProgress}%` }} />
+              </span>
+            </div>
+            <span className="fuma-content-inspection-studio__queue-actions">
+              <button
+                aria-label="이전 콘텐츠"
+                disabled={
+                  !previousContent
+                  || studioActionPending !== null
+                  || studioContentTransition !== "idle"
+                }
+                onClick={() => navigateStudioContent(previousContent, "previous")}
+                type="button"
+              >
+                <ChevronLeft aria-hidden="true" size={20} />
+                <span>이전</span>
+              </button>
+              <button
+                aria-label={studioShowFinish ? "검수 마침" : "다음 콘텐츠"}
+                disabled={
+                  studioActionPending !== null
+                  || studioContentTransition !== "idle"
+                  || (!studioInspectionComplete && !nextContent)
+                }
+                onClick={() => studioInspectionComplete
+                  ? setStudioExiting(true)
+                  : navigateStudioContent(nextContent, "next")}
+                type="button"
+              >
+                <span>{studioShowFinish ? "마침" : "다음"}</span>
+                {studioShowFinish
+                  ? <CheckCircle2 aria-hidden="true" size={19} />
+                  : <ChevronRight aria-hidden="true" size={20} />}
+              </button>
+            </span>
+          </nav>
+        </header>
         {content ? (
           <>
             <aside aria-label="셀렉터스 프로필" className="fuma-content-inspection-studio__profile">
@@ -2644,56 +2700,6 @@ export function ContentInspectionDetailPage() {
             </section>
           </>
         ) : null}
-        <nav aria-label="검수 콘텐츠 이동" className="fuma-content-inspection-studio__queue">
-          <div className="fuma-content-inspection-studio__queue-progress">
-            <span>검수 진행</span>
-            <strong>
-              {studioInspectionComplete ? (
-                <b>완료</b>
-              ) : (
-                <>
-                  <b>{currentPendingIndex >= 0 ? currentPendingIndex + 1 : 0}</b>
-                  <small> / {pendingContents.length}</small>
-                </>
-              )}
-            </strong>
-            <span aria-hidden="true" className="fuma-content-inspection-studio__queue-track">
-              <i style={{ width: `${inspectionProgress}%` }} />
-            </span>
-          </div>
-          <span className="fuma-content-inspection-studio__queue-actions">
-            <button
-              aria-label="이전 콘텐츠"
-              disabled={
-                !previousContent
-                || studioActionPending !== null
-                || studioContentTransition !== "idle"
-              }
-              onClick={() => navigateStudioContent(previousContent, "previous")}
-              type="button"
-            >
-              <ChevronLeft aria-hidden="true" size={20} />
-              <span>이전</span>
-            </button>
-            <button
-              aria-label={studioShowFinish ? "검수 마침" : "다음 콘텐츠"}
-              disabled={
-                studioActionPending !== null
-                || studioContentTransition !== "idle"
-                || (!studioInspectionComplete && !nextContent)
-              }
-              onClick={() => studioInspectionComplete
-                ? setStudioExiting(true)
-                : navigateStudioContent(nextContent, "next")}
-              type="button"
-            >
-              <span>{studioShowFinish ? "마침" : "다음"}</span>
-              {studioShowFinish
-                ? <CheckCircle2 aria-hidden="true" size={19} />
-                : <ChevronRight aria-hidden="true" size={20} />}
-            </button>
-          </span>
-        </nav>
         {content ? (
           <aside
             aria-label="AI 검수 리포트"
