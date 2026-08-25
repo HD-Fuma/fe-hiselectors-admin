@@ -8,6 +8,7 @@ import { StatusPill, type StatusPillProps } from "../../../components/ui/StatusP
 import { formatCompactCount, formatNumber, formatWon } from "../../../lib/formatters";
 import {
   settlementStatusLabel,
+  settlementStatusTone,
   type SettlementSelectorDetail,
   type SettlementStatus,
 } from "../../settlement";
@@ -48,7 +49,7 @@ interface SelectorSettlementTableRow {
   updatedAt?: string | null;
 }
 
-function settlementStatusTone(
+function legacySettlementStatusTone(
   status: string,
 ): NonNullable<StatusPillProps["tone"]> {
   if (status === "지급 완료" || status === "SETTLED") return "approved";
@@ -200,7 +201,9 @@ const SETTLEMENT_COLUMNS: DenseTableColumn<SelectorSettlementTableRow>[] = [
     width: 130,
     align: "center",
     render: (settlement) => (
-      <StatusPill tone={settlementStatusTone(settlement.status)}>
+      <StatusPill tone={settlement.statusCode
+        ? settlementStatusTone(settlement.statusCode)
+        : legacySettlementStatusTone(settlement.status)}>
         {settlement.status}
       </StatusPill>
     ),

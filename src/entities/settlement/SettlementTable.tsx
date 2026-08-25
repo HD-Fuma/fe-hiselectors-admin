@@ -1,8 +1,12 @@
 import type { Key, ReactNode } from "react";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
-import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { StatusPill } from "../../components/ui/StatusPill";
 import { formatNumber, formatWon } from "../../lib/formatters";
-import { settlementStatusLabel, type SettlementStatus, type SettlementTableRow } from "./model";
+import {
+  settlementStatusLabel,
+  settlementStatusTone,
+  type SettlementTableRow,
+} from "./model";
 
 export interface SettlementTableProps {
   ariaLabel?: string;
@@ -12,18 +16,6 @@ export interface SettlementTableProps {
   rows: SettlementTableRow[];
   selectedRowKeys?: readonly Key[];
 }
-
-const STATUS_TONES: Record<
-  SettlementStatus,
-  NonNullable<StatusPillProps["tone"]>
-> = {
-  CALCULATING: "neutral",
-  EXPIRED: "rejected",
-  PAYMENT_HOLD_BLACK: "danger",
-  PAYMENT_HOLD_INFO: "danger",
-  PAYMENT_PENDING: "pending",
-  SETTLED: "approved",
-};
 
 function displayText(value: string | number | null | undefined) {
   return value == null || value === "" ? "-" : String(value);
@@ -105,7 +97,7 @@ const SETTLEMENT_TABLE_COLUMNS: DenseTableColumn<SettlementTableRow>[] = [
     align: "center",
     render: (settlement) => (
       settlement.status ? (
-        <StatusPill tone={STATUS_TONES[settlement.status] ?? "neutral"}>
+        <StatusPill tone={settlementStatusTone(settlement.status)}>
           {settlementStatusLabel(settlement.status)}
         </StatusPill>
       ) : "-"
