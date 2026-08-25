@@ -1875,6 +1875,8 @@ export function ContentInspectionDetailPage() {
   const studioInspectionComplete = studioReviewReadOnly
     && currentPendingIndex < 0
     && !nextContent;
+  const studioShowFinish = studioInspectionComplete
+    || (currentPendingIndex >= 0 && currentPendingIndex === pendingContents.length - 1);
   const remainingCount = currentPendingIndex >= 0
     ? Math.max(0, pendingContents.length - currentPendingIndex - 1)
     : pendingContents.length;
@@ -2622,15 +2624,15 @@ export function ContentInspectionDetailPage() {
               <span>이전</span>
             </button>
             <button
-              aria-label={studioInspectionComplete ? "검수 마침" : "다음 콘텐츠"}
+              aria-label={studioShowFinish ? "검수 마침" : "다음 콘텐츠"}
               disabled={studioActionPending !== null || (!studioInspectionComplete && !nextContent)}
               onClick={() => studioInspectionComplete
                 ? setStudioExiting(true)
                 : navigateStudioContent(nextContent)}
               type="button"
             >
-              <span>{studioInspectionComplete ? "마침" : "다음"}</span>
-              {studioInspectionComplete
+              <span>{studioShowFinish ? "마침" : "다음"}</span>
+              {studioShowFinish
                 ? <CheckCircle2 aria-hidden="true" size={19} />
                 : <ChevronRight aria-hidden="true" size={20} />}
             </button>
