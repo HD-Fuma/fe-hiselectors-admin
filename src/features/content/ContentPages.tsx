@@ -1799,12 +1799,23 @@ export function ContentInspectionDetailPage() {
   const returnPath = routeState?.from;
   const pendingContents = inspectionRequiredContents(detailContents);
   const currentPendingIndex = pendingContents.findIndex((item) => item.id === contentId);
+  const previousContent = currentPendingIndex > 0
+    ? pendingContents[currentPendingIndex - 1]
+    : undefined;
   const nextContent = currentPendingIndex >= 0
     ? pendingContents[currentPendingIndex + 1]
     : pendingContents[0];
   const remainingCount = currentPendingIndex >= 0
     ? Math.max(0, pendingContents.length - currentPendingIndex - 1)
     : pendingContents.length;
+  const navigateStudioContent = (target?: ContentInspectionFixture) => {
+    if (!target) return;
+    setStudioDecision(null);
+    setStudioSelector(null);
+    navigate(`/content/inspections/${target.id}`, {
+      state: { ...routeState, content: target, contents: detailContents, inspectionSession: true },
+    });
+  };
 
   useEffect(() => {
     if (routeState?.inspectionSession || invalidContentId || !contentId) return undefined;
@@ -1937,6 +1948,33 @@ export function ContentInspectionDetailPage() {
             />
           </>
         ) : null}
+        <nav aria-label="검수 콘텐츠 이동" className="fuma-content-inspection-studio__queue">
+          <div>
+            <span>검수 진행</span>
+            <strong>
+              {currentPendingIndex >= 0 ? currentPendingIndex + 1 : 0}
+              <small> / {pendingContents.length}</small>
+            </strong>
+          </div>
+          <span className="fuma-content-inspection-studio__queue-actions">
+            <button
+              aria-label="이전 콘텐츠"
+              disabled={!previousContent}
+              onClick={() => navigateStudioContent(previousContent)}
+              type="button"
+            >
+              <ChevronLeft aria-hidden="true" size={20} />
+            </button>
+            <button
+              aria-label="다음 콘텐츠"
+              disabled={!nextContent}
+              onClick={() => navigateStudioContent(nextContent)}
+              type="button"
+            >
+              <ChevronRight aria-hidden="true" size={20} />
+            </button>
+          </span>
+        </nav>
         <div aria-label="최종 검수" className="fuma-content-inspection-studio__decision" role="group">
           <button
             aria-pressed={studioDecision === "reject"}
