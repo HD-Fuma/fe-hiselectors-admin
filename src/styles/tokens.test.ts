@@ -71,10 +71,10 @@ describe("shared component visual contracts", () => {
     )?.[1];
 
     expect(approvedTaskStatusRule).toMatch(
-      /background:\s*rgb\(255 255 255 \/ 88%\);/,
+      /background:\s*var\(--fuma-task-glass-control-surface\);/,
     );
     expect(approvedTaskStatusRule).toMatch(
-      /color:\s*#202224;/,
+      /color:\s*var\(--fuma-task-glass-ink\);/,
     );
   });
 

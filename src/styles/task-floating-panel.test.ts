@@ -86,41 +86,69 @@ describe("TaskRun floating panel layout", () => {
     );
   });
 
-  test("keeps 12px mobile edges", () => {
+  test("keeps 12px mobile edges with viewport padding", () => {
     const mobileBlock = taskFloatingPanelStyles.match(
       /@media \(max-width:\s*480px\)\s*\{([\s\S]*?)\n\}/,
     )?.[1];
 
-    expect(mobileBlock).toMatch(/right:\s*var\(--hsas-space-12\);/);
+    expect(mobileBlock).toMatch(/right:\s*0;/);
     expect(mobileBlock).toMatch(/bottom:\s*var\(--hsas-space-12\);/);
-    expect(mobileBlock).toMatch(/left:\s*var\(--hsas-space-12\);/);
+    expect(mobileBlock).toMatch(/left:\s*0;/);
+    expect(mobileBlock).toMatch(/padding:\s*0 var\(--hsas-space-12\);/);
   });
 });
 
 describe("TaskRun floating panel surfaces", () => {
-  test("uses the content inspection glass material for the title capsule", () => {
+  test("adds static specular layers to both glass surfaces", () => {
+    const headerRule = ruleFor(".fuma-task-run-panel__header");
+    const surfaceRule = ruleFor(".fuma-task-run-card-surface");
+    const sharedSheenRule = taskFloatingPanelStyles.match(
+      /\.fuma-task-run-panel__header::before,\s*\.fuma-task-run-card-surface::before\s*\{([^}]*)\}/,
+    )?.[1];
+
+    expect(headerRule).toMatch(/position:\s*relative;/);
+    expect(surfaceRule).toMatch(/position:\s*relative;/);
+    expect(sharedSheenRule).toMatch(/position:\s*absolute;/);
+    expect(sharedSheenRule).toMatch(/inset:\s*1px;/);
+    expect(sharedSheenRule).toMatch(/border-radius:\s*inherit;/);
+    expect(sharedSheenRule).toMatch(/background:\s*radial-gradient/);
+    expect(sharedSheenRule).toMatch(/pointer-events:\s*none;/);
+  });
+
+  test("uses a translucent local glass material for the title capsule", () => {
+    const panelRule = ruleFor(".fuma-task-run-panel");
     const headerRule = ruleFor(".fuma-task-run-panel__header");
     const titleRule = ruleFor(".fuma-task-run-panel__title");
     const countRule = ruleFor(".fuma-task-run-panel__count");
     const collapseRule = ruleFor(".fuma-task-run-panel__collapse");
 
-    expect(headerRule).toMatch(
-      /border:\s*1px solid rgb\(255 255 255 \/ 92%\);/,
+    expect(panelRule).toMatch(
+      /--fuma-task-glass-surface:\s*rgb\(255 255 255 \/ 58%\);/,
     );
-    expect(headerRule).toMatch(/background:\s*linear-gradient\(145deg/);
-    expect(headerRule).toMatch(/backdrop-filter:\s*blur\(120px\) saturate\(1\.1\);/);
+    expect(panelRule).toMatch(
+      /--fuma-task-glass-border:\s*rgb\(255 255 255 \/ 78%\);/,
+    );
+    expect(headerRule).toMatch(
+      /border:\s*1px solid var\(--fuma-task-glass-border\);/,
+    );
+    expect(headerRule).toMatch(
+      /background-color:\s*var\(--fuma-task-glass-surface\);/,
+    );
+    expect(headerRule).toMatch(
+      /backdrop-filter:\s*blur\(24px\) saturate\(1\.3\) brightness\(1\.04\);/,
+    );
     expect(headerRule).toMatch(
       /border-radius:\s*calc\(var\(--hsas-sidebar-radius\) \* 3\);/,
     );
-    expect(titleRule).toMatch(/color:\s*#202224;/);
+    expect(titleRule).toMatch(/color:\s*var\(--fuma-task-glass-ink\);/);
     expect(countRule).toMatch(/color:\s*rgb\(32 34 36 \/ 58%\);/);
     expect(collapseRule).toMatch(
-      /border:\s*1px solid rgb\(255 255 255 \/ 86%\);/,
+      /border:\s*1px solid var\(--fuma-task-glass-control-border\);/,
     );
     expect(collapseRule).toMatch(
-      /background:\s*rgb\(255 255 255 \/ 88%\);/,
+      /background:\s*var\(--fuma-task-glass-control-surface\);/,
     );
-    expect(collapseRule).toMatch(/color:\s*#202224;/);
+    expect(collapseRule).toMatch(/color:\s*var\(--fuma-task-glass-ink\);/);
   });
 
   test("uses the same translucent material on task cards", () => {
@@ -129,16 +157,21 @@ describe("TaskRun floating panel surfaces", () => {
     const trackRule = ruleFor(".fuma-task-run-track");
 
     expect(surfaceRule).toMatch(
-      /border:\s*1px solid rgb\(255 255 255 \/ 92%\);/,
+      /border:\s*1px solid var\(--fuma-task-glass-border\);/,
     );
     expect(surfaceRule).toMatch(
       /border-radius:\s*calc\(var\(--hsas-sidebar-radius\) \* 3\);/,
     );
-    expect(surfaceRule).toMatch(/background:\s*linear-gradient\(145deg/);
+    expect(surfaceRule).toMatch(
+      /background-color:\s*var\(--fuma-task-glass-surface\);/,
+    );
     expect(surfaceRule).not.toMatch(/backdrop-filter/);
-    expect(trackRule).toMatch(/backdrop-filter:\s*blur\(120px\) saturate\(1\.1\);/);
-    expect(surfaceRule).toMatch(/inset 0 1px 0 rgb\(255 255 255 \/ 96%\)/);
-    expect(surfaceRule).toMatch(/0 20px 52px rgb\(41 53 58 \/ 22%\)/);
+    expect(trackRule).toMatch(
+      /backdrop-filter:\s*blur\(24px\) saturate\(1\.3\) brightness\(1\.04\);/,
+    );
+    expect(surfaceRule).toMatch(
+      /box-shadow:\s*var\(--fuma-task-glass-shadow\);/,
+    );
     expect(cardRule).toMatch(
       /padding:\s*var\(--hsas-space-14\) var\(--hsas-space-16\);/,
     );
