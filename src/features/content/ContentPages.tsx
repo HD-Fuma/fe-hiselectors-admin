@@ -1793,6 +1793,7 @@ export function ContentInspectionDetailPage() {
   const [studioExiting, setStudioExiting] = useState(false);
   const studioReportRef = useRef<HTMLElement>(null);
   const studioDecisionRef = useRef<HTMLDivElement>(null);
+  const studioVersionsRef = useRef<HTMLElement>(null);
   const studioHistoryRequestRef = useRef<AbortController | null>(null);
   const studioActionRequestRef = useRef<AbortController | null>(null);
   const studioDetailRequestRef = useRef<AbortController | null>(null);
@@ -2215,6 +2216,15 @@ export function ContentInspectionDetailPage() {
   }, [baseContent, routeState?.inspectionSession, studioHistoryVersionKey]);
 
   useEffect(() => {
+    if (studioHistoryPending || visibleStudioHistoricalContents.length === 0) return undefined;
+    const animationFrame = window.requestAnimationFrame(() => {
+      const versions = studioVersionsRef.current;
+      versions?.scrollTo({ behavior: "auto", left: versions.scrollWidth });
+    });
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [contentId, studioHistoryPending, visibleStudioHistoricalContents.length]);
+
+  useEffect(() => {
     if (!routeState?.inspectionSession) return undefined;
     const resetFrame = window.requestAnimationFrame(() => {
       setStudioViolationJudgments(Array(studioViolationSignals.length).fill(null));
@@ -2356,7 +2366,7 @@ export function ContentInspectionDetailPage() {
 
       const scrollSurface = event.target instanceof Element
         ? event.target.closest<HTMLElement>(
-            ".fuma-content-inspection-studio__report, .fuma-content-inspection-studio__history, .fuma-platform-inspection-frame__youtube-description p",
+            ".fuma-content-inspection-studio__report, .fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p",
           )
         : null;
       if (scrollSurface) {
@@ -2525,6 +2535,7 @@ export function ContentInspectionDetailPage() {
               className="fuma-content-inspection-studio__versions"
               data-content-format={contentCollectionFormatKey(content.contentFormat)}
               data-revised={studioHistoricalVersionSummaries.length > 0}
+              ref={studioVersionsRef}
             >
               {studioHistoricalVersionSummaries.length > 0 ? (
                 <div className="fuma-content-inspection-studio__history">
