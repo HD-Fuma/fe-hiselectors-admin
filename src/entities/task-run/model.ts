@@ -17,6 +17,11 @@ export type TaskRunStatus =
 
 export type TriggerType = "ADMIN_TRIGGERED" | "SCHEDULED";
 
+export interface TaskStepProgress {
+  readonly totalCount: number | null;
+  readonly processedCount: number;
+}
+
 export interface TaskRun {
   readonly runId: string;
   readonly taskType: TaskType;
@@ -24,6 +29,7 @@ export interface TaskRun {
   readonly status: TaskRunStatus;
   readonly currentStep: string | null;
   readonly progressMessage: string | null;
+  readonly stepProgress?: Readonly<Record<string, TaskStepProgress>> | null;
   readonly totalCount: number | null;
   readonly processedCount: number;
   readonly succeededCount: number;

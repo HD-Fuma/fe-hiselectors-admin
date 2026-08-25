@@ -222,7 +222,8 @@
   font-weight: 700;
 }
 
-.fuma-task-run-card__progress progress {
+.fuma-task-run-card__progress progress,
+.fuma-task-run-card__content-progress-row progress {
   grid-column: 1 / -1;
   width: 100%;
   height: var(--hsas-space-6);
@@ -233,21 +234,50 @@
   accent-color: var(--hsas-teal);
 }
 
-.fuma-task-run-card__progress progress::-webkit-progress-bar {
+.fuma-task-run-card__progress progress::-webkit-progress-bar,
+.fuma-task-run-card__content-progress-row progress::-webkit-progress-bar {
   border-radius: var(--hsas-sidebar-radius);
   background: inherit;
 }
 
-.fuma-task-run-card__progress progress::-webkit-progress-value {
+.fuma-task-run-card__progress progress::-webkit-progress-value,
+.fuma-task-run-card__content-progress-row progress::-webkit-progress-value {
   border-radius: var(--hsas-sidebar-radius);
   background: var(--hsas-teal);
   transition: width 180ms ease;
 }
 
-.fuma-task-run-card__progress progress::-moz-progress-bar {
+.fuma-task-run-card__progress progress::-moz-progress-bar,
+.fuma-task-run-card__content-progress-row progress::-moz-progress-bar {
   border-radius: var(--hsas-sidebar-radius);
   background: var(--hsas-teal);
   transition: width 180ms ease;
+}
+
+.fuma-task-run-card__content-progress {
+  display: grid;
+  gap: var(--hsas-space-10);
+}
+
+.fuma-task-run-card__content-progress-row {
+  display: grid;
+  gap: var(--hsas-space-5);
+  color: var(--hsas-sidebar-heading);
+  font-size: var(--hsas-font-11);
+}
+
+.fuma-task-run-card__content-progress-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--hsas-space-8);
+}
+
+.fuma-task-run-card__content-progress-heading strong {
+  color: inherit;
+}
+
+.fuma-task-run-card__content-progress-text {
+  color: var(--hsas-sidebar-text);
 }
 
 .fuma-task-run-card__indeterminate {
@@ -369,7 +399,9 @@
   .fuma-task-run-track[data-dismiss-phase="exiting"],
   .fuma-task-run-track[data-dismiss-phase="collapsing"],
   .fuma-task-run-card__progress progress::-webkit-progress-value,
-  .fuma-task-run-card__progress progress::-moz-progress-bar {
+  .fuma-task-run-card__progress progress::-moz-progress-bar,
+  .fuma-task-run-card__content-progress-row progress::-webkit-progress-value,
+  .fuma-task-run-card__content-progress-row progress::-moz-progress-bar {
     transition: none;
   }
 

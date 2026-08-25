@@ -46,7 +46,7 @@ export const STEP_LABELS: Record<string, string> = {
   PROPOSAL_EMAIL_SEND: "제안 이메일 발송 중",
   RECALCULATE: "정산 재계산 중",
   STALE_CONTENT_INSPECTION: "콘텐츠 리포트 생성 중",
-  STORED_CONTENT_SYNC: "기존 콘텐츠 확인 중",
+  STORED_CONTENT_SYNC: "기존 콘텐츠 수집 중",
   YOUTUBE_CREATOR_SYNC: "YouTube 크리에이터 동기화 중",
 };
 

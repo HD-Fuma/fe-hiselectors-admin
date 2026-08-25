@@ -42,10 +42,132 @@ function TerminalTaskRunIcon({ run }: { run: TaskRun }) {
   }
 }
 
+interface ContentProgressRowProps {
+  ariaLabel: string;
+  label: string;
+  max: number;
+  percentage?: number;
+  text: string;
+  value?: number;
+}
+
+function ContentProgressRow({
+  ariaLabel,
+  label,
+  max,
+  percentage,
+  text,
+  value,
+}: ContentProgressRowProps) {
+  return (
+    <div className="fuma-task-run-card__content-progress-row">
+      <div className="fuma-task-run-card__content-progress-heading">
+        <span>{label}</span>
+        {percentage != null && <strong>{percentage}%</strong>}
+      </div>
+      <progress
+        aria-label={ariaLabel}
+        max={max}
+        value={value}
+      />
+      <span className="fuma-task-run-card__content-progress-text">{text}</span>
+    </div>
+  );
+}
+
+function determinateContentProgress(processedCount: number, totalCount: number) {
+  if (totalCount === 0) {
+    return { max: 1, percentage: undefined, text: "0건 완료", value: 1 };
+  }
+
+  const value = Math.min(Math.max(processedCount, 0), totalCount);
+  const percentage = Math.min(
+    Math.max(Math.round((processedCount / totalCount) * 100), 0),
+    100,
+  );
+  const text = processedCount === totalCount
+    ? `${processedCount}건 완료`
+    : `${processedCount} / ${totalCount}건`;
+  return { max: totalCount, percentage, text, value };
+}
+
+function ContentSyncProgress({ run }: { run: TaskRun }) {
+  const newProgress = run.stepProgress?.NEW_CONTENT_SYNC;
+  const storedProgress = run.stepProgress?.STORED_CONTENT_SYNC;
+  const hasCompleteProgress = newProgress != null && storedProgress != null;
+
+  if (!hasCompleteProgress) {
+    return (
+      <div
+        aria-label="콘텐츠 수집 진행 상황"
+        aria-live="polite"
+        className="fuma-task-run-card__content-progress"
+        role="status"
+      >
+        <ContentProgressRow
+          ariaLabel="신규 콘텐츠 수집 진행률"
+          label="신규 콘텐츠 수집"
+          max={1}
+          text="진행 정보 확인 중"
+        />
+        <ContentProgressRow
+          ariaLabel="기존 콘텐츠 수집 진행률"
+          label="기존 콘텐츠 수집"
+          max={1}
+          text="진행 정보 확인 중"
+        />
+      </div>
+    );
+  }
+
+  const newRow = newProgress.totalCount == null
+    ? {
+        max: 1,
+        text: `${newProgress.processedCount}건 처리`,
+      }
+    : determinateContentProgress(
+        newProgress.processedCount,
+        newProgress.totalCount,
+      );
+  const storedWaiting = run.currentStep === "NEW_CONTENT_SYNC"
+    && storedProgress.totalCount == null;
+  const storedRow = storedWaiting
+    ? { max: 1, text: "대기 중", value: 0 }
+    : storedProgress.totalCount == null
+      ? {
+          max: 1,
+          text: `${storedProgress.processedCount}건 처리`,
+        }
+      : determinateContentProgress(
+          storedProgress.processedCount,
+          storedProgress.totalCount,
+        );
+
+  return (
+    <div
+      aria-label="콘텐츠 수집 진행 상황"
+      aria-live="polite"
+      className="fuma-task-run-card__content-progress"
+      role="status"
+    >
+      <ContentProgressRow
+        ariaLabel="신규 콘텐츠 수집 진행률"
+        label="신규 콘텐츠 수집"
+        {...newRow}
+      />
+      <ContentProgressRow
+        ariaLabel="기존 콘텐츠 수집 진행률"
+        label="기존 콘텐츠 수집"
+        {...storedRow}
+      />
+    </div>
+  );
+}
+
 function ActiveTaskRunContent({ run }: { run: TaskRun }) {
   const taskLabel = TASK_LABELS[run.taskType];
-  const usesProgressMessage = run.taskType === "CREATOR_SYNC"
-    || run.taskType === "CONTENT_SYNC";
+  const isContentSync = run.taskType === "CONTENT_SYNC";
+  const usesProgressMessage = run.taskType === "CREATOR_SYNC";
   const progressMessage = usesProgressMessage
     ? run.progressMessage?.trim() || null
     : null;
@@ -64,13 +186,15 @@ function ActiveTaskRunContent({ run }: { run: TaskRun }) {
         </StatusPill>
       </div>
 
-      {run.currentStep && (
+      {!isContentSync && run.currentStep && (
         <p className="fuma-task-run-card__step">
           {STEP_LABELS[run.currentStep] ?? run.currentStep}
         </p>
       )}
 
-      {progressMessage != null ? (
+      {isContentSync ? (
+        <ContentSyncProgress run={run} />
+      ) : progressMessage != null ? (
         <p
           aria-live="polite"
           className="fuma-task-run-card__step"
@@ -105,7 +229,10 @@ function ActiveTaskRunContent({ run }: { run: TaskRun }) {
 
       <div className="fuma-task-run-card__meta">
         <span>{triggerLabel(run)}</span>
-        {!usesProgressMessage && run.totalCount != null && run.failedCount > 0 && (
+        {!isContentSync
+          && !usesProgressMessage
+          && run.totalCount != null
+          && run.failedCount > 0 && (
           <strong className="fuma-task-run-card__failure">
             {run.failedCount}건 실패
           </strong>
