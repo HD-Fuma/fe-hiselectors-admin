@@ -18,6 +18,7 @@ const taskRunPanelApiMock = vi.hoisted(() => ({
     runId: "test-task-run",
     status: "SUCCEEDED",
   }),
+  streamTaskRunProgress: vi.fn().mockReturnValue(new Promise(() => undefined)),
 }));
 
 vi.mock("../entities/task-run", () => taskRunPanelApiMock);

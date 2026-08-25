@@ -8,6 +8,7 @@ vi.mock("../entities/task-run", () => ({
     items: [],
     serverTime: "2026-08-23T00:00:00Z",
   }),
+  streamTaskRunProgress: vi.fn().mockReturnValue(new Promise(() => undefined)),
 }));
 
 beforeEach(() => {
