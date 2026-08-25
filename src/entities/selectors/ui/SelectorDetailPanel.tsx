@@ -71,7 +71,7 @@ function accountHandle(accountId: string) {
   return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
 }
 
-function snsAccountHref(
+export function snsAccountHref(
   platform: "Instagram" | "YouTube" | null,
   accountId: string | null | undefined,
 ) {

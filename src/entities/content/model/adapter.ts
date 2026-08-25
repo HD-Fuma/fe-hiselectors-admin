@@ -266,6 +266,7 @@ export function adaptContentInspection(content: CollectedContent): ContentInspec
     contentFormat,
     contentTitle: texts[0] ?? content.snsContentId,
     contentUrl: content.contentUrl,
+    contentVersionId: content.latestVersionId,
     currentSnapshot: {
       capturedAt: content.latestVersionStoredAt,
       label: contentFormat,
