@@ -357,24 +357,15 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__report > header em {
   padding: 5px 8px;
   border-radius: 999px;
-  color: #a84239;
-  background: rgb(207 71 59 / 10%);
+  color: rgb(32 34 36 / 58%);
+  background: rgb(255 255 255 / 42%);
   font-size: 10px;
   font-style: normal;
   font-weight: 750;
 }
 
-.fuma-content-inspection-studio__report > header em[data-clear="true"] {
-  color: #23795f;
-  background: rgb(34 185 139 / 10%);
-}
-
 .fuma-content-inspection-studio__report-summary {
   margin-top: 15px;
-  padding: 13px 14px;
-  border: 1px solid rgb(255 255 255 / 68%);
-  border-radius: 16px;
-  background: rgb(255 255 255 / 34%);
 }
 
 .fuma-content-inspection-studio__report-summary p {
@@ -396,10 +387,11 @@ body:has(.fuma-content-inspection-studio) {
 
 .fuma-content-inspection-studio__report-evidence > div > small {
   display: grid;
-  width: 20px;
+  min-width: 34px;
   height: 20px;
+  padding: 0 6px;
   place-items: center;
-  border-radius: 50%;
+  border-radius: 999px;
   color: rgb(32 34 36 / 64%);
   background: rgb(255 255 255 / 46%);
   font-size: 10px;
@@ -415,21 +407,21 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__report-evidence li {
   display: grid;
   padding: 11px 0;
-  grid-template-columns: 7px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
   border-top: 1px solid rgb(255 255 255 / 58%);
+  outline: none;
+  transition: 140ms ease;
 }
 
-.fuma-content-inspection-studio__report-evidence li > i {
-  width: 7px;
-  height: 7px;
-  margin-top: 5px;
-  border-radius: 50%;
-  background: #d29a43;
-}
-
-.fuma-content-inspection-studio__report-evidence li[data-tone="critical"] > i {
-  background: #cf473b;
+.fuma-content-inspection-studio__report-evidence li[data-focused="true"] {
+  margin: 3px -9px;
+  padding: 11px 9px;
+  border-top-color: transparent;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 48%);
+  box-shadow:
+    0 0 0 2px rgb(255 255 255 / 74%),
+    0 10px 22px rgb(54 65 72 / 9%);
 }
 
 .fuma-content-inspection-studio__report-evidence li > div > div {
@@ -450,6 +442,15 @@ body:has(.fuma-content-inspection-studio) {
   font-size: 9px;
 }
 
+.fuma-content-inspection-studio__report-evidence li small[data-judgment="violation"],
+.fuma-content-inspection-studio__report-evidence li small[data-judgment="clear"] {
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: rgb(32 34 36 / 62%);
+  background: rgb(255 255 255 / 44%);
+  font-weight: 750;
+}
+
 .fuma-content-inspection-studio__report-evidence li p,
 .fuma-content-inspection-studio__report-empty {
   margin: 4px 0 0;
@@ -463,6 +464,49 @@ body:has(.fuma-content-inspection-studio) {
   text-align: center;
 }
 
+.fuma-content-inspection-studio__report-evidence .fuma-content-inspection-studio__report-choices {
+  margin-top: 9px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.fuma-content-inspection-studio__report-choices button {
+  display: inline-flex;
+  height: 38px;
+  padding: 0 9px;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: 140ms ease;
+}
+
+.fuma-content-inspection-studio__report-choices button:first-child {
+  border-color: #dedede;
+  color: #353535;
+  background: #fff;
+}
+
+.fuma-content-inspection-studio__report-choices button:last-child {
+  border-color: #171717;
+  color: #fff;
+  background: #171717;
+}
+
+.fuma-content-inspection-studio__report-choices button[aria-pressed="true"] {
+  box-shadow:
+    0 0 0 2px rgb(255 255 255 / 90%),
+    0 0 0 4px rgb(32 34 36 / 22%),
+    0 8px 20px rgb(54 65 72 / 18%);
+}
+
 .fuma-content-inspection-studio__decision {
   position: absolute;
   bottom: 28px;
@@ -470,7 +514,15 @@ body:has(.fuma-content-inspection-studio) {
   z-index: 2;
   display: flex;
   gap: 18px;
+  opacity: 0.38;
+  outline: none;
   transform: translateX(-50%);
+  transition: opacity 160ms ease, filter 160ms ease;
+}
+
+.fuma-content-inspection-studio__decision[data-active="true"] {
+  opacity: 1;
+  filter: drop-shadow(0 10px 20px rgb(54 65 72 / 14%));
 }
 
 .fuma-content-inspection-studio__decision button {
@@ -499,6 +551,10 @@ body:has(.fuma-content-inspection-studio) {
   border-color: #171717;
   color: #fff;
   background: #171717;
+}
+
+.fuma-content-inspection-studio__decision button:disabled {
+  cursor: default;
 }
 
 .fuma-content-inspection-studio__decision button[aria-pressed="true"] {
@@ -557,6 +613,7 @@ body:has(.fuma-content-inspection-studio) {
   width: min(340px, calc(100vw - 40px));
   padding: 20px;
   border-radius: 22px;
+  background: rgb(255 255 255 / 58%);
   text-align: center;
   animation: fuma-content-inspection-dialog-enter 160ms ease-out both;
 }
