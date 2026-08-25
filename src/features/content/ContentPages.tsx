@@ -1991,7 +1991,7 @@ export function ContentInspectionDetailPage() {
               type="button"
             >
               <ChevronLeft aria-hidden="true" size={20} />
-              이전
+              <span>이전</span>
             </button>
             <button
               aria-label="다음 콘텐츠"
@@ -1999,7 +1999,7 @@ export function ContentInspectionDetailPage() {
               onClick={() => navigateStudioContent(nextContent)}
               type="button"
             >
-              다음
+              <span>다음</span>
               <ChevronRight aria-hidden="true" size={20} />
             </button>
           </span>

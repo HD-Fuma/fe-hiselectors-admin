@@ -45,10 +45,10 @@ body:has(.fuma-content-inspection-studio) {
   top: 28px;
   left: 28px;
   z-index: 2;
-  width: min(450px, calc(100vw - 56px));
-  padding: 20px 22px 18px;
+  width: min(420px, calc(100vw - 56px));
+  padding: 17px 18px 15px;
   border: 1px solid rgb(255 255 255 / 78%);
-  border-radius: 26px;
+  border-radius: 23px;
   color: #202224;
   background: rgb(255 255 255 / 42%);
   box-shadow:
@@ -60,14 +60,14 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__profile-identity {
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: 11px;
 }
 
 .fuma-content-inspection-studio__profile-avatar {
   display: grid;
-  width: 54px;
-  height: 54px;
-  flex: 0 0 54px;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
   overflow: hidden;
   place-items: center;
   border: 1px solid rgb(255 255 255 / 86%);
@@ -95,7 +95,7 @@ body:has(.fuma-content-inspection-studio) {
 
 .fuma-content-inspection-studio__profile-identity strong {
   overflow: hidden;
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -105,14 +105,14 @@ body:has(.fuma-content-inspection-studio) {
   display: flex;
   margin-top: 2px;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
 }
 
 .fuma-content-inspection-studio__profile-meta > span,
 .fuma-content-inspection-studio__profile-meta > a {
   overflow: hidden;
   color: rgb(32 34 36 / 58%);
-  font-size: 13px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -128,50 +128,50 @@ body:has(.fuma-content-inspection-studio) {
 }
 
 .fuma-content-inspection-studio__profile-meta .fuma-platform-icon {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
   flex: 0 0 auto;
 }
 
 .fuma-content-inspection-studio__profile-meta .fuma-platform-icon svg {
-  width: 13px;
-  height: 13px;
+  width: 12px;
+  height: 12px;
 }
 
 .fuma-content-inspection-studio__profile-id {
   display: flex;
   margin-left: auto;
-  padding: 7px 11px;
+  padding: 6px 9px;
   flex: 0 0 auto;
   flex-direction: column;
   border: 1px solid rgb(255 255 255 / 68%);
-  border-radius: 13px;
+  border-radius: 11px;
   background: rgb(255 255 255 / 36%);
 }
 
 .fuma-content-inspection-studio__profile-id small,
 .fuma-content-inspection-studio__profile dl dt {
   color: rgb(32 34 36 / 48%);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
 }
 
 .fuma-content-inspection-studio__profile-id b {
   margin-top: 2px;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .fuma-content-inspection-studio__profile dl {
   display: grid;
-  margin: 17px 0 0;
-  padding: 15px 0 0;
+  margin: 14px 0 0;
+  padding: 12px 0 0;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border-top: 1px solid rgb(255 255 255 / 66%);
 }
 
 .fuma-content-inspection-studio__profile dl > div {
   min-width: 0;
-  padding: 0 14px;
+  padding: 0 11px;
 }
 
 .fuma-content-inspection-studio__profile dl > div:first-child {
@@ -194,7 +194,7 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__profile dl dd {
   margin-top: 4px;
   overflow: hidden;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 750;
   letter-spacing: -0.02em;
   text-overflow: ellipsis;
@@ -273,18 +273,20 @@ body:has(.fuma-content-inspection-studio) {
 }
 
 .fuma-content-inspection-studio__queue-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 72px);
+  align-items: center;
   gap: 7px;
 }
 
 .fuma-content-inspection-studio__queue-actions button {
   display: inline-flex;
-  min-width: 68px;
+  width: 72px;
   height: 40px;
-  padding: 0 11px;
+  padding: 0 9px;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   border: 1px solid rgb(255 255 255 / 82%);
   border-radius: 14px;
   color: #242628;
@@ -293,7 +295,14 @@ body:has(.fuma-content-inspection-studio) {
   font: inherit;
   font-size: 12px;
   font-weight: 750;
+  line-height: 1;
   cursor: pointer;
+}
+
+.fuma-content-inspection-studio__queue-actions button svg,
+.fuma-content-inspection-studio__queue-actions button span {
+  display: block;
+  flex: 0 0 auto;
 }
 
 .fuma-content-inspection-studio__queue-actions button:last-child {
