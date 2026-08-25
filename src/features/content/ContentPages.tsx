@@ -971,7 +971,10 @@ function MinimalVersionCard({
   const postDate = `${Number(year)}년 ${Number(month)}월 ${Number(day)}일`;
 
   const moveMedia = (direction: -1 | 1) => {
-    setActiveMediaIndex((current) => (current + direction + mediaItems.length) % mediaItems.length);
+    setActiveMediaIndex((current) => Math.min(
+      Math.max(current + direction, 0),
+      mediaItems.length - 1,
+    ));
   };
 
   const recordMediaSize = (index: number, image: HTMLImageElement) => {
@@ -1137,8 +1140,12 @@ function MinimalVersionCard({
           ) : null}
           {mediaItems.length > 1 ? (
             <>
-              <button aria-label="이전 사진" className="is-prev" onClick={() => moveMedia(-1)} type="button"><ChevronLeft aria-hidden="true" size={17} /></button>
-              <button aria-label="다음 사진" className="is-next" onClick={() => moveMedia(1)} type="button"><ChevronRight aria-hidden="true" size={17} /></button>
+              {visibleIndex > 0 ? (
+                <button aria-label="이전 사진" className="is-prev" onClick={() => moveMedia(-1)} type="button"><ChevronLeft aria-hidden="true" size={17} /></button>
+              ) : null}
+              {visibleIndex < mediaItems.length - 1 ? (
+                <button aria-label="다음 사진" className="is-next" onClick={() => moveMedia(1)} type="button"><ChevronRight aria-hidden="true" size={17} /></button>
+              ) : null}
               <span className="fuma-platform-inspection-frame__count">{visibleIndex + 1} / {mediaItems.length}</span>
             </>
           ) : null}
