@@ -960,6 +960,13 @@ body:has(.fuma-content-inspection-studio) {
   background: rgb(255 255 255 / 18%);
 }
 
+.fuma-content-inspection-studio__decision > .fuma-content-inspection-studio__report-choice-tooltip {
+  position: absolute;
+  bottom: calc(100% + var(--hsas-space-10));
+  left: 0;
+  flex: none;
+}
+
 .fuma-content-inspection-studio__decision > .fuma-content-inspection-studio__report-choice-tooltip kbd {
   display: inline-flex;
   width: auto;
