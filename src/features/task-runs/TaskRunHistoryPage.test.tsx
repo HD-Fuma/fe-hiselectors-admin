@@ -19,7 +19,7 @@ function taskRun(overrides: Partial<TaskRun> = {}): TaskRun {
     failedCount: 0,
     skippedCount: 0,
     progressPercent: 100,
-    startedBy: null,
+    startedBy: { adminId: 6, name: "노출금지 스케줄러 관리자" },
     startedAt: null,
     finishedAt: "완료 시각",
     ...overrides,
@@ -105,9 +105,9 @@ test("renders the completed history contract and safe execution subjects", async
     "실행 주체",
     "처리 결과",
   ]);
-  expect(await within(history).findByText("자동 실행")).toBeInTheDocument();
-  expect(within(history).getByText("김관리자 실행")).toBeInTheDocument();
-  expect(within(history).getAllByText("관리자 실행")).toHaveLength(3);
+  expect(await within(history).findByText("스케줄러")).toBeInTheDocument();
+  expect(within(history).getAllByText("수동 실행")).toHaveLength(4);
+  expect(within(history).queryByText(/김관리자|노출금지/)).not.toBeInTheDocument();
   expect(within(history).getByText("신규 1건 · 수정 1건")).toBeInTheDocument();
   expect(within(history).getAllByText("2건 작업을 완료했습니다")).toHaveLength(4);
   expect(within(history).getByText("정산 계산")).toBeInTheDocument();
