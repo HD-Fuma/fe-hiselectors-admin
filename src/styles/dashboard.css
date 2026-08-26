@@ -1,14 +1,22 @@
 .fuma-dashboard {
   --dashboard-accent: #111;
-  --dashboard-accent-hover: #000;
+  --dashboard-accent-hover: #262626;
+  --dashboard-canvas: #f4f2ee;
+  --dashboard-panel: #fff;
+  --dashboard-tile: #faf9f7;
   --dashboard-on-accent: #fff;
-  --dashboard-solid: var(--hsas-surface);
-  --dashboard-solid-muted: var(--hsas-surface-muted);
+  --dashboard-focus: #111;
 }
 
 .fuma-dashboard .fuma-page__body {
-  gap: var(--hsas-space-16);
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--hsas-space-10);
   margin-top: var(--hsas-space-16);
+  padding: var(--hsas-space-14);
+  border: 1px solid var(--hsas-border);
+  border-radius: 24px;
+  background: var(--dashboard-canvas);
 }
 
 .fuma-dashboard h2,
@@ -20,7 +28,24 @@
 .fuma-dashboard-panel,
 .fuma-dashboard__shortcut-section {
   display: grid;
+  align-content: start;
   gap: var(--hsas-space-10);
+  padding: var(--hsas-space-14);
+  border: 1px solid var(--hsas-border);
+  border-radius: 18px;
+  background: var(--dashboard-panel);
+}
+
+.fuma-dashboard__priority {
+  grid-column: span 8;
+}
+
+.fuma-dashboard__shortcut-section {
+  grid-column: span 4;
+}
+
+.fuma-dashboard-panel {
+  grid-column: 1 / -1;
 }
 
 .fuma-dashboard__priority > h2,
@@ -32,7 +57,7 @@
 .fuma-dashboard__tasks {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--hsas-space-10);
+  gap: var(--hsas-space-8);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -40,48 +65,42 @@
 
 .fuma-dashboard-task {
   display: flex;
-  min-height: 108px;
+  min-height: 100px;
   align-items: center;
-  gap: var(--hsas-space-12);
-  padding: var(--hsas-space-14) var(--hsas-space-16);
+  gap: var(--hsas-space-10);
+  padding: var(--hsas-space-12) var(--hsas-space-14);
   border: 1px solid var(--dashboard-accent);
-  border-radius: 38px 24px 42px 28px / 30px 40px 26px 38px;
+  border-radius: 14px;
   background: var(--dashboard-accent);
-  box-shadow: 0 10px 24px rgb(0 0 0 / 10%);
   color: var(--dashboard-on-accent);
   text-decoration: none;
 }
 
-.fuma-dashboard__tasks li:nth-child(2) .fuma-dashboard-task {
-  border-radius: 26px 42px 28px 38px / 40px 28px 38px 30px;
-}
-
 .fuma-dashboard-task:hover {
   background: var(--dashboard-accent-hover);
-  box-shadow: 0 12px 28px rgb(0 0 0 / 14%);
 }
 
 .fuma-dashboard-task:focus-visible,
 .fuma-dashboard-stat:focus-visible,
 .fuma-dashboard__shortcuts a:focus-visible {
-  outline: 3px solid var(--dashboard-accent);
+  outline: 3px solid var(--dashboard-focus);
   outline-offset: 3px;
 }
 
 .fuma-dashboard-task__icon {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 58% 42% 54% 46% / 44% 58% 42% 56%;
+  border-radius: 10px;
   background: var(--dashboard-on-accent);
   color: var(--dashboard-accent);
 }
 
 .fuma-dashboard-task__icon svg {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
 }
 
 .fuma-dashboard-task__copy {
@@ -96,7 +115,7 @@
 }
 
 .fuma-dashboard-task__copy small {
-  color: rgb(255 255 255 / 68%);
+  color: #bdbdbd;
 }
 
 .fuma-dashboard-task > b {
@@ -106,16 +125,9 @@
 
 .fuma-dashboard-task > b small {
   margin-left: var(--hsas-space-3);
-  color: rgb(255 255 255 / 68%);
+  color: #bdbdbd;
   font-size: var(--hsas-font-12);
   font-weight: 500;
-}
-
-.fuma-dashboard-panel {
-  padding: var(--hsas-space-16);
-  border: 1px solid var(--hsas-border);
-  border-radius: 24px;
-  background: var(--dashboard-solid);
 }
 
 .fuma-dashboard__stats {
@@ -127,42 +139,41 @@
 .fuma-dashboard-stat {
   display: flex;
   min-width: 0;
+  min-height: 86px;
   align-items: flex-start;
   gap: var(--hsas-space-10);
   padding: var(--hsas-space-12);
   border: 1px solid var(--hsas-border);
-  border-radius: 20px;
-  background: var(--dashboard-solid-muted);
+  border-radius: 14px;
+  background: var(--dashboard-tile);
   color: var(--hsas-text);
   text-decoration: none;
 }
 
 .fuma-dashboard-stat:hover {
   border-color: var(--dashboard-accent);
-  background: var(--dashboard-solid);
-  box-shadow: 0 8px 18px rgb(0 0 0 / 8%);
 }
 
 .fuma-dashboard-stat__icon {
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 9px;
   background: var(--dashboard-accent);
   color: var(--dashboard-on-accent);
 }
 
 .fuma-dashboard-stat__icon svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }
 
 .fuma-dashboard-stat__copy {
   display: grid;
   min-width: 0;
-  gap: var(--hsas-space-3);
+  gap: var(--hsas-space-2);
 }
 
 .fuma-dashboard-stat__copy small,
@@ -178,23 +189,25 @@
   line-height: 1.2;
 }
 
-.fuma-dashboard__shortcut-section {
-  padding-top: var(--hsas-space-4);
-}
-
 .fuma-dashboard__shortcuts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--hsas-space-10) var(--hsas-space-20);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hsas-space-8);
 }
 
 .fuma-dashboard__shortcuts a {
-  display: inline-flex;
+  display: flex;
+  min-width: 0;
+  min-height: 38px;
   align-items: center;
+  justify-content: space-between;
   gap: var(--hsas-space-6);
-  padding: 0 0 var(--hsas-space-3);
-  border-bottom: 1px solid var(--hsas-border-strong);
+  padding: 0 var(--hsas-space-10);
+  border: 1px solid var(--hsas-border);
+  border-radius: 10px;
+  background: var(--dashboard-tile);
   color: var(--hsas-text);
+  font-size: var(--hsas-font-12);
   font-weight: 600;
   text-decoration: none;
 }
@@ -203,39 +216,57 @@
   border-color: var(--dashboard-accent);
 }
 
+.fuma-dashboard__shortcuts a span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .fuma-dashboard__shortcuts b {
+  flex: 0 0 auto;
   color: var(--dashboard-accent);
 }
 
 :root[data-theme="dark"] .fuma-dashboard {
-  --dashboard-accent: #f5f5f5;
-  --dashboard-accent-hover: #fff;
-  --dashboard-on-accent: #111;
-}
-
-:root[data-theme="dark"] .fuma-dashboard-task {
-  color: #111;
-}
-
-:root[data-theme="dark"] .fuma-dashboard-task__copy small,
-:root[data-theme="dark"] .fuma-dashboard-task > b small {
-  color: rgb(17 17 17 / 68%);
+  --dashboard-canvas: #171717;
+  --dashboard-panel: #202020;
+  --dashboard-tile: #282828;
+  --dashboard-focus: #fff;
 }
 
 @media (max-width: 1080px) {
+  .fuma-dashboard__priority {
+    grid-column: span 7;
+  }
+
+  .fuma-dashboard__shortcut-section {
+    grid-column: span 5;
+  }
+
   .fuma-dashboard__stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
-  .fuma-dashboard__tasks,
-  .fuma-dashboard__stats {
+  .fuma-dashboard .fuma-page__body {
     grid-template-columns: 1fr;
   }
 
-  .fuma-dashboard-task {
-    min-height: 100px;
-    padding: var(--hsas-space-14);
+  .fuma-dashboard__priority,
+  .fuma-dashboard-panel,
+  .fuma-dashboard__shortcut-section {
+    grid-column: 1;
+  }
+
+  .fuma-dashboard__tasks {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .fuma-dashboard__stats,
+  .fuma-dashboard__shortcuts {
+    grid-template-columns: 1fr;
   }
 }

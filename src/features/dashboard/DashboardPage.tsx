@@ -175,6 +175,15 @@ export function DashboardPage() {
           </ul>
         </section>
 
+        <section aria-labelledby="dashboard-shortcuts-title" className="fuma-dashboard__shortcut-section">
+          <h2 id="dashboard-shortcuts-title">바로가기</h2>
+          <nav aria-label="관리자 바로가기" className="fuma-dashboard__shortcuts">
+            {DASHBOARD_LINKS.map(({ label, to }) => (
+              <Link key={to} to={to}><span>{label}</span><b aria-hidden>→</b></Link>
+            ))}
+          </nav>
+        </section>
+
         <section aria-labelledby="dashboard-stats-title" className="fuma-dashboard-panel">
           <h2 id="dashboard-stats-title">운영 현황</h2>
           <div aria-label="주요 통계" className="fuma-dashboard__stats">
@@ -189,15 +198,6 @@ export function DashboardPage() {
             <DashboardStat icon={UsersRound} label="전체 셀렉터스" to="/selectors" value={data.selectors} />
             <DashboardStat detail={data.currentGenerationName} icon={Images} label="현재 기수 콘텐츠" to="/performance/contents" value={data.currentGenerationContentCount} />
           </div>
-        </section>
-
-        <section aria-labelledby="dashboard-shortcuts-title" className="fuma-dashboard__shortcut-section">
-          <h2 id="dashboard-shortcuts-title">바로가기</h2>
-          <nav aria-label="관리자 바로가기" className="fuma-dashboard__shortcuts">
-            {DASHBOARD_LINKS.map(({ label, to }) => (
-              <Link key={to} to={to}><span>{label}</span><b aria-hidden>→</b></Link>
-            ))}
-          </nav>
         </section>
       </div>
     </section>
