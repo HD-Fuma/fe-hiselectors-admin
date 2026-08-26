@@ -16,6 +16,7 @@ import {
   type DiscoveryCoverageStatus,
   type DiscoveryKeyword,
 } from "../../entities/discovery-category";
+import { runCreatorDiscoveryByCategory } from "../../entities/creator";
 
 interface CategoryDraft {
   id: number;
@@ -55,6 +56,7 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(true);
   const [coverageLoading, setCoverageLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [categoryDiscoveryRunning, setCategoryDiscoveryRunning] = useState(false);
   const [coverage, setCoverage] = useState<DiscoveryCoverage[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -243,6 +245,22 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
     }
   }
 
+  async function runSelectedCategory() {
+    if (!selectedCategory) return;
+    const category = selectedCategory;
+    setCategoryDiscoveryRunning(true);
+    setError("");
+    setNotice("");
+    try {
+      await runCreatorDiscoveryByCategory(category.id);
+      setNotice(`${category.name} 발굴 작업을 시작했습니다. 완료 여부는 알림센터에서 확인하세요.`);
+    } catch (reason) {
+      setError(reasonMessage(reason, "카테고리 크리에이터 발굴에 실패했습니다."));
+    } finally {
+      setCategoryDiscoveryRunning(false);
+    }
+  }
+
   return (
     <SidePanel onClose={onClose} title="크리에이터 발굴 키워드 설정">
       <div className="fuma-detail-panel__content fuma-discovery-settings">
@@ -350,6 +368,22 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
                 <h3>{selectedCategory ? `${selectedCategory.name} 발굴 키워드` : "발굴 키워드"}</h3>
                 <p>해당 분야의 크리에이터를 찾을 검색어를 관리합니다.</p>
               </div>
+              {selectedCategory ? (
+                <Button
+                  disabled={categoryDiscoveryRunning
+                    || saving
+                    || !selectedCategory.enabled
+                    || !selectedCategory.keywords.some((keyword) => keyword.enabled)}
+                  onClick={() => void runSelectedCategory()}
+                  title={!selectedCategory.enabled
+                    || !selectedCategory.keywords.some((keyword) => keyword.enabled)
+                    ? "활성 카테고리와 활성 키워드가 필요합니다."
+                    : undefined}
+                  variant="primary"
+                >
+                  {categoryDiscoveryRunning ? "접수 중" : `${selectedCategory.name}만 발굴`}
+                </Button>
+              ) : null}
             </header>
 
             {!selectedCategory ? <p className="fuma-discovery-settings__empty">카테고리를 선택해 주세요.</p> : null}

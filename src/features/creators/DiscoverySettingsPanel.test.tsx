@@ -14,6 +14,13 @@ const fashion = {
 
 const creatorPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 };
 
+const taskRun = {
+  runId: "creator-sync-category-1",
+  taskType: "CREATOR_SYNC",
+  triggerType: "ADMIN_TRIGGERED",
+  status: "QUEUED",
+};
+
 const fashionCoverage = {
   categoryId: 1,
   categoryCode: "FASHION",
@@ -118,4 +125,35 @@ test("closes a successful edit form even when the following reload fails", async
   expect(within(panel).getByText("카테고리를 수정했습니다.")).toBeInTheDocument();
   expect(within(panel).queryByLabelText("카테고리명")).not.toBeInTheDocument();
   expect(vi.mocked(fetch).mock.calls.filter(([, init]) => init?.method === "PATCH")).toHaveLength(1);
+});
+
+test("starts discovery for only the selected category", async () => {
+  const user = userEvent.setup();
+  const idempotencyKey = "00000000-0000-4000-8000-000000000010";
+  vi.spyOn(crypto, "randomUUID").mockReturnValue(idempotencyKey);
+  vi.stubGlobal("fetch", vi.fn()
+    .mockResolvedValueOnce(ok(creatorPage))
+    .mockResolvedValueOnce(ok([fashion]))
+    .mockResolvedValueOnce(ok([fashion]))
+    .mockResolvedValueOnce(ok([fashionCoverage]))
+    .mockResolvedValueOnce(ok(taskRun, 202)));
+
+  render(
+    <MemoryRouter initialEntries={["/creators"]}>
+      <CreatorListPage />
+    </MemoryRouter>,
+  );
+
+  await user.click(screen.getByRole("button", { name: "발굴 설정" }));
+  const panel = await screen.findByRole("dialog", { name: "크리에이터 발굴 키워드 설정" });
+  await user.click(within(panel).getByRole("button", { name: "패션만 발굴" }));
+
+  expect(await within(panel).findByRole("status")).toHaveTextContent(
+    "패션 발굴 작업을 시작했습니다. 완료 여부는 알림센터에서 확인하세요.",
+  );
+  const discoveryCall = vi.mocked(fetch).mock.calls.find(([input]) => (
+    new URL(String(input)).pathname === "/api/admin/discovery/categories/1/run"
+  ));
+  expect(discoveryCall?.[1]).toMatchObject({ method: "POST" });
+  expect(new Headers(discoveryCall?.[1]?.headers).get("Idempotency-Key")).toBe(idempotencyKey);
 });
