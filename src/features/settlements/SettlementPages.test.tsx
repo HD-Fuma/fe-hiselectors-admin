@@ -1,5 +1,8 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import type { SettlementEstimate } from "../../entities/settlement";
+import {
+  getDemoSettlementSummary,
+  type SettlementEstimate,
+} from "../../entities/settlement";
 import { renderRoute } from "../../test/renderRoute";
 
 const SETTLEMENTS = [
@@ -129,6 +132,14 @@ function currentMonth() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function recentMonths(activityMonth: string) {
+  const [year, month] = activityMonth.split("-").map(Number);
+  return Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(year, month - 6 + index, 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  });
+}
+
 function pageResponse({
   content = SETTLEMENTS,
   number = 0,
@@ -157,11 +168,7 @@ function summaryResponse(overrides: Record<string, unknown> = {}) {
   const activityMonth = typeof overrides.activityMonth === "string"
     ? overrides.activityMonth
     : currentMonth();
-  const [year, month] = activityMonth.split("-").map(Number);
-  const months = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(year, month - 6 + index, 1);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-  });
+  const months = recentMonths(activityMonth);
   const monthlyTrend = months.map((monthValue, index) => ({
     activityMonth: monthValue,
     commissionToSalesRate: [4, 4.13, 4.29, 4.37, 4.5, 4.48][index],
@@ -483,6 +490,80 @@ test("requests and renders the current-month settlement page", async () => {
     .not.toBeInTheDocument());
 });
 
+test("fills only missing previous months while keeping current real data", async () => {
+  const activityMonth = currentMonth();
+  const months = recentMonths(activityMonth);
+  const sparseTrend = months.map((month, index) => ({
+    activityMonth: month,
+    commissionToSalesRate: index === months.length - 1 ? 8 : 0,
+    confirmedPurchaseCount: index === months.length - 1 ? 8 : 0,
+    confirmedSalesAmount: index === months.length - 1 ? 44_800 : 0,
+    settlementAmount: index === months.length - 1 ? 3_584 : 0,
+    settlementCount: index === months.length - 1 ? 16 : 0,
+  }));
+  const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/summary")) {
+      return Promise.resolve(summaryResponse({
+        activityMonth,
+        commissionToSalesRate: 8,
+        confirmedPurchaseCount: 8,
+        confirmedSalesAmount: 44_800,
+        monthlyTrend: sparseTrend,
+        settlementAmount: 3_584,
+        settlementCount: 16,
+        statusDistribution: [{
+          settlementAmount: 3_584,
+          settlementCount: 16,
+          status: "CALCULATING",
+        }],
+      }));
+    }
+    return Promise.resolve(pageResponse({
+      content: [{
+        ...SETTLEMENTS[0],
+        confirmedPurchaseCount: 8,
+        confirmedSalesAmount: 44_800,
+        settlementAmount: 3_584,
+        settlementRate: 8,
+      }],
+      totalElements: 16,
+      totalPages: 1,
+    }));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+
+  renderRoute("/settlements");
+
+  const results = await screen.findByRole("region", { name: "정산 지급 목록" });
+  expect(await within(results).findByText("SEL-0007")).toBeInTheDocument();
+  expect(screen.getByText("이전 월 샘플 포함 · 현재 월은 실제 데이터")).toBeInTheDocument();
+  expect(screen.getByText("이전 월 샘플 포함")).toBeInTheDocument();
+  expect(screen.queryByText("샘플 데이터")).not.toBeInTheDocument();
+
+  const summary = screen.getByRole("region", { name: "정산 요약" });
+  expect(within(summary).getByRole("article", { name: "예상 정산액" })).toHaveTextContent(
+    "3,584원",
+  );
+  expect(within(summary).getByText(/샘플 전월 대비/)).toBeInTheDocument();
+  expect(within(summary).getByText(/전월 샘플/)).toBeInTheDocument();
+  const trend = within(summary).getByRole("img", {
+    name: /최근 6개월 확정 매출 및 수수료율 추이/,
+  });
+  const demoSummary = getDemoSettlementSummary(activityMonth);
+  const demoOldest = demoSummary.monthlyTrend[0];
+  const demoCurrent = demoSummary.monthlyTrend.at(-1);
+  if (!demoOldest || !demoCurrent) throw new Error("demo trend is incomplete");
+  const expectedOldestSales = Math.round(
+    44_800 * demoOldest.confirmedSalesAmount / demoCurrent.confirmedSalesAmount,
+  );
+  expect(expectedOldestSales).toBeLessThan(44_800);
+  expect(trend).toHaveAccessibleName(new RegExp(
+    `${months[0]} 확정 매출 ${expectedOldestSales.toLocaleString("ko-KR")}원`,
+  ));
+  expect(trend).toHaveAccessibleName(/확정 매출 44,800원, 수수료율 8.00%/);
+});
+
 test("applies the month on search and requests status and pages immediately", async () => {
   const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
     const url = new URL(String(input));
@@ -643,7 +724,11 @@ test("keeps aggregate KPIs when a rollback summary omits dashboard arrays", asyn
   expect(await within(summary).findByRole("article", { name: "예상 정산액" })).toHaveTextContent(
     "197,000원",
   );
-  expect(within(summary).getByText("표시할 월별 추이 데이터가 없습니다.")).toBeInTheDocument();
+  expect(within(summary).getByRole("img", {
+    name: /최근 6개월 확정 매출 및 수수료율 추이/,
+  })).toBeInTheDocument();
+  expect(within(summary).getByText("이전 월 샘플 포함 · 현재 월은 실제 데이터"))
+    .toBeInTheDocument();
   expect(within(summary).getByText("표시할 지급 상태 데이터가 없습니다.")).toBeInTheDocument();
 });
 

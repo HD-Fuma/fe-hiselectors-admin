@@ -102,6 +102,79 @@ function formatSignedWon(amount: number) {
   return `${amount > 0 ? "+" : ""}${formatWon(amount)}`;
 }
 
+function hasSettlementActivity(month: SettlementMonthlySummary | undefined) {
+  return Boolean(month && (
+    month.settlementCount > 0
+    || month.confirmedPurchaseCount > 0
+    || month.confirmedSalesAmount > 0
+    || month.settlementAmount > 0
+  ));
+}
+
+function scaleTrendValue(currentValue: number, demoValue: number, demoCurrentValue: number) {
+  if (currentValue <= 0 || demoCurrentValue <= 0) return 0;
+  return Math.max(1, Math.round(currentValue * demoValue / demoCurrentValue));
+}
+
+function backfillMissingSettlementTrend(
+  summary: SettlementEstimateSummary,
+  demo: SettlementEstimateSummary,
+) {
+  const actualByMonth = new Map(summary.monthlyTrend.map((month) => [month.activityMonth, month]));
+  const demoCurrent = demo.monthlyTrend.find(
+    (month) => month.activityMonth === summary.activityMonth,
+  );
+  const sampledMonths: string[] = [];
+  const monthlyTrend = demo.monthlyTrend.map((demoMonth): SettlementMonthlySummary => {
+    if (demoMonth.activityMonth === summary.activityMonth) {
+      return {
+        activityMonth: summary.activityMonth,
+        commissionToSalesRate: summary.commissionToSalesRate,
+        confirmedPurchaseCount: summary.confirmedPurchaseCount,
+        confirmedSalesAmount: summary.confirmedSalesAmount,
+        settlementAmount: summary.settlementAmount,
+        settlementCount: summary.settlementCount,
+      };
+    }
+
+    const actual = actualByMonth.get(demoMonth.activityMonth);
+    if (actual && hasSettlementActivity(actual)) return actual;
+    sampledMonths.push(demoMonth.activityMonth);
+    if (!demoCurrent) return demoMonth;
+
+    const confirmedSalesAmount = scaleTrendValue(
+      summary.confirmedSalesAmount,
+      demoMonth.confirmedSalesAmount,
+      demoCurrent.confirmedSalesAmount,
+    );
+    const settlementAmount = scaleTrendValue(
+      summary.settlementAmount,
+      demoMonth.settlementAmount,
+      demoCurrent.settlementAmount,
+    );
+    return {
+      activityMonth: demoMonth.activityMonth,
+      commissionToSalesRate: confirmedSalesAmount === 0
+        ? summary.commissionToSalesRate
+        : Math.round(settlementAmount / confirmedSalesAmount * 10_000) / 100,
+      confirmedPurchaseCount: scaleTrendValue(
+        summary.confirmedPurchaseCount,
+        demoMonth.confirmedPurchaseCount,
+        demoCurrent.confirmedPurchaseCount,
+      ),
+      confirmedSalesAmount,
+      settlementAmount,
+      settlementCount: scaleTrendValue(
+        summary.settlementCount,
+        demoMonth.settlementCount,
+        demoCurrent.settlementCount,
+      ),
+    };
+  });
+
+  return { sampledMonths, summary: { ...summary, monthlyTrend } };
+}
+
 function monthChartLabel(activityMonth: string) {
   const [, monthNumber] = activityMonth.split("-");
   return `${Number(monthNumber)}월`;
@@ -334,11 +407,13 @@ function SettlementSummaryDashboard({
   demo,
   hasError,
   isLoading,
+  sampledMonths,
   summary,
 }: {
   demo: boolean;
   hasError: boolean;
   isLoading: boolean;
+  sampledMonths: readonly string[];
   summary: SettlementEstimateSummary | null;
 }) {
   const currentTrendIndex = summary?.monthlyTrend.findIndex(
@@ -347,6 +422,9 @@ function SettlementSummaryDashboard({
   const previousMonth = summary && currentTrendIndex > 0
     ? summary.monthlyTrend[currentTrendIndex - 1]
     : null;
+  const previousMonthIsSampled = previousMonth
+    ? sampledMonths.includes(previousMonth.activityMonth)
+    : false;
   const settlementDifference = summary && previousMonth
     ? summary.settlementAmount - previousMonth.settlementAmount
     : null;
@@ -372,7 +450,13 @@ function SettlementSummaryDashboard({
               <span>MONTHLY SETTLEMENT</span>
               <h2>{activityMonthLabel(summary.activityMonth)} 정산 요약</h2>
             </div>
-            <small>{demo ? "샘플 데이터 · 실제 지급과 무관" : "지급 상태 필터와 무관한 월 전체 기준"}</small>
+            <small>
+              {demo
+                ? "샘플 데이터 · 실제 지급과 무관"
+                : sampledMonths.length > 0
+                  ? "이전 월 샘플 포함 · 현재 월은 실제 데이터"
+                  : "지급 상태 필터와 무관한 월 전체 기준"}
+            </small>
           </header>
           <div className="fuma-settlement-dashboard__top">
             <article aria-label="예상 정산액" className="fuma-settlement-dashboard__spotlight">
@@ -390,11 +474,15 @@ function SettlementSummaryDashboard({
                     {settlementDifference < 0 ? <ArrowDownRight aria-hidden="true" size={14} /> : null}
                     {settlementDifference === 0 ? <Minus aria-hidden="true" size={14} /> : null}
                     <span>
-                      전월 대비 {settlementChangeRate === null
+                      {previousMonthIsSampled ? "샘플 전월 대비 " : "전월 대비 "}
+                      {settlementChangeRate === null
                         ? formatSignedWon(settlementDifference)
                         : `${settlementChangeRate > 0 ? "+" : ""}${formatSettlementRate(settlementChangeRate)}`}
                     </span>
-                    <small>전월 {formatWon(previousMonth?.settlementAmount ?? 0)}</small>
+                    <small>
+                      {previousMonthIsSampled ? "전월 샘플 " : "전월 "}
+                      {formatWon(previousMonth?.settlementAmount ?? 0)}
+                    </small>
                   </p>
                 ) : <p><span>전월 비교 데이터 없음</span></p>}
               </div>
@@ -648,9 +736,15 @@ export function SettlementManagementPage() {
       statuses: apiStatusesForFilter(selectedStatus),
     })
     : settlementPage;
+  const demoSummary = getDemoSettlementSummary(appliedMonth);
+  const backfilledSummary = settlementSummary
+    ? backfillMissingSettlementTrend(settlementSummary, demoSummary)
+    : null;
+  const sampledMonths = usingDemoData ? [] : backfilledSummary?.sampledMonths ?? [];
+  const usingSampledTrend = sampledMonths.length > 0;
   const displayedSettlementSummary = usingDemoData
-    ? getDemoSettlementSummary(appliedMonth)
-    : settlementSummary;
+    ? demoSummary
+    : backfilledSummary?.summary ?? null;
   const rows = displayedSettlementPage.content.map((settlement, rowIndex) => ({
     ...settlement,
     ordinal: displayedSettlementPage.number * displayedSettlementPage.size + rowIndex + 1,
@@ -678,6 +772,7 @@ export function SettlementManagementPage() {
           demo={usingDemoData}
           hasError={hasSummaryError}
           isLoading={isSummaryLoading}
+          sampledMonths={sampledMonths}
           summary={displayedSettlementSummary}
         />
         <ChoiceTabs
@@ -697,6 +792,7 @@ export function SettlementManagementPage() {
             <>
               <span>{activityMonthLabel(appliedMonth)}</span>
               {usingDemoData ? <span>샘플 데이터</span> : null}
+              {usingSampledTrend ? <span>이전 월 샘플 포함</span> : null}
               <span>총 {displayedSettlementPage.totalElements.toLocaleString("ko-KR")}건</span>
             </>
           }
