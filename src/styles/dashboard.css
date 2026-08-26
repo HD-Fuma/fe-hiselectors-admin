@@ -16,7 +16,7 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   position: relative;
   z-index: 1;
   margin: 0;
-  padding: var(--hsas-space-32) var(--hsas-space-40);
+  padding: var(--hsas-space-32) var(--hsas-space-40) var(--hsas-space-24);
   color: #202224;
   font-size: var(--hsas-font-24);
   font-weight: 500;
@@ -27,11 +27,19 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   font-weight: 800;
 }
 
-.fuma-dashboard__inspection-report {
+.fuma-dashboard__grid {
   position: relative;
   z-index: 1;
-  width: min(340px, calc(100% - 80px));
-  margin-left: var(--hsas-space-40);
+  display: grid;
+  padding: 0 var(--hsas-space-40) var(--hsas-space-40);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--hsas-space-16);
+}
+
+.fuma-dashboard-card {
+  position: relative;
+  min-width: 0;
   padding: var(--hsas-space-18);
   border: 1px solid rgb(255 255 255 / 78%);
   border-radius: 23px;
@@ -43,43 +51,58 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   backdrop-filter: blur(24px) saturate(1.15);
 }
 
-.fuma-dashboard__inspection-report > header {
+.fuma-dashboard-card--inspection,
+.fuma-dashboard-card--applications,
+.fuma-dashboard-card--active,
+.fuma-dashboard-card--generation {
+  grid-column: span 4;
+}
+
+.fuma-dashboard-card--today {
+  grid-column: span 8;
+}
+
+.fuma-dashboard-card > header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--hsas-space-12);
 }
 
-.fuma-dashboard__inspection-report > header span,
-.fuma-dashboard__inspection-report > header strong {
+.fuma-dashboard-card > header span,
+.fuma-dashboard-card > header strong {
   display: flex;
 }
 
-.fuma-dashboard__inspection-report > header span,
-.fuma-dashboard__inspection-count > span {
+.fuma-dashboard-card > header span,
+.fuma-dashboard__metric > span {
   color: rgb(32 34 36 / 48%);
   font-size: var(--hsas-font-10);
   font-weight: 750;
   letter-spacing: 0.04em;
 }
 
-.fuma-dashboard__inspection-report > header strong {
+.fuma-dashboard-card > header strong {
   margin-top: var(--hsas-space-3);
   font-size: var(--hsas-font-18);
   line-height: 1.3;
 }
 
-.fuma-dashboard__inspection-report > header em {
+.fuma-dashboard-card > header em {
+  max-width: 48%;
   padding: var(--hsas-space-5) var(--hsas-space-8);
+  overflow: hidden;
   border-radius: 999px;
   color: rgb(32 34 36 / 58%);
   background: rgb(255 255 255 / 42%);
   font-size: var(--hsas-font-11);
   font-style: normal;
   font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.fuma-dashboard__inspection-count {
+.fuma-dashboard__metric {
   display: grid;
   gap: var(--hsas-space-8);
   margin-top: var(--hsas-space-14);
@@ -87,7 +110,7 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   border-top: 1px solid rgb(255 255 255 / 58%);
 }
 
-.fuma-dashboard__inspection-count strong {
+.fuma-dashboard__metric strong {
   display: flex;
   align-items: baseline;
   gap: var(--hsas-space-5);
@@ -96,10 +119,63 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   line-height: 1;
 }
 
-.fuma-dashboard__inspection-count small {
+.fuma-dashboard__metric small {
   color: rgb(32 34 36 / 48%);
   font-size: var(--hsas-font-12);
   font-weight: 750;
+}
+
+.fuma-dashboard__today-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hsas-space-14);
+}
+
+.fuma-dashboard__campaign-list {
+  display: grid;
+  margin: var(--hsas-space-14) 0 0;
+  padding: var(--hsas-space-8) 0 0;
+  border-top: 1px solid rgb(255 255 255 / 58%);
+  list-style: none;
+}
+
+.fuma-dashboard__campaign-list li {
+  display: flex;
+  min-width: 0;
+  min-height: 28px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hsas-space-10);
+}
+
+.fuma-dashboard__campaign-list li + li {
+  border-top: 1px solid rgb(255 255 255 / 42%);
+}
+
+.fuma-dashboard__campaign-list span {
+  overflow: hidden;
+  color: rgb(32 34 36 / 76%);
+  font-size: var(--hsas-font-12);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-dashboard__campaign-list small,
+.fuma-dashboard__empty {
+  color: rgb(32 34 36 / 48%);
+  font-size: var(--hsas-font-10);
+  font-weight: 700;
+}
+
+.fuma-dashboard__campaign-list small {
+  flex: 0 0 auto;
+}
+
+.fuma-dashboard__empty {
+  margin: var(--hsas-space-14) 0 0;
+  padding-top: var(--hsas-space-13);
+  border-top: 1px solid rgb(255 255 255 / 58%);
 }
 
 .fuma-dashboard::before {
