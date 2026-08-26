@@ -586,13 +586,14 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
 
       // 클러스터마다 옅은 색 안개를 깔아 영역이 구분되게 한다.
       categories.forEach((category, categoryIndex) => {
-        const spread = CATEGORY_RADIUS * 5.5;
+        const spread = clusterRadius(category.count) * 1.18;
         const wash = context.createRadialGradient(
           category.x, category.y, 0,
           category.x, category.y, spread,
         );
-        wash.addColorStop(0, `rgb(${category.rgb} / ${12 * weightOf(categoryIndex)}%)`);
-        wash.addColorStop(1, `rgb(${category.rgb} / 0%)`);
+        wash.addColorStop(0, `rgb(${WHITE} / ${16 * weightOf(categoryIndex)}%)`);
+        wash.addColorStop(0.65, `rgb(${WHITE} / ${6 * weightOf(categoryIndex)}%)`);
+        wash.addColorStop(1, `rgb(${WHITE} / 0%)`);
         context.fillStyle = wash;
         context.beginPath();
         context.arc(category.x, category.y, spread, 0, Math.PI * 2);
@@ -619,7 +620,6 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
       categories.forEach((category, categoryIndex) => {
         const pulse = 1 + Math.sin(time / 1800 + categoryIndex) * 0.02;
         const core = CATEGORY_RADIUS * pulse;
-        const labelScale = 1 / view.scale;
 
         context.save();
         context.globalAlpha = weightOf(categoryIndex);
@@ -665,27 +665,6 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         context.arc(category.x, category.y, core - 1.5, 0, Math.PI * 2);
         context.stroke();
 
-        context.textAlign = "center";
-        context.textBaseline = "middle";
-        context.fillStyle = `rgb(${INK})`;
-        context.font = `700 ${15 * labelScale}px Pretendard, sans-serif`;
-        context.fillText(category.label, category.x, category.y - 6 * labelScale);
-
-        context.font = `600 ${11 * labelScale}px Pretendard, sans-serif`;
-        const countLabel = `${category.count}명`;
-        const chipWidth = context.measureText(countLabel).width + 16 * labelScale;
-        context.fillStyle = `rgb(${category.rgb} / 16%)`;
-        context.beginPath();
-        context.roundRect(
-          category.x - chipWidth / 2,
-          category.y + 6 * labelScale,
-          chipWidth,
-          17 * labelScale,
-          9 * labelScale,
-        );
-        context.fill();
-        context.fillStyle = `rgb(${category.rgb})`;
-        context.fillText(countLabel, category.x, category.y + 15 * labelScale);
         context.restore();
       });
 
@@ -724,6 +703,36 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         }
 
         drawBubble(context, position.x, position.y, radius, images.get(node.selector.id));
+        context.restore();
+      });
+
+      // 카테고리 라벨은 버블보다 위에 그려 항상 읽히게 한다.
+      categories.forEach((category, categoryIndex) => {
+        const labelScale = 1 / view.scale;
+        const countLabel = `${category.count}명`;
+
+        context.save();
+        context.globalAlpha = weightOf(categoryIndex);
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillStyle = `rgb(${INK})`;
+        context.font = `700 ${15 * labelScale}px Pretendard, sans-serif`;
+        context.fillText(category.label, category.x, category.y - 6 * labelScale);
+
+        context.font = `600 ${11 * labelScale}px Pretendard, sans-serif`;
+        const chipWidth = context.measureText(countLabel).width + 16 * labelScale;
+        context.fillStyle = `rgb(${category.rgb} / 16%)`;
+        context.beginPath();
+        context.roundRect(
+          category.x - chipWidth / 2,
+          category.y + 6 * labelScale,
+          chipWidth,
+          17 * labelScale,
+          9 * labelScale,
+        );
+        context.fill();
+        context.fillStyle = `rgb(${category.rgb})`;
+        context.fillText(countLabel, category.x, category.y + 15 * labelScale);
         context.restore();
       });
 
