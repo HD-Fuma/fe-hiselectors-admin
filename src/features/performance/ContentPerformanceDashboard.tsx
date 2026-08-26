@@ -26,7 +26,12 @@ import {
 } from "../../entities/performance";
 import { assetUrl } from "../../lib/assetUrl";
 import { paginate } from "../../lib/pagination";
-import { contentChartDraggedScrollLeft, contentChartEdgeScrollSpeed } from "./contentChartEdgeScroll";
+import {
+  contentChartDraggedScrollLeft,
+  contentChartDragVelocity,
+  contentChartEdgeScrollSpeed,
+  contentChartMomentumVelocity,
+} from "./contentChartEdgeScroll";
 
 const CONTENT_PERFORMANCE_PAGE_SIZE = 20;
 type ContentPerformanceSort = "latest" | "engagementRate" | "views" | "likes" | "comments";
@@ -264,7 +269,15 @@ function ContentOverview({
   });
   const chartScrollRef = useRef<HTMLDivElement>(null);
   const chartEdgeScrollRef = useRef({ animationFrame: 0, speed: 0 });
-  const chartDragRef = useRef({ pointerId: -1, startScrollLeft: 0, startX: 0 });
+  const chartDragRef = useRef({
+    lastTime: 0,
+    lastX: 0,
+    pointerId: -1,
+    startScrollLeft: 0,
+    startX: 0,
+    velocity: 0,
+  });
+  const chartMomentumRef = useRef({ animationFrame: 0, velocity: 0 });
   const [isChartDragging, setIsChartDragging] = useState(false);
 
   const stopChartEdgeScroll = () => {
@@ -272,6 +285,28 @@ function ContentOverview({
       window.cancelAnimationFrame(chartEdgeScrollRef.current.animationFrame);
     }
     chartEdgeScrollRef.current = { animationFrame: 0, speed: 0 };
+  };
+
+  const stopChartMomentum = () => {
+    if (chartMomentumRef.current.animationFrame) {
+      window.cancelAnimationFrame(chartMomentumRef.current.animationFrame);
+    }
+    chartMomentumRef.current = { animationFrame: 0, velocity: 0 };
+  };
+
+  const glideChart = () => {
+    const scrollArea = chartScrollRef.current;
+    if (!scrollArea || !chartMomentumRef.current.velocity) {
+      return;
+    }
+    const previousScrollLeft = scrollArea.scrollLeft;
+    scrollArea.scrollLeft += chartMomentumRef.current.velocity;
+    chartMomentumRef.current.velocity = contentChartMomentumVelocity(chartMomentumRef.current.velocity);
+    if (scrollArea.scrollLeft === previousScrollLeft || !chartMomentumRef.current.velocity) {
+      stopChartMomentum();
+      return;
+    }
+    chartMomentumRef.current.animationFrame = window.requestAnimationFrame(glideChart);
   };
 
   const scrollChartAtEdge = () => {
@@ -290,6 +325,7 @@ function ContentOverview({
   };
 
   const updateChartEdgeScroll = (event: ReactPointerEvent<HTMLDivElement>) => {
+    stopChartMomentum();
     const scrollArea = chartScrollRef.current;
     if (!scrollArea || scrollArea.scrollWidth <= scrollArea.clientWidth) {
       stopChartEdgeScroll();
@@ -311,10 +347,14 @@ function ContentOverview({
       return;
     }
     stopChartEdgeScroll();
+    stopChartMomentum();
     chartDragRef.current = {
+      lastTime: event.timeStamp,
+      lastX: event.clientX,
       pointerId: event.pointerId,
       startScrollLeft: chartScrollRef.current.scrollLeft,
       startX: event.clientX,
+      velocity: 0,
     };
     chartScrollRef.current.setPointerCapture(event.pointerId);
     setIsChartDragging(true);
@@ -327,12 +367,20 @@ function ContentOverview({
         chartDragRef.current.startX,
         event.clientX,
       );
+      chartDragRef.current.velocity = contentChartDragVelocity(
+        chartDragRef.current.velocity,
+        chartDragRef.current.lastX,
+        event.clientX,
+        event.timeStamp - chartDragRef.current.lastTime,
+      );
+      chartDragRef.current.lastX = event.clientX;
+      chartDragRef.current.lastTime = event.timeStamp;
       return;
     }
     updateChartEdgeScroll(event);
   };
 
-  const endChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const endChartDrag = (event: ReactPointerEvent<HTMLDivElement>, glide = true) => {
     if (!chartScrollRef.current || chartDragRef.current.pointerId !== event.pointerId) {
       return;
     }
@@ -341,6 +389,13 @@ function ContentOverview({
     }
     chartDragRef.current.pointerId = -1;
     setIsChartDragging(false);
+    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (glide && !prefersReducedMotion && event.timeStamp - chartDragRef.current.lastTime < 80) {
+      chartMomentumRef.current.velocity = chartDragRef.current.velocity;
+      if (chartMomentumRef.current.velocity) {
+        chartMomentumRef.current.animationFrame = window.requestAnimationFrame(glideChart);
+      }
+    }
   };
   const dailyMetrics = new Map<string, {
     comments: number;
@@ -467,11 +522,11 @@ function ContentOverview({
           <div
             aria-label="기간별 콘텐츠 성과 그래프 좌우 이동"
             className={`fuma-content-cohort-chart__scroll fuma-content-cohort-chart__scroll--draggable${isChartDragging ? " is-dragging" : ""}`}
-            onPointerCancel={endChartDrag}
+            onPointerCancel={(event) => endChartDrag(event, false)}
             onPointerDown={startChartDrag}
             onPointerLeave={stopChartEdgeScroll}
             onPointerMove={moveChart}
-            onPointerUp={endChartDrag}
+            onPointerUp={(event) => endChartDrag(event)}
             ref={chartScrollRef}
             role="region"
           >
