@@ -9,7 +9,7 @@ import { formatNumber } from "../../lib/formatters";
 import "../../styles/selector-pool.css";
 
 const CATEGORY_RADIUS = 64;
-const ORBIT_GAP = 26;
+const ORBIT_GAP = 8;
 const DAMPING = 0.86;
 const GOLDEN_ANGLE = 2.39996;
 const INK = "17 24 39";
