@@ -175,16 +175,34 @@ export function DashboardPage() {
           </ul>
         </section>
 
-        <section aria-labelledby="dashboard-shortcuts-title" className="fuma-dashboard__shortcut-section">
-          <h2 id="dashboard-shortcuts-title">바로가기</h2>
-          <nav aria-label="관리자 바로가기" className="fuma-dashboard__shortcuts">
-            {DASHBOARD_LINKS.map(({ label, to }) => (
-              <Link key={to} to={to}><span>{label}</span><b aria-hidden>→</b></Link>
-            ))}
-          </nav>
+        <section aria-labelledby="dashboard-campaigns-title" className="fuma-dashboard__campaigns">
+          <header>
+            <h2 id="dashboard-campaigns-title">오늘 시작·종료하는 캠페인</h2>
+            <strong>{count(todayCampaignCount)}</strong>
+          </header>
+          <dl>
+            <div><dt>시작</dt><dd>{count(startingCampaigns ?? null)}건</dd></div>
+            <div><dt>종료</dt><dd>{count(endingCampaigns ?? null)}건</dd></div>
+          </dl>
+          {data.todayCampaigns && data.todayCampaigns.length > 0 ? (
+            <ul>
+              {data.todayCampaigns.slice(0, 3).map((campaign) => (
+                <li key={campaign.id}>
+                  <Link to="/campaigns">
+                    <span>{campaign.title}</span>
+                    <small>{campaign.startDate === today && campaign.endDate === today
+                      ? "시작·종료"
+                      : campaign.startDate === today ? "시작" : "종료"}</small>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>{data.todayCampaigns ? "오늘 일정 없음" : "불러오는 중"}</p>
+          )}
         </section>
 
-        <section aria-labelledby="dashboard-stats-title" className="fuma-dashboard-panel">
+        <section aria-labelledby="dashboard-stats-title" className="fuma-dashboard-panel fuma-dashboard-panel--stats">
           <h2 id="dashboard-stats-title">운영 현황</h2>
           <div aria-label="주요 통계" className="fuma-dashboard__stats">
             <DashboardStat
@@ -198,6 +216,15 @@ export function DashboardPage() {
             <DashboardStat icon={UsersRound} label="전체 셀렉터스" to="/selectors" value={data.selectors} />
             <DashboardStat detail={data.currentGenerationName} icon={Images} label="현재 기수 콘텐츠" to="/performance/contents" value={data.currentGenerationContentCount} />
           </div>
+        </section>
+
+        <section aria-labelledby="dashboard-shortcuts-title" className="fuma-dashboard__shortcut-section">
+          <h2 id="dashboard-shortcuts-title">바로가기</h2>
+          <nav aria-label="관리자 바로가기" className="fuma-dashboard__shortcuts">
+            {DASHBOARD_LINKS.map(({ label, to }) => (
+              <Link key={to} to={to}><span>{label}</span><b aria-hidden>→</b></Link>
+            ))}
+          </nav>
         </section>
       </div>
     </section>

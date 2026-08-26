@@ -1,9 +1,9 @@
 .fuma-dashboard {
   --dashboard-accent: #111;
-  --dashboard-accent-hover: #262626;
-  --dashboard-canvas: #f4f2ee;
+  --dashboard-accent-hover: #222;
+  --dashboard-canvas: #f3f1ed;
   --dashboard-panel: #fff;
-  --dashboard-tile: #faf9f7;
+  --dashboard-tile: #f8f7f4;
   --dashboard-on-accent: #fff;
   --dashboard-focus: #111;
 }
@@ -13,23 +13,24 @@
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: var(--hsas-space-10);
   margin-top: var(--hsas-space-16);
-  padding: var(--hsas-space-14);
+  padding: var(--hsas-space-12);
   border: 1px solid var(--hsas-border);
-  border-radius: 24px;
+  border-radius: 22px;
   background: var(--dashboard-canvas);
 }
 
 .fuma-dashboard h2,
-.fuma-dashboard p {
+.fuma-dashboard p,
+.fuma-dashboard dl,
+.fuma-dashboard dd {
   margin: 0;
 }
 
 .fuma-dashboard__priority,
+.fuma-dashboard__campaigns,
 .fuma-dashboard-panel,
 .fuma-dashboard__shortcut-section {
-  display: grid;
-  align-content: start;
-  gap: var(--hsas-space-10);
+  min-width: 0;
   padding: var(--hsas-space-14);
   border: 1px solid var(--hsas-border);
   border-radius: 18px;
@@ -37,18 +38,40 @@
 }
 
 .fuma-dashboard__priority {
+  display: grid;
+  min-height: 226px;
   grid-column: span 8;
+  align-content: start;
+  gap: var(--hsas-space-12);
+  border-color: var(--dashboard-accent);
+  background: var(--dashboard-accent);
+  color: var(--dashboard-on-accent);
+}
+
+.fuma-dashboard__campaigns {
+  display: grid;
+  min-height: 226px;
+  grid-column: span 4;
+  align-content: start;
+  gap: var(--hsas-space-10);
+}
+
+.fuma-dashboard-panel--stats {
+  display: grid;
+  grid-column: span 8;
+  align-content: start;
+  gap: var(--hsas-space-10);
 }
 
 .fuma-dashboard__shortcut-section {
+  display: grid;
   grid-column: span 4;
-}
-
-.fuma-dashboard-panel {
-  grid-column: 1 / -1;
+  align-content: start;
+  gap: var(--hsas-space-10);
 }
 
 .fuma-dashboard__priority > h2,
+.fuma-dashboard__campaigns h2,
 .fuma-dashboard-panel > h2,
 .fuma-dashboard__shortcut-section > h2 {
   font-size: var(--hsas-font-16);
@@ -57,21 +80,28 @@
 .fuma-dashboard__tasks {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--hsas-space-8);
+  gap: 0;
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  border: 1px solid #363636;
+  border-radius: 14px;
+  background: #1d1d1d;
   list-style: none;
+}
+
+.fuma-dashboard__tasks li + li {
+  border-left: 1px solid #363636;
 }
 
 .fuma-dashboard-task {
   display: flex;
-  min-height: 100px;
+  min-height: 142px;
   align-items: center;
   gap: var(--hsas-space-10);
-  padding: var(--hsas-space-12) var(--hsas-space-14);
-  border: 1px solid var(--dashboard-accent);
-  border-radius: 14px;
-  background: var(--dashboard-accent);
+  padding: var(--hsas-space-14);
+  border: 0;
+  background: transparent;
   color: var(--dashboard-on-accent);
   text-decoration: none;
 }
@@ -82,7 +112,8 @@
 
 .fuma-dashboard-task:focus-visible,
 .fuma-dashboard-stat:focus-visible,
-.fuma-dashboard__shortcuts a:focus-visible {
+.fuma-dashboard__shortcuts a:focus-visible,
+.fuma-dashboard__campaigns a:focus-visible {
   outline: 3px solid var(--dashboard-focus);
   outline-offset: 3px;
 }
@@ -114,32 +145,111 @@
   font-size: var(--hsas-font-16);
 }
 
-.fuma-dashboard-task__copy small {
+.fuma-dashboard-task__copy small,
+.fuma-dashboard-task > b small {
   color: #bdbdbd;
 }
 
 .fuma-dashboard-task > b {
-  font-size: var(--hsas-font-24);
+  font-size: var(--hsas-font-28);
   line-height: 1;
 }
 
 .fuma-dashboard-task > b small {
   margin-left: var(--hsas-space-3);
-  color: #bdbdbd;
   font-size: var(--hsas-font-12);
   font-weight: 500;
 }
 
+.fuma-dashboard__campaigns > header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hsas-space-8);
+}
+
+.fuma-dashboard__campaigns > header h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-dashboard__campaigns > header strong {
+  font-size: var(--hsas-font-24);
+}
+
+.fuma-dashboard__campaigns dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hsas-space-8);
+}
+
+.fuma-dashboard__campaigns dl > div {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hsas-space-6);
+  padding: 0 var(--hsas-space-10);
+  border: 1px solid var(--hsas-border);
+  border-radius: 12px;
+  background: var(--dashboard-tile);
+}
+
+.fuma-dashboard__campaigns dt {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-12);
+}
+
+.fuma-dashboard__campaigns dd {
+  font-size: var(--hsas-font-16);
+  font-weight: 700;
+}
+
+.fuma-dashboard__campaigns ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fuma-dashboard__campaigns li + li {
+  border-top: 1px solid var(--hsas-border);
+}
+
+.fuma-dashboard__campaigns li a {
+  display: flex;
+  min-width: 0;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hsas-space-8);
+  color: var(--hsas-text);
+  text-decoration: none;
+}
+
+.fuma-dashboard__campaigns li span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-dashboard__campaigns li small,
+.fuma-dashboard__campaigns > p {
+  color: var(--hsas-text-muted);
+}
+
 .fuma-dashboard__stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--hsas-space-8);
 }
 
 .fuma-dashboard-stat {
   display: flex;
   min-width: 0;
-  min-height: 86px;
+  min-height: 84px;
   align-items: flex-start;
   gap: var(--hsas-space-10);
   padding: var(--hsas-space-12);
@@ -198,13 +308,13 @@
 .fuma-dashboard__shortcuts a {
   display: flex;
   min-width: 0;
-  min-height: 38px;
+  min-height: 54px;
   align-items: center;
   justify-content: space-between;
   gap: var(--hsas-space-6);
   padding: 0 var(--hsas-space-10);
   border: 1px solid var(--hsas-border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--dashboard-tile);
   color: var(--hsas-text);
   font-size: var(--hsas-font-12);
@@ -235,16 +345,14 @@
 }
 
 @media (max-width: 1080px) {
-  .fuma-dashboard__priority {
+  .fuma-dashboard__priority,
+  .fuma-dashboard-panel--stats {
     grid-column: span 7;
   }
 
+  .fuma-dashboard__campaigns,
   .fuma-dashboard__shortcut-section {
     grid-column: span 5;
-  }
-
-  .fuma-dashboard__stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -254,13 +362,24 @@
   }
 
   .fuma-dashboard__priority,
-  .fuma-dashboard-panel,
+  .fuma-dashboard__campaigns,
+  .fuma-dashboard-panel--stats,
   .fuma-dashboard__shortcut-section {
+    min-height: auto;
     grid-column: 1;
   }
 
   .fuma-dashboard__tasks {
     grid-template-columns: 1fr;
+  }
+
+  .fuma-dashboard__tasks li + li {
+    border-top: 1px solid #363636;
+    border-left: 0;
+  }
+
+  .fuma-dashboard-task {
+    min-height: 108px;
   }
 }
 

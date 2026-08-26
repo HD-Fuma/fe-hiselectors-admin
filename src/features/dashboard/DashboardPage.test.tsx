@@ -76,6 +76,7 @@ test("shows database-backed tasks, statistics, and shortcuts", async () => {
   expect(await screen.findByRole("link", { name: /승인 대기 지원자.*4건/ })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /검수 대기 콘텐츠.*1건/ })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /오늘 시작·종료하는 캠페인.*1건/ })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /오늘 캠페인.*시작·종료/ })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /진행 중 캠페인.*3/ })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /전체 셀렉터스.*12/ })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /현재 기수 콘텐츠.*28.*3기/ })).toBeInTheDocument();
