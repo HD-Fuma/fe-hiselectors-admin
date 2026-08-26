@@ -34,14 +34,14 @@
 }
 
 .hsas-button--primary {
-  border-color: var(--hsas-teal-dark);
-  background: var(--hsas-teal);
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-color-black);
   color: var(--hsas-text-inverse);
 }
 
 .hsas-button--primary:hover:not(:disabled) {
-  border-color: #0c6655;
-  background: var(--hsas-teal-dark);
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-color-black);
 }
 
 .hsas-button--danger {
@@ -130,7 +130,7 @@
 }
 
 .hsas-segmented-control__item--active {
-  background: var(--hsas-teal);
+  background: var(--hsas-color-black);
   box-shadow: none;
   color: var(--hsas-text-inverse);
   font-weight: 700;
@@ -163,7 +163,7 @@
   left: 2px;
   width: 50px;
   border-radius: 4px;
-  background: var(--hsas-teal);
+  background: var(--hsas-color-black);
   box-shadow: 0 1px 3px rgb(25 67 58 / 18%);
   transition: transform 180ms ease;
 }
@@ -3985,8 +3985,8 @@
 }
 
 .fuma-creator-toolbar__view[aria-pressed="true"] {
-  border-color: var(--hsas-teal-dark);
-  background: var(--hsas-teal-dark);
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-color-black);
   color: var(--hsas-text-inverse);
   font-weight: 700;
 }
@@ -4015,7 +4015,7 @@
 }
 
 .fuma-creator-toolbar .hsas-segmented-control__item--active {
-  background: var(--hsas-teal);
+  background: var(--hsas-color-black);
   color: var(--hsas-color-white);
 }
 
@@ -4448,14 +4448,14 @@
 }
 
 .fuma-proposal-compose__edit-toggle--primary {
-  border-color: #1d7a52;
-  background: #1d7a52;
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-color-black);
   color: #fff;
 }
 
 .fuma-proposal-compose__edit-toggle--primary:hover {
-  border-color: #17603f;
-  background: #17603f;
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-color-black);
 }
 
 .fuma-proposal-compose__edit-heading {
@@ -5172,7 +5172,7 @@
   padding: 0 var(--hsas-space-14);
   border: 0;
   border-radius: 9px;
-  background: var(--hsas-teal);
+  background: var(--hsas-color-black);
   color: var(--hsas-color-white);
   box-shadow: none;
   letter-spacing: -0.02em;
@@ -5187,7 +5187,7 @@
 }
 
 .fuma-creator-card__action--primary:hover {
-  background: var(--hsas-teal);
+  background: var(--hsas-color-black);
   color: var(--hsas-color-white);
   box-shadow: none;
   text-decoration: none;
@@ -7656,14 +7656,14 @@
 }
 
 .fuma-applicant-detail-actions__buttons .hsas-button--primary {
-  border-color: var(--hsas-sidebar-active);
-  background: var(--hsas-sidebar-active);
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-color-black);
   color: var(--hsas-color-white);
 }
 
 .fuma-applicant-detail-actions__buttons .hsas-button--primary:hover:not(:disabled) {
-  border-color: #168273;
-  background: #168273;
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-color-black);
 }
 
 .fuma-applicant-detail-actions__buttons .hsas-button--danger {
@@ -10099,8 +10099,8 @@
 }
 
 :root[data-theme="dark"] .hsas-button--primary:hover:not(:disabled) {
-  border-color: var(--hsas-teal);
-  background: var(--hsas-teal);
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-color-black);
   color: var(--hsas-text-inverse);
 }
 
@@ -10275,8 +10275,8 @@
 
 :root[data-theme="dark"] .fuma-proposal-compose__edit-toggle--primary,
 :root[data-theme="dark"] .fuma-proposal-compose__edit-toggle--primary:hover {
-  border-color: var(--hsas-teal);
-  background: var(--hsas-teal);
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-color-black);
   color: var(--hsas-color-white);
 }
 

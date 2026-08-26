@@ -102,7 +102,7 @@
   margin-top: var(--hsas-space-4);
   border: 0;
   border-radius: 4px;
-  background: var(--hsas-teal);
+  background: var(--hsas-color-black);
   color: var(--hsas-color-white);
   cursor: pointer;
   font-family: inherit;
@@ -111,7 +111,7 @@
 }
 
 .partners-login__submit:hover {
-  background: #178978;
+  background: var(--hsas-color-black);
 }
 
 .partners-login__submit:disabled {
