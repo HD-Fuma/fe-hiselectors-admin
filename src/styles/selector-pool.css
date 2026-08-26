@@ -35,14 +35,16 @@ body:has(.hsas-selector-pool) {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--hsas-space-4);
-  max-width: 320px;
+  width: 320px;
 }
 
 .hsas-selector-pool__chip {
   --hsas-pool-chip: rgb(17 24 39 / 55%);
 
   display: inline-flex;
+  flex: 0 0 104px;
   align-items: center;
+  justify-content: center;
   gap: var(--hsas-space-6);
   padding: var(--hsas-space-4) var(--hsas-space-10);
   border: 1px solid rgb(17 24 39 / 10%);
@@ -51,6 +53,7 @@ body:has(.hsas-selector-pool) {
   color: rgb(17 24 39 / 78%);
   font-size: var(--hsas-font-11);
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
 }
 
