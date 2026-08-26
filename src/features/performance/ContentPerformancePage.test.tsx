@@ -51,7 +51,6 @@ const API_CONTENTS = [
 ] as const;
 
 beforeEach(() => {
-  window.localStorage.removeItem("content-performance-chart-swipe-hint-seen");
   vi.stubGlobal("fetch", vi.fn().mockImplementation((input: RequestInfo | URL) => {
     const isSummary = new URL(String(input)).pathname.endsWith("/summary");
     const data = isSummary

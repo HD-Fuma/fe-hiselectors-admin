@@ -33,7 +33,6 @@ import {
 } from "./contentChartEdgeScroll";
 
 const CONTENT_PERFORMANCE_PAGE_SIZE = 20;
-const CONTENT_CHART_SWIPE_HINT_KEY = "content-performance-chart-swipe-hint-seen";
 type ContentPerformanceSort = "latest" | "engagementRate" | "views" | "likes" | "comments";
 
 const CONTENT_PERFORMANCE_SORT_OPTIONS: readonly {
@@ -279,18 +278,12 @@ function ContentOverview({
   });
   const chartMomentumRef = useRef({ animationFrame: 0, velocity: 0 });
   const [isChartDragging, setIsChartDragging] = useState(false);
-  const [showChartSwipeHint, setShowChartSwipeHint] = useState(
-    () => window.localStorage.getItem(CONTENT_CHART_SWIPE_HINT_KEY) !== "true",
-  );
+  const [showChartSwipeHint, setShowChartSwipeHint] = useState(true);
 
   useEffect(() => {
-    if (!showChartSwipeHint) {
-      return undefined;
-    }
-    window.localStorage.setItem(CONTENT_CHART_SWIPE_HINT_KEY, "true");
-    const hideTimer = window.setTimeout(() => setShowChartSwipeHint(false), 3_200);
+    const hideTimer = window.setTimeout(() => setShowChartSwipeHint(false), 4_000);
     return () => window.clearTimeout(hideTimer);
-  }, [showChartSwipeHint]);
+  }, []);
 
   const stopChartEdgeScroll = () => {
     if (chartEdgeScrollRef.current.animationFrame) {
@@ -523,45 +516,47 @@ function ContentOverview({
               <li className={`is-${series.value}`} key={series.value}><i />{series.label}</li>
             ))}
           </ul>
-          <span className="fuma-content-period-chart__help">
-            <Tooltip id="content-period-chart-help" visible={showChartSwipeHint}>
-              그래프를 좌우로 드래그해서 이동하세요
-            </Tooltip>
-          </span>
         </div>
         {periodMetrics.length > 0 ? (
-          <div
-            aria-label="기간별 콘텐츠 성과 그래프 좌우 이동"
-            className={`fuma-content-cohort-chart__scroll fuma-content-cohort-chart__scroll--draggable${isChartDragging ? " is-dragging" : ""}`}
-            onPointerCancel={(event) => endChartDrag(event, false)}
-            onPointerDown={startChartDrag}
-            onPointerLeave={stopChartEdgeScroll}
-            onPointerMove={moveChart}
-            onPointerUp={(event) => endChartDrag(event)}
-            ref={chartScrollRef}
-            role="region"
-          >
-            <PeriodLineChart
-              animated
-              ariaLabel={cohortChartMode === "all"
-                ? "기간별 전체 성과 추이"
-                : `기간별 ${visibleCohortSeries[0].label} 추이`}
-              categories={periodMetrics.map((metric) => metric.date)}
-              categoryLabels={periodMetrics.map((metric) => trendDateLabel(metric.date))}
-              className="fuma-content-period-chart__plot"
-              formatValue={formatCount}
-              height={246}
-              labelColor={CONTENT_CHART_LABEL_COLOR}
-              modeClass={cohortChartMode}
-              series={visibleCohortSeries.map((series) => ({
-                color: CONTENT_CHART_COLORS[series.value],
-                data: periodMetrics.map((metric) => metric[series.value]),
-                id: series.value,
-                name: series.label,
-              }))}
-              showValueLabels={cohortChartMode !== "all"}
-              width={cohortChartWidth}
-            />
+          <div className="fuma-content-period-chart__viewport">
+            <span className="fuma-content-period-chart__help">
+              <Tooltip id="content-period-chart-help" visible={showChartSwipeHint}>
+                그래프를 좌우로 드래그해서 이동하세요
+              </Tooltip>
+            </span>
+            <div
+              aria-label="기간별 콘텐츠 성과 그래프 좌우 이동"
+              className={`fuma-content-cohort-chart__scroll fuma-content-cohort-chart__scroll--draggable${isChartDragging ? " is-dragging" : ""}`}
+              onPointerCancel={(event) => endChartDrag(event, false)}
+              onPointerDown={startChartDrag}
+              onPointerLeave={stopChartEdgeScroll}
+              onPointerMove={moveChart}
+              onPointerUp={(event) => endChartDrag(event)}
+              ref={chartScrollRef}
+              role="region"
+            >
+              <PeriodLineChart
+                animated
+                ariaLabel={cohortChartMode === "all"
+                  ? "기간별 전체 성과 추이"
+                  : `기간별 ${visibleCohortSeries[0].label} 추이`}
+                categories={periodMetrics.map((metric) => metric.date)}
+                categoryLabels={periodMetrics.map((metric) => trendDateLabel(metric.date))}
+                className="fuma-content-period-chart__plot"
+                formatValue={formatCount}
+                height={246}
+                labelColor={CONTENT_CHART_LABEL_COLOR}
+                modeClass={cohortChartMode}
+                series={visibleCohortSeries.map((series) => ({
+                  color: CONTENT_CHART_COLORS[series.value],
+                  data: periodMetrics.map((metric) => metric[series.value]),
+                  id: series.value,
+                  name: series.label,
+                }))}
+                showValueLabels={cohortChartMode !== "all"}
+                width={cohortChartWidth}
+              />
+            </div>
           </div>
         ) : <p>조회 기간에 표시할 콘텐츠 성과가 없습니다.</p>}
       </article>

@@ -695,16 +695,22 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(dl, dl > div, .fuma
 .fuma-content-period-chart__toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--hsas-space-12); margin-top: var(--hsas-space-12); }
 .fuma-content-period-chart__toolbar .hsas-segmented-control__item { font-family: inherit; font-size: var(--hsas-font-10); }
 .fuma-content-period-chart__toolbar .fuma-content-cohort-chart__legend { min-width: 0; margin-left: auto; padding: 0; }
-.fuma-content-period-chart__help { position: relative; display: inline-flex; }
-.fuma-content-period-chart__help > .hsas-tooltip {
-  --hsas-tooltip-arrow-right: 7px;
+.fuma-content-period-chart__viewport { position: relative; min-width: 0; margin-top: var(--hsas-space-8); }
+.fuma-content-period-chart__help {
   position: absolute;
-  right: 0;
-  bottom: calc(100% + var(--hsas-space-8));
+  z-index: 2;
+  top: var(--hsas-space-8);
+  left: 50%;
+  display: inline-flex;
+  transform: translateX(-50%);
+}
+.fuma-content-period-chart__help > .hsas-tooltip {
+  --hsas-tooltip-arrow-right: calc(50% - 5px);
+  position: static;
 }
 .fuma-content-cohort-chart__plot.fuma-content-period-chart__plot { height: 246px; }
 .fuma-content-period-chart__plot .fuma-content-cohort-chart__line { stroke-width: 3; }
-.fuma-content-cohort-chart > .fuma-content-cohort-chart__scroll { margin-top: var(--hsas-space-8); }
+.fuma-content-period-chart__viewport > .fuma-content-cohort-chart__scroll { margin-top: 0; }
 
 .fuma-content-cohort-chart__controls .hsas-segmented-control {
   width: max-content;
