@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { HsECharts, type EChartsOption } from "../../components/charts/HsECharts";
 import { ECHARTS_TOOLTIP_STYLE } from "../../components/charts/chartColors";
 import { getAdminApplications } from "../../entities/application";
@@ -371,7 +372,14 @@ export function DashboardPage() {
           status={data.pendingContents == null ? "확인 중" : `${count(data.pendingContents)}건 대기`}
           title="검수 리포트"
         >
-          <DashboardMetric label="검수할 콘텐츠 수" unit="건" value={count(data.pendingContents)} />
+          <div className="fuma-dashboard-inspection__focus">
+            <span>검수할 콘텐츠 수</span>
+            <strong>{count(data.pendingContents)}<small>건</small></strong>
+          </div>
+          <Link className="fuma-dashboard-inspection__start" to="/content/inspections">
+            검수 시작하기
+            <span aria-hidden="true">→</span>
+          </Link>
         </DashboardCard>
 
         <DashboardCard

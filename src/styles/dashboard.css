@@ -51,16 +51,36 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   backdrop-filter: blur(24px) saturate(1.15);
 }
 
-.fuma-dashboard-card--inspection,
-.fuma-dashboard-card--applications,
-.fuma-dashboard-card--active,
-.fuma-dashboard-card--generation,
+.fuma-dashboard-card--inspection {
+  display: flex;
+  grid-column: 1 / span 3;
+  grid-row: 1 / span 2;
+  align-self: stretch;
+  flex-direction: column;
+}
+
+.fuma-dashboard-card--applications {
+  grid-column: 4 / span 3;
+  grid-row: 1;
+}
+
+.fuma-dashboard-card--active {
+  grid-column: 7 / span 3;
+  grid-row: 1;
+}
+
+.fuma-dashboard-card--generation {
+  grid-column: 10 / span 3;
+  grid-row: 1;
+}
+
 .fuma-dashboard-card--kpi {
   grid-column: span 3;
 }
 
 .fuma-dashboard-card--trend {
-  grid-column: span 12;
+  grid-column: 4 / span 9;
+  grid-row: 2;
 }
 
 .fuma-dashboard-card > header {
@@ -132,6 +152,62 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.fuma-dashboard-inspection__focus {
+  display: flex;
+  flex: 1;
+  min-height: 180px;
+  margin-top: var(--hsas-space-14);
+  padding-top: var(--hsas-space-18);
+  border-top: 1px solid rgb(255 255 255 / 58%);
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--hsas-space-10);
+}
+
+.fuma-dashboard-inspection__focus > span {
+  color: rgb(32 34 36 / 48%);
+  font-size: var(--hsas-font-10);
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.fuma-dashboard-inspection__focus strong {
+  display: flex;
+  align-items: baseline;
+  gap: var(--hsas-space-6);
+  font-size: 48px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.fuma-dashboard-inspection__focus small {
+  color: rgb(32 34 36 / 48%);
+  font-size: var(--hsas-font-13);
+}
+
+.fuma-dashboard-inspection__start {
+  display: flex;
+  min-height: 42px;
+  padding: 0 var(--hsas-space-16);
+  border-radius: 999px;
+  align-items: center;
+  justify-content: space-between;
+  color: #ffffff;
+  background: #111111;
+  font-size: var(--hsas-font-12);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.fuma-dashboard-inspection__start:hover {
+  background: #252525;
+}
+
+.fuma-dashboard-inspection__start:focus-visible {
+  outline: 2px solid #111111;
+  outline-offset: 3px;
 }
 
 .fuma-dashboard-trend {
