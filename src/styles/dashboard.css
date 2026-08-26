@@ -55,11 +55,7 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
 .fuma-dashboard-card--applications,
 .fuma-dashboard-card--active,
 .fuma-dashboard-card--generation {
-  grid-column: span 4;
-}
-
-.fuma-dashboard-card--today {
-  grid-column: span 8;
+  grid-column: span 3;
 }
 
 .fuma-dashboard-card > header {
@@ -123,59 +119,6 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   color: rgb(32 34 36 / 48%);
   font-size: var(--hsas-font-12);
   font-weight: 750;
-}
-
-.fuma-dashboard__today-metrics {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--hsas-space-14);
-}
-
-.fuma-dashboard__campaign-list {
-  display: grid;
-  margin: var(--hsas-space-14) 0 0;
-  padding: var(--hsas-space-8) 0 0;
-  border-top: 1px solid rgb(255 255 255 / 58%);
-  list-style: none;
-}
-
-.fuma-dashboard__campaign-list li {
-  display: flex;
-  min-width: 0;
-  min-height: 28px;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--hsas-space-10);
-}
-
-.fuma-dashboard__campaign-list li + li {
-  border-top: 1px solid rgb(255 255 255 / 42%);
-}
-
-.fuma-dashboard__campaign-list span {
-  overflow: hidden;
-  color: rgb(32 34 36 / 76%);
-  font-size: var(--hsas-font-12);
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fuma-dashboard__campaign-list small,
-.fuma-dashboard__empty {
-  color: rgb(32 34 36 / 48%);
-  font-size: var(--hsas-font-10);
-  font-weight: 700;
-}
-
-.fuma-dashboard__campaign-list small {
-  flex: 0 0 auto;
-}
-
-.fuma-dashboard__empty {
-  margin: var(--hsas-space-14) 0 0;
-  padding-top: var(--hsas-space-13);
-  border-top: 1px solid rgb(255 255 255 / 58%);
 }
 
 .fuma-dashboard::before {

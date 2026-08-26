@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { getAdminApplications } from "../../entities/application";
-import { getCampaigns, type Campaign } from "../../entities/campaign";
+import { getCampaigns } from "../../entities/campaign";
 import { adaptContentInspection, getCurrentGenerationContents } from "../../entities/content";
 import { getContentPerformanceSummary } from "../../entities/performance";
 import { getAdministratorSession } from "../../lib/adminAuthentication";
@@ -13,7 +13,6 @@ interface DashboardData {
   currentGenerationName: string | null;
   pendingApplications: number | null;
   pendingContents: number | null;
-  todayCampaigns: Campaign[] | null;
 }
 
 const EMPTY_DASHBOARD: DashboardData = {
@@ -22,17 +21,7 @@ const EMPTY_DASHBOARD: DashboardData = {
   currentGenerationName: null,
   pendingApplications: null,
   pendingContents: null,
-  todayCampaigns: null,
 };
-
-function dateInSeoul(date = new Date()) {
-  return new Intl.DateTimeFormat("en-CA", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-  }).format(date);
-}
 
 function count(value: number | null) {
   return value == null ? "—" : formatNumber(value);
@@ -82,7 +71,6 @@ function DashboardMetric({
 export function DashboardPage() {
   const administratorName = getAdministratorSession()?.name ?? "관리자";
   const [data, setData] = useState<DashboardData>(EMPTY_DASHBOARD);
-  const today = dateInSeoul();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -90,10 +78,9 @@ export function DashboardPage() {
     void Promise.allSettled([
       getCurrentGenerationContents(controller.signal),
       getAdminApplications({ page: 0, size: 1, status: "PENDING" }, controller.signal),
-      getCampaigns({ endDate: today, page: 0, size: 100, startDate: today }, controller.signal),
       getCampaigns({ page: 0, size: 1, status: "ACTIVE" }, controller.signal),
       getContentPerformanceSummary(controller.signal),
-    ]).then(([contents, applications, campaigns, activeCampaigns, summary]) => {
+    ]).then(([contents, applications, activeCampaigns, summary]) => {
       if (controller.signal.aborted) return;
 
       setData({
@@ -113,24 +100,11 @@ export function DashboardPage() {
           ? contents.value.map(adaptContentInspection)
             .filter(({ inspectionStatus }) => inspectionStatus === "검수 대기").length
           : null,
-        todayCampaigns: campaigns.status === "fulfilled"
-          ? campaigns.value.content.filter(
-            ({ endDate, startDate }) => startDate === today || endDate === today,
-          )
-          : null,
       });
     });
 
     return () => controller.abort();
-  }, [today]);
-
-  const startingCampaigns = data.todayCampaigns == null
-    ? null
-    : data.todayCampaigns.filter(({ startDate }) => startDate === today).length;
-  const endingCampaigns = data.todayCampaigns == null
-    ? null
-    : data.todayCampaigns.filter(({ endDate }) => endDate === today).length;
-  const todayCampaignCount = data.todayCampaigns?.length ?? null;
+  }, []);
 
   return (
     <section aria-labelledby="dashboard-title" className="fuma-dashboard">
@@ -165,39 +139,13 @@ export function DashboardPage() {
         </DashboardCard>
 
         <DashboardCard
-          className="fuma-dashboard-card--today"
-          eyebrow="TODAY"
-          status={data.todayCampaigns == null ? "확인 중" : `${count(todayCampaignCount)}건`}
-          title="오늘 캠페인"
-        >
-          <div className="fuma-dashboard__today-metrics">
-            <DashboardMetric label="오늘 시작" unit="건" value={startingCampaigns} />
-            <DashboardMetric label="오늘 종료" unit="건" value={endingCampaigns} />
-          </div>
-          {data.todayCampaigns && data.todayCampaigns.length > 0 ? (
-            <ul className="fuma-dashboard__campaign-list">
-              {data.todayCampaigns.slice(0, 3).map((campaign) => (
-                <li key={campaign.id}>
-                  <span>{campaign.title}</span>
-                  <small>{campaign.startDate === today && campaign.endDate === today
-                    ? "시작·종료"
-                    : campaign.startDate === today ? "시작" : "종료"}</small>
-                </li>
-              ))}
-            </ul>
-          ) : data.todayCampaigns ? (
-            <p className="fuma-dashboard__empty">오늘 일정 없음</p>
-          ) : null}
-        </DashboardCard>
-
-        <DashboardCard
           className="fuma-dashboard-card--generation"
-          eyebrow="CURRENT GENERATION"
+          eyebrow="CONTENT"
           status={data.currentGenerationName ?? "확인 중"}
-          title="현재 기수"
+          title="현재 기수 콘텐츠"
         >
           <DashboardMetric
-            label="등록 콘텐츠"
+            label="등록된 콘텐츠 수"
             unit="건"
             value={data.currentGenerationContentCount}
           />
