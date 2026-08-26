@@ -28,10 +28,7 @@ export function ViewModeToggle({
   }, []);
 
   return (
-    <div
-      className="hsas-view-mode-toggle-wrap"
-      onMouseEnter={() => setShowTooltip(false)}
-    >
+    <div className="hsas-view-mode-toggle-wrap">
       <button
         aria-checked={value === "list"}
         aria-describedby={tooltipId}
