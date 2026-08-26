@@ -324,19 +324,17 @@ export function AdminSidebar({
                       </div>
                     ) : null}
                   </div>
-                  {import.meta.env.DEV ? (
-                    <button
-                      className="hsas-theme-settings__item hsas-theme-settings__item--danger"
-                      onClick={() => {
-                        setResetFeedback(null);
-                        setResetDialogOpen(true);
-                      }}
-                      type="button"
-                    >
-                      <RotateCcw aria-hidden="true" />
-                      <span>검수 상태 초기화</span>
-                    </button>
-                  ) : null}
+                  <button
+                    className="hsas-theme-settings__item hsas-theme-settings__item--danger"
+                    onClick={() => {
+                      setResetFeedback(null);
+                      setResetDialogOpen(true);
+                    }}
+                    type="button"
+                  >
+                    <RotateCcw aria-hidden="true" />
+                    <span>검수 상태 초기화</span>
+                  </button>
                 </div>
                 {resetFeedback ? (
                   <p className="hsas-theme-settings__feedback" role="status">
@@ -345,27 +343,31 @@ export function AdminSidebar({
                 ) : null}
               </div>
             )}
-            {import.meta.env.DEV ? (
-              <BubbleDialog
-                actions={(
-                  <>
-                    <Button disabled={isResetting} onClick={() => setResetDialogOpen(false)}>
-                      취소
-                    </Button>
-                    <Button
-                      disabled={isResetting}
-                      onClick={() => void resetInspectionState()}
-                      variant="danger"
-                    >
-                      {isResetting ? "초기화 중" : "초기화"}
-                    </Button>
-                  </>
-                )}
-                description="현재 활동 기수의 최종 승인·반려와 위반 판정을 초기화합니다. 패널티, 블랙리스트, 감사 이력은 유지됩니다."
-                open={isResetDialogOpen}
-                title="검수 상태를 초기화할까요?"
-              />
-            ) : null}
+            <BubbleDialog
+              actions={(
+                <>
+                  <Button disabled={isResetting} onClick={() => setResetDialogOpen(false)}>
+                    취소
+                  </Button>
+                  <Button
+                    disabled={isResetting}
+                    onClick={() => void resetInspectionState()}
+                    variant="danger"
+                  >
+                    {isResetting ? "초기화 중" : "초기화"}
+                  </Button>
+                </>
+              )}
+              description={(
+                <>
+                  현재 활동 기수의 최종 승인·반려와 위반 판정을 초기화합니다.
+                  <br />
+                  패널티, 블랙리스트, 감사 이력은 유지됩니다.
+                </>
+              )}
+              open={isResetDialogOpen}
+              title="검수 상태를 초기화할까요?"
+            />
           </div>
           <button
             type="button"
