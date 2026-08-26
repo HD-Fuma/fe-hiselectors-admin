@@ -804,7 +804,7 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(dl, dl > div, .fuma
 .fuma-content-performance-page .fuma-content-cohort-chart__series.is-likes,
 .fuma-content-performance-page .fuma-content-cohort-chart__legend .is-likes { --cohort-series-color: #de76ce; }
 .fuma-content-performance-page .fuma-content-cohort-chart__series.is-comments,
-.fuma-content-performance-page .fuma-content-cohort-chart__legend .is-comments { --cohort-series-color: #707070; }
+.fuma-content-performance-page .fuma-content-cohort-chart__legend .is-comments { --cohort-series-color: #ca7700; }
 .fuma-content-performance-page :is(
   .fuma-content-performance-panel header > span,
   .fuma-content-performance-panel header > div > span,

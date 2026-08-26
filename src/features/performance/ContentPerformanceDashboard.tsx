@@ -49,7 +49,7 @@ const CONTENT_CHART_COLORS = {
   contentCount: "#111111",
   views: "#238b78",
   likes: "#de76ce",
-  comments: "#707070",
+  comments: "#ca7700",
 } as const;
 const CONTENT_CHART_LABEL_COLOR = "#111111";
 
