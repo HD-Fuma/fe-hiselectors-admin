@@ -209,7 +209,7 @@ describe("selector api pages", () => {
       expect.stringMatching(/roleId=ACTIVE.*generationId=3.*nickname=.*snsCode=INSTAGRAM/),
       expect.anything(),
     ));
-    expect(screen.getByText("총 2건")).toBeInTheDocument();
+    expect(screen.queryByText("총 2건")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "블랙리스트" }));
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(

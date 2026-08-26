@@ -635,11 +635,6 @@ export function SelectorOverviewPage() {
     setPage(1);
   };
 
-  const appliedGeneration = generations.find((generation) => (
-    String(generation.id) === appliedGenerationId
-  ));
-  const appliedPlatform = SELECTOR_SNS_OPTIONS.find((option) => option.value === appliedSns);
-
   return (
     <section className="fuma-page">
       <PageHeader title="셀렉터스 목록" />
@@ -705,12 +700,6 @@ export function SelectorOverviewPage() {
             />
           )}
           className="fuma-simple-result-toolbar"
-          meta={
-            <>
-              <span>{[appliedGeneration?.generationName, appliedPlatform?.label].filter(Boolean).join(" · ") || "전체"}</span>
-              <span>총 {pageData?.totalElements ?? 0}건</span>
-            </>
-          }
           title={selectedStatus ? selectorListTitle : null}
         />
         {listError ? (
