@@ -670,23 +670,25 @@ export function SelectorOverviewPage() {
             </FilterField>
           </SearchPanel>
         </div>
-        <ChoiceTabs
-          ariaLabel="활동 상태"
-          className="fuma-selector-status-filter"
-          emptyOption={{
-            label: "전체",
-            onSelect: () => {
-              setSelectedStatus(null);
+        {activeView === "table" ? (
+          <ChoiceTabs
+            ariaLabel="활동 상태"
+            className="fuma-selector-status-filter"
+            emptyOption={{
+              label: "전체",
+              onSelect: () => {
+                setSelectedStatus(null);
+                setPage(1);
+              },
+            }}
+            onChange={(status) => {
+              setSelectedStatus(status);
               setPage(1);
-            },
-          }}
-          onChange={(status) => {
-            setSelectedStatus(status);
-            setPage(1);
-          }}
-          options={SELECTOR_STATUS_CATEGORIES}
-          value={selectedStatus}
-        />
+            }}
+            options={SELECTOR_STATUS_CATEGORIES}
+            value={selectedStatus}
+          />
+        ) : null}
         <ResultToolbar
           actions={selectedStatus ? null : (
             <ViewModeToggle

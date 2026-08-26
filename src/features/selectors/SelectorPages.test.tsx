@@ -181,8 +181,10 @@ describe("selector api pages", () => {
     const search = await screen.findByRole("search", { name: "검색 조건" }, { timeout: 3000 });
 
     expect(await screen.findByRole("img", { name: "셀렉터스 발견 풀" })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "활동 상태" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("switch", { name: "보기 방식" }));
 
+    expect(screen.getByRole("navigation", { name: "활동 상태" })).toBeInTheDocument();
     expect(await screen.findByText("SEL0007")).toBeInTheDocument();
     const list = screen.getByRole("region", { name: "셀렉터스 목록" });
     expect(within(list).queryByRole("columnheader", { name: "닉네임" })).not.toBeInTheDocument();
