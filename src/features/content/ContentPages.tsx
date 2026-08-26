@@ -1795,6 +1795,7 @@ export function ContentInspectionDetailPage() {
   >([]);
   const [focusedStudioViolationIndex, setFocusedStudioViolationIndex] = useState(-1);
   const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
+  const [completionOpen, setCompletionOpen] = useState(false);
   const [studioExiting, setStudioExiting] = useState(false);
   const [studioContentTransition, setStudioContentTransition] = useState<StudioContentTransition>("idle");
   const studioReportRef = useRef<HTMLElement>(null);
@@ -2091,7 +2092,7 @@ export function ContentInspectionDetailPage() {
         `${selected === "approve" ? "승인" : "반려"} 처리했습니다. 위반 항목 ${result.updatedCount}건을 갱신했습니다.`,
       );
       if (nextContent) navigateStudioContent(nextContent, "next");
-      else setStudioExiting(true);
+      else setCompletionOpen(true);
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "AbortError") return;
       setStudioDecision(null);
@@ -2287,6 +2288,10 @@ export function ContentInspectionDetailPage() {
           : null;
       const spacePressed = event.code === "Space" || event.key === " " || event.key === "Spacebar";
       if (studioExiting) return;
+      if (completionOpen) {
+        event.preventDefault();
+        return;
+      }
       if (event.target instanceof HTMLSelectElement) return;
       if (studioActionPending) {
         event.preventDefault();
@@ -2348,6 +2353,7 @@ export function ContentInspectionDetailPage() {
     window.addEventListener("keydown", exitSession);
     return () => window.removeEventListener("keydown", exitSession);
   }, [
+    completionOpen,
     exitConfirmationOpen,
     focusedStudioViolationIndex,
     hasStudioViolationJudgment,
@@ -2381,6 +2387,7 @@ export function ContentInspectionDetailPage() {
       if (event.ctrlKey || Math.abs(event.deltaY) < 4) return;
       if (
         studioExiting
+        || completionOpen
         || exitConfirmationOpen
         || studioActionPending
         || studioContentTransition !== "idle"
@@ -2419,6 +2426,7 @@ export function ContentInspectionDetailPage() {
     window.addEventListener("wheel", navigateOnWheel, { passive: false });
     return () => window.removeEventListener("wheel", navigateOnWheel);
   }, [
+    completionOpen,
     exitConfirmationOpen,
     navigateStudioContent,
     nextContent,
@@ -2430,7 +2438,7 @@ export function ContentInspectionDetailPage() {
   ]);
 
   useEffect(() => {
-    if (!routeState?.inspectionSession || exitConfirmationOpen) return undefined;
+    if (!routeState?.inspectionSession || exitConfirmationOpen || completionOpen) return undefined;
     const focusFrame = window.requestAnimationFrame(() => {
       if (focusedStudioViolationIndex >= 0) {
         const violationItem = studioReportRef.current
@@ -2446,6 +2454,7 @@ export function ContentInspectionDetailPage() {
 
     return () => window.cancelAnimationFrame(focusFrame);
   }, [
+    completionOpen,
     exitConfirmationOpen,
     focusedStudioViolationIndex,
     routeState?.inspectionSession,
@@ -2488,10 +2497,10 @@ export function ContentInspectionDetailPage() {
       accountId,
     );
     const followerCount = snsAccount?.followerCount;
-    const generationSales = studioSelector?.generations.find(
+    const generationSales = studioSelector?.generations?.find(
       ({ generationName }) => generationName === content?.cohort,
     )?.totalSales;
-    const registeredContentCount = studioSelector?.performance.contentCount == null
+    const registeredContentCount = studioSelector?.performance?.contentCount == null
       ? null
       : Math.max(0, studioSelector.performance.contentCount - 1);
     const inspectionProgress = studioInspectionComplete
@@ -2569,7 +2578,7 @@ export function ContentInspectionDetailPage() {
                   || (!studioInspectionComplete && !nextContent)
                 }
                 onClick={() => studioInspectionComplete
-                  ? setStudioExiting(true)
+                  ? setCompletionOpen(true)
                   : navigateStudioContent(nextContent, "next")}
                 type="button"
               >
@@ -2904,6 +2913,24 @@ export function ContentInspectionDetailPage() {
             </Tooltip>
           ) : null}
         </div>
+        <BubbleDialog
+          actions={(
+            <button
+              autoFocus
+              onClick={() => {
+                setCompletionOpen(false);
+                setStudioExiting(true);
+              }}
+              type="button"
+            >
+              확인
+            </button>
+          )}
+          description="검수 목록으로 돌아갑니다."
+          layer="local"
+          open={completionOpen}
+          title="콘텐츠 검수를 완료했습니다."
+        />
         <BubbleDialog
           actions={(
             <>
