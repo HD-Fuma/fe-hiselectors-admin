@@ -88,6 +88,10 @@
   padding: 0 var(--hsas-space-24) 0 var(--hsas-space-7);
 }
 
+.hsas-select:focus-visible {
+  outline-color: rgb(17 17 17 / 22%);
+}
+
 .hsas-checkbox {
   display: inline-flex;
   min-height: var(--hsas-control-height);
@@ -101,7 +105,7 @@
   width: 14px;
   height: 14px;
   margin: 0;
-  accent-color: var(--hsas-teal);
+  accent-color: var(--hsas-color-black);
 }
 
 .hsas-segmented-control {
@@ -546,7 +550,7 @@
 }
 
 .hsas-dense-table tbody .hsas-dense-table__row[tabindex="0"]:hover td {
-  background: rgb(30 157 139 / 8%);
+  background: rgb(17 17 17 / 5%);
 }
 
 .fuma-creator-category-filter {
@@ -593,7 +597,7 @@
 }
 
 .hsas-dense-table tbody .hsas-dense-table__row[aria-selected="true"] td {
-  background: rgb(30 157 139 / 16%);
+  background: rgb(17 17 17 / 10%);
 }
 
 .hsas-dense-table__row:focus-visible {
@@ -2805,6 +2809,8 @@
 .fuma-campaign-product-picker-modal .hsas-modal__header {
   min-height: 50px;
   padding: var(--hsas-space-11) var(--hsas-space-18);
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-color-black);
 }
 
 .fuma-campaign-product-picker-modal .hsas-modal__title {
@@ -3488,8 +3494,13 @@
 }
 
 .fuma-applicant-search .hsas-search-panel__fields {
-  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
   column-gap: var(--hsas-space-20);
+}
+
+.fuma-settlement-search.fuma-applicant-search .fuma-filter-field {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--hsas-space-8);
 }
 
 .fuma-applicant-result-toolbar .fuma-creator-toolbar__controls {
@@ -3996,7 +4007,7 @@
   font-weight: 700;
 }
 
-.hsas-dense-table input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--hsas-teal); cursor: pointer; }
+.hsas-dense-table input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--hsas-color-black); cursor: pointer; }
 .fuma-creator-toolbar__divider {
   width: 1px;
   height: 20px;
@@ -10058,6 +10069,10 @@
   border-color: var(--hsas-border);
 }
 
+:root[data-theme="dark"] .hsas-select:focus-visible {
+  outline-color: rgb(255 255 255 / 28%);
+}
+
 :root[data-theme="dark"] .hsas-button:hover:not(:disabled),
 :root[data-theme="dark"] .hsas-work-tabs__tab:not(.hsas-work-tabs__tab--active):hover,
 :root[data-theme="dark"] .hsas-work-tabs__close:hover {
@@ -10147,11 +10162,11 @@
 }
 
 :root[data-theme="dark"] .hsas-dense-table tbody .hsas-dense-table__row[tabindex="0"]:hover td {
-  background: rgb(30 157 139 / 14%);
+  background: rgb(255 255 255 / 8%);
 }
 
 :root[data-theme="dark"] .hsas-dense-table tbody .hsas-dense-table__row[aria-selected="true"] td {
-  background: rgb(30 157 139 / 22%);
+  background: rgb(255 255 255 / 14%);
 }
 
 :root[data-theme="dark"] .hsas-work-tabs {
