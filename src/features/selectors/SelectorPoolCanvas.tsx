@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { categoryLabel } from "../../entities/creator";
 import type { SelectorSummary } from "../../entities/selectors";
@@ -11,6 +12,7 @@ const ORBIT_GAP = 26;
 const DAMPING = 0.86;
 const GOLDEN_ANGLE = 2.39996;
 const INK = "17 24 39";
+const NODE_TINT = INK;
 
 interface PoolNode {
   x: number;
@@ -29,7 +31,11 @@ interface PoolCategory {
   x: number;
   y: number;
   count: number;
+  /** 카테고리 색상. `rgb(r g b / a%)` 로 조합해 쓴다. */
+  rgb: string;
 }
+
+const CATEGORY_COLORS = [INK];
 
 
 // 백엔드 필드명이 확정 전이라 카테고리로 쓸 수 있는 키를 순서대로 훑는다.
@@ -76,6 +82,7 @@ function layoutCategories(counts: Map<string, number>): PoolCategory[] {
     return {
       label,
       count,
+      rgb: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
       x: Math.cos(angle) * ring,
       y: Math.sin(angle) * ring,
     };
@@ -184,6 +191,28 @@ function platformMark(snsCode: SelectorSummary["snsCode"]) {
   return { color: PLATFORM_MARK[key].color, path };
 }
 
+/** 살짝 휜 유기적인 연결선. */
+function drawCurve(
+  context: CanvasRenderingContext2D,
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+) {
+  const midX = (fromX + toX) / 2;
+  const midY = (fromY + toY) / 2;
+  const bend = 0.12;
+  context.beginPath();
+  context.moveTo(fromX, fromY);
+  context.quadraticCurveTo(
+    midX - (toY - fromY) * bend,
+    midY + (toX - fromX) * bend,
+    toX,
+    toY,
+  );
+  context.stroke();
+}
+
 function drawBubble(
   context: CanvasRenderingContext2D,
   node: PoolNode,
@@ -191,35 +220,19 @@ function drawBubble(
   y: number,
   radius: number,
   image: HTMLImageElement | undefined,
-  active: boolean,
+  tint: string,
 ) {
-  const padding = Math.max(4, radius * 0.14);
-  const rotation = Math.sin(node.phase) * 0.18;
-
-  // 프로필 바깥쪽만 얇고 비대칭인 투명 유리 패딩으로 감싼다.
+  // 흰 배경에서 떠 보이도록 부드러운 그림자 위에 흰 테를 깐다.
   context.save();
-  context.translate(x, y);
-  context.rotate(rotation);
-  context.shadowColor = `rgb(${INK} / ${active ? 18 : 9}%)`;
-  context.shadowBlur = active ? 16 : 10;
-  context.shadowOffsetY = active ? 5 : 3;
-  const glass = context.createLinearGradient(-radius, -radius, radius, radius);
-  glass.addColorStop(0, active ? `rgb(${INK} / 15%)` : "rgb(255 255 255 / 88%)");
-  glass.addColorStop(0.55, active ? `rgb(${INK} / 9%)` : "rgb(255 255 255 / 42%)");
-  glass.addColorStop(1, active ? `rgb(${INK} / 18%)` : `rgb(${INK} / 7%)`);
-  context.fillStyle = glass;
+  context.shadowColor = `rgb(${INK} / 22%)`;
+  context.shadowBlur = 14;
+  context.shadowOffsetY = 5;
+  context.fillStyle = "#fff";
   context.beginPath();
-  context.ellipse(0, 0, radius + padding, radius + padding * 0.72, 0, 0, Math.PI * 2);
-  context.fill();
-
-  context.shadowColor = "transparent";
-  context.fillStyle = "rgb(255 255 255 / 72%)";
-  context.beginPath();
-  context.ellipse(-radius * 0.5, -radius * 0.68, padding * 0.65, padding * 0.28, -0.35, 0, Math.PI * 2);
+  context.arc(x, y, radius + 2.5, 0, Math.PI * 2);
   context.fill();
   context.restore();
 
-  // 사진 자체에는 유리 효과를 씌우지 않는다.
   context.save();
   context.beginPath();
   context.arc(x, y, radius, 0, Math.PI * 2);
@@ -228,8 +241,8 @@ function drawBubble(
     context.drawImage(image, x - radius, y - radius, radius * 2, radius * 2);
   } else {
     const blob = context.createLinearGradient(x - radius, y - radius, x + radius, y + radius);
-    blob.addColorStop(0, `rgb(${INK} / 88%)`);
-    blob.addColorStop(1, `rgb(${INK} / 58%)`);
+    blob.addColorStop(0, `rgb(${tint} / 92%)`);
+    blob.addColorStop(1, `rgb(${tint} / 62%)`);
     context.fillStyle = blob;
     context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
     context.fillStyle = "#fff";
@@ -305,6 +318,8 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
     if (!categories.length) return;
     const nodes = buildNodes(selectors, categories);
     const images = loadImages(nodes);
+    const brandLogo = new Image();
+    brandLogo.src = assetUrl("/brand/thehyundai-hi.svg");
 
     // view 는 지금 보이는 화면, camera 는 목표값. 매 프레임 부드럽게 따라간다.
     const view = { x: 0, y: 0, scale: 0.8 };
@@ -494,28 +509,120 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         !focused || categories[categoryIndex].label === focused ? 1 : 0.12
       );
 
-      categories.forEach((category, categoryIndex) => {
-        const weight = weightOf(categoryIndex);
+      // 카테고리를 꿰는 큰 원 하나
+      const ringRadius = Math.hypot(categories[0].x, categories[0].y);
+      if (ringRadius > 0) {
         context.save();
-        context.globalAlpha = weight;
-        context.filter = "blur(14px)";
-        context.fillStyle = `rgb(${INK} / 9%)`;
+        context.strokeStyle = `rgb(${INK} / 10%)`;
+        context.lineWidth = 1.2;
+        context.setLineDash([2, 10]);
         context.beginPath();
-        context.ellipse(category.x, category.y, 70, 30, 0, 0, Math.PI * 2);
+        context.arc(0, 0, ringRadius, 0, Math.PI * 2);
+        context.stroke();
+        context.restore();
+
+        if (brandLogo.complete && brandLogo.naturalWidth) {
+          const logoWidth = 190;
+          const logoHeight = logoWidth * (brandLogo.naturalHeight / brandLogo.naturalWidth);
+          context.drawImage(brandLogo, -logoWidth / 2, -logoHeight / 2, logoWidth, logoHeight);
+        }
+      }
+
+      // 클러스터마다 옅은 색 안개를 깔아 영역이 구분되게 한다.
+      categories.forEach((category, categoryIndex) => {
+        const spread = CATEGORY_RADIUS * 5.5;
+        const wash = context.createRadialGradient(
+          category.x, category.y, 0,
+          category.x, category.y, spread,
+        );
+        wash.addColorStop(0, `rgb(${category.rgb} / ${12 * weightOf(categoryIndex)}%)`);
+        wash.addColorStop(1, `rgb(${category.rgb} / 0%)`);
+        context.fillStyle = wash;
+        context.beginPath();
+        context.arc(category.x, category.y, spread, 0, Math.PI * 2);
+        context.fill();
+      });
+
+      context.lineWidth = 0.9;
+      nodes.forEach((node, index) => {
+        const category = categories[node.categoryIndex];
+        const weight = weightOf(node.categoryIndex);
+        const position = floatOf(node, time);
+        const near = lit === node || lit?.categoryIndex === node.categoryIndex;
+        context.strokeStyle = `rgb(${category.rgb} / ${(near ? 55 : 22) * weight}%)`;
+        drawCurve(context, category.x, category.y, position.x, position.y);
+
+        const sibling = nodes[index + 1];
+        if (sibling && sibling.categoryIndex === node.categoryIndex) {
+          const siblingPosition = floatOf(sibling, time);
+          context.strokeStyle = `rgb(${category.rgb} / ${14 * weight}%)`;
+          drawCurve(context, position.x, position.y, siblingPosition.x, siblingPosition.y);
+        }
+      });
+
+      categories.forEach((category, categoryIndex) => {
+        const pulse = 1 + Math.sin(time / 1800 + categoryIndex) * 0.02;
+        const core = CATEGORY_RADIUS * pulse;
+
+        context.save();
+        context.globalAlpha = weightOf(categoryIndex);
+
+        // 은은한 후광
+        const glow = context.createRadialGradient(
+          category.x, category.y, core * 0.4,
+          category.x, category.y, core * 2.2,
+        );
+        glow.addColorStop(0, `rgb(${category.rgb} / 22%)`);
+        glow.addColorStop(1, `rgb(${category.rgb} / 0%)`);
+        context.fillStyle = glow;
+        context.beginPath();
+        context.arc(category.x, category.y, core * 2.2, 0, Math.PI * 2);
+        context.fill();
+
+        // 천천히 도는 점선 궤도
+        context.save();
+        context.translate(category.x, category.y);
+        context.rotate(time / 11000 + categoryIndex);
+        context.strokeStyle = `rgb(${category.rgb} / 32%)`;
+        context.lineWidth = 1;
+        context.setLineDash([9, 13]);
+        context.beginPath();
+        context.arc(0, 0, core * 1.55, 0, Math.PI * 2);
+        context.stroke();
+        context.restore();
+
+        // 흰 코어 + 색 링
+        context.save();
+        context.shadowColor = `rgb(${category.rgb} / 40%)`;
+        context.shadowBlur = 24;
+        context.shadowOffsetY = 6;
+        context.fillStyle = "#fff";
+        context.beginPath();
+        context.arc(category.x, category.y, core, 0, Math.PI * 2);
         context.fill();
         context.restore();
 
-        context.save();
-        context.globalAlpha = weight;
+        context.strokeStyle = `rgb(${category.rgb})`;
+        context.lineWidth = 3;
+        context.beginPath();
+        context.arc(category.x, category.y, core - 1.5, 0, Math.PI * 2);
+        context.stroke();
+
         context.textAlign = "center";
         context.textBaseline = "middle";
-        context.fillStyle = `rgb(${INK} / 82%)`;
+        context.fillStyle = `rgb(${INK})`;
         context.font = "700 15px Pretendard, sans-serif";
-        context.fillText(category.label, category.x, category.y - 5);
+        context.fillText(category.label, category.x, category.y - 6);
 
         context.font = "600 11px Pretendard, sans-serif";
-        context.fillStyle = `rgb(${INK} / 42%)`;
-        context.fillText(`${category.count}명`, category.x, category.y + 14);
+        const countLabel = `${category.count}명`;
+        const chipWidth = context.measureText(countLabel).width + 16;
+        context.fillStyle = `rgb(${category.rgb} / 16%)`;
+        context.beginPath();
+        context.roundRect(category.x - chipWidth / 2, category.y + 6, chipWidth, 17, 9);
+        context.fill();
+        context.fillStyle = `rgb(${category.rgb})`;
+        context.fillText(countLabel, category.x, category.y + 15);
         context.restore();
       });
 
@@ -527,7 +634,21 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         context.save();
         context.globalAlpha = weightOf(node.categoryIndex);
 
-        drawBubble(context, node, position.x, position.y, radius, images.get(node.selector.id), active);
+        if (active) {
+          context.strokeStyle = `rgb(${NODE_TINT} / 45%)`;
+          context.lineWidth = 2;
+          context.beginPath();
+          context.arc(position.x, position.y, radius + 8 + Math.sin(time / 240) * 3, 0, Math.PI * 2);
+          context.stroke();
+        }
+
+        drawBubble(context, node, position.x, position.y, radius, images.get(node.selector.id), NODE_TINT);
+
+        context.strokeStyle = active ? `rgb(${NODE_TINT})` : `rgb(${INK} / 12%)`;
+        context.lineWidth = active ? 2.6 : 1.6;
+        context.beginPath();
+        context.arc(position.x, position.y, radius + 1, 0, Math.PI * 2);
+        context.stroke();
         context.restore();
       });
 
@@ -630,8 +751,10 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
             className="hsas-selector-pool__chip"
             key={category.label}
             onClick={() => focusCategory(focus === category.label ? null : category.label)}
+            style={{ "--hsas-pool-chip": `rgb(${category.rgb})` } as CSSProperties}
             type="button"
           >
+            <span aria-hidden="true" className="hsas-selector-pool__chip-dot" />
             {category.label}
             <em>{category.count}</em>
           </button>
