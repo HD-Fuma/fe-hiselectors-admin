@@ -58,7 +58,7 @@ const routes: RouteObject[] = [
       },
       {
         path: "home",
-        element: <Navigate replace to="/creators" />,
+        element: <Navigate replace to="/dashboard" />,
       },
       {
         path: "performance",

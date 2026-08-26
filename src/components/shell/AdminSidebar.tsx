@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ClipboardList,
   LogOut,
+  LayoutDashboard,
   Moon,
   RotateCcw,
   Settings,
@@ -32,6 +33,7 @@ import "../../styles/sidebar-account.css";
 import "../../styles/sidebar-brand.css";
 
 const GROUP_ICONS: Record<NavGroup, LucideIcon> = {
+  dashboard: LayoutDashboard,
   recruitment: UsersRound,
   operations: ClipboardList,
   performance: BarChart3,
