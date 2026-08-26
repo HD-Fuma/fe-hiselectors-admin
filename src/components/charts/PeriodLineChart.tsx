@@ -53,6 +53,7 @@ export function PeriodLineChart({
     },
     tooltip: {
       ...ECHARTS_TOOLTIP_STYLE,
+      appendTo: "body",
       trigger: "axis",
       formatter: (params: unknown) => {
         const items = (Array.isArray(params) ? params : [params]) as Array<{
