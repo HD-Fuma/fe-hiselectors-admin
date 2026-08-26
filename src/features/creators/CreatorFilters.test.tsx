@@ -378,8 +378,8 @@ describe("creator filters", () => {
     const keyword = within(search).getByRole("textbox", { name: "키워드" });
     const minFollowers = within(search).getByRole("textbox", { name: "최소 팔로워·구독자" });
     const maxFollowers = within(search).getByRole("textbox", { name: "최대 팔로워·구독자" });
-    const excludeBrands = within(search).getByRole("button", { name: "브랜드 계정 제외" });
-    expect(excludeBrands).toHaveAttribute("aria-pressed", "false");
+    const excludeBrands = within(search).getByRole("checkbox", { name: "브랜드 계정 제외" });
+    expect(excludeBrands).not.toBeChecked();
     expect(within(search).queryByRole("textbox", { name: "최소 ER" })).not.toBeInTheDocument();
     expect(within(search).queryByRole("textbox", { name: "최근 90일 최소 활동" })).not.toBeInTheDocument();
     const platform = within(search).getByRole("combobox", { name: "플랫폼" });
@@ -396,7 +396,7 @@ describe("creator filters", () => {
     await user.type(maxFollowers, "500,000");
     await user.selectOptions(platform, "INSTAGRAM");
     await user.click(excludeBrands);
-    expect(excludeBrands).toHaveAttribute("aria-pressed", "true");
+    expect(excludeBrands).toBeChecked();
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
     expect(creatorRequests(fetchMock)).toHaveLength(2);
@@ -428,7 +428,7 @@ describe("creator filters", () => {
     expect(minFollowers).toHaveValue("");
     expect(maxFollowers).toHaveValue("");
     expect(platform).toHaveValue("");
-    expect(excludeBrands).toHaveAttribute("aria-pressed", "false");
+    expect(excludeBrands).not.toBeChecked();
     expect(within(categories).getByRole("button", { name: "전체" }))
       .toHaveAttribute("aria-pressed", "true");
   });

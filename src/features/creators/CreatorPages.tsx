@@ -5,7 +5,7 @@ import { getAdministratorSession } from "../../lib/adminAuthentication";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { AlertDialog } from "../../components/ui/AlertDialog";
-import { Button, Select, TextInput } from "../../components/ui/Controls";
+import { Button, Select, Switch, TextInput } from "../../components/ui/Controls";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -915,16 +915,14 @@ export function CreatorListPage() {
         <div className="fuma-operations-search fuma-settlement-search fuma-creator-pool-search">
           <SearchPanel actions={(
             <>
-              <Button
-                aria-pressed={filters.excludeBrands}
-                onClick={() => setFilters((current) => ({
+              <Switch
+                checked={filters.excludeBrands}
+                label="브랜드 계정 제외"
+                onChange={(event) => setFilters((current) => ({
                   ...current,
-                  excludeBrands: !current.excludeBrands,
+                  excludeBrands: event.target.checked,
                 }))}
-                variant={filters.excludeBrands ? "primary" : "secondary"}
-              >
-                브랜드 계정 제외
-              </Button>
+              />
               <SearchActions onReset={resetSearch} onSearch={applySearch} />
             </>
           )}>
