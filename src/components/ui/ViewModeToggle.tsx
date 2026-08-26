@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react";
+import { Tooltip } from "./Tooltip";
 
 export type ViewMode = "grid" | "list";
 
@@ -48,13 +49,13 @@ export function ViewModeToggle({
           {listLabel}
         </span>
       </button>
-      <span
-        className={`hsas-view-mode-toggle__tooltip${showTooltip ? " is-visible" : ""}`}
+      <Tooltip
         id={tooltipId}
-        role="tooltip"
+        placement="bottom"
+        visible={showTooltip}
       >
         {tooltip}
-      </span>
+      </Tooltip>
     </div>
   );
 }
