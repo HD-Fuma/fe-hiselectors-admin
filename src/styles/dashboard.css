@@ -12,6 +12,21 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
     radial-gradient(circle at 50% 28%, rgb(255 255 255 / 22%) 0, rgb(248 249 249 / 18%) 32%, rgb(233 236 238 / 21%) 100%);
 }
 
+.fuma-dashboard__greeting {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: var(--hsas-space-32) var(--hsas-space-40);
+  color: #202224;
+  font-size: var(--hsas-font-24);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.fuma-dashboard__greeting strong {
+  font-weight: 800;
+}
+
 .fuma-dashboard::before {
   position: absolute;
   inset: -18%;
