@@ -237,6 +237,12 @@
   }
 }
 
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 80ms;
+  animation-timing-function: ease-out;
+}
+
 @media (max-width: 840px) {
   .partners-login {
     overflow: auto;
@@ -296,5 +302,10 @@
   .partners-login__field-input,
   .partners-login__submit {
     transition: none;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
   }
 }
