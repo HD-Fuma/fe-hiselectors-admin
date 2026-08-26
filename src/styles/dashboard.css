@@ -226,6 +226,7 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
 .fuma-dashboard-inspection__focus strong {
   display: flex;
   align-items: baseline;
+  justify-content: flex-end;
   gap: var(--hsas-space-6);
   font-size: 48px;
   font-variant-numeric: tabular-nums;
@@ -268,6 +269,7 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
 
 .fuma-dashboard-card--applications .fuma-dashboard__metric strong {
   font-size: 48px;
+  justify-content: flex-end;
 }
 
 .fuma-dashboard-trend {
