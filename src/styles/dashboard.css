@@ -170,6 +170,49 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   white-space: nowrap;
 }
 
+.fuma-dashboard__breakdown {
+  display: grid;
+  margin: 0 0 var(--hsas-space-14);
+  padding: var(--hsas-space-10) 0 0;
+  border-top: 1px solid rgb(255 255 255 / 58%);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--hsas-space-12);
+}
+
+.fuma-dashboard__breakdown > div {
+  display: flex;
+  min-width: 0;
+  padding: var(--hsas-space-6) 0;
+  border-bottom: 1px solid rgb(255 255 255 / 42%);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--hsas-space-6);
+}
+
+.fuma-dashboard__breakdown dt {
+  overflow: hidden;
+  color: rgb(32 34 36 / 52%);
+  font-size: var(--hsas-font-10);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuma-dashboard__breakdown dd {
+  display: flex;
+  margin: 0;
+  align-items: baseline;
+  gap: 2px;
+  font-size: var(--hsas-font-13);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.fuma-dashboard__breakdown small {
+  color: rgb(32 34 36 / 46%);
+  font-size: var(--hsas-font-9);
+}
+
 .fuma-dashboard-inspection__focus {
   display: flex;
   flex: 1;

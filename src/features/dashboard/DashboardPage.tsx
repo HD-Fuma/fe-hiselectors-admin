@@ -16,8 +16,21 @@ import "../../styles/dashboard.css";
 
 interface DashboardData {
   activeCampaigns: number | null;
+  applicationBreakdown: {
+    approved: number | null;
+    instagram: number | null;
+    rejected: number | null;
+    youtube: number | null;
+  };
   averageInspectionHours: number | null;
   completedContents: number | null;
+  contentBreakdown: {
+    edited: number;
+    instagram: number;
+    new: number;
+    violations: number;
+    youtube: number;
+  } | null;
   currentGenerationContentCount: number | null;
   currentGenerationInspectionCount: number | null;
   currentGenerationName: string | null;
@@ -33,8 +46,10 @@ interface DashboardData {
 
 const EMPTY_DASHBOARD: DashboardData = {
   activeCampaigns: null,
+  applicationBreakdown: { approved: null, instagram: null, rejected: null, youtube: null },
   averageInspectionHours: null,
   completedContents: null,
+  contentBreakdown: null,
   currentGenerationContentCount: null,
   currentGenerationInspectionCount: null,
   currentGenerationName: null,
@@ -109,17 +124,19 @@ function DashboardCard({
   children: ReactNode;
   className: string;
   eyebrow: string;
-  status: string;
+  status?: string;
   title: string;
 }) {
   return (
     <section className={`fuma-dashboard-card ${className}`}>
       <header>
         <div><span>{eyebrow}</span><strong>{title}</strong></div>
-        <div className="fuma-dashboard-card__header-actions">
-          <em>{status}</em>
-          {action}
-        </div>
+        {status || action ? (
+          <div className="fuma-dashboard-card__header-actions">
+            {status ? <em>{status}</em> : null}
+            {action}
+          </div>
+        ) : null}
       </header>
       {children}
     </section>
@@ -143,6 +160,25 @@ function DashboardMetric({
       <strong>{value}{unit ? <small>{unit}</small> : null}</strong>
       {detail ? <small className="fuma-dashboard__metric-detail">{detail}</small> : null}
     </div>
+  );
+}
+
+function DashboardBreakdown({
+  items,
+  unit,
+}: {
+  items: readonly { label: string; value: number | null }[];
+  unit: string;
+}) {
+  return (
+    <dl className="fuma-dashboard__breakdown">
+      {items.map(({ label, value }) => (
+        <div key={label}>
+          <dt>{label}</dt>
+          <dd>{count(value)}<small>{unit}</small></dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -279,6 +315,20 @@ export function DashboardPage() {
       getAdminApplications({ page: 0, size: 1 }, controller.signal),
       getAdminApplications({ page: 0, size: 1, status: "APPROVED" }, controller.signal),
       getAdminApplications({ page: 0, size: 1, status: "REJECTED" }, controller.signal),
+      getAdminApplications({
+        minimumCriteriaOnly: false,
+        page: 0,
+        size: 1,
+        snsCode: "INSTAGRAM",
+        status: "PENDING",
+      }, controller.signal),
+      getAdminApplications({
+        minimumCriteriaOnly: false,
+        page: 0,
+        size: 1,
+        snsCode: "YOUTUBE",
+        status: "PENDING",
+      }, controller.signal),
       getCampaigns({ page: 0, size: 1, status: "ACTIVE" }, controller.signal),
       getContentPerformanceSummary(controller.signal),
       getSettlementEstimateSummary({ activityMonth: currentActivityMonth() }, controller.signal),
@@ -287,6 +337,8 @@ export function DashboardPage() {
       applications,
       approvedApplications,
       rejectedApplications,
+      instagramApplications,
+      youtubeApplications,
       activeCampaigns,
       summary,
       settlementSummary,
@@ -299,6 +351,9 @@ export function DashboardPage() {
       const completedContents = inspectionRows?.filter(({ inspection }) => (
         inspection.inspectionStatus === "승인" || inspection.inspectionStatus === "위반"
       )).length ?? null;
+      const pendingInspectionRows = inspectionRows?.filter(({ inspection }) => (
+        inspection.inspectionStatus === "검수 대기"
+      )) ?? null;
       const inspectionDurations = inspectionRows?.flatMap(({ content }) => {
         if (!content.inspectedAt) return [];
         const duration = Date.parse(content.inspectedAt) - Date.parse(content.storedAt);
@@ -311,16 +366,41 @@ export function DashboardPage() {
         && rejectedApplications.status === "fulfilled"
         ? approvedApplications.value.totalElements + rejectedApplications.value.totalElements
         : null;
+      const pendingApplicationsByPlatform = instagramApplications.status === "fulfilled"
+        && youtubeApplications.status === "fulfilled"
+        ? instagramApplications.value.totalElements + youtubeApplications.value.totalElements
+        : null;
 
       setData({
         activeCampaigns: activeCampaigns.status === "fulfilled"
           ? activeCampaigns.value.totalElements
           : null,
+        applicationBreakdown: {
+          approved: approvedApplications.status === "fulfilled"
+            ? approvedApplications.value.totalElements
+            : null,
+          instagram: instagramApplications.status === "fulfilled"
+            ? instagramApplications.value.totalElements
+            : null,
+          rejected: rejectedApplications.status === "fulfilled"
+            ? rejectedApplications.value.totalElements
+            : null,
+          youtube: youtubeApplications.status === "fulfilled"
+            ? youtubeApplications.value.totalElements
+            : null,
+        },
         averageInspectionHours: inspectionDurations?.length
           ? inspectionDurations.reduce((sum, duration) => sum + duration, 0)
             / inspectionDurations.length / 3_600_000
           : null,
         completedContents,
+        contentBreakdown: inspectionRows && pendingInspectionRows ? {
+          edited: pendingInspectionRows.filter(({ inspection }) => inspection.inspectionType !== "NEW").length,
+          instagram: pendingInspectionRows.filter(({ content }) => content.snsCode === "INSTAGRAM").length,
+          new: pendingInspectionRows.filter(({ inspection }) => inspection.inspectionType === "NEW").length,
+          violations: inspectionRows.filter(({ inspection }) => inspection.inspectionStatus === "위반").length,
+          youtube: pendingInspectionRows.filter(({ content }) => content.snsCode === "YOUTUBE").length,
+        } : null,
         currentGenerationContentCount: summary.status === "fulfilled"
           ? summary.value.currentGenerationContentCount
           : null,
@@ -329,12 +409,12 @@ export function DashboardPage() {
           ? summary.value.currentGenerationName
           : null,
         inspectionDurationSampleCount: inspectionDurations?.length ?? null,
-        pendingApplications: totalApplications != null && processedApplications != null
-          ? Math.max(0, totalApplications - processedApplications)
-          : null,
-        pendingContents: inspectionRows?.filter(({ inspection }) => (
-          inspection.inspectionStatus === "검수 대기"
-        )).length ?? null,
+        pendingApplications: pendingApplicationsByPlatform ?? (
+          totalApplications != null && processedApplications != null
+            ? Math.max(0, totalApplications - processedApplications)
+            : null
+        ),
+        pendingContents: pendingInspectionRows?.length ?? null,
         previousGenerationContentCount: summary.status === "fulfilled"
           ? summary.value.previousGenerationContentCount
           : null,
@@ -374,13 +454,22 @@ export function DashboardPage() {
         <DashboardCard
           className="fuma-dashboard-card--inspection"
           eyebrow="AI ANALYSIS"
-          status={data.pendingContents == null ? "확인 중" : `${count(data.pendingContents)}건 대기`}
           title="검수 리포트"
         >
           <div className="fuma-dashboard-inspection__focus">
             <span>검수할 콘텐츠 수</span>
             <strong>{count(data.pendingContents)}<small>건</small></strong>
           </div>
+          <DashboardBreakdown
+            items={[
+              { label: "신규 대기", value: data.contentBreakdown?.new ?? null },
+              { label: "수정 대기", value: data.contentBreakdown?.edited ?? null },
+              { label: "위반 확정", value: data.contentBreakdown?.violations ?? null },
+              { label: "인스타 대기", value: data.contentBreakdown?.instagram ?? null },
+              { label: "유튜브 대기", value: data.contentBreakdown?.youtube ?? null },
+            ]}
+            unit="건"
+          />
           <Link className="fuma-dashboard__primary-action" to="/content/inspections">
             검수 시작하기
             <span aria-hidden="true">→</span>
@@ -390,10 +479,18 @@ export function DashboardPage() {
         <DashboardCard
           className="fuma-dashboard-card--applications"
           eyebrow="APPLICATION"
-          status={data.pendingApplications == null ? "확인 중" : `${count(data.pendingApplications)}명 대기`}
           title="지원자 승인"
         >
           <DashboardMetric label="승인 대기 지원자" unit="명" value={count(data.pendingApplications)} />
+          <DashboardBreakdown
+            items={[
+              { label: "인스타 대기", value: data.applicationBreakdown.instagram },
+              { label: "유튜브 대기", value: data.applicationBreakdown.youtube },
+              { label: "승인 완료", value: data.applicationBreakdown.approved },
+              { label: "반려 완료", value: data.applicationBreakdown.rejected },
+            ]}
+            unit="명"
+          />
           <Link className="fuma-dashboard__primary-action" to="/applicants">
             지원자 검토하기
             <span aria-hidden="true">→</span>
