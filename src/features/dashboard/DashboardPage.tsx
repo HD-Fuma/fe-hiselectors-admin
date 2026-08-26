@@ -513,7 +513,7 @@ export function DashboardPage() {
               className="fuma-dashboard__primary-action fuma-dashboard__primary-action--compact"
               to="/performance/contents"
             >
-              콘텐츠 성과 →
+              콘텐츠 성과
             </Link>
           )}
           className="fuma-dashboard-card--generation"
@@ -534,7 +534,7 @@ export function DashboardPage() {
               className="fuma-dashboard__primary-action fuma-dashboard__primary-action--compact"
               to="/settlements"
             >
-              정산 관리 →
+              정산 관리
             </Link>
           )}
           className="fuma-dashboard-card--trend"
