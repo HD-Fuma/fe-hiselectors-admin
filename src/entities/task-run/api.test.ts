@@ -232,6 +232,24 @@ describe("task run progress stream api", () => {
     expect(onEvent).toHaveBeenCalledWith(event);
   });
 
+  test("reports task lifecycle changes separately from progress", async () => {
+    const runId = "33333333-3333-4333-8333-333333333333";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(eventStream([
+      `event: task-run-changed\ndata: ${runId}\n\n`,
+    ])));
+    const onProgress = vi.fn();
+    const onChanged = vi.fn();
+
+    await streamTaskRunProgress(
+      onProgress,
+      new AbortController().signal,
+      onChanged,
+    );
+
+    expect(onProgress).not.toHaveBeenCalled();
+    expect(onChanged).toHaveBeenCalledOnce();
+  });
+
   test("isolates unrelated and invalid frames while preserving later valid progress", async () => {
     const runId = "22222222-2222-4222-8222-222222222222";
     const valid = {

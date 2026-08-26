@@ -131,26 +131,22 @@ describe("useTaskRunPanel", () => {
     unmount();
   });
 
-  test("waits for each request before scheduling the next one-second poll", async () => {
-    let resolveFirst!: (value: TaskRunPanel) => void;
-    const first = new Promise<TaskRunPanel>((resolve) => {
-      resolveFirst = resolve;
-    });
-    vi.mocked(getTaskRunPanel).mockReturnValueOnce(first).mockResolvedValue({
-      items: [], serverTime: "now",
-    });
+  test("does not poll the panel while the stream is idle", async () => {
+    vi.mocked(getTaskRunPanel).mockResolvedValue({ items: [], serverTime: "now" });
     const { unmount } = render(<Probe />);
 
     expect(getTaskRunPanel).toHaveBeenCalledTimes(1);
-    await act(async () => resolveFirst({ items: [], serverTime: "now" }));
-    await act(async () => vi.advanceTimersByTime(999));
+    await act(async () => vi.advanceTimersByTime(10_000));
     expect(getTaskRunPanel).toHaveBeenCalledTimes(1);
-    await act(async () => vi.advanceTimersByTime(1));
-    expect(getTaskRunPanel).toHaveBeenCalledTimes(2);
     unmount();
   });
 
-  test("keeps the last successful result after an error and retries after one second", async () => {
+  test("refreshes on task changes and keeps the last successful result after an error", async () => {
+    let onChanged!: () => void | Promise<void>;
+    vi.mocked(streamTaskRunProgress).mockImplementation((_onEvent, _signal, handleChanged) => {
+      onChanged = handleChanged!;
+      return new Promise(() => undefined);
+    });
     vi.mocked(getTaskRunPanel)
       .mockResolvedValueOnce(panel("successful-run"))
       .mockRejectedValueOnce(new Error("temporary failure"))
@@ -160,12 +156,12 @@ describe("useTaskRunPanel", () => {
     await act(async () => undefined);
     expect(screen.getByRole("status")).toHaveTextContent("successful-run");
 
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => onChanged());
     expect(getTaskRunPanel).toHaveBeenCalledTimes(2);
     await act(async () => undefined);
     expect(screen.getByRole("status")).toHaveTextContent("successful-run");
 
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => onChanged());
     expect(getTaskRunPanel).toHaveBeenCalledTimes(3);
     await act(async () => undefined);
     expect(screen.getByRole("status")).toHaveTextContent("retried-run");
@@ -173,12 +169,12 @@ describe("useTaskRunPanel", () => {
     unmount();
   });
 
-  test("clears a scheduled poll when disabled", async () => {
+  test("does not leave a panel timer when disabled", async () => {
     vi.mocked(getTaskRunPanel).mockResolvedValue(panel("successful-run"));
     const { rerender, unmount } = render(<Probe />);
 
     await act(async () => undefined);
-    expect(vi.getTimerCount()).toBe(1);
+    expect(vi.getTimerCount()).toBe(0);
 
     rerender(<Probe enabled={false} />);
     expect(vi.getTimerCount()).toBe(0);
@@ -491,18 +487,20 @@ describe("useTaskRunPanel", () => {
     unmount();
   });
 
-  test("keeps one-second polling active while a retained burst is replaying", async () => {
+  test("refreshes on a task change while a retained burst is replaying", async () => {
     let resolveInitial!: (value: TaskRunPanel) => void;
     const initial = new Promise<TaskRunPanel>((resolve) => {
       resolveInitial = resolve;
     });
     let onProgress!: (event: TaskRunProgressEvent) => void | Promise<void>;
+    let onChanged!: () => void | Promise<void>;
     const runId = "11111111-1111-4111-8111-111111111111";
     vi.mocked(getTaskRunPanel)
       .mockReturnValueOnce(initial)
       .mockResolvedValue({ items: [contentRun(runId)], serverTime: "now" });
-    vi.mocked(streamTaskRunProgress).mockImplementation((onEvent) => {
+    vi.mocked(streamTaskRunProgress).mockImplementation((onEvent, _signal, handleChanged) => {
       onProgress = onEvent;
+      onChanged = handleChanged!;
       return new Promise(() => undefined);
     });
     const { unmount } = render(<DualProgressProbe />);
@@ -514,29 +512,34 @@ describe("useTaskRunPanel", () => {
       items: [contentRun(runId)],
       serverTime: "now",
     }));
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => onChanged());
 
     expect(getTaskRunPanel).toHaveBeenCalledTimes(2);
     unmount();
   });
 
-  test("keeps live same-step progress when an in-flight active poll resolves stale", async () => {
+  test("keeps live same-step progress when an in-flight event refresh resolves stale", async () => {
     let resolveStale!: (value: TaskRunPanel) => void;
     const stalePanel = new Promise<TaskRunPanel>((resolve) => {
       resolveStale = resolve;
     });
     let onProgress!: (event: TaskRunProgressEvent) => void | Promise<void>;
+    let onChanged!: () => void | Promise<void>;
     const runId = "11111111-1111-4111-8111-111111111111";
     vi.mocked(getTaskRunPanel)
       .mockResolvedValueOnce({ items: [contentRun(runId)], serverTime: "now" })
       .mockReturnValueOnce(stalePanel);
-    vi.mocked(streamTaskRunProgress).mockImplementation((onEvent) => {
+    vi.mocked(streamTaskRunProgress).mockImplementation((onEvent, _signal, handleChanged) => {
       onProgress = onEvent;
+      onChanged = handleChanged!;
       return new Promise(() => undefined);
     });
     const { unmount } = render(<DualProgressProbe />);
     await act(async () => undefined);
-    await act(async () => vi.advanceTimersByTime(1000));
+    let refresh!: Promise<void>;
+    act(() => {
+      refresh = Promise.resolve(onChanged());
+    });
 
     const liveUpdate = onProgress(progressEvent(3));
     await act(async () => undefined);
@@ -553,6 +556,7 @@ describe("useTaskRunPanel", () => {
       })],
       serverTime: "now",
     }));
+    await refresh;
     expect(screen.getByRole("status")).toHaveTextContent("RUNNING:3:0");
 
     unmount();
@@ -560,10 +564,12 @@ describe("useTaskRunPanel", () => {
 
   test("releases a live floor after the authoritative panel drops that run", async () => {
     let onProgress!: (event: TaskRunProgressEvent) => void | Promise<void>;
+    let onChanged!: () => void | Promise<void>;
     const firstRunId = "11111111-1111-4111-8111-111111111111";
     const secondRunId = "22222222-2222-4222-8222-222222222222";
-    vi.mocked(streamTaskRunProgress).mockImplementation((onEvent) => {
+    vi.mocked(streamTaskRunProgress).mockImplementation((onEvent, _signal, handleChanged) => {
       onProgress = onEvent;
+      onChanged = handleChanged!;
       return new Promise(() => undefined);
     });
     vi.mocked(getTaskRunPanel)
@@ -585,17 +591,18 @@ describe("useTaskRunPanel", () => {
     await act(async () => vi.advanceTimersByTime(16));
     await liveUpdate;
 
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => onChanged());
     await act(async () => undefined);
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => onChanged());
     await act(async () => undefined);
 
     expect(screen.getByRole("status")).toHaveTextContent("RUNNING:1:0");
     unmount();
   });
 
-  test("lets a terminal poll replace the entire live-progress run", async () => {
+  test("lets a terminal event refresh replace the entire live-progress run", async () => {
     let onProgress!: (event: TaskRunProgressEvent) => void | Promise<void>;
+    let onChanged!: () => void | Promise<void>;
     const runId = "11111111-1111-4111-8111-111111111111";
     vi.mocked(getTaskRunPanel)
       .mockResolvedValueOnce({ items: [contentRun(runId)], serverTime: "now" })
@@ -610,8 +617,9 @@ describe("useTaskRunPanel", () => {
         })],
         serverTime: "now",
       });
-    vi.mocked(streamTaskRunProgress).mockImplementation((onEvent) => {
+    vi.mocked(streamTaskRunProgress).mockImplementation((onEvent, _signal, handleChanged) => {
       onProgress = onEvent;
+      onChanged = handleChanged!;
       return new Promise(() => undefined);
     });
     const { unmount } = render(<DualProgressProbe />);
@@ -621,14 +629,19 @@ describe("useTaskRunPanel", () => {
     await act(async () => vi.advanceTimersByTime(16));
     await liveUpdate;
 
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => onChanged());
     await act(async () => undefined);
     expect(screen.getByRole("status")).toHaveTextContent("SUCCEEDED:1:4");
 
     unmount();
   });
 
-  test("retains a terminal snapshot when a later poll returns stale active state", async () => {
+  test("retains a terminal snapshot when a later event refresh returns stale active state", async () => {
+    let onChanged!: () => void | Promise<void>;
+    vi.mocked(streamTaskRunProgress).mockImplementation((_onEvent, _signal, handleChanged) => {
+      onChanged = handleChanged!;
+      return new Promise(() => undefined);
+    });
     const runId = "11111111-1111-4111-8111-111111111111";
     const terminalRun = contentRun(runId, {
       status: "SUCCEEDED",
@@ -653,17 +666,22 @@ describe("useTaskRunPanel", () => {
     const { unmount } = render(<DualProgressProbe />);
     await act(async () => undefined);
 
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => onChanged());
     await act(async () => undefined);
     expect(screen.getByRole("status")).toHaveTextContent("SUCCEEDED:3:4");
 
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => onChanged());
     await act(async () => undefined);
     expect(screen.getByRole("status")).toHaveTextContent("SUCCEEDED:3:4");
     unmount();
   });
 
   test("releases a terminal marker after the authoritative panel drops that run", async () => {
+    let onChanged!: () => void | Promise<void>;
+    vi.mocked(streamTaskRunProgress).mockImplementation((_onEvent, _signal, handleChanged) => {
+      onChanged = handleChanged!;
+      return new Promise(() => undefined);
+    });
     const firstRunId = "11111111-1111-4111-8111-111111111111";
     const secondRunId = "22222222-2222-4222-8222-222222222222";
     vi.mocked(getTaskRunPanel)
@@ -683,9 +701,9 @@ describe("useTaskRunPanel", () => {
     await act(async () => undefined);
     expect(screen.getByRole("status")).toHaveTextContent("SUCCEEDED");
 
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => onChanged());
     await act(async () => undefined);
-    await act(async () => vi.advanceTimersByTime(1000));
+    await act(async () => onChanged());
     await act(async () => undefined);
 
     expect(screen.getByRole("status")).toHaveTextContent("RUNNING:0:0");

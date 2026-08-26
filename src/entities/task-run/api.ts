@@ -62,15 +62,22 @@ function isTaskRunProgressEvent(value: unknown): value is TaskRunProgressEvent {
     && (event.totalCount === null || event.processedCount <= event.totalCount);
 }
 
-async function dispatchProgressFrame(
+async function dispatchStreamFrame(
   eventName: string,
   dataLines: readonly string[],
   onEvent: (event: TaskRunProgressEvent) => void | Promise<void>,
+  onChanged?: () => void | Promise<void>,
 ) {
-  if (eventName !== "task-run-progress" || dataLines.length === 0) return;
+  if (dataLines.length === 0) return;
+  if (eventName === "task-run-changed") {
+    if (dataLines.join("\n").trim().length > 0) await onChanged?.();
+    return;
+  }
   try {
     const value: unknown = JSON.parse(dataLines.join("\n"));
-    if (isTaskRunProgressEvent(value)) await onEvent(value);
+    if (eventName === "task-run-progress" && isTaskRunProgressEvent(value)) {
+      await onEvent(value);
+    }
   } catch {
     // A malformed frame does not invalidate the remaining stream.
   }
@@ -79,6 +86,7 @@ async function dispatchProgressFrame(
 export async function streamTaskRunProgress(
   onEvent: (event: TaskRunProgressEvent) => void | Promise<void>,
   signal: AbortSignal,
+  onChanged?: () => void | Promise<void>,
 ): Promise<TaskRunProgressStreamOutcome> {
   const headers = requestHeaders();
   headers.set("Accept", "text/event-stream");
@@ -113,7 +121,7 @@ export async function streamTaskRunProgress(
 
     const consumeLine = async (line: string) => {
       if (line === "") {
-        await dispatchProgressFrame(eventName, dataLines, onEvent);
+        await dispatchStreamFrame(eventName, dataLines, onEvent, onChanged);
         eventName = "";
         dataLines = [];
         return;
