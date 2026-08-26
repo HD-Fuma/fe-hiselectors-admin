@@ -28,8 +28,6 @@
 }
 
 .hsas-selector-pool__chip {
-  --hsas-pool-chip: rgb(17 24 39 / 55%);
-
   display: inline-flex;
   align-items: center;
   gap: var(--hsas-space-6);
@@ -44,24 +42,13 @@
 }
 
 .hsas-selector-pool__chip:hover {
-  border-color: var(--hsas-pool-chip);
+  border-color: var(--hsas-color-black);
 }
 
 .hsas-selector-pool__chip[aria-pressed="true"] {
-  border-color: var(--hsas-pool-chip);
-  background: var(--hsas-pool-chip);
-  color: #fff;
-}
-
-.hsas-selector-pool__chip-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--hsas-pool-chip);
-}
-
-.hsas-selector-pool__chip[aria-pressed="true"] .hsas-selector-pool__chip-dot {
-  background: rgb(255 255 255 / 90%);
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-color-black);
+  color: var(--hsas-color-white);
 }
 
 .hsas-selector-pool__chip em {
