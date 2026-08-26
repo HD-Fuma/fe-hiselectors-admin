@@ -15,6 +15,7 @@ import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { ViewModeToggle } from "../../components/ui/ViewModeToggle";
 import {
   createGeneration,
   getGenerations,
@@ -546,11 +547,7 @@ function prefetchSelectorDetail(id: number) {
   pending.catch(() => selectorDetailCache.delete(id));
   return pending;
 }
-const SELECTOR_VIEW_OPTIONS = [
-  { label: "버블", value: "pool" },
-  { label: "표", value: "table" },
-] as const;
-type SelectorViewMode = (typeof SELECTOR_VIEW_OPTIONS)[number]["value"];
+type SelectorViewMode = "pool" | "table";
 
 export function SelectorOverviewPage() {
   const navigate = useNavigate();
@@ -697,14 +694,14 @@ export function SelectorOverviewPage() {
         />
         <ResultToolbar
           actions={selectedStatus ? null : (
-            <ChoiceTabs
-              ariaLabel="보기 방식"
-              onChange={(mode: SelectorViewMode) => {
-                setViewMode(mode);
+            <ViewModeToggle
+              gridLabel="버블"
+              listLabel="표"
+              onChange={(mode) => {
+                setViewMode(mode === "grid" ? "pool" : "table");
                 setPage(1);
               }}
-              options={SELECTOR_VIEW_OPTIONS}
-              value={viewMode}
+              value={viewMode === "pool" ? "grid" : "list"}
             />
           )}
           className="fuma-simple-result-toolbar"
