@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import "../../styles/content-inspection.css";
 import { PageHeader } from "../../components/shell/PageHeader";
-import { Button, Select, TextInput } from "../../components/ui/Controls";
+import { Button, Select, Switch, TextInput } from "../../components/ui/Controls";
 import { ContentCollectionCard } from "../../components/ui/ContentCollectionCard";
 import { contentCollectionFormatKey } from "../../components/ui/contentCollectionFormat";
 import { CreatorProfilePhoto } from "../../components/ui/CreatorProfilePhoto";
@@ -380,16 +380,12 @@ function ContentInspectionCollection({
     <section aria-label="수집 콘텐츠 목록" className="fuma-content-collection">
       <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-applicant-result-toolbar fuma-content-inspection-toolbar">
         <div className="fuma-applicant-minimum-filter">
-          <label className="fuma-applicant-minimum-toggle">
-            <input
-              checked={violationOnly}
-              disabled={violationOnlyLocked}
-              onChange={(event) => onChangeViolationOnly(event.target.checked)}
-              type="checkbox"
-            />
-            <span aria-hidden="true" />
-            <b>위반 항목만</b>
-          </label>
+          <Switch
+            checked={violationOnly}
+            disabled={violationOnlyLocked}
+            label="위반 항목만"
+            onChange={(event) => onChangeViolationOnly(event.target.checked)}
+          />
         </div>
         <div className="fuma-settlement-result-meta">
           <span>총 {totalCount}건</span>

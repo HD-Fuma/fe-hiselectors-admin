@@ -4,7 +4,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
-import { Button, Select, TextInput } from "../../components/ui/Controls";
+import { Button, Select, Switch, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
@@ -245,15 +245,11 @@ function ApplicantApprovalToolbar({
   return (
     <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-applicant-result-toolbar">
       <div className="fuma-applicant-minimum-filter">
-        <label className="fuma-applicant-minimum-toggle">
-          <input
-            checked={minimumCriteriaOnly}
-            onChange={(event) => onMinimumCriteriaOnlyChange(event.target.checked)}
-            type="checkbox"
-          />
-          <span aria-hidden="true" />
-          <b>최저 기준 필터링</b>
-        </label>
+        <Switch
+          checked={minimumCriteriaOnly}
+          label="최저 기준 필터링"
+          onChange={(event) => onMinimumCriteriaOnlyChange(event.target.checked)}
+        />
         <span className="fuma-applicant-minimum-tooltip">
           <button
             aria-describedby="applicant-minimum-tooltip"
@@ -266,15 +262,12 @@ function ApplicantApprovalToolbar({
             팔로워·구독자 500명 이하 또는 최근 3개월 내 활동 콘텐츠가 3건 이하인 지원자를 필터링합니다.
           </Tooltip>
         </span>
-        <label className="fuma-applicant-minimum-toggle fuma-applicant-ai-report-toggle">
-          <input
-            checked={hasAiReportOnly}
-            onChange={(event) => onHasAiReportOnlyChange(event.target.checked)}
-            type="checkbox"
-          />
-          <span aria-hidden="true" />
-          <b>AI 리포트 있는 지원자만</b>
-        </label>
+        <Switch
+          checked={hasAiReportOnly}
+          className="fuma-applicant-ai-report-toggle"
+          label="AI 리포트 있는 지원자만"
+          onChange={(event) => onHasAiReportOnlyChange(event.target.checked)}
+        />
       </div>
       <div className="fuma-settlement-result-meta">
         <span>총 {count}건</span>
