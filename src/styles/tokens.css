@@ -60,7 +60,6 @@
   --hsas-text-muted: #8a8f91;
   --hsas-text-inverse: var(--hsas-color-white);
   --hsas-tooltip-background: #303030;
-  --hsas-tooltip-text: var(--hsas-color-white);
 
   --hsas-status-approved: var(--hsas-teal);
   --hsas-status-approved-bg: #f5f6f4;

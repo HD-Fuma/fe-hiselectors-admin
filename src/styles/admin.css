@@ -204,7 +204,7 @@
   padding: var(--hsas-space-8) var(--hsas-space-10);
   border-radius: 7px;
   background: var(--hsas-tooltip-background);
-  color: var(--hsas-tooltip-text);
+  color: #fff;
   font-size: var(--hsas-font-10);
   font-weight: 700;
   line-height: 1.35;
@@ -213,6 +213,10 @@
   visibility: hidden;
   transform: translateY(3px);
   transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
+}
+
+.hsas-tooltip > * {
+  color: inherit;
 }
 
 .hsas-tooltip--top::after,
