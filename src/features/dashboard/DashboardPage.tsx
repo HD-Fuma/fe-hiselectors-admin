@@ -4,7 +4,11 @@ import { HsECharts, type EChartsOption } from "../../components/charts/HsECharts
 import { ECHARTS_TOOLTIP_STYLE } from "../../components/charts/chartColors";
 import { getAdminApplications } from "../../entities/application";
 import { getCampaigns } from "../../entities/campaign";
-import { adaptContentInspection, getCurrentGenerationContents } from "../../entities/content";
+import {
+  adaptContentInspection,
+  getCurrentGenerationContents,
+  type ContentInspectionFixture,
+} from "../../entities/content";
 import { getContentPerformanceSummary } from "../../entities/performance";
 import {
   getSettlementEstimateSummary,
@@ -28,6 +32,7 @@ interface DashboardData {
   } | null;
   currentGenerationContentCount: number | null;
   currentGenerationInspectionCount: number | null;
+  inspectionContents: ContentInspectionFixture[] | null;
   inspectionDurationSampleCount: number | null;
   pendingApplications: number | null;
   pendingContents: number | null;
@@ -45,6 +50,7 @@ const EMPTY_DASHBOARD: DashboardData = {
   contentBreakdown: null,
   currentGenerationContentCount: null,
   currentGenerationInspectionCount: null,
+  inspectionContents: null,
   inspectionDurationSampleCount: null,
   pendingApplications: null,
   pendingContents: null,
@@ -406,6 +412,7 @@ export function DashboardPage() {
           ? summary.value.currentGenerationContentCount
           : null,
         currentGenerationInspectionCount: inspectionRows?.length ?? null,
+        inspectionContents: inspectionRows?.map(({ inspection }) => inspection) ?? null,
         inspectionDurationSampleCount: inspectionDurations?.length ?? null,
         pendingApplications: pendingApplicationsByPlatform ?? (
           totalApplications != null && processedApplications != null
@@ -440,6 +447,10 @@ export function DashboardPage() {
     ? null
     : ((data.currentGenerationContentCount - data.previousGenerationContentCount)
       / data.previousGenerationContentCount) * 100;
+  const inspectionStartContent = data.inspectionContents
+    ?.filter((content) => content.inspectionStatus === "검수 대기")
+    .slice()
+    .reverse()[0];
 
   return (
     <section aria-labelledby="dashboard-title" className="fuma-dashboard">
@@ -462,7 +473,18 @@ export function DashboardPage() {
             ]}
             unit="건"
           />
-          <Link className="fuma-dashboard__primary-action" to="/content/inspections">
+          <Link
+            className="fuma-dashboard__primary-action"
+            state={inspectionStartContent && data.inspectionContents ? {
+              content: inspectionStartContent,
+              contents: data.inspectionContents,
+              from: "/dashboard",
+              inspectionSession: true,
+            } : undefined}
+            to={inspectionStartContent
+              ? `/content/inspections/${inspectionStartContent.id}`
+              : "/content/inspections"}
+          >
             검수 시작하기
             <span aria-hidden="true">→</span>
           </Link>
