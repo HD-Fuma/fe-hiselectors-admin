@@ -16,7 +16,7 @@ export function ViewModeToggle({
   onChange,
   gridLabel = "카드",
   listLabel = "목록",
-  tooltip = "보기 방식을 변경할 수 있습니다",
+  tooltip = "보기를 변경할 수 있습니다",
 }: ViewModeToggleProps) {
   const tooltipId = useId();
   const [showTooltip, setShowTooltip] = useState(true);

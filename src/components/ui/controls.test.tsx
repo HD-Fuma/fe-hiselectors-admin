@@ -28,7 +28,7 @@ describe("HSAS controls", () => {
     const toggle = screen.getByRole("switch", { name: "보기 방식" });
     expect(toggle).toHaveClass("is-grid");
     expect(toggle).not.toBeChecked();
-    expect(screen.getByRole("tooltip")).toHaveTextContent("보기 방식을 변경할 수 있습니다");
+    expect(screen.getByRole("tooltip")).toHaveTextContent("보기를 변경할 수 있습니다");
     expect(screen.getByRole("tooltip")).toHaveClass("is-visible");
 
     fireEvent.mouseEnter(toggle.parentElement!);
