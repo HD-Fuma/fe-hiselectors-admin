@@ -1,7 +1,5 @@
 import {
   BarChart3,
-  Bell,
-  CheckCircle2,
   CircleHelp,
   ClipboardList,
   Images,
@@ -62,13 +60,13 @@ function count(value: number | null) {
 }
 
 function DashboardStat({
-  description,
+  detail,
   icon: Icon,
   label,
   to,
   value,
 }: {
-  description: string;
+  detail?: string | null;
   icon: ComponentType<{ "aria-hidden"?: boolean }>;
   label: string;
   to: string;
@@ -80,20 +78,20 @@ function DashboardStat({
       <span className="fuma-dashboard-stat__copy">
         <small>{label}</small>
         <strong>{count(value)}</strong>
-        <span>{description}</span>
+        {detail && <span>{detail}</span>}
       </span>
     </Link>
   );
 }
 
 function TodayTask({
-  description,
+  detail,
   icon: Icon,
   label,
   to,
   value,
 }: {
-  description: string;
+  detail?: string;
   icon: ComponentType<{ "aria-hidden"?: boolean }>;
   label: string;
   to: string;
@@ -105,7 +103,7 @@ function TodayTask({
         <span className="fuma-dashboard-task__icon"><Icon aria-hidden /></span>
         <span className="fuma-dashboard-task__copy">
           <strong>{label}</strong>
-          <small>{description}</small>
+          {detail && <small>{detail}</small>}
         </span>
         <b>{count(value)}<small>건</small></b>
       </Link>
@@ -164,71 +162,43 @@ export function DashboardPage() {
   const todayCampaignCount = data.todayCampaigns?.length ?? null;
   const startingCampaigns = data.todayCampaigns?.filter(({ startDate }) => startDate === today).length;
   const endingCampaigns = data.todayCampaigns?.filter(({ endDate }) => endDate === today).length;
-  const pendingTotal = [data.pendingApplications, data.pendingContents, todayCampaignCount]
-    .every((value) => value != null)
-    ? (data.pendingApplications ?? 0) + (data.pendingContents ?? 0) + (todayCampaignCount ?? 0)
-    : null;
-  const todayLabel = new Intl.DateTimeFormat("ko-KR", {
-    dateStyle: "full",
-    timeZone: "Asia/Seoul",
-  }).format(new Date());
 
   return (
     <section className="fuma-page fuma-dashboard">
       <PageHeader title="대시보드" />
       <div className="fuma-page__body">
-        <header className="fuma-dashboard__welcome">
-          <div>
-            <span>{todayLabel}</span>
-            <h2>오늘도 중요한 업무부터 확인하세요.</h2>
-          </div>
-          <div className="fuma-dashboard__today-total">
-            <small>오늘 확인할 업무</small>
-            <strong>{count(pendingTotal)}<span>건</span></strong>
-          </div>
-        </header>
-
-        <section aria-label="주요 통계" className="fuma-dashboard__stats">
-          <DashboardStat description="현재 진행 중" icon={BarChart3} label="진행 중 캠페인" to="/campaigns" value={data.activeCampaigns} />
-          <DashboardStat description="등록된 전체 인원" icon={UsersRound} label="전체 셀렉터스" to="/selectors" value={data.selectors} />
-          <DashboardStat description={data.currentGenerationName ?? "현재 활동 기수"} icon={Images} label="현재 기수 콘텐츠" to="/performance/contents" value={data.currentGenerationContentCount} />
-          <DashboardStat description="지원자·검수·오늘 캠페인" icon={CheckCircle2} label="오늘 확인할 업무" to="/applicants" value={pendingTotal} />
+        <section aria-labelledby="dashboard-priority-title" className="fuma-dashboard__priority">
+          <h2 id="dashboard-priority-title">우선 처리</h2>
+          <ul className="fuma-dashboard__tasks">
+            <TodayTask icon={CircleHelp} label="승인 대기 지원자" to="/applicants" value={data.pendingApplications} />
+            <TodayTask icon={ShieldCheck} label="검수 대기 콘텐츠" to="/content/inspections" value={data.pendingContents} />
+          </ul>
         </section>
 
-        <div className="fuma-dashboard__columns">
-          <section aria-labelledby="dashboard-tasks-title" className="fuma-dashboard-panel">
-            <header className="fuma-dashboard-panel__header">
-              <div><span>TODAY</span><h2 id="dashboard-tasks-title">오늘 할 일</h2></div>
-              <small>확인이 필요한 업무를 모았습니다.</small>
-            </header>
-            <ul className="fuma-dashboard__tasks">
-              <TodayTask description="심사를 기다리는 지원자" icon={CircleHelp} label="승인 대기 지원자" to="/applicants" value={data.pendingApplications} />
-              <TodayTask description="현재 기수의 미처리 콘텐츠" icon={ShieldCheck} label="검수 대기 콘텐츠" to="/content/inspections" value={data.pendingContents} />
-              <TodayTask
-                description={todayCampaignCount == null ? "오늘 일정 확인 중" : `시작 ${startingCampaigns ?? 0}건 · 종료 ${endingCampaigns ?? 0}건`}
-                icon={ClipboardList}
-                label="오늘 시작·종료하는 캠페인"
-                to="/campaigns"
-                value={todayCampaignCount}
-              />
-            </ul>
-          </section>
+        <section aria-labelledby="dashboard-stats-title" className="fuma-dashboard-panel">
+          <h2 id="dashboard-stats-title">운영 현황</h2>
+          <div aria-label="주요 통계" className="fuma-dashboard__stats">
+            <DashboardStat
+              detail={todayCampaignCount == null ? null : `시작 ${startingCampaigns ?? 0}건 · 종료 ${endingCampaigns ?? 0}건`}
+              icon={ClipboardList}
+              label="오늘 시작·종료하는 캠페인"
+              to="/campaigns"
+              value={todayCampaignCount}
+            />
+            <DashboardStat icon={BarChart3} label="진행 중 캠페인" to="/campaigns" value={data.activeCampaigns} />
+            <DashboardStat icon={UsersRound} label="전체 셀렉터스" to="/selectors" value={data.selectors} />
+            <DashboardStat detail={data.currentGenerationName} icon={Images} label="현재 기수 콘텐츠" to="/performance/contents" value={data.currentGenerationContentCount} />
+          </div>
+        </section>
 
-          <section aria-labelledby="dashboard-shortcuts-title" className="fuma-dashboard-panel">
-            <header className="fuma-dashboard-panel__header">
-              <div><span>QUICK MENU</span><h2 id="dashboard-shortcuts-title">바로가기</h2></div>
-            </header>
-            <nav aria-label="관리자 바로가기" className="fuma-dashboard__shortcuts">
-              {DASHBOARD_LINKS.map(({ label, to }) => (
-                <Link key={to} to={to}><span>{label}</span><b aria-hidden>→</b></Link>
-              ))}
-            </nav>
-            <div className="fuma-dashboard__notice">
-              <Bell aria-hidden />
-              <span><strong>운영 현황</strong>각 수치는 현재 DB 조회 결과를 기준으로 표시됩니다.</span>
-            </div>
-          </section>
-        </div>
+        <section aria-labelledby="dashboard-shortcuts-title" className="fuma-dashboard__shortcut-section">
+          <h2 id="dashboard-shortcuts-title">바로가기</h2>
+          <nav aria-label="관리자 바로가기" className="fuma-dashboard__shortcuts">
+            {DASHBOARD_LINKS.map(({ label, to }) => (
+              <Link key={to} to={to}><span>{label}</span><b aria-hidden>→</b></Link>
+            ))}
+          </nav>
+        </section>
       </div>
     </section>
   );

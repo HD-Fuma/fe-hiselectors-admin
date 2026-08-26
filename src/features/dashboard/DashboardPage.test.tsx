@@ -80,4 +80,6 @@ test("shows database-backed tasks, statistics, and shortcuts", async () => {
   expect(screen.getByRole("link", { name: /전체 셀렉터스.*12/ })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /현재 기수 콘텐츠.*28.*3기/ })).toBeInTheDocument();
   expect(screen.getByRole("navigation", { name: "관리자 바로가기" })).toBeInTheDocument();
+  expect(screen.queryByText(/오늘 확인할 업무/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/DB 조회 결과/)).not.toBeInTheDocument();
 });
