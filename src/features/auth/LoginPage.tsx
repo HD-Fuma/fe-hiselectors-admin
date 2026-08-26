@@ -44,6 +44,7 @@ export function LoginPage() {
       persistAdministratorSession(session);
       navigate(safeReturnPath(location.state as LoginLocationState | null), {
         replace: true,
+        viewTransition: true,
       });
     } catch (error) {
       setErrorMessage(
