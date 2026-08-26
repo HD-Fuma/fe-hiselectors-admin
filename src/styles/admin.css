@@ -3564,6 +3564,11 @@
   animation: fuma-content-inspection-refresh-spin 0.8s linear infinite;
 }
 
+.fuma-creator-pool-build-action {
+  position: relative;
+  display: inline-flex;
+}
+
 .fuma-creator-pool-build-action > .hsas-tooltip {
   --hsas-tooltip-arrow-right: calc(var(--hsas-control-height) / 2 - 5px);
 
