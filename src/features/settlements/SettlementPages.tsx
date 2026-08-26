@@ -104,8 +104,7 @@ function formatSignedWon(amount: number) {
 
 function hasSettlementActivity(month: SettlementMonthlySummary | undefined) {
   return Boolean(month && (
-    month.settlementCount > 0
-    || month.confirmedPurchaseCount > 0
+    month.confirmedPurchaseCount > 0
     || month.confirmedSalesAmount > 0
     || month.settlementAmount > 0
   ));

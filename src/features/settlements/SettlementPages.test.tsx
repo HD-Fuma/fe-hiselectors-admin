@@ -499,7 +499,7 @@ test("fills only missing previous months while keeping current real data", async
     confirmedPurchaseCount: index === months.length - 1 ? 8 : 0,
     confirmedSalesAmount: index === months.length - 1 ? 44_800 : 0,
     settlementAmount: index === months.length - 1 ? 3_584 : 0,
-    settlementCount: index === months.length - 1 ? 16 : 0,
+    settlementCount: index >= months.length - 2 ? 16 : 0,
   }));
   const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
     const url = new URL(String(input));
@@ -552,14 +552,21 @@ test("fills only missing previous months while keeping current real data", async
   });
   const demoSummary = getDemoSettlementSummary(activityMonth);
   const demoOldest = demoSummary.monthlyTrend[0];
+  const demoPrevious = demoSummary.monthlyTrend.at(-2);
   const demoCurrent = demoSummary.monthlyTrend.at(-1);
-  if (!demoOldest || !demoCurrent) throw new Error("demo trend is incomplete");
+  if (!demoOldest || !demoPrevious || !demoCurrent) throw new Error("demo trend is incomplete");
   const expectedOldestSales = Math.round(
     44_800 * demoOldest.confirmedSalesAmount / demoCurrent.confirmedSalesAmount,
+  );
+  const expectedPreviousSales = Math.round(
+    44_800 * demoPrevious.confirmedSalesAmount / demoCurrent.confirmedSalesAmount,
   );
   expect(expectedOldestSales).toBeLessThan(44_800);
   expect(trend).toHaveAccessibleName(new RegExp(
     `${months[0]} 확정 매출 ${expectedOldestSales.toLocaleString("ko-KR")}원`,
+  ));
+  expect(trend).toHaveAccessibleName(new RegExp(
+    `${months.at(-2)} 확정 매출 ${expectedPreviousSales.toLocaleString("ko-KR")}원`,
   ));
   expect(trend).toHaveAccessibleName(/확정 매출 44,800원, 수수료율 8.00%/);
 });
