@@ -3498,6 +3498,11 @@
   column-gap: var(--hsas-space-20);
 }
 
+.fuma-settlement-search.fuma-applicant-search .fuma-filter-field {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--hsas-space-8);
+}
+
 .fuma-applicant-result-toolbar .fuma-creator-toolbar__controls {
   margin-left: 0;
   gap: var(--hsas-space-8);
