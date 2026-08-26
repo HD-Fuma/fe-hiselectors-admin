@@ -3373,20 +3373,24 @@
 }
 
 .fuma-selector-search .hsas-search-panel__fields {
-  grid-template-columns: 260px 160px 220px;
+  grid-template-columns: 220px 260px 160px 220px;
   column-gap: var(--hsas-space-20);
   justify-content: start;
 }
 
 .fuma-selector-search .fuma-filter-field:first-child {
-  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-columns: 72px minmax(0, 1fr);
 }
 
 .fuma-selector-search .fuma-filter-field:nth-child(2) {
-  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-columns: 52px minmax(0, 1fr);
 }
 
 .fuma-selector-search .fuma-filter-field:nth-child(3) {
+  grid-template-columns: 36px minmax(0, 1fr);
+}
+
+.fuma-selector-search .fuma-filter-field:nth-child(4) {
   grid-template-columns: 42px minmax(0, 1fr);
 }
 

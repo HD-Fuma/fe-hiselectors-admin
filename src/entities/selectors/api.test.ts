@@ -2,6 +2,8 @@ import {
   createGeneration,
   getSelector,
   getSelectorFilterGenerations,
+  getSelectorPerformanceSummary,
+  getSelectorPerformanceTrend,
   getSelectorSalesPerformance,
   getSelectors,
   updateGeneration,
@@ -112,6 +114,7 @@ describe("selector admin api", () => {
 
     await expect(getSelectorSalesPerformance({
       endDate: "2026-08-31",
+      generationId: 5,
       keyword: "김서연",
       startDate: "2026-08-01",
     })).resolves.toEqual(rows);
@@ -120,8 +123,37 @@ describe("selector admin api", () => {
     expect(String(url)).toContain("/api/admin/selector-performance?");
     expect(String(url)).toContain("startDate=2026-08-01");
     expect(String(url)).toContain("endDate=2026-08-31");
+    expect(String(url)).toContain("generationId=5");
     expect(String(url)).toContain("keyword=%EA%B9%80%EC%84%9C%EC%97%B0");
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer token");
+  });
+
+  test("loads selector performance summary and trend with generation and period", async () => {
+    const summary = { universe: { selectorCount: 2 } };
+    const trend = { bucket: "DAY", points: [] };
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(json(summary))
+      .mockResolvedValueOnce(json(trend)));
+
+    await expect(getSelectorPerformanceSummary({
+      generationId: 5,
+      startDate: "2026-08-01",
+      endDate: "2026-08-31",
+    })).resolves.toEqual(summary);
+    await expect(getSelectorPerformanceTrend({
+      generationId: 5,
+      startDate: "2026-08-01",
+      endDate: "2026-08-31",
+    })).resolves.toEqual(trend);
+
+    expect(String(vi.mocked(fetch).mock.calls[0][0])).toContain(
+      "/api/admin/selector-performance/summary?",
+    );
+    expect(String(vi.mocked(fetch).mock.calls[0][0])).toContain("generationId=5");
+    expect(String(vi.mocked(fetch).mock.calls[1][0])).toContain(
+      "/api/admin/selector-performance/trend?",
+    );
+    expect(String(vi.mocked(fetch).mock.calls[1][0])).toContain("startDate=2026-08-01");
   });
 
   test("uses the backend error message", async () => {

@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Select, TextInput } from "../../components/ui/Controls";
-import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
 import { ListSearchPanel } from "../../components/ui/ListSearchPanel";
-import { Pagination } from "../../components/ui/Pagination";
 import { SearchActions } from "../../components/ui/SearchActions";
 import "../../styles/content-inspection.css";
 import "../../styles/performance-dashboard.css";
@@ -22,16 +20,23 @@ import {
   type ContentPerformanceSummaryApi,
 } from "../../entities/performance";
 import {
-  ExcellentSelectorTable,
+  getGenerations,
   getSelector,
-  getSelectorSalesPerformance,
+  getSelectorPerformanceSummary,
+  getSelectorPerformanceTrend,
   SelectorDetailPanel,
-  SelectorSalesPerformanceTable,
+  type Generation,
   type SelectorDetail,
-  type SelectorSalesPerformance,
 } from "../../entities/selectors";
-import { paginate } from "../../lib/pagination";
 import { ContentPerformanceDashboard } from "./ContentPerformanceDashboard";
+import { SelectorPerformanceDashboard } from "./SelectorPerformanceDashboard";
+import {
+  adaptSelectorPerformanceSummary,
+  adaptSelectorPerformanceTrend,
+  EMPTY_SELECTOR_DASHBOARD_SUMMARY,
+  type SelectorDashboardTrendPoint,
+  type WatchlistKey,
+} from "./selectorDashboard";
 
 const COHORT_OPTIONS = [
   { label: "전체", value: "" },
@@ -108,6 +113,7 @@ function PerformanceFilters({
   onReset,
   onSearch,
   showCampaign = true,
+  showCohort = true,
   showPeriod = true,
   values,
 }: {
@@ -120,6 +126,7 @@ function PerformanceFilters({
   onReset: () => void;
   onSearch: () => void;
   showCampaign?: boolean;
+  showCohort?: boolean;
   showPeriod?: boolean;
   values: PerformanceFilterValues;
 }) {
@@ -136,15 +143,17 @@ function PerformanceFilters({
           />
         </FilterField>
       ) : null}
-      <FilterField htmlFor="performance-cohort" label="기수">
-        <Select
-          aria-label="기수"
-          id="performance-cohort"
-          onChange={(event) => onChange("cohort", event.target.value)}
-          options={cohortOptions}
-          value={values.cohort}
-        />
-      </FilterField>
+      {showCohort ? (
+        <FilterField htmlFor="performance-cohort" label="기수">
+          <Select
+            aria-label="기수"
+            id="performance-cohort"
+            onChange={(event) => onChange("cohort", event.target.value)}
+            options={cohortOptions}
+            value={values.cohort}
+          />
+        </FilterField>
+      ) : null}
       {showCampaign ? (
         <FilterField htmlFor="performance-campaign" label="캠페인">
           <Select
@@ -191,15 +200,16 @@ function PerformanceFilters({
 
 
 export function SelectorPerformancePage() {
-  const [page, setPage] = useState(1);
-  const [selectedTab, setSelectedTab] = useState<"excellent" | null>(null);
+  const [watchlist, setWatchlist] = useState<WatchlistKey | null>(null);
   const [selectedSelectorId, setSelectedSelectorId] = useState<number | null>(null);
   const [selectorDetailState, setSelectorDetailState] = useState<{
     id: number;
     detail: SelectorDetail | null;
     error: string;
   } | null>(null);
-  const [selectors, setSelectors] = useState<SelectorSalesPerformance[]>([]);
+  const [summary, setSummary] = useState(EMPTY_SELECTOR_DASHBOARD_SUMMARY);
+  const [trend, setTrend] = useState<SelectorDashboardTrendPoint[]>([]);
+  const [generations, setGenerations] = useState<Generation[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [requestVersion, setRequestVersion] = useState(0);
@@ -210,62 +220,40 @@ export function SelectorPerformancePage() {
     resetFilters,
     updateDraftFilter,
   } = usePerformanceFilterState();
-  const filteredSelectors = selectors.filter((selector) => (
-    (!appliedFilters.cohort || (
-      selectedTab === "excellent"
-        ? (selector.excellentGenerationName || selector.generationName) === appliedFilters.cohort
-        : selector.generationName === appliedFilters.cohort
-    ))
-    && includesKeyword(
-      [selector.selectorCode, selector.nickname, String(selector.selectorId)],
-      appliedFilters.keyword,
-    )
-  ));
-  const visibleSelectors = selectedTab === "excellent"
-    ? filteredSelectors.filter((selector) => selector.isExcellent)
-    : filteredSelectors;
-  const sortedSelectors = [...visibleSelectors].sort(
-    (left, right) => (selectedTab === "excellent"
-      ? (right.excellentGenerationSales ?? right.totalSales)
-        - (left.excellentGenerationSales ?? left.totalSales)
-      : right.totalSales - left.totalSales)
-      || right.confirmedOrderCount - left.confirmedOrderCount
-      || left.selectorCode.localeCompare(right.selectorCode),
-  );
-  const {
-    currentPage,
-    pagedItems,
-    totalPages,
-  } = paginate(sortedSelectors, page, 20);
+  const generationId = appliedFilters.cohort === ""
+    ? undefined
+    : Number(appliedFilters.cohort);
   const cohortOptions = [
     { label: "전체", value: "" },
-    ...Array.from(new Set(
-      selectors.flatMap((selector) => {
-        if (selectedTab === "excellent") {
-          return selector.isExcellent
-            ? selector.excellentGenerationName || selector.generationName || []
-            : [];
-        }
-        return selector.generationName || [];
-      }),
-    )).map((generationName) => ({ label: generationName, value: generationName })),
+    ...generations.map((generation) => ({
+      label: generation.generationName,
+      value: String(generation.id),
+    })),
   ];
+
   useEffect(() => {
     const controller = new AbortController();
-    void getSelectorSalesPerformance({
+    const query = {
       endDate: appliedFilters.periodEnd || undefined,
-      keyword: appliedFilters.keyword || undefined,
+      generationId: Number.isFinite(generationId) ? generationId : undefined,
       startDate: appliedFilters.periodStart || undefined,
-    }, controller.signal)
-      .then((items) => {
-        setSelectors(items);
+    };
+    void Promise.all([
+      getSelectorPerformanceSummary(query, controller.signal),
+      getSelectorPerformanceTrend(query, controller.signal),
+    ])
+      .then(([summaryResponse, trendResponse]) => {
+        setSummary(adaptSelectorPerformanceSummary(summaryResponse));
+        setTrend(adaptSelectorPerformanceTrend(trendResponse));
         setErrorMessage("");
       })
       .catch((reason: unknown) => {
         if (controller.signal.aborted) return;
+        setSummary(EMPTY_SELECTOR_DASHBOARD_SUMMARY);
+        setTrend([]);
         setErrorMessage(reason instanceof Error
           ? reason.message
-          : "셀렉터스 성과 목록 조회에 실패했습니다.");
+          : "셀렉터스 성과 조회에 실패했습니다.");
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -273,11 +261,24 @@ export function SelectorPerformancePage() {
 
     return () => controller.abort();
   }, [
-    appliedFilters.keyword,
     appliedFilters.periodEnd,
     appliedFilters.periodStart,
+    generationId,
     requestVersion,
   ]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void getGenerations(controller.signal)
+      .then((items) => {
+        if (!controller.signal.aborted) setGenerations(items);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setGenerations([]);
+      });
+
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     if (selectedSelectorId === null) return;
@@ -305,22 +306,22 @@ export function SelectorPerformancePage() {
   const currentSelectorDetail = selectorDetailState?.id === selectedSelectorId
     ? selectorDetailState
     : null;
-  const openSelectorDetail = (selector: SelectorSalesPerformance) => {
+  const openSelectorDetail = (selectorId: number) => {
     setSelectorDetailState(null);
-    setSelectedSelectorId(selector.selectorId);
+    setSelectedSelectorId(selectorId);
   };
 
   const applyAndResetPage = () => {
     setLoading(true);
     applyFilters();
-    setPage(1);
+    setWatchlist(null);
     setRequestVersion((current) => current + 1);
   };
 
   const resetAndResetPage = () => {
     setLoading(true);
     resetFilters();
-    setPage(1);
+    setWatchlist(null);
     setRequestVersion((current) => current + 1);
   };
 
@@ -328,82 +329,28 @@ export function SelectorPerformancePage() {
     <section className="fuma-page fuma-performance-page">
       <PageHeader title="셀렉터스 성과" />
       <div className="fuma-page__body">
-        <section
-          aria-label="셀렉터스 성과 목록"
-          className="fuma-content-collection fuma-content-performance-results"
-          role="region"
-        >
+        <div className="fuma-performance-top-filter">
           <PerformanceFilters
             cohortOptions={cohortOptions}
-            keyword={{
-              id: "performance-selector-name",
-              label: "셀렉터스명",
-              placeholder: "이름 또는 ID 검색",
-            }}
             onChange={updateDraftFilter}
             onReset={resetAndResetPage}
             onSearch={applyAndResetPage}
             showCampaign={false}
             values={draftFilters}
           />
-          <ChoiceTabs
-            actions={(
-              <span className="fuma-selector-performance-tabs__count">
-                총 {sortedSelectors.length}건
-              </span>
-            )}
-            ariaLabel="셀렉터스 구분"
-            className="fuma-selector-status-filter fuma-selector-performance-tabs"
-            emptyOption={{
-              label: "전체",
-              onSelect: () => {
-                setSelectedTab(null);
-                setPage(1);
-              },
-            }}
-            onChange={() => {
-              setSelectedTab("excellent");
-              setPage(1);
-            }}
-            options={[{
-              label: "우수 활동자",
-              value: "excellent",
-            }]}
-            value={selectedTab}
+        </div>
+        {errorMessage ? (
+          <EmptyState description={errorMessage} title="셀렉터스 성과를 불러오지 못했습니다." />
+        ) : (
+          <SelectorPerformanceDashboard
+            loading={loading}
+            onSelectSelector={(row) => openSelectorDetail(row.selectorId)}
+            onWatchlistChange={setWatchlist}
+            summary={summary}
+            trend={trend}
+            watchlist={watchlist}
           />
-          {loading ? (
-            <EmptyState description="잠시만 기다려 주세요." title="셀렉터스 성과를 불러오는 중입니다." />
-          ) : errorMessage ? (
-            <EmptyState description={errorMessage} title="셀렉터스 성과를 불러오지 못했습니다." />
-          ) : (
-            <div
-              aria-label={selectedTab === "excellent"
-                ? "우수 활동자 목록"
-                : "전체 셀렉터스 성과 목록"}
-              className="fuma-wide-table fuma-settlement-table"
-              role="region"
-            >
-              {selectedTab === "excellent" ? (
-                <ExcellentSelectorTable
-                  onRowClick={openSelectorDetail}
-                  rows={pagedItems}
-                />
-              ) : (
-                <SelectorSalesPerformanceTable
-                  onRowClick={openSelectorDetail}
-                  rankOffset={(currentPage - 1) * 20}
-                  rows={pagedItems}
-                />
-              )}
-            </div>
-          )}
-          <Pagination
-            onPageChange={setPage}
-            page={currentPage}
-            pageSize={20}
-            totalPages={totalPages}
-          />
-        </section>
+        )}
       </div>
       {selectedSelectorId !== null ? (
         <SelectorDetailPanel

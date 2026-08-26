@@ -3,63 +3,139 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, vi } from "vitest";
 import { renderRoute } from "../../test/renderRoute";
 
-const SELECTOR_PERFORMANCE_ROWS = [
-  {
-    confirmedOrderCount: 3,
-    excellentActivityType: null,
-    excellentGenerationName: null,
-    excellentGenerationSales: null,
-    generationName: "3기",
-    isExcellent: false,
-    nickname: "낮은매출",
-    roleId: "INACTIVE",
-    selectorCode: "SEL0003",
-    selectorId: 3,
-    totalSales: 900_000,
+const SELECTOR_PERFORMANCE_SUMMARY = {
+  categories: [{
+    averageSales: 12_700_000,
+    category: "BEAUTY",
+    medianSales: 8_400_000,
+    reference: true,
+    selectorCount: 2,
+  }],
+  distribution: {
+    buckets: [
+      { key: "ZERO", selectorCount: 0 },
+      { key: "UP_TO_100000", selectorCount: 0 },
+      { key: "UP_TO_500000", selectorCount: 0 },
+      { key: "UP_TO_1000000", selectorCount: 0 },
+      { key: "OVER_1000000", selectorCount: 2 },
+    ],
+    sellingSelectorCount: 2,
+    topShareRate: 96.5,
+    zeroSalesSelectorCount: 0,
   },
-  {
-    confirmedOrderCount: 31,
-    excellentActivityType: "3기 활동 누적 1위 · 누적 매출 1,000만원 이상 달성",
-    excellentGenerationName: "3기",
-    excellentGenerationSales: 19_000_000,
+  kpis: {
+    accruedCommissionAmount: 1_200_000,
+    accruedCommissionChangeRate: 20,
+    averageSales: 12_700_000,
+    averageSalesChangeRate: 10,
+    clickCount: 800,
+    confirmedOrderChangeRate: 15,
+    confirmedOrderCount: 34,
+    conversionRate: 4.25,
+    medianSales: 8_400_000,
+    previousAccruedCommissionAmount: 1_000_000,
+    previousAverageSales: 11_500_000,
+    previousConfirmedOrderCount: 30,
+    previousTotalSales: 20_000_000,
+    totalSales: 25_400_000,
+    totalSalesChangeRate: 27,
+  },
+  top5: [{
+    category: "BEAUTY",
     generationName: "5기",
-    isExcellent: true,
     nickname: "최고매출",
-    roleId: "ACTIVE",
-    selectorCode: "SEL0001",
+    previousRank: null,
+    profileImageUrl: null,
+    rank: 1,
     selectorId: 1,
     totalSales: 24_500_000,
+  }],
+  universe: {
+    generationIds: [5, 3],
+    previousEndDate: "2026-07-31",
+    previousStartDate: "2026-04-01",
+    selectorCount: 2,
+  },
+  watchlist: {
+    clicksWithoutPurchase: 0,
+    newTop10: 1,
+    noClicks: 0,
+    noUploads: 0,
+    salesDrop: 0,
+    salesSurge: 1,
+  },
+} as const;
+
+const SELECTOR_PERFORMANCE_TREND = {
+  bucket: "DAY",
+  endDate: "2026-08-03",
+  points: [
+    { confirmedOrderCount: 1, date: "2026-08-01", totalSales: 100 },
+    { confirmedOrderCount: 2, date: "2026-08-02", totalSales: 200 },
+    { confirmedOrderCount: 3, date: "2026-08-03", totalSales: 300 },
+  ],
+  startDate: "2026-08-01",
+} as const;
+
+const GENERATIONS = [
+  {
+    activityEndDate: "2026-06-30T23:59:59",
+    activityStartDate: "2026-04-01T00:00:00",
+    endDate: "2026-03-31T23:59:59",
+    generationName: "5기",
+    id: 5,
+    startDate: "2026-01-01T00:00:00",
+    status: "ACTIVE",
   },
   {
-    confirmedOrderCount: 14,
-    excellentActivityType: null,
-    excellentGenerationName: null,
-    excellentGenerationSales: null,
+    activityEndDate: "2026-06-30T23:59:59",
+    activityStartDate: "2026-04-01T00:00:00",
+    endDate: "2026-03-31T23:59:59",
+    generationName: "3기",
+    id: 3,
+    startDate: "2026-01-01T00:00:00",
+    status: "ACTIVE",
+  },
+  {
+    activityEndDate: "2026-06-30T23:59:59",
+    activityStartDate: "2026-04-01T00:00:00",
+    endDate: "2026-03-31T23:59:59",
     generationName: "2기",
-    isExcellent: false,
-    nickname: "중간매출",
-    roleId: "BLACKLIST",
-    selectorCode: "SEL0002",
-    selectorId: 2,
-    totalSales: 8_400_000,
+    id: 2,
+    startDate: "2026-01-01T00:00:00",
+    status: "INACTIVE",
   },
 ] as const;
 
+function json(data: unknown) {
+  return Promise.resolve(new Response(JSON.stringify({
+    code: "OK",
+    data,
+    message: null,
+    success: true,
+  }), { status: 200, headers: { "Content-Type": "application/json" } }));
+}
+
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
-    if (String(input).includes("/api/admin/selectors/")) {
+    const url = String(input);
+    if (url.includes("/api/admin/selectors/")) {
       return new Promise<Response>(() => {});
     }
-    return Promise.resolve(new Response(JSON.stringify({
-      code: "OK",
-      data: SELECTOR_PERFORMANCE_ROWS,
-      message: null,
-      success: true,
-    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    if (url.includes("/api/admin/selector-performance/summary")) {
+      return json(SELECTOR_PERFORMANCE_SUMMARY);
+    }
+    if (url.includes("/api/admin/selector-performance/trend")) {
+      return json(SELECTOR_PERFORMANCE_TREND);
+    }
+    if (url.includes("/api/admin/generations")) {
+      return json(GENERATIONS);
+    }
+    return json([]);
   }));
 });
 
-test("shows a sales-sorted table without the content overview sections", async () => {
+test("shows the cohort dashboard without a ranked sales list", async () => {
   renderRoute("/performance/selectors");
 
   expect(await screen.findByRole(
@@ -69,89 +145,65 @@ test("shows a sales-sorted table without the content overview sections", async (
   )).toBeInTheDocument();
   expect(screen.queryByText("업로드 현황")).not.toBeInTheDocument();
   expect(screen.queryByText("기간별 콘텐츠 성과")).not.toBeInTheDocument();
-  expect(screen.queryByText("셀렉터스 성과 목록")).not.toBeInTheDocument();
-  expect(screen.getByRole("search", { name: "검색 조건" }).parentElement)
-    .toHaveAttribute("data-visual-contract", "list-search-panel");
+  expect(screen.queryByRole("region", { name: "셀렉터스 성과 목록" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "전체 셀렉터스 성과 목록" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("navigation", { name: "셀렉터스 구분" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "우수 활동자" })).not.toBeInTheDocument();
 
-  const tabs = screen.getByRole("navigation", { name: "셀렉터스 구분" });
-  expect(within(tabs).getByRole("button", { name: "전체" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  expect(within(tabs).queryByText("확정 매출액이 높은 순으로 셀렉터스를 보여줍니다."))
-    .not.toBeInTheDocument();
-
-  const table = await screen.findByRole(
-    "region",
-    { name: "전체 셀렉터스 성과 목록" },
-    { timeout: 3_000 },
-  );
-  expect(within(table).getByRole("columnheader", { name: "총 매출액" })).toBeInTheDocument();
-  const rows = within(table).getAllByRole("row").slice(1);
-  expect(rows).toHaveLength(3);
-  expect(rows[0]).toHaveTextContent("최고매출");
-  expect(rows[1]).toHaveTextContent("중간매출");
-  expect(rows[2]).toHaveTextContent("낮은매출");
-  expect(within(table).queryByRole("img")).not.toBeInTheDocument();
-  expect(within(screen.getByRole("region", { name: "셀렉터스 성과 목록" }))
-    .queryByRole("button", { name: "목록" })).not.toBeInTheDocument();
+  const searches = screen.getAllByRole("search", { name: "검색 조건" });
+  expect(searches).toHaveLength(1);
+  expect(searches[0].parentElement).toHaveAttribute("data-visual-contract", "list-search-panel");
+  expect(searches[0].closest(".fuma-performance-top-filter")).not.toBeNull();
+  expect(within(searches[0]).getByRole("combobox", { name: "기수" })).toBeInTheDocument();
+  expect(within(searches[0]).getByLabelText("집계 시작일")).toBeInTheDocument();
+  expect(within(searches[0]).getByLabelText("집계 종료일")).toBeInTheDocument();
+  expect(within(searches[0]).queryByLabelText("셀렉터스명")).not.toBeInTheDocument();
 });
 
-test("opens selector detail over the performance page without navigating away", async () => {
+test("opens selector detail from the top 5 table without navigating away", async () => {
   const user = userEvent.setup();
   const { router } = renderRoute("/performance/selectors");
 
-  const table = await screen.findByRole(
-    "region",
-    { name: "전체 셀렉터스 성과 목록" },
+  const ranking = await screen.findByRole(
+    "article",
+    { name: "성과 TOP 5" },
     { timeout: 3_000 },
   );
-  await user.click(within(table).getAllByRole("row")[1]);
+  await user.click(await within(ranking).findByRole("button"));
 
   expect(router.state.location.pathname).toBe("/performance/selectors");
   expect(screen.getByTestId("admin-shell")).toHaveTextContent("셀렉터스 성과");
   expect(screen.getByRole("dialog", { name: "셀렉터스 상세" })).toBeInTheDocument();
 });
 
-test("switches to the shared excellent-selector table", async () => {
+test("shows the cohort dashboard and keeps watchlist selection on the summary", async () => {
   const user = userEvent.setup();
   renderRoute("/performance/selectors");
 
-  const tabs = await screen.findByRole(
-    "navigation",
-    { name: "셀렉터스 구분" },
-    { timeout: 3_000 },
-  );
-  const excellentTab = within(tabs).getByRole("button", { name: "우수 활동자" });
-  await user.click(excellentTab);
-
-  expect(excellentTab).toHaveAttribute("aria-pressed", "true");
-  expect(within(tabs).queryByText("매출 성과 기준을 충족한 우수 활동자입니다."))
+  const overview = await screen.findByRole("region", { name: "셀렉터스 성과 요약" }, { timeout: 3_000 });
+  expect(await within(overview).findByText("2명")).toBeInTheDocument();
+  expect(within(overview).getByRole("heading", { name: "기간 성과" })).toBeInTheDocument();
+  expect(within(overview).queryByRole("form", { name: "셀렉터스 성과 기간 검색" }))
     .not.toBeInTheDocument();
-  expect(screen.queryByText("우수 셀렉터스 목록")).not.toBeInTheDocument();
-  expect(screen.queryByText("매출 성과 기준을 충족한 우수 셀렉터스입니다."))
-    .not.toBeInTheDocument();
-  const table = screen.getByRole("region", { name: "우수 활동자 목록" });
-  expect(within(table).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
-    "셀렉터스 ID",
-    "이름",
-    "기수",
-    "종류",
-    "총 매출액",
-  ]);
-  expect(within(table).getByText("최고매출")).toBeInTheDocument();
-  expect(within(table).getByText("3기")).toBeInTheDocument();
-  expect(within(table).queryByText("5기")).not.toBeInTheDocument();
-  expect(within(table).getByText("19,000,000원")).toBeInTheDocument();
-  expect(within(table).queryByText("24,500,000원")).not.toBeInTheDocument();
-  expect(within(table).queryByText("중간매출")).not.toBeInTheDocument();
-  expect(within(table).queryByText("낮은매출")).not.toBeInTheDocument();
-  expect(within(table).queryByRole("img")).not.toBeInTheDocument();
-  const cohortFilter = screen.getByRole("combobox", { name: "기수" });
-  expect(within(cohortFilter).getByRole("option", { name: "3기" })).toBeInTheDocument();
-  expect(within(cohortFilter).queryByRole("option", { name: "5기" })).not.toBeInTheDocument();
-  expect(within(cohortFilter).queryByRole("option", { name: "2기" })).not.toBeInTheDocument();
+  const topFilter = screen.getAllByRole("search", { name: "검색 조건" })[0];
+  expect(within(topFilter).getByRole("combobox", { name: "기수" })).toBeInTheDocument();
+  expect(within(topFilter).getByLabelText("집계 시작일")).toBeInTheDocument();
+  expect(within(overview).getByText("집계 대상 셀렉터스")).toBeInTheDocument();
+  expect(within(overview).getByText("발생 수수료")).toBeInTheDocument();
+  expect(within(overview).getByRole("heading", { name: "성과 추이" })).toBeInTheDocument();
+  expect(within(overview).getByRole("img", { name: "기간별 전체 셀렉터스 성과 추이" })).toBeInTheDocument();
+  expect(within(overview).getByRole("heading", { name: "성과 분포" })).toBeInTheDocument();
+  expect(within(overview).getByRole("img", { name: "매출 구간별 인원" })).toBeInTheDocument();
+  expect(within(overview).getByRole("heading", { name: "성과 TOP 5" })).toBeInTheDocument();
+  expect(within(overview).getByRole("heading", { name: "셀렉터스 유형별 성과" })).toBeInTheDocument();
+  expect(within(overview).getByRole("img", { name: "유형별 매출 분포" })).toBeInTheDocument();
+  expect(within(overview).getByRole("heading", { name: "관리 필요" })).toBeInTheDocument();
+  expect(within(overview).getByRole("heading", { name: "성과 발견" })).toBeInTheDocument();
+  expect(within(overview).queryByText("업로드 현황")).not.toBeInTheDocument();
+  expect(within(overview).queryByText("중간매출")).not.toBeInTheDocument();
 
-  await user.click(within(tabs).getByRole("button", { name: "전체" }));
-  expect(screen.getByRole("region", { name: "전체 셀렉터스 성과 목록" })).toBeInTheDocument();
+  const rise = within(overview).getByRole("button", { name: /전월 대비 매출 100% 이상 증가/ });
+  await user.click(rise);
+  expect(rise).toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByRole("region", { name: "전체 셀렉터스 성과 목록" })).not.toBeInTheDocument();
 });

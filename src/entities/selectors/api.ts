@@ -101,13 +101,20 @@ export interface SelectorSearchRequest {
 }
 
 export interface SelectorSalesPerformance {
+  accruedCommissionAmount?: number | null;
+  category?: string | null;
+  clickCount?: number | null;
   confirmedOrderCount: number;
+  contentCount?: number | null;
   excellentActivityType: string | null;
   excellentGenerationName: string | null;
   excellentGenerationSales: number | null;
+  generationId?: number | null;
   generationName: string | null;
   isExcellent: boolean;
   nickname: string;
+  previousPeriodSales?: number | null;
+  profileImageUrl?: string | null;
   roleId: string;
   selectorCode: string;
   selectorId: number;
@@ -116,8 +123,93 @@ export interface SelectorSalesPerformance {
 
 export interface SelectorSalesPerformanceRequest {
   endDate?: string;
+  generationId?: number;
   keyword?: string;
   startDate?: string;
+}
+
+export interface SelectorPerformanceQuery {
+  endDate?: string;
+  generationId?: number;
+  startDate?: string;
+}
+
+export type SelectorPerformanceTrendBucket = "DAY" | "MONTH";
+
+export interface SelectorPerformanceTrendPoint {
+  confirmedOrderCount: number;
+  date: string;
+  totalSales: number;
+}
+
+export interface SelectorPerformanceTrend {
+  bucket: SelectorPerformanceTrendBucket;
+  endDate: string;
+  points: readonly SelectorPerformanceTrendPoint[];
+  startDate: string;
+}
+
+export interface SelectorPerformanceSummaryKpis {
+  accruedCommissionAmount: number;
+  accruedCommissionChangeRate: number | null;
+  averageSales: number;
+  averageSalesChangeRate: number | null;
+  clickCount: number;
+  confirmedOrderChangeRate: number | null;
+  confirmedOrderCount: number;
+  conversionRate: number;
+  medianSales: number;
+  previousAccruedCommissionAmount: number | null;
+  previousAverageSales: number | null;
+  previousConfirmedOrderCount: number | null;
+  previousTotalSales: number | null;
+  totalSales: number;
+  totalSalesChangeRate: number | null;
+}
+
+export interface SelectorPerformanceSummary {
+  categories: readonly {
+    averageSales: number;
+    boxplot?: {
+      outliers?: readonly number[] | null;
+      value?: readonly number[] | null;
+    } | null;
+    category: string | null;
+    medianSales: number;
+    reference: boolean;
+    selectorCount: number;
+  }[];
+  distribution: {
+    buckets: readonly { key: string; selectorCount: number }[];
+    sellingSelectorCount: number;
+    topShareRate: number;
+    zeroSalesSelectorCount: number;
+  };
+  kpis: SelectorPerformanceSummaryKpis;
+  top5: readonly {
+    category?: string | null;
+    generationName: string | null;
+    nickname: string;
+    previousRank: number | null;
+    profileImageUrl: string | null;
+    rank: number;
+    selectorId: number;
+    totalSales: number;
+  }[];
+  universe: {
+    generationIds: readonly number[];
+    previousEndDate: string | null;
+    previousStartDate: string | null;
+    selectorCount: number;
+  };
+  watchlist: {
+    clicksWithoutPurchase: number;
+    newTop10: number;
+    noClicks: number;
+    noUploads: number;
+    salesDrop: number;
+    salesSurge: number;
+  };
 }
 
 export interface SelectorFilterGeneration {
@@ -252,6 +344,7 @@ export function getSelectorSalesPerformance(
 ) {
   const search = query({
     endDate: input.endDate,
+    generationId: input.generationId,
     keyword: input.keyword,
     startDate: input.startDate,
   });
@@ -259,6 +352,38 @@ export function getSelectorSalesPerformance(
   return request<SelectorSalesPerformance[]>(
     `/api/admin/selector-performance${search ? `?${search}` : ""}`,
     "셀렉터스 성과 목록 조회에 실패했습니다.",
+    { signal },
+  );
+}
+
+function selectorPerformanceSearch(input: SelectorPerformanceQuery) {
+  return query({
+    endDate: input.endDate,
+    generationId: input.generationId,
+    startDate: input.startDate,
+  });
+}
+
+export function getSelectorPerformanceSummary(
+  input: SelectorPerformanceQuery = {},
+  signal?: AbortSignal,
+) {
+  const search = selectorPerformanceSearch(input);
+  return request<SelectorPerformanceSummary>(
+    `/api/admin/selector-performance/summary${search ? `?${search}` : ""}`,
+    "셀렉터스 성과 요약 조회에 실패했습니다.",
+    { signal },
+  );
+}
+
+export function getSelectorPerformanceTrend(
+  input: SelectorPerformanceQuery = {},
+  signal?: AbortSignal,
+) {
+  const search = selectorPerformanceSearch(input);
+  return request<SelectorPerformanceTrend>(
+    `/api/admin/selector-performance/trend${search ? `?${search}` : ""}`,
+    "셀렉터스 성과 추이 조회에 실패했습니다.",
     { signal },
   );
 }
