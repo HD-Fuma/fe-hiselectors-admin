@@ -14,7 +14,6 @@ const DAMPING = 0.86;
 const GOLDEN_ANGLE = 2.39996;
 const INK = "17 24 39";
 const WHITE = "255 255 255";
-const NODE_TINT = WHITE;
 
 interface PoolNode {
   x: number;
@@ -22,6 +21,7 @@ interface PoolNode {
   vx: number;
   vy: number;
   r: number;
+  focus: number;
   phase: number;
   orbit: number;
   categoryIndex: number;
@@ -107,6 +107,7 @@ function buildNodes(selectors: SelectorSummary[], categories: PoolCategory[]) {
       vx: 0,
       vy: 0,
       r: nodeRadius(selector.followerCount),
+      focus: 0,
       phase: ((selector.id % 100) / 100) * Math.PI * 2,
       orbit,
       categoryIndex,
@@ -285,23 +286,9 @@ function drawBubble(
   context.arc(x, y, radius, 0, Math.PI * 2);
   context.clip();
   if (image) {
-    const bleed = Math.max(1.5, radius * 0.05);
-    context.filter = `blur(${Math.max(0.8, radius * 0.04)}px)`;
-    context.drawImage(
-      image,
-      x - radius - bleed,
-      y - radius - bleed,
-      (radius + bleed) * 2,
-      (radius + bleed) * 2,
-    );
-    context.filter = "none";
-
-    const feather = context.createRadialGradient(x, y, radius * 0.68, x, y, radius);
-    feather.addColorStop(0, "rgb(255 255 255 / 0%)");
-    feather.addColorStop(0.82, "rgb(255 255 255 / 0%)");
-    feather.addColorStop(1, "rgb(255 255 255 / 42%)");
-    context.fillStyle = feather;
-    context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(image, x - radius, y - radius, radius * 2, radius * 2);
   } else {
     const blob = context.createLinearGradient(x - radius, y - radius, x + radius, y + radius);
     blob.addColorStop(0, "rgb(255 255 255 / 82%)");
@@ -698,41 +685,45 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
       nodes.forEach((node) => {
         const position = floatOf(node, time);
         const active = lit === node;
-        const radius = node.r * (active ? 1.22 : 1);
+        node.focus += ((active ? 1 : 0) - node.focus) * 0.12;
+        const radius = node.r * (1 + node.focus * 0.1);
 
         context.save();
         context.globalAlpha = weightOf(node.categoryIndex);
 
-        if (active) {
-          context.strokeStyle = `rgb(${NODE_TINT} / 45%)`;
-          context.lineWidth = 2;
-          context.beginPath();
-          context.arc(
+        if (node.focus > 0.01) {
+          context.save();
+          context.globalAlpha *= node.focus;
+          const halo = context.createRadialGradient(
             position.x,
             position.y,
-            radius + 14 + Math.sin(time / 240) * 3,
-            0,
-            Math.PI * 2,
+            radius + 3,
+            position.x,
+            position.y,
+            radius + 18,
           );
+          halo.addColorStop(0, "rgb(255 255 255 / 34%)");
+          halo.addColorStop(1, "rgb(255 255 255 / 0%)");
+          context.fillStyle = halo;
+          context.beginPath();
+          context.arc(position.x, position.y, radius + 18, 0, Math.PI * 2);
+          context.fill();
+          context.strokeStyle = "rgb(255 255 255 / 58%)";
+          context.lineWidth = 1.2;
+          context.beginPath();
+          context.arc(position.x, position.y, radius + 9, 0, Math.PI * 2);
           context.stroke();
+          context.restore();
         }
 
         drawBubble(context, position.x, position.y, radius, images.get(node.selector.id));
-
-        if (active) {
-          context.strokeStyle = `rgb(${NODE_TINT})`;
-          context.lineWidth = 2.6;
-          context.beginPath();
-          context.arc(position.x, position.y, radius + 8, 0, Math.PI * 2);
-          context.stroke();
-        }
         context.restore();
       });
 
       // 호버한 버블의 정보 카드는 항상 맨 위에 그린다.
       if (lit) {
         const position = floatOf(lit, time);
-        const radius = lit.r * 1.22;
+        const radius = lit.r * (1 + lit.focus * 0.1);
         const name = lit.selector.snsDisplayName || lit.selector.nickname;
         const account = lit.selector.snsAccountId || "-";
         const followers = lit.selector.followerCount == null
