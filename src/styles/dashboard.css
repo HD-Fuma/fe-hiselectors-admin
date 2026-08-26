@@ -32,7 +32,7 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   z-index: 1;
   display: grid;
   padding: 0 var(--hsas-space-40) var(--hsas-space-40);
-  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 0.8fr)) repeat(2, minmax(0, 1.2fr));
   align-items: start;
   gap: var(--hsas-space-16);
 }
@@ -60,29 +60,29 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
 }
 
 .fuma-dashboard-card--inspection {
-  grid-column: 1 / span 3;
+  grid-column: 1;
 }
 
 .fuma-dashboard-card--applications {
-  grid-column: 4 / span 3;
+  grid-column: 2;
 }
 
 .fuma-dashboard-card--active {
-  grid-column: 7 / span 3;
+  grid-column: 3;
   grid-row: 1;
 }
 
 .fuma-dashboard-card--generation {
-  grid-column: 10 / span 3;
+  grid-column: 4;
   grid-row: 1;
 }
 
 .fuma-dashboard-card--kpi {
-  grid-column: span 3;
+  grid-column: span 1;
 }
 
 .fuma-dashboard-card--trend {
-  grid-column: 7 / span 6;
+  grid-column: 3 / span 2;
   grid-row: 2;
 }
 
