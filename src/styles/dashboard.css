@@ -89,11 +89,11 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
 }
 
 .fuma-dashboard-card--inspection {
-  grid-column: 1;
+  grid-column: 2;
 }
 
 .fuma-dashboard-card--applications {
-  grid-column: 2;
+  grid-column: 1;
 }
 
 .fuma-dashboard-card--active {
