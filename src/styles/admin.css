@@ -546,7 +546,7 @@
 }
 
 .hsas-dense-table tbody .hsas-dense-table__row[tabindex="0"]:hover td {
-  background: rgb(30 157 139 / 8%);
+  background: rgb(17 17 17 / 5%);
 }
 
 .fuma-creator-category-filter {
@@ -10147,7 +10147,7 @@
 }
 
 :root[data-theme="dark"] .hsas-dense-table tbody .hsas-dense-table__row[tabindex="0"]:hover td {
-  background: rgb(30 157 139 / 14%);
+  background: rgb(255 255 255 / 8%);
 }
 
 :root[data-theme="dark"] .hsas-dense-table tbody .hsas-dense-table__row[aria-selected="true"] td {
