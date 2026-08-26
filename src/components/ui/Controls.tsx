@@ -93,6 +93,20 @@ export function Checkbox({ className, label, ...props }: CheckboxProps) {
   );
 }
 
+export interface SwitchProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
+  label: ReactNode;
+}
+
+export function Switch({ className, label, ...props }: SwitchProps) {
+  return (
+    <label className={classes("hsas-switch", className)}>
+      <input type="checkbox" {...props} />
+      <span aria-hidden="true" className="hsas-switch__track" />
+      <b className="hsas-switch__label">{label}</b>
+    </label>
+  );
+}
+
 export interface SegmentedControlOption<T extends string = string> {
   value: T;
   label: ReactNode;

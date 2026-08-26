@@ -4116,7 +4116,7 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
   line-height: 1.55;
 }
 
-.fuma-content-inspection-toolbar .fuma-applicant-minimum-toggle:has(input:disabled) {
+.fuma-content-inspection-toolbar .hsas-switch:has(input:disabled) {
   cursor: not-allowed;
   opacity: 0.55;
 }
@@ -4277,64 +4277,6 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
   border-color: var(--hsas-color-black);
   color: var(--hsas-color-white);
   background: var(--hsas-color-black);
-}
-
-.fuma-content-collection__violation-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--hsas-space-8);
-  min-height: 32px;
-  margin-right: var(--hsas-space-2);
-  color: #34453e;
-  font-size: var(--hsas-font-12);
-  cursor: pointer;
-}
-
-.fuma-content-collection__violation-toggle input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.fuma-content-collection__violation-toggle > span {
-  position: relative;
-  width: 36px;
-  height: 20px;
-  border-radius: 999px;
-  background: #cbd4d0;
-  transition: background 140ms ease;
-}
-
-.fuma-content-collection__violation-toggle > span::after {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--hsas-color-white);
-  box-shadow: 0 1px 3px rgb(20 49 41 / 20%);
-  content: "";
-  transition: transform 140ms ease;
-}
-
-.fuma-content-collection__violation-toggle input:checked + span {
-  background: var(--hsas-teal);
-}
-
-.fuma-content-collection__violation-toggle input:checked + span::after {
-  transform: translateX(16px);
-}
-
-.fuma-content-collection__violation-toggle input:focus-visible + span {
-  outline: 2px solid rgb(30 157 139 / 28%);
-  outline-offset: 2px;
-}
-
-.fuma-content-collection__violation-toggle b {
-  font-weight: 700;
 }
 
 .fuma-content-collection__track {
@@ -6771,10 +6713,6 @@ html[data-theme="dark"] .fuma-content-collection__view-switch button[aria-presse
   border-color: var(--hsas-color-black);
   background: var(--hsas-color-black);
   color: var(--hsas-color-white);
-}
-
-html[data-theme="dark"] .fuma-content-collection__violation-toggle {
-  color: var(--hsas-text);
 }
 
 html[data-theme="dark"] .fuma-inspection-post__links a {
