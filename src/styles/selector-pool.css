@@ -1,18 +1,29 @@
+body:has(.hsas-selector-pool) {
+  overflow-y: hidden;
+}
+
 .hsas-selector-pool {
   position: relative;
-  border-top: 1px solid var(--hsas-border);
   overflow: hidden;
-  background: #fff;
 }
 
 /* 목록 아래 남은 화면만큼 쓰되 과하게 커지지 않게 상한을 둔다(--hsas-pool-top 은 캔버스 상단 오프셋). */
 .hsas-selector-pool__canvas {
   display: block;
   width: 100%;
-  height: calc(100dvh - var(--hsas-pool-top, 260px) - 20px);
-  min-height: 360px;
+  height: calc(100dvh - var(--hsas-pool-top, 260px) - 52px);
+  min-height: 0;
   touch-action: none;
   cursor: grab;
+  background: var(--hsas-background);
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent),
+    linear-gradient(to bottom, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent),
+    linear-gradient(to bottom, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+  mask-composite: intersect;
 }
 
 /* 우상단 카테고리 범례 — 누르면 해당 클러스터로 카메라가 이동한다. */
@@ -21,17 +32,23 @@
   top: var(--hsas-space-16);
   right: var(--hsas-space-14);
   display: flex;
-  flex-wrap: wrap;
+  max-width: calc(100% - var(--hsas-space-14) * 2);
+  flex-wrap: nowrap;
   justify-content: flex-end;
   gap: var(--hsas-space-4);
-  max-width: 320px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+
+.hsas-selector-pool__legend::-webkit-scrollbar { display: none; }
 
 .hsas-selector-pool__chip {
   --hsas-pool-chip: rgb(17 24 39 / 55%);
 
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
+  justify-content: center;
   gap: var(--hsas-space-6);
   padding: var(--hsas-space-4) var(--hsas-space-10);
   border: 1px solid rgb(17 24 39 / 10%);
@@ -40,6 +57,7 @@
   color: rgb(17 24 39 / 78%);
   font-size: var(--hsas-font-11);
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -53,17 +71,6 @@
   color: #fff;
 }
 
-.hsas-selector-pool__chip-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--hsas-pool-chip);
-}
-
-.hsas-selector-pool__chip[aria-pressed="true"] .hsas-selector-pool__chip-dot {
-  background: rgb(255 255 255 / 90%);
-}
-
 .hsas-selector-pool__chip em {
   color: inherit;
   font-size: var(--hsas-font-10);
@@ -71,11 +78,11 @@
   opacity: 0.65;
 }
 
-/* 화면에 보이는 버블을 좌측 플로팅 목록으로 고정 노출 */
+/* 화면에 보이는 버블을 우측 하단 플로팅 목록으로 고정 노출 */
 .hsas-selector-pool__dock {
   position: absolute;
-  top: var(--hsas-space-16);
-  left: var(--hsas-space-14);
+  right: var(--hsas-space-14);
+  bottom: var(--hsas-space-16);
   display: flex;
   flex-direction: column;
   gap: var(--hsas-space-8);

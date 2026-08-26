@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { UserRound } from "lucide-react";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { categoryLabel } from "../../entities/creator";
 import type { SelectorSummary } from "../../entities/selectors";
@@ -8,12 +9,12 @@ import { formatNumber } from "../../lib/formatters";
 import "../../styles/selector-pool.css";
 
 const CATEGORY_RADIUS = 64;
-const ORBIT_GAP = 26;
+const ORBIT_GAP = 8;
 const DAMPING = 0.86;
 const GOLDEN_ANGLE = 2.39996;
 const INK = "17 24 39";
-// 작은 버블은 색을 통일하고, 색 구분은 카테고리 쪽에서만 한다.
-const NODE_TINT = "30 157 139"; // 브랜드 틸
+const WHITE = "255 255 255";
+const CANVAS_FONT = '"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Arial, sans-serif';
 
 interface PoolNode {
   x: number;
@@ -21,6 +22,7 @@ interface PoolNode {
   vx: number;
   vy: number;
   r: number;
+  focus: number;
   phase: number;
   orbit: number;
   categoryIndex: number;
@@ -36,13 +38,7 @@ interface PoolCategory {
   rgb: string;
 }
 
-// 한 계열(브랜드 틸)의 명도 차이로만 카테고리를 구분한다.
-const CATEGORY_COLORS = [
-  "30 157 139",
-  "13 100 92",
-  "116 201 190",
-  "7 63 58",
-];
+const CATEGORY_COLORS = [WHITE];
 
 
 // 백엔드 필드명이 확정 전이라 카테고리로 쓸 수 있는 키를 순서대로 훑는다.
@@ -62,30 +58,26 @@ function categoryOf(selector: SelectorSummary) {
   return (raw ? categoryLabel(raw) : null) || "미분류";
 }
 
-/** 프로필 이미지가 없을 때 쓰는 계정 아이디 첫 글자. */
-function initialOf(selector: SelectorSummary) {
-  const source = selector.snsAccountId || selector.snsDisplayName || selector.nickname || "?";
-  return source.slice(0, 1).toUpperCase();
-}
-
 function nodeRadius(followerCount: number | null) {
   return 26 + Math.min(20, Math.log10((followerCount ?? 0) + 1) * 4);
 }
 
-/** 카테고리 중심을 큰 원 하나 위에 고르게 배치한다. */
+/** 카테고리 중심은 큰 원 위에, 미분류는 원 밖 오른쪽에 따로 배치한다. */
 function layoutCategories(counts: Map<string, number>): PoolCategory[] {
   const entries = [...counts.entries()];
+  const categorized = entries.filter(([label]) => label !== "미분류");
+  const uncategorized = entries.find(([label]) => label === "미분류");
   // 각 클러스터가 차지하는 반지름을 먼저 재고, 서로 닿지 않을 만큼 큰 원을 잡는다.
   const clusterReach = Math.max(
-    ...entries.map(([, count]) => clusterRadius(count)),
+    ...categorized.map(([, count]) => clusterRadius(count)),
     CATEGORY_RADIUS * 2,
   );
-  const ring = entries.length < 2
+  const ring = categorized.length < 2
     ? 0
-    : Math.max(320, (clusterReach * 2.3 * entries.length) / (2 * Math.PI));
+    : Math.max(320, (clusterReach * 2.3 * categorized.length) / (2 * Math.PI));
 
-  return entries.map(([label, count], index) => {
-    const angle = (index / entries.length) * Math.PI * 2 - Math.PI / 2;
+  const categories = categorized.map(([label, count], index) => {
+    const angle = (index / categorized.length) * Math.PI * 2 - Math.PI / 2;
     return {
       label,
       count,
@@ -94,6 +86,16 @@ function layoutCategories(counts: Map<string, number>): PoolCategory[] {
       y: Math.sin(angle) * ring,
     };
   });
+
+  if (!uncategorized) return categories;
+  const [label, count] = uncategorized;
+  return [...categories, {
+    label,
+    count,
+    rgb: CATEGORY_COLORS[categories.length % CATEGORY_COLORS.length],
+    x: categories.length ? ring + clusterReach + clusterRadius(count) + 360 : 0,
+    y: 0,
+  }];
 }
 
 /** 카테고리 하나가 차지하는 반지름(가장 바깥 궤도까지). */
@@ -118,6 +120,7 @@ function buildNodes(selectors: SelectorSummary[], categories: PoolCategory[]) {
       vx: 0,
       vy: 0,
       r: nodeRadius(selector.followerCount),
+      focus: 0,
       phase: ((selector.id % 100) / 100) * Math.PI * 2,
       orbit,
       categoryIndex,
@@ -222,41 +225,100 @@ function drawCurve(
 
 function drawBubble(
   context: CanvasRenderingContext2D,
-  node: PoolNode,
   x: number,
   y: number,
   radius: number,
   image: HTMLImageElement | undefined,
-  tint: string,
 ) {
-  // 흰 배경에서 떠 보이도록 부드러운 그림자 위에 흰 테를 깐다.
+  const shellRadius = radius + 10;
+
+  // 확인 팝업 재질은 유지하되 실루엣은 흐트러지지 않는 원형으로 잡는다.
   context.save();
-  context.shadowColor = `rgb(${INK} / 22%)`;
-  context.shadowBlur = 14;
-  context.shadowOffsetY = 5;
-  context.fillStyle = "#fff";
+  context.shadowColor = "rgb(54 65 72 / 12%)";
+  context.shadowBlur = 20;
+  context.shadowOffsetY = 7;
+  const glass = context.createRadialGradient(
+    x - shellRadius * 0.38,
+    y - shellRadius * 0.42,
+    shellRadius * 0.08,
+    x,
+    y,
+    shellRadius * 1.12,
+  );
+  glass.addColorStop(0, "rgb(255 255 255 / 76%)");
+  glass.addColorStop(0.48, "rgb(255 255 255 / 58%)");
+  glass.addColorStop(1, "rgb(255 255 255 / 34%)");
+  context.fillStyle = glass;
   context.beginPath();
-  context.arc(x, y, radius + 2.5, 0, Math.PI * 2);
+  context.arc(x, y, shellRadius, 0, Math.PI * 2);
   context.fill();
   context.restore();
 
+  context.save();
+  context.strokeStyle = "rgb(255 255 255 / 78%)";
+  context.lineWidth = 1.4;
+  context.beginPath();
+  context.arc(x, y, shellRadius - 0.7, 0, Math.PI * 2);
+  context.stroke();
+
+  // 팝업의 inset highlight를 물방울 윗면 반사광으로 옮긴다.
+  context.strokeStyle = "rgb(255 255 255 / 72%)";
+  context.lineCap = "round";
+  context.lineWidth = Math.max(1.5, radius * 0.08);
+  context.beginPath();
+  context.moveTo(x - shellRadius * 0.66, y - shellRadius * 0.12);
+  context.bezierCurveTo(
+    x - shellRadius * 0.62,
+    y - shellRadius * 0.42,
+    x - shellRadius * 0.4,
+    y - shellRadius * 0.7,
+    x - shellRadius * 0.04,
+    y - shellRadius * 0.78,
+  );
+  context.stroke();
+
+  // 밝은 바탕에서도 유리 두께가 보이도록 아래쪽 굴절면만 얇게 남긴다.
+  context.strokeStyle = "rgb(54 65 72 / 10%)";
+  context.lineWidth = 1;
+  context.beginPath();
+  context.moveTo(x + shellRadius * 0.67, y + shellRadius * 0.06);
+  context.bezierCurveTo(
+    x + shellRadius * 0.62,
+    y + shellRadius * 0.43,
+    x + shellRadius * 0.39,
+    y + shellRadius * 0.69,
+    x + shellRadius * 0.04,
+    y + shellRadius * 0.78,
+  );
+  context.stroke();
+  context.restore();
+
+  // 팝업 안의 콘텐츠처럼 프로필 사진 자체는 플랫하게 유지한다.
   context.save();
   context.beginPath();
   context.arc(x, y, radius, 0, Math.PI * 2);
   context.clip();
   if (image) {
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
     context.drawImage(image, x - radius, y - radius, radius * 2, radius * 2);
   } else {
     const blob = context.createLinearGradient(x - radius, y - radius, x + radius, y + radius);
-    blob.addColorStop(0, `rgb(${tint} / 92%)`);
-    blob.addColorStop(1, `rgb(${tint} / 62%)`);
+    blob.addColorStop(0, "rgb(255 255 255 / 82%)");
+    blob.addColorStop(1, "rgb(32 34 36 / 10%)");
     context.fillStyle = blob;
     context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-    context.fillStyle = "#fff";
-    context.font = `700 ${Math.round(radius)}px Pretendard, sans-serif`;
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.fillText(initialOf(node.selector), x, y);
+    context.strokeStyle = "rgb(32 34 36 / 48%)";
+    context.lineWidth = Math.max(1.5, radius * 0.06);
+    context.beginPath();
+    context.arc(x, y - radius * 0.2, radius * 0.22, 0, Math.PI * 2);
+    context.moveTo(x - radius * 0.48, y + radius * 0.52);
+    context.bezierCurveTo(
+      x - radius * 0.42, y + radius * 0.15,
+      x + radius * 0.42, y + radius * 0.15,
+      x + radius * 0.48, y + radius * 0.52,
+    );
+    context.stroke();
   }
   context.restore();
 }
@@ -275,7 +337,7 @@ function PoolAvatar({ selector }: { selector: SelectorSummary }) {
           src={source}
         />
       ) : (
-        <span aria-hidden="true">{initialOf(selector)}</span>
+        <span aria-hidden="true"><UserRound size={16} strokeWidth={1.8} /></span>
       )}
     </span>
   );
@@ -537,13 +599,16 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
 
       // 클러스터마다 옅은 색 안개를 깔아 영역이 구분되게 한다.
       categories.forEach((category, categoryIndex) => {
-        const spread = CATEGORY_RADIUS * 5.5;
+        const reach = clusterRadius(category.count);
+        const spread = reach * 1.9;
         const wash = context.createRadialGradient(
-          category.x, category.y, 0,
+          category.x, category.y, reach * 0.22,
           category.x, category.y, spread,
         );
-        wash.addColorStop(0, `rgb(${category.rgb} / ${12 * weightOf(categoryIndex)}%)`);
-        wash.addColorStop(1, `rgb(${category.rgb} / 0%)`);
+        wash.addColorStop(0, `rgb(${WHITE} / ${30 * weightOf(categoryIndex)}%)`);
+        wash.addColorStop(0.24, `rgb(${WHITE} / ${22 * weightOf(categoryIndex)}%)`);
+        wash.addColorStop(0.58, `rgb(${WHITE} / ${8 * weightOf(categoryIndex)}%)`);
+        wash.addColorStop(1, `rgb(${WHITE} / 0%)`);
         context.fillStyle = wash;
         context.beginPath();
         context.arc(category.x, category.y, spread, 0, Math.PI * 2);
@@ -598,71 +663,99 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         context.stroke();
         context.restore();
 
-        // 흰 코어 + 색 링
+        // 카테고리명이 놓이는 중심은 테두리 없이 빛처럼 퍼지게 한다.
         context.save();
-        context.shadowColor = `rgb(${category.rgb} / 40%)`;
-        context.shadowBlur = 24;
-        context.shadowOffsetY = 6;
-        context.fillStyle = "#fff";
+        context.shadowColor = `rgb(${WHITE} / 64%)`;
+        context.shadowBlur = 48;
+        const coreLight = context.createRadialGradient(
+          category.x, category.y, core * 0.08,
+          category.x, category.y, core * 1.48,
+        );
+        coreLight.addColorStop(0, `rgb(${WHITE} / 96%)`);
+        coreLight.addColorStop(0.48, `rgb(${WHITE} / 84%)`);
+        coreLight.addColorStop(0.74, `rgb(${WHITE} / 42%)`);
+        coreLight.addColorStop(1, `rgb(${WHITE} / 0%)`);
+        context.fillStyle = coreLight;
         context.beginPath();
-        context.arc(category.x, category.y, core, 0, Math.PI * 2);
+        context.arc(category.x, category.y, core * 1.48, 0, Math.PI * 2);
         context.fill();
         context.restore();
 
-        context.strokeStyle = `rgb(${category.rgb})`;
-        context.lineWidth = 3;
-        context.beginPath();
-        context.arc(category.x, category.y, core - 1.5, 0, Math.PI * 2);
-        context.stroke();
-
-        context.textAlign = "center";
-        context.textBaseline = "middle";
-        context.fillStyle = `rgb(${INK})`;
-        context.font = "700 15px Pretendard, sans-serif";
-        context.fillText(category.label, category.x, category.y - 6);
-
-        context.font = "600 11px Pretendard, sans-serif";
-        const countLabel = `${category.count}명`;
-        const chipWidth = context.measureText(countLabel).width + 16;
-        context.fillStyle = `rgb(${category.rgb} / 16%)`;
-        context.beginPath();
-        context.roundRect(category.x - chipWidth / 2, category.y + 6, chipWidth, 17, 9);
-        context.fill();
-        context.fillStyle = `rgb(${category.rgb})`;
-        context.fillText(countLabel, category.x, category.y + 15);
         context.restore();
       });
 
       nodes.forEach((node) => {
         const position = floatOf(node, time);
         const active = lit === node;
-        const radius = node.r * (active ? 1.22 : 1);
+        node.focus += ((active ? 1 : 0) - node.focus) * 0.12;
+        const radius = node.r * (1 + node.focus * 0.1);
 
         context.save();
         context.globalAlpha = weightOf(node.categoryIndex);
 
-        if (active) {
-          context.strokeStyle = `rgb(${NODE_TINT} / 45%)`;
-          context.lineWidth = 2;
+        if (node.focus > 0.01) {
+          context.save();
+          context.globalAlpha *= node.focus;
+          const halo = context.createRadialGradient(
+            position.x,
+            position.y,
+            radius + 3,
+            position.x,
+            position.y,
+            radius + 18,
+          );
+          halo.addColorStop(0, "rgb(255 255 255 / 34%)");
+          halo.addColorStop(1, "rgb(255 255 255 / 0%)");
+          context.fillStyle = halo;
           context.beginPath();
-          context.arc(position.x, position.y, radius + 8 + Math.sin(time / 240) * 3, 0, Math.PI * 2);
+          context.arc(position.x, position.y, radius + 18, 0, Math.PI * 2);
+          context.fill();
+          context.strokeStyle = "rgb(255 255 255 / 58%)";
+          context.lineWidth = 1.2;
+          context.beginPath();
+          context.arc(position.x, position.y, radius + 9, 0, Math.PI * 2);
           context.stroke();
+          context.restore();
         }
 
-        drawBubble(context, node, position.x, position.y, radius, images.get(node.selector.id), NODE_TINT);
+        drawBubble(context, position.x, position.y, radius, images.get(node.selector.id));
+        context.restore();
+      });
 
-        context.strokeStyle = active ? `rgb(${NODE_TINT})` : `rgb(${INK} / 12%)`;
-        context.lineWidth = active ? 2.6 : 1.6;
+      // 카테고리 라벨은 버블보다 위에 그려 항상 읽히게 한다.
+      categories.forEach((category, categoryIndex) => {
+        const labelScale = 1 / view.scale;
+        const countLabel = `${category.count}명`;
+
+        context.save();
+        context.globalAlpha = weightOf(categoryIndex);
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillStyle = `rgb(${INK})`;
+        context.font = `600 ${14 * labelScale}px ${CANVAS_FONT}`;
+        context.fillText(category.label, category.x, category.y - 6 * labelScale);
+
+        context.font = `500 ${11 * labelScale}px ${CANVAS_FONT}`;
+        const chipWidth = context.measureText(countLabel).width + 16 * labelScale;
+        context.fillStyle = `rgb(${category.rgb} / 16%)`;
         context.beginPath();
-        context.arc(position.x, position.y, radius + 1, 0, Math.PI * 2);
-        context.stroke();
+        context.roundRect(
+          category.x - chipWidth / 2,
+          category.y + 6 * labelScale,
+          chipWidth,
+          17 * labelScale,
+          9 * labelScale,
+        );
+        context.fill();
+        context.fillStyle = `rgb(${category.rgb})`;
+        context.fillText(countLabel, category.x, category.y + 15 * labelScale);
         context.restore();
       });
 
       // 호버한 버블의 정보 카드는 항상 맨 위에 그린다.
       if (lit) {
         const position = floatOf(lit, time);
-        const radius = lit.r * 1.22;
+        const radius = lit.r * (1 + lit.focus * 0.1);
         const name = lit.selector.snsDisplayName || lit.selector.nickname;
         const account = lit.selector.snsAccountId || "-";
         const followers = lit.selector.followerCount == null
@@ -671,9 +764,9 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
 
         const mark = platformMark(lit.selector.snsCode);
 
-        context.font = "700 12px Pretendard, sans-serif";
+        context.font = `700 12px ${CANVAS_FONT}`;
         const nameWidth = context.measureText(name).width;
-        context.font = "500 11px Pretendard, sans-serif";
+        context.font = `500 11px ${CANVAS_FONT}`;
         const accountWidth = context.measureText(account).width + 18; // 로고 자리
         const metaWidth = Math.max(
           accountWidth,
@@ -697,10 +790,10 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         context.textAlign = "center";
         context.textBaseline = "middle";
         context.fillStyle = "#fff";
-        context.font = "700 12px Pretendard, sans-serif";
+        context.font = `700 12px ${CANVAS_FONT}`;
         context.fillText(name, position.x, cardY + 17);
 
-        context.font = "500 11px Pretendard, sans-serif";
+        context.font = `500 11px ${CANVAS_FONT}`;
         const accountTextWidth = context.measureText(account).width;
         const accountLeft = position.x - accountTextWidth / 2;
         context.save();
@@ -758,10 +851,9 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
             className="hsas-selector-pool__chip"
             key={category.label}
             onClick={() => focusCategory(focus === category.label ? null : category.label)}
-            style={{ "--hsas-pool-chip": `rgb(${category.rgb})` } as CSSProperties}
+            style={{ "--hsas-pool-chip": `rgb(${INK})` } as CSSProperties}
             type="button"
           >
-            <span aria-hidden="true" className="hsas-selector-pool__chip-dot" />
             {category.label}
             <em>{category.count}</em>
           </button>

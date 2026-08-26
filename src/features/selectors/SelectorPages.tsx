@@ -635,11 +635,6 @@ export function SelectorOverviewPage() {
     setPage(1);
   };
 
-  const appliedGeneration = generations.find((generation) => (
-    String(generation.id) === appliedGenerationId
-  ));
-  const appliedPlatform = SELECTOR_SNS_OPTIONS.find((option) => option.value === appliedSns);
-
   return (
     <section className="fuma-page">
       <PageHeader title="셀렉터스 목록" />
@@ -675,28 +670,30 @@ export function SelectorOverviewPage() {
             </FilterField>
           </SearchPanel>
         </div>
-        <ChoiceTabs
-          ariaLabel="활동 상태"
-          className="fuma-selector-status-filter"
-          emptyOption={{
-            label: "전체",
-            onSelect: () => {
-              setSelectedStatus(null);
+        {activeView === "table" ? (
+          <ChoiceTabs
+            ariaLabel="활동 상태"
+            className="fuma-selector-status-filter"
+            emptyOption={{
+              label: "전체",
+              onSelect: () => {
+                setSelectedStatus(null);
+                setPage(1);
+              },
+            }}
+            onChange={(status) => {
+              setSelectedStatus(status);
               setPage(1);
-            },
-          }}
-          onChange={(status) => {
-            setSelectedStatus(status);
-            setPage(1);
-          }}
-          options={SELECTOR_STATUS_CATEGORIES}
-          value={selectedStatus}
-        />
+            }}
+            options={SELECTOR_STATUS_CATEGORIES}
+            value={selectedStatus}
+          />
+        ) : null}
         <ResultToolbar
           actions={selectedStatus ? null : (
             <ViewModeToggle
               gridLabel="버블"
-              listLabel="표"
+              listLabel="목록"
               onChange={(mode) => {
                 setViewMode(mode === "grid" ? "pool" : "table");
                 setPage(1);
@@ -705,13 +702,7 @@ export function SelectorOverviewPage() {
             />
           )}
           className="fuma-simple-result-toolbar"
-          meta={
-            <>
-              <span>{[appliedGeneration?.generationName, appliedPlatform?.label].filter(Boolean).join(" · ") || "전체"}</span>
-              <span>총 {pageData?.totalElements ?? 0}건</span>
-            </>
-          }
-          title={selectorListTitle}
+          title={selectedStatus ? selectorListTitle : null}
         />
         {listError ? (
           <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
