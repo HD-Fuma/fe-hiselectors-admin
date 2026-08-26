@@ -282,6 +282,35 @@ export function AdminSidebar({
                     <span>화면 모드</span>
                     <ChevronRight aria-hidden="true" />
                   </button>
+                  {isThemeMenuOpen ? (
+                    <div
+                      aria-label="화면 모드"
+                      className="hsas-theme-settings__submenu"
+                      role="group"
+                    >
+                      {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+                        <button
+                          aria-pressed={theme === value}
+                          className="hsas-theme-settings__item"
+                          key={value}
+                          onClick={() => {
+                            setTheme(value);
+                            saveTheme(value);
+                          }}
+                          type="button"
+                        >
+                          <Icon aria-hidden="true" />
+                          <span>{label}</span>
+                          {theme === value ? (
+                            <Check
+                              aria-hidden="true"
+                              className="hsas-theme-settings__check"
+                            />
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                   {import.meta.env.DEV ? (
                     <button
                       className="hsas-theme-settings__item hsas-theme-settings__item--danger"
@@ -296,35 +325,6 @@ export function AdminSidebar({
                     </button>
                   ) : null}
                 </div>
-                {isThemeMenuOpen ? (
-                  <div
-                    aria-label="화면 모드"
-                    className="hsas-theme-settings__submenu"
-                    role="group"
-                  >
-                    {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
-                      <button
-                        aria-pressed={theme === value}
-                        className="hsas-theme-settings__item"
-                        key={value}
-                        onClick={() => {
-                          setTheme(value);
-                          saveTheme(value);
-                        }}
-                        type="button"
-                      >
-                        <Icon aria-hidden="true" />
-                        <span>{label}</span>
-                        {theme === value ? (
-                          <Check
-                            aria-hidden="true"
-                            className="hsas-theme-settings__check"
-                          />
-                        ) : null}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
                 {resetFeedback ? (
                   <p className="hsas-theme-settings__feedback" role="status">
                     {resetFeedback}
