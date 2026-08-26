@@ -87,28 +87,11 @@ export function AdminSidebar({
   const [theme, setTheme] = useState(getTheme);
   const settingsRef = useRef<HTMLDivElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
-  const settingsCloseTimerRef = useRef<number | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<NavGroup>>(
     () => new Set(groups.map(({ id }) => id)),
   );
 
   useLayoutEffect(() => applyTheme(theme), [theme]);
-
-  const cancelSettingsClose = () => {
-    if (settingsCloseTimerRef.current != null) {
-      window.clearTimeout(settingsCloseTimerRef.current);
-      settingsCloseTimerRef.current = null;
-    }
-  };
-
-  const scheduleSettingsClose = () => {
-    cancelSettingsClose();
-    settingsCloseTimerRef.current = window.setTimeout(() => {
-      setSettingsOpen(false);
-      setThemeMenuOpen(false);
-      settingsCloseTimerRef.current = null;
-    }, 250);
-  };
 
   useEffect(() => {
     if (!isSettingsOpen) return undefined;
@@ -116,11 +99,13 @@ export function AdminSidebar({
     const closeOnPointerDown = (event: PointerEvent) => {
       if (event.target instanceof Node && !settingsRef.current?.contains(event.target)) {
         setSettingsOpen(false);
+        setThemeMenuOpen(false);
       }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setSettingsOpen(false);
+      setThemeMenuOpen(false);
       settingsButtonRef.current?.focus();
     };
 
@@ -129,7 +114,6 @@ export function AdminSidebar({
     return () => {
       document.removeEventListener("pointerdown", closeOnPointerDown);
       document.removeEventListener("keydown", closeOnEscape);
-      cancelSettingsClose();
     };
   }, [isSettingsOpen]);
 
@@ -264,11 +248,6 @@ export function AdminSidebar({
         <div className="hsas-admin-sidebar__account-actions">
           <div
             className="hsas-theme-settings-anchor"
-            onMouseEnter={() => {
-              cancelSettingsClose();
-              setSettingsOpen(true);
-            }}
-            onMouseLeave={scheduleSettingsClose}
             ref={settingsRef}
           >
             <button

@@ -219,7 +219,7 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
   expect(within(shell).getAllByRole("button", { name: "로그아웃" })).toHaveLength(1);
 });
 
-test("opens environment settings on hover and closes them shortly after hover leaves", async () => {
+test("opens and closes environment settings only when the icon is clicked", () => {
   renderRoute("/creators");
 
   expect(document.documentElement).toHaveAttribute("data-sidebar-theme", "light");
@@ -229,6 +229,10 @@ test("opens environment settings on hover and closes them shortly after hover le
   const trigger = screen.getByRole("button", { name: "환경설정" });
   const anchor = trigger.parentElement as HTMLElement;
   fireEvent.mouseEnter(anchor);
+
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByRole("group", { name: "환경설정" })).not.toBeInTheDocument();
+  fireEvent.click(trigger);
 
   expect(trigger).toHaveAttribute("aria-expanded", "true");
   expect(screen.queryByRole("dialog", { name: "환경설정" })).not.toBeInTheDocument();
@@ -253,10 +257,9 @@ test("opens environment settings on hover and closes them shortly after hover le
 
   fireEvent.mouseLeave(anchor);
   expect(screen.getByRole("group", { name: "환경설정" })).toBeInTheDocument();
-  await waitFor(() => {
-    expect(screen.queryByRole("group", { name: "환경설정" })).not.toBeInTheDocument();
-    expect(trigger).toHaveAttribute("aria-expanded", "false");
-  });
+  fireEvent.click(trigger);
+  expect(screen.queryByRole("group", { name: "환경설정" })).not.toBeInTheDocument();
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
 });
 
 test("switches and persists the selected theme immediately", () => {
