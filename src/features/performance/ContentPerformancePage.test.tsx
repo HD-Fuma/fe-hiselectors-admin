@@ -110,10 +110,13 @@ test("content performance opens card and list details in a side panel", async ()
   expect(within(uploadStatus!).getByText("8건")).toBeInTheDocument();
   expect(within(uploadStatus!).getByText("+60.0%")).toBeInTheDocument();
   expect(screen.getByText("기간별 콘텐츠 성과")).toBeInTheDocument();
-  expect(screen.getByRole("region", { name: "기간별 콘텐츠 성과 그래프 좌우 이동" })).toHaveClass(
-    "fuma-content-cohort-chart__scroll--draggable",
-  );
+  const chartScroll = screen.getByRole("region", { name: "기간별 콘텐츠 성과 그래프 좌우 이동" });
+  expect(chartScroll).toHaveClass("fuma-content-cohort-chart__scroll--draggable");
   const cohortChart = screen.getByRole("article", { name: "기간별 콘텐츠 성과" });
+  expect(within(cohortChart).getByRole("tooltip", { hidden: true }))
+    .toHaveTextContent("그래프를 좌우로 드래그해서 이동하세요");
+  expect(within(cohortChart).getByRole("tooltip", { hidden: true })).toHaveClass("is-visible");
+  expect(within(cohortChart).queryByRole("button", { name: "차트 이동 방법" })).not.toBeInTheDocument();
   expect(within(cohortChart).getByRole("button", { name: "종합" })).toHaveAttribute("aria-pressed", "true");
   expect(within(cohortChart).getByRole("img", { name: "기간별 전체 성과 추이" })).toBeInTheDocument();
   expect(cohortChart.querySelectorAll("[data-series]")).toHaveLength(4);

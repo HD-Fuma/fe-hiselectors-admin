@@ -28,7 +28,6 @@ const expectedSidebarLinks = [
   ["실행 이력", "/task-runs"],
   ["셀렉터스 성과", "/performance/selectors"],
   ["콘텐츠 성과", "/performance/contents"],
-  ["캠페인 성과", "/performance/products"],
   ["정산 관리", "/settlements"],
   ["발송 내역", "/notifications"],
 ] as const;
