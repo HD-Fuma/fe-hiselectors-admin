@@ -268,7 +268,7 @@ test("shows completion dialog after confirming the final content", async () => {
   fireEvent.click(start);
   const approve = await screen.findByRole("button", { name: /최종 승인/ }, { timeout: 3_000 });
   await waitFor(() => expect(approve).toBeEnabled());
-  fireEvent.click(approve);
+  fireEvent.keyDown(window, { code: "Digit2", key: "2" });
 
   const completion = await screen.findByRole("alertdialog", {
     name: "콘텐츠 검수를 완료했습니다.",

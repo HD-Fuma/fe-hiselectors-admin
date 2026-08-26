@@ -47,7 +47,6 @@ import { ListSearchPanel } from "../../components/ui/ListSearchPanel";
 import { Pagination } from "../../components/ui/Pagination";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
-import { Tooltip } from "../../components/ui/Tooltip";
 import { ViewModeToggle, type ViewMode } from "../../components/ui/ViewModeToggle";
 import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
@@ -2286,7 +2285,6 @@ export function ContentInspectionDetailPage() {
         : event.code === "Digit2" || event.code === "Numpad2" || event.key === "2"
           ? "2"
           : null;
-      const spacePressed = event.code === "Space" || event.key === " " || event.key === "Spacebar";
       if (studioExiting) return;
       if (completionOpen) {
         event.preventDefault();
@@ -2297,10 +2295,7 @@ export function ContentInspectionDetailPage() {
         event.preventDefault();
         return;
       }
-      if (event.repeat && (
-        decisionShortcut !== null
-        || spacePressed
-      )) {
+      if (event.repeat && decisionShortcut !== null) {
         event.preventDefault();
         return;
       }
@@ -2310,31 +2305,11 @@ export function ContentInspectionDetailPage() {
         return;
       }
       if (exitConfirmationOpen) return;
-      if (spacePressed) {
-        event.preventDefault();
-        if (
-          studioReviewReadOnly
-          || studioReportRefreshVersionId !== null
-        ) return;
-        if (focusedStudioViolationIndex >= 0) {
-          if (!studioViolationJudgments[focusedStudioViolationIndex]) return;
-          setFocusedStudioViolationIndex(
-            focusedStudioViolationIndex + 1 < studioViolationSignals.length
-              ? focusedStudioViolationIndex + 1
-              : -1,
-          );
-          return;
-        }
-        if (studioFinalFocused && studioDecision) {
-          void submitStudioDecision(studioDecision);
-        }
-        return;
-      }
       if (decisionShortcut) {
         event.preventDefault();
         if (studioReviewReadOnly || studioReportRefreshVersionId !== null) return;
         if (focusedStudioViolationIndex >= 0) {
-          judgeStudioViolation(
+          judgeStudioViolationAndAdvance(
             focusedStudioViolationIndex,
             decisionShortcut === "1" ? "violation" : "clear",
           );
@@ -2343,8 +2318,7 @@ export function ContentInspectionDetailPage() {
         if (studioFinalFocused) {
           const selected = decisionShortcut === "1" ? "reject" : "approve";
           if (studioReportReady && (selected === "reject") !== hasStudioViolationJudgment) return;
-          setStudioActionError(null);
-          setStudioDecision(selected);
+          void submitStudioDecision(selected);
         }
         return;
       }
@@ -2357,10 +2331,9 @@ export function ContentInspectionDetailPage() {
     exitConfirmationOpen,
     focusedStudioViolationIndex,
     hasStudioViolationJudgment,
-    judgeStudioViolation,
+    judgeStudioViolationAndAdvance,
     routeState?.inspectionSession,
     studioActionPending,
-    studioDecision,
     studioExiting,
     studioFinalFocused,
     studioReportReady,
@@ -2849,17 +2822,6 @@ export function ContentInspectionDetailPage() {
             </section>
           </aside>
         ) : null}
-        {focusedStudioViolationIndex >= 0
-          && studioViolationJudgments[focusedStudioViolationIndex] ? (
-          <Tooltip
-            className="fuma-content-inspection-studio__report-choice-tooltip fuma-content-inspection-studio__navigation-tooltip"
-            placement="none"
-            role="status"
-            visible
-          >
-            <kbd>Space</kbd> 바를 눌러 다음으로 이동하세요
-          </Tooltip>
-        ) : null}
         <div
           aria-label="최종 검수"
           className="fuma-content-inspection-studio__decision"
@@ -2902,16 +2864,6 @@ export function ContentInspectionDetailPage() {
               ? "승인 처리 중"
               : "최종 승인"}
           </button>
-          {studioFinalFocused && studioDecision && studioActionPending === null ? (
-            <Tooltip
-              className="fuma-content-inspection-studio__report-choice-tooltip"
-              placement="none"
-              role="status"
-              visible
-            >
-              <kbd>Space</kbd> 바를 눌러 검수를 확정하세요
-            </Tooltip>
-          ) : null}
         </div>
         <BubbleDialog
           actions={(
