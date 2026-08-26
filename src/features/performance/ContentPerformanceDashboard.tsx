@@ -1,6 +1,5 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AnalysisFormatBreakdown } from "../../components/charts/AnalysisFormatBreakdown";
-import { COHORT_SERIES_COLORS } from "../../components/charts/chartColors";
 import type { AnalysisFormatSegment } from "../../components/charts/AnalysisFormatDonut";
 import { PeriodLineChart } from "../../components/charts/PeriodLineChart";
 import { SparklineChart } from "../../components/charts/SparklineChart";
@@ -14,6 +13,7 @@ import { Pagination } from "../../components/ui/Pagination";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill } from "../../components/ui/StatusPill";
+import { Tooltip } from "../../components/ui/Tooltip";
 import { ViewModeToggle, type ViewMode } from "../../components/ui/ViewModeToggle";
 import {
   creatorNameById,
@@ -25,6 +25,13 @@ import {
 } from "../../entities/performance";
 import { assetUrl } from "../../lib/assetUrl";
 import { paginate } from "../../lib/pagination";
+import {
+  contentChartDraggedScrollLeft,
+  contentChartDragVelocity,
+  contentChartEdgeScrollSpeed,
+  contentChartEdgeScrollVelocity,
+  contentChartMomentumVelocity,
+} from "./contentChartEdgeScroll";
 
 const CONTENT_PERFORMANCE_PAGE_SIZE = 20;
 type ContentPerformanceSort = "latest" | "engagementRate" | "views" | "likes" | "comments";
@@ -40,12 +47,19 @@ const CONTENT_PERFORMANCE_SORT_OPTIONS: readonly {
   { label: "댓글 높은순", value: "comments" },
 ];
 const CONTENT_FORMAT_COLORS = [
-  "var(--fuma-content-format-1)",
-  "var(--fuma-content-format-2)",
-  "var(--fuma-content-format-3)",
-  "var(--fuma-content-format-4)",
-  "var(--fuma-content-format-5)",
+  "#111111",
+  "#238b78",
+  "#de76ce",
+  "#707070",
+  "#a0a0a0",
 ] as const;
+const CONTENT_CHART_COLORS = {
+  contentCount: "#111111",
+  views: "#238b78",
+  likes: "#de76ce",
+  comments: "#ca7700",
+} as const;
+const CONTENT_CHART_LABEL_COLOR = "#111111";
 
 const CONTENT_MEDIA: Record<string, { creatorImage: string; thumbnail: string }> = {
   "ct-001": { thumbnail: "creator-media/kr-cr-001-01.jpg", creatorImage: "creator-media/kr-cr-001-profile.jpg" },
@@ -106,22 +120,26 @@ function ContentTableTrendChart({ content }: { content: ContentInfluence }) {
   return (
     <div className="fuma-content-table-trend">
       <SparklineChart
+        animated
         ariaLabel="날짜별 조회수 및 좋아요 추이"
         categories={dates}
         categoryLabels={dates.map((date) => trendDateLabel(date))}
         endLabel={trendDateLabel(dates.at(-1))}
         series={[
           {
+            color: CONTENT_CHART_COLORS.views,
             id: "views",
             name: "조회수",
             data: dates.map((date) => content.viewsTrend.find((point) => point.recordedAt === date)?.views ?? 0),
           },
           {
+            color: CONTENT_CHART_COLORS.likes,
             id: "likes",
             name: "좋아요",
             data: dates.map((date) => content.reactionTrend.find((point) => point.recordedAt === date)?.likes ?? 0),
           },
         ]}
+        labelColor={CONTENT_CHART_LABEL_COLOR}
         startLabel={trendDateLabel(dates[0])}
       />
     </div>
@@ -250,48 +268,146 @@ function ContentOverview({
     end: defaultPeriodEnd,
   });
   const chartScrollRef = useRef<HTMLDivElement>(null);
-  const chartDragRef = useRef({ pointerId: -1, startScrollLeft: 0, startX: 0 });
+  const chartEdgeScrollRef = useRef({ animationFrame: 0, speed: 0, targetSpeed: 0 });
+  const chartDragRef = useRef({
+    lastTime: 0,
+    lastX: 0,
+    pointerId: -1,
+    startScrollLeft: 0,
+    startX: 0,
+    velocity: 0,
+  });
+  const chartMomentumRef = useRef({ animationFrame: 0, velocity: 0 });
   const [isChartDragging, setIsChartDragging] = useState(false);
+  const [showChartSwipeHint, setShowChartSwipeHint] = useState(true);
 
-  const startChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) {
+  useEffect(() => {
+    const hideTimer = window.setTimeout(() => setShowChartSwipeHint(false), 4_000);
+    return () => window.clearTimeout(hideTimer);
+  }, []);
+
+  const stopChartEdgeScroll = () => {
+    if (chartEdgeScrollRef.current.animationFrame) {
+      window.cancelAnimationFrame(chartEdgeScrollRef.current.animationFrame);
+    }
+    chartEdgeScrollRef.current = { animationFrame: 0, speed: 0, targetSpeed: 0 };
+  };
+
+  const stopChartMomentum = () => {
+    if (chartMomentumRef.current.animationFrame) {
+      window.cancelAnimationFrame(chartMomentumRef.current.animationFrame);
+    }
+    chartMomentumRef.current = { animationFrame: 0, velocity: 0 };
+  };
+
+  const glideChart = () => {
+    const scrollArea = chartScrollRef.current;
+    if (!scrollArea || !chartMomentumRef.current.velocity) {
       return;
     }
+    const previousScrollLeft = scrollArea.scrollLeft;
+    scrollArea.scrollLeft += chartMomentumRef.current.velocity;
+    chartMomentumRef.current.velocity = contentChartMomentumVelocity(chartMomentumRef.current.velocity);
+    if (scrollArea.scrollLeft === previousScrollLeft || !chartMomentumRef.current.velocity) {
+      stopChartMomentum();
+      return;
+    }
+    chartMomentumRef.current.animationFrame = window.requestAnimationFrame(glideChart);
+  };
 
+  const scrollChartAtEdge = () => {
     const scrollArea = chartScrollRef.current;
     if (!scrollArea) {
       return;
     }
 
+    chartEdgeScrollRef.current.speed = contentChartEdgeScrollVelocity(
+      chartEdgeScrollRef.current.speed,
+      chartEdgeScrollRef.current.targetSpeed,
+    );
+    if (!chartEdgeScrollRef.current.speed) {
+      stopChartEdgeScroll();
+      return;
+    }
+    const previousScrollLeft = scrollArea.scrollLeft;
+    scrollArea.scrollLeft += chartEdgeScrollRef.current.speed;
+    if (scrollArea.scrollLeft === previousScrollLeft) {
+      stopChartEdgeScroll();
+      return;
+    }
+    chartEdgeScrollRef.current.animationFrame = window.requestAnimationFrame(scrollChartAtEdge);
+  };
+
+  const updateChartEdgeScroll = (event: ReactPointerEvent<HTMLDivElement>) => {
+    stopChartMomentum();
+    const scrollArea = chartScrollRef.current;
+    if (!scrollArea || scrollArea.scrollWidth <= scrollArea.clientWidth) {
+      stopChartEdgeScroll();
+      return;
+    }
+
+    const bounds = scrollArea.getBoundingClientRect();
+    const speed = contentChartEdgeScrollSpeed(event.clientX, bounds.left, bounds.right);
+    chartEdgeScrollRef.current.targetSpeed = speed;
+    if ((speed || chartEdgeScrollRef.current.speed) && !chartEdgeScrollRef.current.animationFrame) {
+      chartEdgeScrollRef.current.animationFrame = window.requestAnimationFrame(scrollChartAtEdge);
+    }
+  };
+
+  const startChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || !chartScrollRef.current) {
+      return;
+    }
+    stopChartEdgeScroll();
+    stopChartMomentum();
     chartDragRef.current = {
+      lastTime: event.timeStamp,
+      lastX: event.clientX,
       pointerId: event.pointerId,
-      startScrollLeft: scrollArea.scrollLeft,
+      startScrollLeft: chartScrollRef.current.scrollLeft,
       startX: event.clientX,
+      velocity: 0,
     };
-    scrollArea.setPointerCapture(event.pointerId);
+    chartScrollRef.current.setPointerCapture(event.pointerId);
     setIsChartDragging(true);
   };
 
-  const moveChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const scrollArea = chartScrollRef.current;
-    if (!scrollArea || chartDragRef.current.pointerId !== event.pointerId) {
+  const moveChart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (chartScrollRef.current && chartDragRef.current.pointerId === event.pointerId) {
+      chartScrollRef.current.scrollLeft = contentChartDraggedScrollLeft(
+        chartDragRef.current.startScrollLeft,
+        chartDragRef.current.startX,
+        event.clientX,
+      );
+      chartDragRef.current.velocity = contentChartDragVelocity(
+        chartDragRef.current.velocity,
+        chartDragRef.current.lastX,
+        event.clientX,
+        event.timeStamp - chartDragRef.current.lastTime,
+      );
+      chartDragRef.current.lastX = event.clientX;
+      chartDragRef.current.lastTime = event.timeStamp;
       return;
     }
-
-    scrollArea.scrollLeft = chartDragRef.current.startScrollLeft - (event.clientX - chartDragRef.current.startX);
+    updateChartEdgeScroll(event);
   };
 
-  const endChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const scrollArea = chartScrollRef.current;
-    if (!scrollArea || chartDragRef.current.pointerId !== event.pointerId) {
+  const endChartDrag = (event: ReactPointerEvent<HTMLDivElement>, glide = true) => {
+    if (!chartScrollRef.current || chartDragRef.current.pointerId !== event.pointerId) {
       return;
     }
-
-    if (scrollArea.hasPointerCapture(event.pointerId)) {
-      scrollArea.releasePointerCapture(event.pointerId);
+    if (chartScrollRef.current.hasPointerCapture(event.pointerId)) {
+      chartScrollRef.current.releasePointerCapture(event.pointerId);
     }
     chartDragRef.current.pointerId = -1;
     setIsChartDragging(false);
+    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (glide && !prefersReducedMotion && event.timeStamp - chartDragRef.current.lastTime < 80) {
+      chartMomentumRef.current.velocity = chartDragRef.current.velocity;
+      if (chartMomentumRef.current.velocity) {
+        chartMomentumRef.current.animationFrame = window.requestAnimationFrame(glideChart);
+      }
+    }
   };
   const dailyMetrics = new Map<string, {
     comments: number;
@@ -349,6 +465,7 @@ function ContentOverview({
         <section aria-label="콘텐츠 유형" className="fuma-content-upload-status__formats">
           <h3>콘텐츠 유형</h3>
           <AnalysisFormatBreakdown
+            animated
             segments={formatSegments}
             showTotal={false}
             total={uploadSummary?.totalContentCount ?? 0}
@@ -408,35 +525,45 @@ function ContentOverview({
           </ul>
         </div>
         {periodMetrics.length > 0 ? (
-          <div
-            aria-label="기간별 콘텐츠 성과 그래프 좌우 이동"
-            className={`fuma-content-cohort-chart__scroll fuma-content-cohort-chart__scroll--draggable${isChartDragging ? " is-dragging" : ""}`}
-            onPointerCancel={endChartDrag}
-            onPointerDown={startChartDrag}
-            onPointerMove={moveChartDrag}
-            onPointerUp={endChartDrag}
-            ref={chartScrollRef}
-            role="region"
-          >
-            <PeriodLineChart
-              ariaLabel={cohortChartMode === "all"
-                ? "기간별 전체 성과 추이"
-                : `기간별 ${visibleCohortSeries[0].label} 추이`}
-              categories={periodMetrics.map((metric) => metric.date)}
-              categoryLabels={periodMetrics.map((metric) => trendDateLabel(metric.date))}
-              className="fuma-content-period-chart__plot"
-              formatValue={formatCount}
-              height={246}
-              modeClass={cohortChartMode}
-              series={visibleCohortSeries.map((series) => ({
-                color: COHORT_SERIES_COLORS[series.value],
-                data: periodMetrics.map((metric) => metric[series.value]),
-                id: series.value,
-                name: series.label,
-              }))}
-              showValueLabels={cohortChartMode !== "all"}
-              width={cohortChartWidth}
-            />
+          <div className="fuma-content-period-chart__viewport">
+            <span className="fuma-content-period-chart__help">
+              <Tooltip id="content-period-chart-help" visible={showChartSwipeHint}>
+                그래프를 좌우로 드래그해서 이동하세요
+              </Tooltip>
+            </span>
+            <div
+              aria-label="기간별 콘텐츠 성과 그래프 좌우 이동"
+              className={`fuma-content-cohort-chart__scroll fuma-content-cohort-chart__scroll--draggable${isChartDragging ? " is-dragging" : ""}`}
+              onPointerCancel={(event) => endChartDrag(event, false)}
+              onPointerDown={startChartDrag}
+              onPointerLeave={stopChartEdgeScroll}
+              onPointerMove={moveChart}
+              onPointerUp={(event) => endChartDrag(event)}
+              ref={chartScrollRef}
+              role="region"
+            >
+              <PeriodLineChart
+                animated
+                ariaLabel={cohortChartMode === "all"
+                  ? "기간별 전체 성과 추이"
+                  : `기간별 ${visibleCohortSeries[0].label} 추이`}
+                categories={periodMetrics.map((metric) => metric.date)}
+                categoryLabels={periodMetrics.map((metric) => trendDateLabel(metric.date))}
+                className="fuma-content-period-chart__plot"
+                formatValue={formatCount}
+                height={246}
+                labelColor={CONTENT_CHART_LABEL_COLOR}
+                modeClass={cohortChartMode}
+                series={visibleCohortSeries.map((series) => ({
+                  color: CONTENT_CHART_COLORS[series.value],
+                  data: periodMetrics.map((metric) => metric[series.value]),
+                  id: series.value,
+                  name: series.label,
+                }))}
+                showValueLabels={cohortChartMode !== "all"}
+                width={cohortChartWidth}
+              />
+            </div>
           </div>
         ) : <p>조회 기간에 표시할 콘텐츠 성과가 없습니다.</p>}
       </article>
@@ -580,14 +707,16 @@ function ContentPerformanceDetailPanel({
                 ))}
               </ul>
               <PeriodLineChart
+                animated
                 ariaLabel="콘텐츠 조회 및 반응 추이"
                 categories={trendDates}
                 categoryLabels={trendDates.map((date) => trendDateLabel(date))}
                 formatValue={formatCount}
                 height={148}
+                labelColor={CONTENT_CHART_LABEL_COLOR}
                 modeClass={trendMode}
                 series={detailTrendSeries.map((series) => ({
-                  color: COHORT_SERIES_COLORS[series.value],
+                  color: CONTENT_CHART_COLORS[series.value],
                   data: series.data,
                   id: series.value,
                   name: series.label,

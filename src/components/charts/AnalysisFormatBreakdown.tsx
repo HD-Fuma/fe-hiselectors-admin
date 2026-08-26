@@ -5,6 +5,7 @@ import {
 } from "./AnalysisFormatDonut";
 
 interface AnalysisFormatBreakdownProps {
+  animated?: boolean;
   segments: readonly AnalysisFormatSegment[];
   showTotal?: boolean;
   total: number | null;
@@ -12,6 +13,7 @@ interface AnalysisFormatBreakdownProps {
 }
 
 export function AnalysisFormatBreakdown({
+  animated = false,
   segments,
   showTotal = true,
   total,
@@ -20,6 +22,7 @@ export function AnalysisFormatBreakdown({
   return (
     <div className="fuma-analysis-format-breakdown">
       <AnalysisFormatDonut
+        animated={animated}
         segments={segments}
         showTotal={showTotal}
         total={total}

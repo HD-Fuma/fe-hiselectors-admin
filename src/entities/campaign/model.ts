@@ -66,55 +66,6 @@ export interface CampaignUpdateRequest extends CampaignSaveRequest {
   removeThumbnail?: boolean;
 }
 
-export interface CampaignPerformanceSummary {
-  confirmedSales: number;
-  confirmedOrderCount: number;
-  soldQuantity: number;
-  contributingSelectorCount: number;
-  canceledOrReturnedOrderCount: number;
-  canceledOrReturnedRate: number;
-}
-
-export interface CampaignPerformanceDailyMetric {
-  date: string;
-  confirmedSales: number;
-  confirmedOrderCount: number;
-  soldQuantity: number;
-}
-
-export interface CampaignProductPerformance {
-  productId: number;
-  productCode: string | null;
-  productName: string | null;
-  brandName: string | null;
-  thumbnailUrl: string | null;
-  confirmedSales: number;
-  confirmedOrderCount: number;
-  soldQuantity: number;
-  contributingSelectorCount: number;
-}
-
-export interface CampaignSelectorPerformance {
-  selectorId: number;
-  selectorCode: string | null;
-  nickname: string | null;
-  profileImageUrl: string | null;
-  confirmedSales: number;
-  confirmedOrderCount: number;
-  soldQuantity: number;
-  productCount: number;
-}
-
-export interface CampaignPerformanceDetail {
-  campaignId: number;
-  startDate: string;
-  endDate: string;
-  summary: CampaignPerformanceSummary;
-  daily: CampaignPerformanceDailyMetric[];
-  products: CampaignProductPerformance[];
-  selectors: CampaignSelectorPerformance[];
-}
-
 export const CAMPAIGN_STATUS_OPTIONS = [
   { label: "시작 전", value: "SCHEDULED" },
   { label: "진행 중", value: "ACTIVE" },

@@ -1,26 +1,29 @@
 import { HsECharts, type EChartsOption } from "./HsECharts";
-import { COHORT_SERIES_COLORS } from "./chartColors";
-
 interface SparklineSeries {
+  color: string;
   data: readonly number[];
   id: "views" | "likes";
   name: string;
 }
 
 interface SparklineChartProps {
+  animated?: boolean;
   ariaLabel: string;
   categories: readonly string[];
   categoryLabels: readonly string[];
   endLabel: string;
+  labelColor?: string;
   series: readonly SparklineSeries[];
   startLabel: string;
 }
 
 export function SparklineChart({
+  animated = false,
   ariaLabel,
   categories,
   categoryLabels,
   endLabel,
+  labelColor = "#4b5752",
   series,
   startLabel,
 }: SparklineChartProps) {
@@ -33,7 +36,9 @@ export function SparklineChart({
   }).join(". ");
 
   const option: EChartsOption = {
-    animation: false,
+    animation: animated,
+    animationDuration: animated ? 700 : 0,
+    animationEasing: "cubicOut",
     grid: {
       bottom: 16,
       left: 8,
@@ -58,7 +63,7 @@ export function SparklineChart({
           if (index === (series[0]?.data.length ?? 1) - 1) return endLabel;
           return "";
         },
-        color: "#4b5752",
+        color: labelColor,
         fontSize: 8,
         fontWeight: 700,
         margin: 4,
@@ -88,12 +93,12 @@ export function SparklineChart({
       symbolSize: 5,
       smooth: 0.35,
       lineStyle: {
-        color: COHORT_SERIES_COLORS[item.id],
+        color: item.color,
         width: 2,
       },
       itemStyle: {
         color: "#ffffff",
-        borderColor: COHORT_SERIES_COLORS[item.id],
+        borderColor: item.color,
         borderWidth: 2,
       },
     })) as EChartsOption["series"],

@@ -245,7 +245,8 @@
   border-bottom-color: var(--hsas-tooltip-background);
 }
 
-.hsas-tooltip.is-visible {
+.hsas-tooltip.is-visible,
+.hsas-view-mode-toggle-wrap:hover > .hsas-tooltip {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);

@@ -10,12 +10,14 @@ export interface PeriodLineSeries {
 }
 
 interface PeriodLineChartProps {
+  animated?: boolean;
   ariaLabel: string;
   categories: readonly string[];
   categoryLabels: readonly string[];
   className?: string;
   formatValue?: (value: number) => string;
   height: number;
+  labelColor?: string;
   modeClass?: string;
   series: readonly PeriodLineSeries[];
   showValueLabels?: boolean;
@@ -24,12 +26,14 @@ interface PeriodLineChartProps {
 }
 
 export function PeriodLineChart({
+  animated = false,
   ariaLabel,
   categories,
   categoryLabels,
   className = "",
   formatValue = (value) => value.toLocaleString("ko-KR"),
   height,
+  labelColor = "#4b5752",
   modeClass = "all",
   series,
   showValueLabels = false,
@@ -37,7 +41,9 @@ export function PeriodLineChart({
   width,
 }: PeriodLineChartProps) {
   const option: EChartsOption = {
-    animation: false,
+    animation: animated,
+    animationDuration: animated ? 700 : 0,
+    animationEasing: "cubicOut",
     grid: {
       bottom: 28,
       left: 18,
@@ -47,8 +53,25 @@ export function PeriodLineChart({
     },
     tooltip: {
       ...ECHARTS_TOOLTIP_STYLE,
+      appendTo: (chartContainer: HTMLElement) => (
+        chartContainer.closest<HTMLElement>(".fuma-content-period-chart__viewport")
+        ?? document.body
+      ),
       trigger: "axis",
-      valueFormatter: (value) => formatValue(Number(value)),
+      formatter: (params: unknown) => {
+        const items = (Array.isArray(params) ? params : [params]) as Array<{
+          axisValueLabel?: string;
+          seriesName?: string;
+          value?: unknown;
+        }>;
+        return [
+          items[0]?.axisValueLabel ?? "",
+          ...items.map((item) => {
+            const color = series.find((entry) => entry.name === item.seriesName)?.color ?? labelColor;
+            return `<span style="display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:${color}"></span>${item.seriesName ?? ""} ${formatValue(Number(item.value ?? 0))}`;
+          }),
+        ].filter(Boolean).join("<br/>");
+      },
     },
     xAxis: {
       type: "category",
@@ -57,7 +80,7 @@ export function PeriodLineChart({
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
-        color: "#4b5752",
+        color: labelColor,
         fontSize: 9,
         fontWeight: 700,
         margin: 12,
@@ -101,7 +124,7 @@ export function PeriodLineChart({
         ? {
             show: true,
             position: "top" as const,
-            color: "#65716c",
+            color: labelColor,
             fontSize: 8,
             fontWeight: 700,
             formatter: (params: { value: unknown }) => formatValue(Number(params.value ?? 0)),

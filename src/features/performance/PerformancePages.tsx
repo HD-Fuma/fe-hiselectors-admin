@@ -29,6 +29,7 @@ import {
   type SelectorSalesPerformance,
 } from "../../entities/selectors";
 import { CampaignPerformanceDashboard } from "./CampaignPerformanceDashboard";
+import { paginate } from "../../lib/pagination";
 import { ContentPerformanceDashboard } from "./ContentPerformanceDashboard";
 import { SelectorPerformanceDashboard } from "./SelectorPerformanceDashboard";
 import {
@@ -514,7 +515,7 @@ export function ContentPerformancePage() {
   };
 
   return (
-    <section className="fuma-page fuma-performance-page">
+    <section className="fuma-page fuma-performance-page fuma-content-performance-page">
       <PageHeader title="콘텐츠 성과" />
       <div className="fuma-page__body">
         <ContentPerformanceDashboard
@@ -548,13 +549,3 @@ export function ContentPerformancePage() {
   );
 }
 
-export function ProductPerformancePage() {
-  return (
-    <section className="fuma-page fuma-performance-page">
-      <PageHeader title="캠페인 성과" />
-      <div className="fuma-page__body">
-        <CampaignPerformanceDashboard />
-      </div>
-    </section>
-  );
-}

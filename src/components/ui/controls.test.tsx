@@ -1,6 +1,7 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
+import adminStyles from "../../styles/admin.css?raw";
 import {
   Button,
   buttonClassNames,
@@ -28,11 +29,12 @@ describe("HSAS controls", () => {
     const toggle = screen.getByRole("switch", { name: "보기 방식" });
     expect(toggle).toHaveClass("is-grid");
     expect(toggle).not.toBeChecked();
-    expect(screen.getByRole("tooltip")).toHaveTextContent("보기 방식을 변경할 수 있습니다");
+    expect(screen.getByRole("tooltip")).toHaveTextContent("보기를 변경할 수 있습니다");
     expect(screen.getByRole("tooltip")).toHaveClass("is-visible");
 
-    fireEvent.mouseEnter(toggle.parentElement!);
-    expect(screen.getByRole("tooltip")).not.toHaveClass("is-visible");
+    expect(adminStyles).toMatch(
+      /\.hsas-view-mode-toggle-wrap:hover > \.hsas-tooltip\s*\{[^}]*opacity:\s*1;/,
+    );
 
     await userEvent.click(toggle);
     expect(onChange).toHaveBeenCalledWith("list");

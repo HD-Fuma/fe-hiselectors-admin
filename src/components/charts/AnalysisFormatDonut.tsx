@@ -11,6 +11,7 @@ export interface AnalysisFormatSegment {
 }
 
 export interface AnalysisFormatDonutProps {
+  animated?: boolean;
   segments: readonly AnalysisFormatSegment[];
   showTotal?: boolean;
   total: number | null;
@@ -18,15 +19,19 @@ export interface AnalysisFormatDonutProps {
 }
 
 export function AnalysisFormatDonut({
+  animated = false,
   segments,
   showTotal = true,
   total,
   totalLabel = "전체 콘텐츠",
 }: AnalysisFormatDonutProps) {
   const option = useMemo<EChartsOption>(() => ({
-    animation: false,
+    animation: animated,
+    animationDuration: animated ? 700 : 0,
+    animationEasing: "cubicOut",
     tooltip: {
       ...ECHARTS_TOOLTIP_STYLE,
+      appendTo: "body",
       trigger: "item",
       formatter: (params: unknown) => {
         const item = (Array.isArray(params) ? params[0] : params) as {
@@ -61,7 +66,7 @@ export function AnalysisFormatDonut({
         })),
       },
     ],
-  }), [segments]);
+  }), [animated, segments]);
 
   return (
     <div
