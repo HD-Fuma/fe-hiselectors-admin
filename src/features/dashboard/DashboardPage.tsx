@@ -261,7 +261,7 @@ function SettlementTrend({ monthlyTrend }: { monthlyTrend: readonly SettlementMo
         className="fuma-dashboard-trend__plot"
         role="img"
       >
-        <HsECharts height={170} option={option} style={{ height: "170px", width: "100%" }} />
+        <HsECharts height={150} option={option} style={{ height: "150px", width: "100%" }} />
       </div>
     </div>
   );
