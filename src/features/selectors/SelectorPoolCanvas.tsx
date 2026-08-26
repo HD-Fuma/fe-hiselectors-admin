@@ -14,6 +14,7 @@ const DAMPING = 0.86;
 const GOLDEN_ANGLE = 2.39996;
 const INK = "17 24 39";
 const WHITE = "255 255 255";
+const CANVAS_FONT = '"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Arial, sans-serif';
 
 interface PoolNode {
   x: number;
@@ -586,13 +587,15 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
 
       // 클러스터마다 옅은 색 안개를 깔아 영역이 구분되게 한다.
       categories.forEach((category, categoryIndex) => {
-        const spread = clusterRadius(category.count) * 1.18;
+        const reach = clusterRadius(category.count);
+        const spread = reach * 1.9;
         const wash = context.createRadialGradient(
-          category.x, category.y, 0,
+          category.x, category.y, reach * 0.22,
           category.x, category.y, spread,
         );
-        wash.addColorStop(0, `rgb(${WHITE} / ${16 * weightOf(categoryIndex)}%)`);
-        wash.addColorStop(0.65, `rgb(${WHITE} / ${6 * weightOf(categoryIndex)}%)`);
+        wash.addColorStop(0, `rgb(${WHITE} / ${30 * weightOf(categoryIndex)}%)`);
+        wash.addColorStop(0.24, `rgb(${WHITE} / ${22 * weightOf(categoryIndex)}%)`);
+        wash.addColorStop(0.58, `rgb(${WHITE} / ${8 * weightOf(categoryIndex)}%)`);
         wash.addColorStop(1, `rgb(${WHITE} / 0%)`);
         context.fillStyle = wash;
         context.beginPath();
@@ -716,10 +719,10 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         context.textAlign = "center";
         context.textBaseline = "middle";
         context.fillStyle = `rgb(${INK})`;
-        context.font = `700 ${15 * labelScale}px Pretendard, sans-serif`;
+        context.font = `600 ${14 * labelScale}px ${CANVAS_FONT}`;
         context.fillText(category.label, category.x, category.y - 6 * labelScale);
 
-        context.font = `600 ${11 * labelScale}px Pretendard, sans-serif`;
+        context.font = `500 ${11 * labelScale}px ${CANVAS_FONT}`;
         const chipWidth = context.measureText(countLabel).width + 16 * labelScale;
         context.fillStyle = `rgb(${category.rgb} / 16%)`;
         context.beginPath();
@@ -748,9 +751,9 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
 
         const mark = platformMark(lit.selector.snsCode);
 
-        context.font = "700 12px Pretendard, sans-serif";
+        context.font = `700 12px ${CANVAS_FONT}`;
         const nameWidth = context.measureText(name).width;
-        context.font = "500 11px Pretendard, sans-serif";
+        context.font = `500 11px ${CANVAS_FONT}`;
         const accountWidth = context.measureText(account).width + 18; // 로고 자리
         const metaWidth = Math.max(
           accountWidth,
@@ -774,10 +777,10 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         context.textAlign = "center";
         context.textBaseline = "middle";
         context.fillStyle = "#fff";
-        context.font = "700 12px Pretendard, sans-serif";
+        context.font = `700 12px ${CANVAS_FONT}`;
         context.fillText(name, position.x, cardY + 17);
 
-        context.font = "500 11px Pretendard, sans-serif";
+        context.font = `500 11px ${CANVAS_FONT}`;
         const accountTextWidth = context.measureText(account).width;
         const accountLeft = position.x - accountTextWidth / 2;
         context.save();
