@@ -221,19 +221,34 @@ function drawBubble(
   y: number,
   radius: number,
   image: HTMLImageElement | undefined,
-  tint: string,
 ) {
-  // 흰 배경에서 떠 보이도록 부드러운 그림자 위에 흰 테를 깐다.
+  const shellRadius = radius + 5;
+
+  // 콘텐츠 검수 확인 팝업과 같은 반투명 흰색·테두리·그림자 재질.
   context.save();
-  context.shadowColor = `rgb(${INK} / 22%)`;
-  context.shadowBlur = 14;
-  context.shadowOffsetY = 5;
-  context.fillStyle = "#fff";
+  context.shadowColor = "rgb(54 65 72 / 12%)";
+  context.shadowBlur = 18;
+  context.shadowOffsetY = 6;
+  context.fillStyle = "rgb(255 255 255 / 58%)";
   context.beginPath();
-  context.arc(x, y, radius + 2.5, 0, Math.PI * 2);
+  context.arc(x, y, shellRadius, 0, Math.PI * 2);
   context.fill();
   context.restore();
 
+  context.save();
+  context.strokeStyle = "rgb(255 255 255 / 78%)";
+  context.lineWidth = 1;
+  context.beginPath();
+  context.arc(x, y, shellRadius - 0.5, 0, Math.PI * 2);
+  context.stroke();
+  context.strokeStyle = "rgb(255 255 255 / 72%)";
+  context.lineWidth = 1.5;
+  context.beginPath();
+  context.arc(x, y, shellRadius - 2, Math.PI * 1.08, Math.PI * 1.82);
+  context.stroke();
+  context.restore();
+
+  // 팝업 안의 콘텐츠처럼 프로필 사진 자체는 플랫하게 유지한다.
   context.save();
   context.beginPath();
   context.arc(x, y, radius, 0, Math.PI * 2);
@@ -242,11 +257,11 @@ function drawBubble(
     context.drawImage(image, x - radius, y - radius, radius * 2, radius * 2);
   } else {
     const blob = context.createLinearGradient(x - radius, y - radius, x + radius, y + radius);
-    blob.addColorStop(0, `rgb(${tint} / 92%)`);
-    blob.addColorStop(1, `rgb(${tint} / 62%)`);
+    blob.addColorStop(0, "rgb(255 255 255 / 82%)");
+    blob.addColorStop(1, "rgb(32 34 36 / 10%)");
     context.fillStyle = blob;
     context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-    context.fillStyle = "#fff";
+    context.fillStyle = "#202224";
     context.font = `700 ${Math.round(radius)}px Pretendard, sans-serif`;
     context.textAlign = "center";
     context.textBaseline = "middle";
@@ -643,13 +658,15 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
           context.stroke();
         }
 
-        drawBubble(context, node, position.x, position.y, radius, images.get(node.selector.id), NODE_TINT);
+        drawBubble(context, node, position.x, position.y, radius, images.get(node.selector.id));
 
-        context.strokeStyle = active ? `rgb(${NODE_TINT})` : `rgb(${INK} / 12%)`;
-        context.lineWidth = active ? 2.6 : 1.6;
-        context.beginPath();
-        context.arc(position.x, position.y, radius + 1, 0, Math.PI * 2);
-        context.stroke();
+        if (active) {
+          context.strokeStyle = `rgb(${NODE_TINT})`;
+          context.lineWidth = 2.6;
+          context.beginPath();
+          context.arc(position.x, position.y, radius + 6, 0, Math.PI * 2);
+          context.stroke();
+        }
         context.restore();
       });
 
