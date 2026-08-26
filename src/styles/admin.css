@@ -147,9 +147,9 @@
   display: grid;
   grid-template-columns: repeat(2, 50px);
   padding: var(--hsas-space-2);
-  border: 1px solid #b9c4c0;
+  border: 1px solid #c7c7c7;
   border-radius: 6px;
-  background: #f2f5f4;
+  background: #f3f3f3;
   color: inherit;
   cursor: pointer;
   font: inherit;
@@ -157,15 +157,16 @@
 
 .hsas-view-mode-toggle__slider {
   position: absolute;
-  z-index: -1;
+  z-index: 0;
   top: 2px;
   bottom: 2px;
   left: 2px;
   width: 50px;
   border-radius: 4px;
   background: var(--hsas-color-black);
-  box-shadow: 0 1px 3px rgb(25 67 58 / 18%);
-  transition: transform 180ms ease;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 18%);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
 }
 
 .hsas-view-mode-toggle.is-list .hsas-view-mode-toggle__slider {
@@ -173,11 +174,13 @@
 }
 
 .hsas-view-mode-toggle__label {
+  position: relative;
+  z-index: 1;
   display: grid;
   min-height: 27px;
   place-items: center;
   padding: 0 var(--hsas-space-6);
-  color: var(--hsas-text-muted);
+  color: #777;
   font-size: var(--hsas-font-11);
   font-weight: 700;
   transition: color 180ms ease;
@@ -190,7 +193,7 @@
 }
 
 .hsas-view-mode-toggle:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--hsas-teal) 45%, white);
+  outline: 2px solid #777;
   outline-offset: -2px;
 }
 
@@ -203,7 +206,7 @@
   max-width: 210px;
   padding: var(--hsas-space-8) var(--hsas-space-10);
   border-radius: 7px;
-  background: #283b33;
+  background: #303030;
   color: var(--hsas-color-white);
   font-size: var(--hsas-font-10);
   font-weight: 700;
@@ -220,7 +223,7 @@
   right: 18px;
   bottom: 100%;
   border: 5px solid transparent;
-  border-bottom-color: #283b33;
+  border-bottom-color: #303030;
   content: "";
 }
 
@@ -10131,8 +10134,17 @@
 }
 
 :root[data-theme="dark"] .hsas-view-mode-toggle {
-  border-color: var(--hsas-border);
-  background: var(--hsas-surface-muted);
+  border-color: #4a4a4a;
+  background: #282828;
+}
+
+:root[data-theme="dark"] .hsas-view-mode-toggle__label {
+  color: #b0b0b0;
+}
+
+:root[data-theme="dark"] .hsas-view-mode-toggle.is-grid .hsas-view-mode-toggle__label.is-grid,
+:root[data-theme="dark"] .hsas-view-mode-toggle.is-list .hsas-view-mode-toggle__label.is-list {
+  color: var(--hsas-color-white);
 }
 
 :root[data-theme="dark"] .hsas-status-pill--approved {

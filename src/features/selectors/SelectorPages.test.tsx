@@ -181,7 +181,7 @@ describe("selector api pages", () => {
     const search = await screen.findByRole("search", { name: "검색 조건" }, { timeout: 3000 });
 
     expect(await screen.findByRole("img", { name: "셀렉터스 발견 풀" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "표" }));
+    fireEvent.click(screen.getByRole("switch", { name: "보기 방식" }));
 
     expect(await screen.findByText("SEL0007")).toBeInTheDocument();
     const list = screen.getByRole("region", { name: "셀렉터스 목록" });
