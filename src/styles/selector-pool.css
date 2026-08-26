@@ -2,7 +2,10 @@
   position: relative;
   border-top: 1px solid var(--hsas-border);
   overflow: hidden;
-  background: #fff;
+  background:
+    radial-gradient(ellipse 42% 18% at 50% 78%, rgb(255 255 255 / 18%), transparent 72%),
+    radial-gradient(circle at 50% 28%, rgb(255 255 255 / 22%) 0, rgb(248 249 249 / 18%) 32%, rgb(233 236 238 / 21%) 100%);
+  backdrop-filter: blur(30px) saturate(0.72);
 }
 
 /* 목록 아래 남은 화면만큼 쓰되 과하게 커지지 않게 상한을 둔다(--hsas-pool-top 은 캔버스 상단 오프셋). */
