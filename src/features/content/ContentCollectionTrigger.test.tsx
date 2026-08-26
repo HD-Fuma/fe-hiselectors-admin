@@ -117,7 +117,14 @@ test("requests one content collection run with idempotency and hides the accepte
   expect(refreshButton.parentElement).toHaveClass("fuma-content-collection-run-actions");
   expect(refreshButton.parentElement?.tagName).toBe("SPAN");
   expect(refreshButton.querySelector("svg")).toBeInTheDocument();
-  expect(within(categoryTabs).getByRole("button", { name: "검수 시작" })).toBeEnabled();
+  const startButton = within(categoryTabs).getByRole("button", { name: "검수 시작" });
+  expect(startButton).toBeEnabled();
+  expect(startButton).toHaveAttribute("aria-describedby", "content-inspection-start-tooltip");
+  const startTooltip = document.getElementById("content-inspection-start-tooltip");
+  expect(startTooltip).toHaveClass("is-visible");
+  expect(startTooltip).toHaveTextContent("검수할 항목이 1건 있습니다.");
+  expect(startTooltip).toHaveTextContent("검수 시작 버튼을 눌러 검수를 진행하세요");
+  expect(startTooltip?.querySelector("br")).not.toBeInTheDocument();
 
   const requestsBeforeRun = fetchMock.mock.calls.length;
   fireEvent.click(refreshButton);

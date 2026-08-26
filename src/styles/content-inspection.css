@@ -4149,6 +4149,28 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
   margin-block: var(--hsas-space-4);
 }
 
+.fuma-content-inspection-start-tooltip {
+  position: relative;
+  display: inline-flex;
+}
+
+.fuma-content-inspection-start-tooltip > .hsas-tooltip {
+  --hsas-tooltip-arrow-right: calc(var(--hsas-control-height) / 2 - 5px);
+
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--hsas-space-8));
+  max-width: none;
+}
+
+.fuma-content-inspection-start-tooltip:hover > .hsas-tooltip,
+.fuma-content-inspection-start-tooltip:focus-within > .hsas-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+
 .fuma-content-inspection-collection-feedback {
   margin: calc(-1 * var(--hsas-space-10)) var(--hsas-space-2) var(--hsas-space-14);
   color: var(--hsas-color-ink-700);

@@ -47,6 +47,7 @@ import { ListSearchPanel } from "../../components/ui/ListSearchPanel";
 import { Pagination } from "../../components/ui/Pagination";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { Tooltip } from "../../components/ui/Tooltip";
 import { ViewModeToggle, type ViewMode } from "../../components/ui/ViewModeToggle";
 import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
@@ -433,9 +434,14 @@ function ContentInspectionCategoryTabs({
 }) {
   const [isCollecting, setIsCollecting] = useState(false);
   const [collectionError, setCollectionError] = useState<string | null>(null);
+  const [showStartTooltip, setShowStartTooltip] = useState(true);
   const collectionRequestRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => collectionRequestRef.current?.abort(), []);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setShowStartTooltip(false), 2000);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const runContentCollection = async () => {
     const controller = new AbortController();
@@ -480,14 +486,20 @@ function ContentInspectionCategoryTabs({
             >
               <RefreshCw aria-hidden="true" className={isCollecting ? "is-spinning" : undefined} size={15} />
             </Button>
-            <Button
-              className="fuma-content-inspection-start-button"
-              disabled={pendingCount === 0}
-              onClick={onStartInspection}
-              variant="primary"
-            >
-              검수 시작
-            </Button>
+            <span className="fuma-content-inspection-start-tooltip">
+              <Button
+                aria-describedby="content-inspection-start-tooltip"
+                className="fuma-content-inspection-start-button"
+                disabled={pendingCount === 0}
+                onClick={onStartInspection}
+                variant="primary"
+              >
+                검수 시작
+              </Button>
+              <Tooltip id="content-inspection-start-tooltip" visible={showStartTooltip}>
+                검수할 항목이 {pendingCount}건 있습니다. 검수 시작 버튼을 눌러 검수를 진행하세요
+              </Tooltip>
+            </span>
           </span>
         )}
         ariaLabel="콘텐츠 처리 구분"
