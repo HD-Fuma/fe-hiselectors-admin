@@ -700,12 +700,11 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(dl, dl > div, .fuma
   position: absolute;
   z-index: 2;
   top: var(--hsas-space-8);
-  left: 50%;
+  right: var(--hsas-space-12);
   display: inline-flex;
-  transform: translateX(-50%);
 }
 .fuma-content-period-chart__help > .hsas-tooltip {
-  --hsas-tooltip-arrow-right: calc(50% - 5px);
+  --hsas-tooltip-arrow-right: 18px;
   position: static;
 }
 .fuma-content-cohort-chart__plot.fuma-content-period-chart__plot { height: 246px; }
