@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { DashboardPage } from "./DashboardPage";
 
@@ -83,4 +84,20 @@ test("shows database-backed tasks, statistics, and shortcuts", async () => {
   expect(screen.getByRole("navigation", { name: "관리자 바로가기" })).toBeInTheDocument();
   expect(screen.queryByText(/오늘 확인할 업무/)).not.toBeInTheDocument();
   expect(screen.queryByText(/DB 조회 결과/)).not.toBeInTheDocument();
+});
+
+test("switches between five dashboard proposals", async () => {
+  const user = userEvent.setup();
+  const { container } = render(
+    <MemoryRouter initialEntries={["/dashboard?variant=3"]}><DashboardPage /></MemoryRouter>,
+  );
+
+  const dashboard = container.querySelector(".fuma-dashboard");
+  expect(screen.getByRole("button", { name: "3안" })).toHaveAttribute("aria-pressed", "true");
+  expect(dashboard).toHaveAttribute("data-dashboard-variant", "3");
+
+  await user.click(screen.getByRole("button", { name: "5안" }));
+
+  expect(screen.getByRole("button", { name: "5안" })).toHaveAttribute("aria-pressed", "true");
+  expect(dashboard).toHaveAttribute("data-dashboard-variant", "5");
 });

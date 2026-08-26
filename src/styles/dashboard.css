@@ -12,7 +12,7 @@
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: var(--hsas-space-10);
-  margin-top: var(--hsas-space-16);
+  margin-top: var(--hsas-space-10);
   padding: var(--hsas-space-12);
   border: 1px solid var(--hsas-border);
   border-radius: 22px;
@@ -24,6 +24,55 @@
 .fuma-dashboard dl,
 .fuma-dashboard dd {
   margin: 0;
+}
+
+.fuma-dashboard__variants {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hsas-space-10);
+  margin-top: var(--hsas-space-16);
+  padding: var(--hsas-space-5) var(--hsas-space-6);
+  border: 1px solid var(--hsas-border);
+  border-radius: 12px;
+  background: var(--hsas-surface);
+}
+
+.fuma-dashboard__variants > span {
+  padding-left: var(--hsas-space-6);
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-12);
+  font-weight: 600;
+}
+
+.fuma-dashboard__variants > div {
+  display: flex;
+  gap: var(--hsas-space-4);
+}
+
+.fuma-dashboard__variants button {
+  min-width: 42px;
+  min-height: 32px;
+  padding: 0 var(--hsas-space-8);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--hsas-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--hsas-font-12);
+  font-weight: 600;
+}
+
+.fuma-dashboard__variants button:hover {
+  border-color: var(--hsas-border);
+  color: var(--hsas-text);
+}
+
+.fuma-dashboard__variants button[aria-pressed="true"] {
+  border-color: var(--dashboard-accent);
+  background: var(--dashboard-accent);
+  color: var(--dashboard-on-accent);
 }
 
 .fuma-dashboard__priority,
@@ -40,7 +89,7 @@
 .fuma-dashboard__priority {
   display: grid;
   min-height: 226px;
-  grid-column: span 8;
+  grid-area: priority;
   align-content: start;
   gap: var(--hsas-space-12);
   border-color: var(--dashboard-accent);
@@ -51,21 +100,21 @@
 .fuma-dashboard__campaigns {
   display: grid;
   min-height: 226px;
-  grid-column: span 4;
+  grid-area: campaigns;
   align-content: start;
   gap: var(--hsas-space-10);
 }
 
 .fuma-dashboard-panel--stats {
   display: grid;
-  grid-column: span 8;
+  grid-area: stats;
   align-content: start;
   gap: var(--hsas-space-10);
 }
 
 .fuma-dashboard__shortcut-section {
   display: grid;
-  grid-column: span 4;
+  grid-area: shortcuts;
   align-content: start;
   gap: var(--hsas-space-10);
 }
@@ -337,6 +386,142 @@
   color: var(--dashboard-accent);
 }
 
+.fuma-dashboard[data-dashboard-variant="1"] .fuma-page__body {
+  grid-template-areas:
+    "priority priority priority campaigns campaigns campaigns campaigns campaigns campaigns shortcuts shortcuts shortcuts"
+    "stats stats stats stats stats stats stats stats stats stats stats stats";
+}
+
+.fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard__priority,
+.fuma-dashboard[data-dashboard-variant="5"] .fuma-dashboard__priority {
+  border-color: var(--hsas-border);
+  background: var(--dashboard-panel);
+  color: var(--hsas-text);
+}
+
+.fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard__priority {
+  min-height: 226px;
+}
+
+.fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard__tasks,
+.fuma-dashboard[data-dashboard-variant="5"] .fuma-dashboard__tasks {
+  gap: var(--hsas-space-8);
+  overflow: visible;
+  border: 0;
+  background: transparent;
+}
+
+.fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard__tasks {
+  grid-template-columns: 1fr;
+}
+
+.fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard__tasks li + li,
+.fuma-dashboard[data-dashboard-variant="5"] .fuma-dashboard__tasks li + li {
+  border: 0;
+}
+
+.fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard-task,
+.fuma-dashboard[data-dashboard-variant="5"] .fuma-dashboard-task {
+  min-height: 88px;
+  border: 1px solid var(--dashboard-accent);
+  border-radius: 14px;
+  background: var(--dashboard-accent);
+}
+
+.fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard__stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.fuma-dashboard[data-dashboard-variant="2"] .fuma-page__body {
+  grid-template-areas:
+    "priority priority priority priority priority priority priority priority campaigns campaigns campaigns campaigns"
+    "stats stats stats stats stats stats stats stats shortcuts shortcuts shortcuts shortcuts";
+}
+
+.fuma-dashboard[data-dashboard-variant="3"] .fuma-page__body {
+  grid-template-areas:
+    "priority priority priority priority priority priority priority priority stats stats stats stats"
+    "campaigns campaigns campaigns campaigns campaigns campaigns campaigns campaigns stats stats stats stats"
+    "campaigns campaigns campaigns campaigns campaigns campaigns campaigns campaigns shortcuts shortcuts shortcuts shortcuts";
+}
+
+.fuma-dashboard[data-dashboard-variant="3"] .fuma-dashboard__priority {
+  min-height: 168px;
+}
+
+.fuma-dashboard[data-dashboard-variant="3"] .fuma-dashboard-task {
+  min-height: 96px;
+}
+
+.fuma-dashboard[data-dashboard-variant="3"] .fuma-dashboard__campaigns ul {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--hsas-space-8);
+}
+
+.fuma-dashboard[data-dashboard-variant="3"] .fuma-dashboard__stats {
+  grid-template-columns: 1fr;
+}
+
+.fuma-dashboard[data-dashboard-variant="3"] .fuma-dashboard-stat {
+  min-height: 68px;
+}
+
+.fuma-dashboard[data-dashboard-variant="3"] .fuma-dashboard__shortcuts a {
+  min-height: 44px;
+}
+
+.fuma-dashboard[data-dashboard-variant="4"] .fuma-page__body {
+  grid-template-areas:
+    "stats stats stats stats stats stats stats stats stats stats stats stats"
+    "campaigns campaigns campaigns campaigns campaigns campaigns campaigns campaigns priority priority priority priority"
+    "campaigns campaigns campaigns campaigns campaigns campaigns campaigns campaigns shortcuts shortcuts shortcuts shortcuts";
+}
+
+.fuma-dashboard[data-dashboard-variant="4"] .fuma-dashboard__priority {
+  min-height: auto;
+  border-color: var(--hsas-border);
+  background: var(--dashboard-panel);
+  color: var(--hsas-text);
+}
+
+.fuma-dashboard[data-dashboard-variant="4"] .fuma-dashboard__tasks {
+  grid-template-columns: 1fr;
+  gap: var(--hsas-space-8);
+  overflow: visible;
+  border: 0;
+  background: transparent;
+}
+
+.fuma-dashboard[data-dashboard-variant="4"] .fuma-dashboard__tasks li + li {
+  border: 0;
+}
+
+.fuma-dashboard[data-dashboard-variant="4"] .fuma-dashboard-task {
+  min-height: 82px;
+  border: 1px solid var(--dashboard-accent);
+  border-radius: 12px;
+  background: var(--dashboard-accent);
+}
+
+.fuma-dashboard[data-dashboard-variant="4"] .fuma-dashboard__stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.fuma-dashboard[data-dashboard-variant="5"] .fuma-page__body {
+  grid-template-areas:
+    "campaigns campaigns campaigns campaigns priority priority priority priority priority priority priority priority"
+    "shortcuts shortcuts shortcuts shortcuts stats stats stats stats stats stats stats stats";
+}
+
+.fuma-dashboard[data-dashboard-variant="5"] .fuma-dashboard__campaigns,
+.fuma-dashboard[data-dashboard-variant="5"] .fuma-dashboard__priority {
+  min-height: 212px;
+}
+
+.fuma-dashboard[data-dashboard-variant="5"] .fuma-dashboard-task {
+  min-height: 132px;
+}
+
 :root[data-theme="dark"] .fuma-dashboard {
   --dashboard-canvas: #171717;
   --dashboard-panel: #202020;
@@ -344,21 +529,14 @@
   --dashboard-focus: #fff;
 }
 
-@media (max-width: 1080px) {
-  .fuma-dashboard__priority,
-  .fuma-dashboard-panel--stats {
-    grid-column: span 7;
-  }
-
-  .fuma-dashboard__campaigns,
-  .fuma-dashboard__shortcut-section {
-    grid-column: span 5;
-  }
-}
-
 @media (max-width: 760px) {
   .fuma-dashboard .fuma-page__body {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "priority"
+      "campaigns"
+      "stats"
+      "shortcuts";
   }
 
   .fuma-dashboard__priority,
@@ -366,7 +544,6 @@
   .fuma-dashboard-panel--stats,
   .fuma-dashboard__shortcut-section {
     min-height: auto;
-    grid-column: 1;
   }
 
   .fuma-dashboard__tasks {
@@ -378,7 +555,7 @@
     border-left: 0;
   }
 
-  .fuma-dashboard-task {
+  .fuma-dashboard[data-dashboard-variant] .fuma-dashboard-task {
     min-height: 108px;
   }
 }

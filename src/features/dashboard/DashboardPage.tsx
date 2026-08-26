@@ -7,8 +7,9 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useEffect, useState, type ComponentType } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
+import { SegmentedControl } from "../../components/ui/Controls";
 import { getAdminApplications } from "../../entities/application";
 import { getCampaigns, type Campaign } from "../../entities/campaign";
 import { adaptContentInspection, getCurrentGenerationContents } from "../../entities/content";
@@ -45,6 +46,12 @@ const DASHBOARD_LINKS = [
   { to: "/performance/selectors", label: "셀렉터스 성과" },
   { to: "/settlements", label: "정산 관리" },
 ] as const;
+
+const DASHBOARD_VARIANTS = ["1", "2", "3", "4", "5"] as const;
+const DASHBOARD_VARIANT_OPTIONS = DASHBOARD_VARIANTS.map((value) => ({
+  label: `${value}안`,
+  value,
+}));
 
 function dateInSeoul(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -112,8 +119,13 @@ function TodayTask({
 }
 
 export function DashboardPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<DashboardData>(EMPTY_DASHBOARD);
   const today = dateInSeoul();
+  const requestedVariant = searchParams.get("variant");
+  const variant = DASHBOARD_VARIANTS.includes(requestedVariant as "1" | "2" | "3" | "4" | "5")
+    ? requestedVariant as "1" | "2" | "3" | "4" | "5"
+    : "1";
 
   useEffect(() => {
     const controller = new AbortController();
@@ -164,8 +176,22 @@ export function DashboardPage() {
   const endingCampaigns = data.todayCampaigns?.filter(({ endDate }) => endDate === today).length;
 
   return (
-    <section className="fuma-page fuma-dashboard">
+    <section className="fuma-page fuma-dashboard" data-dashboard-variant={variant}>
       <PageHeader title="대시보드" />
+      <div className="fuma-dashboard__variants">
+        <span>시안 선택</span>
+        <SegmentedControl
+          ariaLabel="대시보드 시안 선택"
+          onChange={(option) => {
+            const next = new URLSearchParams(searchParams);
+            if (option === "1") next.delete("variant");
+            else next.set("variant", option);
+            setSearchParams(next, { replace: true });
+          }}
+          options={DASHBOARD_VARIANT_OPTIONS}
+          value={variant}
+        />
+      </div>
       <div className="fuma-page__body">
         <section aria-labelledby="dashboard-priority-title" className="fuma-dashboard__priority">
           <h2 id="dashboard-priority-title">우선 처리</h2>
