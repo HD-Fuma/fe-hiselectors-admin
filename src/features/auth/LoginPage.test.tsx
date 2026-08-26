@@ -54,7 +54,7 @@ describe("administrator login", () => {
     await user.type(screen.getByPlaceholderText("비밀번호 입력"), "password");
     await user.click(screen.getByRole("button", { name: "로그인" }));
 
-    expect(await screen.findByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "대시보드" })).toBeInTheDocument();
     expect(screen.getByTestId("admin-shell")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringMatching(/\/api\/auth\/admin\/login$/),

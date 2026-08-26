@@ -31,7 +31,11 @@ test("opens the default administrator screen at the application root", async () 
   }));
   render(<App initialEntries={["/"]} />);
 
-  expect(await screen.findByRole("heading", { name: "크리에이터 풀" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "대시보드" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /크리에이터 풀/ })).toHaveAttribute(
+    "href",
+    "/creators",
+  );
   expect(screen.getByRole("navigation", { name: "관리자 메뉴" })).toBeInTheDocument();
 });
 

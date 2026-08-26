@@ -13,6 +13,9 @@ function lazyPage(loader: () => Promise<ComponentType>) {
   return lazy(async () => ({ default: await loader() }));
 }
 
+const DashboardPage = lazyPage(() =>
+  import("../features/dashboard/DashboardPage").then((module) => module.DashboardPage),
+);
 const CreatorListPage = lazyPage(() =>
   import("../features/creators/CreatorPages").then((module) => module.CreatorListPage),
 );
@@ -86,6 +89,7 @@ const TaskRunHistoryPage = lazyPage(() =>
 );
 
 const NAV_GROUPS: readonly NavGroupMeta[] = [
+  { id: "dashboard", label: "대시보드" },
   { id: "recruitment", label: "모집·선발" },
   { id: "operations", label: "운영" },
   { id: "performance", label: "성과·정산" },
@@ -93,6 +97,16 @@ const NAV_GROUPS: readonly NavGroupMeta[] = [
 ];
 
 export const ADMIN_ROUTE_MANIFEST = [
+  {
+    path: "/dashboard",
+    Component: DashboardPage,
+    group: "dashboard",
+    menuLabel: "대시보드",
+    menuOrder: 0,
+    title: "대시보드",
+    screenCode: "DB101",
+    workTabLabel: "대시보드",
+  },
   {
     path: "/creators",
     Component: CreatorListPage,

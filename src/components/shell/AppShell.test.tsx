@@ -18,6 +18,7 @@ beforeEach(resetTheme);
 afterEach(resetTheme);
 
 const expectedSidebarLinks = [
+  ["대시보드", "/dashboard"],
   ["기수 관리", "/cohorts"],
   ["크리에이터 풀", "/creators"],
   ["제안 이력", "/proposals"],
@@ -52,7 +53,7 @@ test("renders the complete administrator navigation in one sidebar", () => {
   expect(sidebarQueries.getByRole("link", { name: "더현대Hi" })).toHaveAttribute("href", "/");
   expect(screen.getAllByRole("navigation", { name: "관리자 메뉴" })).toHaveLength(1);
   const sidebarLinks = within(navigation).getAllByRole("link");
-  expect(sidebarLinks).toHaveLength(13);
+  expect(sidebarLinks).toHaveLength(14);
   expect(sidebarLinks.map((link) => [link.textContent, link.getAttribute("href")])).toEqual(
     expectedSidebarLinks,
   );
@@ -65,6 +66,7 @@ test("renders the complete administrator navigation in one sidebar", () => {
   expect(within(navigation).queryByRole("link", { name: "위반 관리" })).not.toBeInTheDocument();
 
   for (const groupLabel of [
+    "대시보드",
     "모집·선발",
     "운영",
     "성과·정산",
@@ -330,6 +332,14 @@ test("does not render a favorite control for the current screen", () => {
 });
 
 const routeCases = [
+  {
+    path: "/dashboard",
+    group: "dashboard",
+    menuLabel: "대시보드",
+    title: "대시보드",
+    screenCode: "DB101",
+    routeIsExact: true,
+  },
   {
     path: "/creators",
     group: "recruitment",
