@@ -800,11 +800,11 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(dl, dl > div, .fuma
 .fuma-content-performance-page .fuma-content-cohort-chart__series.is-contentCount,
 .fuma-content-performance-page .fuma-content-cohort-chart__legend .is-contentCount { --cohort-series-color: #111; }
 .fuma-content-performance-page .fuma-content-cohort-chart__series.is-views,
-.fuma-content-performance-page .fuma-content-cohort-chart__legend .is-views { --cohort-series-color: #3f3f3f; }
+.fuma-content-performance-page .fuma-content-cohort-chart__legend .is-views { --cohort-series-color: #238b78; }
 .fuma-content-performance-page .fuma-content-cohort-chart__series.is-likes,
-.fuma-content-performance-page .fuma-content-cohort-chart__legend .is-likes { --cohort-series-color: #707070; }
+.fuma-content-performance-page .fuma-content-cohort-chart__legend .is-likes { --cohort-series-color: #de76ce; }
 .fuma-content-performance-page .fuma-content-cohort-chart__series.is-comments,
-.fuma-content-performance-page .fuma-content-cohort-chart__legend .is-comments { --cohort-series-color: #a0a0a0; }
+.fuma-content-performance-page .fuma-content-cohort-chart__legend .is-comments { --cohort-series-color: #707070; }
 .fuma-content-performance-page :is(
   .fuma-content-performance-panel header > span,
   .fuma-content-performance-panel header > div > span,
@@ -1074,8 +1074,8 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(dl, dl > div, .fuma
 .fuma-content-table-trend__header i:first-child { margin-left: 0; }
 .fuma-content-table-trend__header .is-views { --cohort-series-color: #6ba99d; }
 .fuma-content-table-trend__header .is-likes { --cohort-series-color: #9bc6bd; }
-.fuma-content-performance-page .fuma-content-table-trend__header .is-views { --cohort-series-color: #3f3f3f; }
-.fuma-content-performance-page .fuma-content-table-trend__header .is-likes { --cohort-series-color: #707070; }
+.fuma-content-performance-page .fuma-content-table-trend__header .is-views { --cohort-series-color: #238b78; }
+.fuma-content-performance-page .fuma-content-table-trend__header .is-likes { --cohort-series-color: #de76ce; }
 .fuma-content-table-trend__plot { width: 100%; min-width: 0; height: 56px; }
 .fuma-content-table-trend__plot .fuma-content-cohort-chart__line { stroke-width: 2; }
 .fuma-content-table-trend__plot .fuma-content-cohort-chart__label { font-size: var(--hsas-font-8); }

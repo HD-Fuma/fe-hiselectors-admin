@@ -40,16 +40,16 @@ const CONTENT_PERFORMANCE_SORT_OPTIONS: readonly {
 ];
 const CONTENT_FORMAT_COLORS = [
   "#111111",
-  "#3f3f3f",
+  "#238b78",
+  "#de76ce",
   "#707070",
   "#a0a0a0",
-  "#c9c9c9",
 ] as const;
 const CONTENT_CHART_COLORS = {
   contentCount: "#111111",
-  views: "#3f3f3f",
-  likes: "#707070",
-  comments: "#a0a0a0",
+  views: "#238b78",
+  likes: "#de76ce",
+  comments: "#707070",
 } as const;
 const CONTENT_CHART_LABEL_COLOR = "#111111";
 
