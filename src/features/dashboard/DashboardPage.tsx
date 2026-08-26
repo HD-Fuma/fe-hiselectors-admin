@@ -98,12 +98,14 @@ function settlementTrendTooltip(params: unknown) {
 }
 
 function DashboardCard({
+  action,
   children,
   className,
   eyebrow,
   status,
   title,
 }: {
+  action?: ReactNode;
   children: ReactNode;
   className: string;
   eyebrow: string;
@@ -114,7 +116,10 @@ function DashboardCard({
     <section className={`fuma-dashboard-card ${className}`}>
       <header>
         <div><span>{eyebrow}</span><strong>{title}</strong></div>
-        <em>{status}</em>
+        <div className="fuma-dashboard-card__header-actions">
+          <em>{status}</em>
+          {action}
+        </div>
       </header>
       {children}
     </section>
@@ -418,6 +423,14 @@ export function DashboardPage() {
         </DashboardCard>
 
         <DashboardCard
+          action={(
+            <Link
+              className="fuma-dashboard__primary-action fuma-dashboard__primary-action--compact"
+              to="/settlements"
+            >
+              정산 관리 →
+            </Link>
+          )}
           className="fuma-dashboard-card--trend"
           eyebrow="REVENUE"
           status={data.settlementTrend == null
@@ -425,7 +438,7 @@ export function DashboardPage() {
             : data.settlementTrend.length > 0
               ? `최근 ${data.settlementTrend.length}개월`
               : "데이터 없음"}
-          title="확정 매출 · 예상 정산액"
+          title="매출·정산 추이"
         >
           <SettlementTrend monthlyTrend={data.settlementTrend} />
         </DashboardCard>

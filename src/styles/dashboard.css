@@ -126,6 +126,19 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   white-space: nowrap;
 }
 
+.fuma-dashboard-card__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--hsas-space-6);
+}
+
+.fuma-dashboard__primary-action--compact {
+  min-height: 28px;
+  padding: 0 var(--hsas-space-10);
+  font-size: var(--hsas-font-11);
+  white-space: nowrap;
+}
+
 .fuma-dashboard__metric {
   display: grid;
   gap: var(--hsas-space-8);
