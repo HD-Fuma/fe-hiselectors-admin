@@ -19,6 +19,7 @@ import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
+import { SocialAccountCell } from "../../components/ui/SocialAccountCell";
 import { formatCompactCount, formatNumber } from "../../lib/formatters";
 import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
@@ -171,34 +172,14 @@ function CreatorAccountCell({
   const platform = platformFor(creator.snsCode);
 
   return (
-    <div className="fuma-creator-account-cell">
-      <button
-        aria-label={`${accountName} 프로필 보기`}
-        className="fuma-creator-account-cell__profile"
-        onClick={() => onOpen(creator)}
-        type="button"
-      >
-        <span className="fuma-creator-account-cell__portrait">
-          <CreatorProfilePhoto creatorName={accountName} src={creator.profileImageUrl ?? ""} />
-          <PlatformIcon platform={platform} />
-        </span>
-        <span className="fuma-creator-account-cell__identity">
-          <strong>{accountName}</strong>
-          <small>{creatorHandle(creator)}</small>
-        </span>
-      </button>
-      {href ? (
-        <a
-          aria-label={`${accountName} SNS 계정 열기 (새 창)`}
-          className="fuma-creator-account-cell__external"
-          href={href}
-          rel="noreferrer"
-          target="_blank"
-        >
-          <span aria-hidden="true">↗</span>
-        </a>
-      ) : null}
-    </div>
+    <SocialAccountCell
+      displayName={accountName}
+      handle={creatorHandle(creator)}
+      onOpen={() => onOpen(creator)}
+      platform={platform}
+      profileImageUrl={creator.profileImageUrl ?? ""}
+      profileUrl={href}
+    />
   );
 }
 
