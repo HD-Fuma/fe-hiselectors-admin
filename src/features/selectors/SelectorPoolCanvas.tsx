@@ -93,7 +93,7 @@ function layoutCategories(counts: Map<string, number>): PoolCategory[] {
     label,
     count,
     rgb: CATEGORY_COLORS[categories.length % CATEGORY_COLORS.length],
-    x: categories.length ? ring + clusterReach + clusterRadius(count) + 180 : 0,
+    x: categories.length ? ring + clusterReach + clusterRadius(count) + 360 : 0,
     y: 0,
   }];
 }
