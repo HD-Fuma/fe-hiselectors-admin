@@ -46,6 +46,7 @@ import { ListSearchPanel } from "../../components/ui/ListSearchPanel";
 import { Pagination } from "../../components/ui/Pagination";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { Tooltip } from "../../components/ui/Tooltip";
 import { ViewModeToggle, type ViewMode } from "../../components/ui/ViewModeToggle";
 import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
@@ -2852,12 +2853,14 @@ export function ContentInspectionDetailPage() {
                                 위반 허용
                               </button>
                               {judgment ? (
-                                <span
+                                <Tooltip
                                   className="fuma-content-inspection-studio__report-choice-tooltip"
+                                  placement="none"
                                   role="status"
+                                  visible
                                 >
                                   <kbd>Space</kbd> 바를 눌러 다음으로 이동하세요
-                                </span>
+                                </Tooltip>
                               ) : null}
                             </div>
                           ) : null}
@@ -2911,12 +2914,14 @@ export function ContentInspectionDetailPage() {
               : "최종 승인"}
           </button>
           {studioFinalFocused && studioDecision && studioActionPending === null ? (
-            <span
+            <Tooltip
               className="fuma-content-inspection-studio__report-choice-tooltip"
+              placement="none"
               role="status"
+              visible
             >
               <kbd>Space</kbd> 바를 눌러 검수를 확정하세요
-            </span>
+            </Tooltip>
           ) : null}
         </div>
         {exitConfirmationOpen ? (

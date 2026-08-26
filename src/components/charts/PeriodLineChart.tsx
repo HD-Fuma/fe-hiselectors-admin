@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { HsECharts, type EChartsOption } from "./HsECharts";
+import { ECHARTS_TOOLTIP_STYLE } from "./chartColors";
 
 export interface PeriodLineSeries {
   color: string;
@@ -45,6 +46,7 @@ export function PeriodLineChart({
       containLabel: false,
     },
     tooltip: {
+      ...ECHARTS_TOOLTIP_STYLE,
       trigger: "axis",
       valueFormatter: (value) => formatValue(Number(value)),
     },

@@ -894,13 +894,8 @@ body:has(.fuma-content-inspection-studio) {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  border: 1px solid rgb(255 255 255 / 28%);
-  border-radius: 10px;
-  color: #fff;
-  background: rgb(23 23 23 / 86%);
-  box-shadow: 0 8px 20px rgb(54 65 72 / 18%);
-  font-size: 10px;
-  font-weight: 650;
+  border: 0;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 18%);
   animation: fuma-content-inspection-tooltip-enter 120ms ease-out both;
 }
 

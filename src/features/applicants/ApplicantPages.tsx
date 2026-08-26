@@ -15,6 +15,7 @@ import { ProfileDetailShell, type ProfileDetailProfile } from "../../components/
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { Tooltip } from "../../components/ui/Tooltip";
 import {
   createAdminApplicationTest,
   getAdminApplication,
@@ -261,9 +262,9 @@ function ApplicantApprovalToolbar({
           >
             <CircleHelp aria-hidden="true" size={15} strokeWidth={1.8} />
           </button>
-          <span id="applicant-minimum-tooltip" role="tooltip">
+          <Tooltip id="applicant-minimum-tooltip">
             팔로워·구독자 500명 이하 또는 최근 3개월 내 활동 콘텐츠가 3건 이하인 지원자를 필터링합니다.
-          </span>
+          </Tooltip>
         </span>
         <label className="fuma-applicant-minimum-toggle fuma-applicant-ai-report-toggle">
           <input

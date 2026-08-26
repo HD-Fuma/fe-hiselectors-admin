@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HsECharts, type EChartsOption } from "../../components/charts/HsECharts";
+import { ECHARTS_TOOLTIP_STYLE } from "../../components/charts/chartColors";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { TextInput } from "../../components/ui/Controls";
@@ -250,6 +251,7 @@ function SettlementTrendChart({
       top: 40,
     },
     tooltip: {
+      ...ECHARTS_TOOLTIP_STYLE,
       trigger: "axis",
       axisPointer: { type: "shadow" },
       formatter: trendTooltip,

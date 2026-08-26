@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { HsECharts, type EChartsOption } from "./HsECharts";
-import { resolveChartColor } from "./chartColors";
+import { ECHARTS_TOOLTIP_STYLE, resolveChartColor } from "./chartColors";
 
 export interface AnalysisFormatSegment {
   color: string;
@@ -26,6 +26,7 @@ export function AnalysisFormatDonut({
   const option = useMemo<EChartsOption>(() => ({
     animation: false,
     tooltip: {
+      ...ECHARTS_TOOLTIP_STYLE,
       trigger: "item",
       formatter: (params: unknown) => {
         const item = (Array.isArray(params) ? params[0] : params) as {
