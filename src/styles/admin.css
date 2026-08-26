@@ -2805,6 +2805,8 @@
 .fuma-campaign-product-picker-modal .hsas-modal__header {
   min-height: 50px;
   padding: var(--hsas-space-11) var(--hsas-space-18);
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-color-black);
 }
 
 .fuma-campaign-product-picker-modal .hsas-modal__title {
