@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { UserRound } from "lucide-react";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { categoryLabel } from "../../entities/creator";
 import type { SelectorSummary } from "../../entities/selectors";
@@ -54,12 +55,6 @@ function rawCategory(selector: SelectorSummary) {
 function categoryOf(selector: SelectorSummary) {
   const raw = rawCategory(selector);
   return (raw ? categoryLabel(raw) : null) || "미분류";
-}
-
-/** 프로필 이미지가 없을 때 쓰는 계정 아이디 첫 글자. */
-function initialOf(selector: SelectorSummary) {
-  const source = selector.snsAccountId || selector.snsDisplayName || selector.nickname || "?";
-  return source.slice(0, 1).toUpperCase();
 }
 
 function nodeRadius(followerCount: number | null) {
@@ -323,11 +318,17 @@ function drawBubble(
     blob.addColorStop(1, "rgb(32 34 36 / 10%)");
     context.fillStyle = blob;
     context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-    context.fillStyle = "#202224";
-    context.font = `700 ${Math.round(radius)}px Pretendard, sans-serif`;
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.fillText(initialOf(node.selector), x, y);
+    context.strokeStyle = "rgb(32 34 36 / 48%)";
+    context.lineWidth = Math.max(1.5, radius * 0.06);
+    context.beginPath();
+    context.arc(x, y - radius * 0.2, radius * 0.22, 0, Math.PI * 2);
+    context.moveTo(x - radius * 0.48, y + radius * 0.52);
+    context.bezierCurveTo(
+      x - radius * 0.42, y + radius * 0.15,
+      x + radius * 0.42, y + radius * 0.15,
+      x + radius * 0.48, y + radius * 0.52,
+    );
+    context.stroke();
   }
   context.restore();
 }
@@ -346,7 +347,7 @@ function PoolAvatar({ selector }: { selector: SelectorSummary }) {
           src={source}
         />
       ) : (
-        <span aria-hidden="true">{initialOf(selector)}</span>
+        <span aria-hidden="true"><UserRound size={16} strokeWidth={1.8} /></span>
       )}
     </span>
   );
