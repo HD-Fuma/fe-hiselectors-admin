@@ -206,6 +206,7 @@ function SettlementTrend({ monthlyTrend }: { monthlyTrend: readonly SettlementMo
         lineStyle: { color: "rgb(17 17 17 / 18%)", type: "dashed" },
         type: "line",
       },
+      confine: true,
       formatter: settlementTrendTooltip,
       trigger: "axis",
     },
