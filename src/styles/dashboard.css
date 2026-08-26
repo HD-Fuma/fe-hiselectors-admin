@@ -141,6 +141,10 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   gap: var(--hsas-space-6);
 }
 
+.fuma-dashboard-card__header-actions .fuma-dashboard__primary-action {
+  color: #ffffff;
+}
+
 .fuma-dashboard__primary-action--compact {
   min-height: 28px;
   padding: 0 var(--hsas-space-10);
