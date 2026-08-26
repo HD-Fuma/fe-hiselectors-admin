@@ -1271,7 +1271,8 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(dl, dl > div, .fuma
   margin-top: var(--hsas-space-12);
 }
 
-.fuma-comparison-bar-chart {
+.fuma-comparison-bar-chart,
+.fuma-boxplot-chart {
   min-width: 0;
   margin-top: var(--hsas-space-10);
 }

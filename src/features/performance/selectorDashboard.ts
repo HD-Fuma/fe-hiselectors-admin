@@ -1,5 +1,11 @@
+import { categoryLabel } from "../../entities/creator";
 import { formatRate } from "../../entities/performance";
-import type { Generation, SelectorSalesPerformance } from "../../entities/selectors";
+import type {
+  Generation,
+  SelectorPerformanceSummary,
+  SelectorPerformanceTrend,
+  SelectorSalesPerformance,
+} from "../../entities/selectors";
 import { formatNumber } from "../../lib/formatters";
 
 export const SELECTOR_TYPE_MIN_COUNT = 5;
@@ -15,6 +21,14 @@ const SALES_BUCKETS = [
   { key: "to50", label: "10~50만원", max: 500_000 },
   { key: "to100", label: "50~100만원", max: 1_000_000 },
   { key: "over100", label: "100만원 이상", max: Number.POSITIVE_INFINITY },
+] as const;
+
+const SUMMARY_SALES_BUCKETS = [
+  { key: "ZERO", label: "0원" },
+  { key: "UP_TO_100000", label: "1~10만원" },
+  { key: "UP_TO_500000", label: "10~50만원" },
+  { key: "UP_TO_1000000", label: "50~100만원" },
+  { key: "OVER_1000000", label: "100만원 이상" },
 ] as const;
 
 export type WatchlistKey =
@@ -41,8 +55,14 @@ export interface SelectorDashboardRow {
   totalSales: number;
 }
 
+export interface BoxplotStats {
+  outliers: readonly number[];
+  value: readonly [number, number, number, number, number];
+}
+
 export interface SelectorTypePerformance {
   averageSales: number;
+  boxplot: BoxplotStats | null;
   category: string;
   clickCount: number;
   confirmedOrderCount: number;
@@ -145,6 +165,96 @@ export function formatRankMovement(movement: RankMovement) {
   return `▼${movement.delta}`;
 }
 
+export const EMPTY_SELECTOR_DASHBOARD_SUMMARY: SelectorDashboardSummary = {
+  averageSales: 0,
+  buckets: SUMMARY_SALES_BUCKETS.map((bucket) => ({ ...bucket, count: 0 })),
+  clickCount: 0,
+  concentrationShare: 0,
+  confirmedOrderCount: 0,
+  conversionRate: "0.00%",
+  earnedCommission: 0,
+  medianSales: 0,
+  previousAverageSales: 0,
+  previousConfirmedOrderCount: 0,
+  previousEarnedCommission: 0,
+  previousTotalSales: 0,
+  producingCount: 0,
+  selectorCount: 0,
+  top5: [],
+  totalSales: 0,
+  types: [],
+  watchlists: watchlistsFromApi({
+    clicksWithoutPurchase: 0,
+    newTop10: 0,
+    noClicks: 0,
+    noUploads: 0,
+    salesDrop: 0,
+    salesSurge: 0,
+  }),
+  zeroSalesCount: 0,
+};
+
+export function adaptSelectorPerformanceSummary(
+  summary: SelectorPerformanceSummary,
+): SelectorDashboardSummary {
+  const selectorCount = asNumber(summary.universe.selectorCount);
+  const sharePercent = asNumber(summary.distribution.topShareRate);
+  const bucketCounts = new Map(
+    summary.distribution.buckets.map((bucket) => [bucket.key, asNumber(bucket.selectorCount)]),
+  );
+
+  return {
+    averageSales: asNumber(summary.kpis.averageSales),
+    buckets: SUMMARY_SALES_BUCKETS.map((bucket) => ({
+      count: bucketCounts.get(bucket.key) ?? 0,
+      key: bucket.key,
+      label: bucket.label,
+    })),
+    clickCount: asNumber(summary.kpis.clickCount),
+    concentrationShare: sharePercent / 100,
+    confirmedOrderCount: asNumber(summary.kpis.confirmedOrderCount),
+    conversionRate: `${asNumber(summary.kpis.conversionRate).toFixed(2)}%`,
+    earnedCommission: asNumber(summary.kpis.accruedCommissionAmount),
+    medianSales: asNumber(summary.kpis.medianSales),
+    previousAverageSales: asNumber(summary.kpis.previousAverageSales),
+    previousConfirmedOrderCount: asNumber(summary.kpis.previousConfirmedOrderCount),
+    previousEarnedCommission: asNumber(summary.kpis.previousAccruedCommissionAmount),
+    previousTotalSales: asNumber(summary.kpis.previousTotalSales),
+    producingCount: asNumber(summary.distribution.sellingSelectorCount),
+    selectorCount,
+    top5: summary.top5.flatMap(adaptRankItem),
+    totalSales: asNumber(summary.kpis.totalSales),
+    types: summary.categories.map((row) => ({
+      averageSales: asNumber(row.averageSales),
+      category: labeledCategory(row.category),
+      clickCount: 0,
+      confirmedOrderCount: 0,
+      conversionRate: "-",
+      medianSales: asNumber(row.medianSales),
+      boxplot: adaptTypeBoxplot(row),
+      reference: row.reference,
+      selectorCount: asNumber(row.selectorCount),
+    })),
+    watchlists: watchlistsFromApi(summary.watchlist),
+    zeroSalesCount: asNumber(summary.distribution.zeroSalesSelectorCount),
+  };
+}
+
+export function adaptSelectorPerformanceTrend(
+  trend: SelectorPerformanceTrend,
+): SelectorDashboardTrendPoint[] {
+  const bucket = trend.bucket === "MONTH" ? "month" : "day";
+  return trend.points.map((point) => {
+    const date = point.date.slice(0, 10);
+    return {
+      confirmedOrderCount: asNumber(point.confirmedOrderCount),
+      date,
+      label: trendLabel(date, bucket),
+      totalSales: asNumber(point.totalSales),
+    };
+  });
+}
+
 export function previousPerformanceRange(input: {
   generations: readonly Generation[];
   periodStart: string;
@@ -185,6 +295,29 @@ export function medianSales(values: readonly number[]) {
     return Math.round((sorted[middle - 1] + sorted[middle]) / 2);
   }
   return sorted[middle];
+}
+
+export function boxplotFromValues(values: readonly number[]): BoxplotStats | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((left, right) => left - right);
+  const q1 = quantile(sorted, 0.25);
+  const q2 = medianSales(sorted);
+  const q3 = quantile(sorted, 0.75);
+  const iqr = q3 - q1;
+  const fenceLow = q1 - 1.5 * iqr;
+  const fenceHigh = q3 + 1.5 * iqr;
+  const inliers = sorted.filter((value) => value >= fenceLow && value <= fenceHigh);
+  const outliers = sorted.filter((value) => value < fenceLow || value > fenceHigh);
+  return {
+    outliers,
+    value: [
+      inliers[0] ?? sorted[0],
+      q1,
+      q2,
+      q3,
+      inliers[inliers.length - 1] ?? sorted[sorted.length - 1],
+    ],
+  };
 }
 
 export function concentrationShare(sales: readonly number[]) {
@@ -450,6 +583,7 @@ function typePerformances(rows: readonly SelectorDashboardRow[]) {
       const confirmedOrderCount = sumBy(members, (row) => row.confirmedOrderCount);
       return {
         averageSales: Math.round(sumBy(members, (row) => row.totalSales) / members.length),
+        boxplot: boxplotFromValues(sales),
         category,
         clickCount,
         confirmedOrderCount,
@@ -475,6 +609,131 @@ function inBucket(sales: number, index: number) {
 
 function watchlist(key: WatchlistKey, label: string, count: number): WatchlistGroup {
   return { count, key, label };
+}
+
+function watchlistsFromApi(watchlistCounts: {
+  clicksWithoutPurchase: number;
+  newTop10: number;
+  noClicks: number;
+  noUploads: number;
+  salesDrop: number;
+  salesSurge: number;
+}): SelectorDashboardSummary["watchlists"] {
+  return {
+    discovery: [
+      watchlist("salesRise", "전월 대비 매출 100% 이상 증가", asNumber(watchlistCounts.salesSurge)),
+      watchlist("newTop10", "신규 TOP 10 진입", asNumber(watchlistCounts.newTop10)),
+    ],
+    manage: [
+      watchlist("noClicks", "기간 내 클릭 없음", asNumber(watchlistCounts.noClicks)),
+      watchlist("noUploads", "기간 내 업로드 없음", asNumber(watchlistCounts.noUploads)),
+      watchlist(
+        "clicksNoPurchase",
+        "클릭 있으나 구매 없음",
+        asNumber(watchlistCounts.clicksWithoutPurchase),
+      ),
+      watchlist("salesDrop", "전월 대비 매출 50% 이상 감소", asNumber(watchlistCounts.salesDrop)),
+    ],
+  };
+}
+
+function labeledCategory(category: string | null | undefined) {
+  if (!category?.trim()) return "기타";
+  return categoryLabel(category) || "기타";
+}
+
+function adaptTypeBoxplot(
+  row: SelectorPerformanceSummary["categories"][number],
+): BoxplotStats | null {
+  const value = row.boxplot?.value;
+  if (value && value.length >= 5) {
+    return {
+      outliers: (row.boxplot?.outliers ?? []).map(asNumber),
+      value: [
+        asNumber(value[0]),
+        asNumber(value[1]),
+        asNumber(value[2]),
+        asNumber(value[3]),
+        asNumber(value[4]),
+      ],
+    };
+  }
+  return boxplotFromAverageMedian(asNumber(row.averageSales), asNumber(row.medianSales));
+}
+
+function boxplotFromAverageMedian(average: number, median: number): BoxplotStats {
+  const spread = Math.max(Math.abs(average - median), Math.round(median * 0.2), 1);
+  const q1 = Math.max(0, median - spread);
+  const q3 = median + spread;
+  const min = Math.max(0, q1 - spread);
+  const max = q3 + spread;
+  return {
+    outliers: [],
+    value: [
+      Math.min(min, q1, median),
+      Math.min(q1, median),
+      median,
+      Math.max(q3, median),
+      Math.max(max, q3, median),
+    ],
+  };
+}
+
+function quantile(sorted: readonly number[], percentile: number) {
+  if (sorted.length === 1) return sorted[0];
+  const position = (sorted.length - 1) * percentile;
+  const low = Math.floor(position);
+  const high = Math.ceil(position);
+  if (low === high) return sorted[low] ?? 0;
+  const start = sorted[low] ?? 0;
+  const end = sorted[high] ?? start;
+  return start + (end - start) * (position - low);
+}
+
+function adaptRankItem(
+  row: SelectorPerformanceSummary["top5"][number],
+): SelectorTopRank[] {
+  if (row.selectorId == null) return [];
+  const totalSales = asNumber(row.totalSales);
+  const category = labeledCategory(row.category);
+  return [{
+    accruedCommission: 0,
+    category,
+    clickCount: 0,
+    confirmedOrderCount: 0,
+    contentCount: 0,
+    generationName: row.generationName,
+    movement: rankMovement(row.rank, row.previousRank),
+    nickname: row.nickname,
+    previousPeriodSales: 0,
+    profileImageUrl: row.profileImageUrl?.trim() || "",
+    rank: row.rank,
+    selectorCode: "",
+    selectorId: row.selectorId,
+    source: {
+      confirmedOrderCount: 0,
+      excellentActivityType: null,
+      excellentGenerationName: null,
+      excellentGenerationSales: null,
+      generationName: row.generationName,
+      isExcellent: false,
+      nickname: row.nickname,
+      roleId: "ACTIVE",
+      selectorCode: "",
+      selectorId: row.selectorId,
+      totalSales,
+    },
+    totalSales,
+  }];
+}
+
+function asNumber(value: number | string | null | undefined) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
 }
 
 function sumBy<T>(items: readonly T[], value: (item: T) => number) {

@@ -1,5 +1,6 @@
 import type { Generation, SelectorSalesPerformance } from "../../entities/selectors";
 import {
+  boxplotFromValues,
   buildSelectorTrend,
   concentrationShare,
   enrichSelectorSales,
@@ -74,6 +75,15 @@ test("uses top 10 people for concentration when the pool is small", () => {
   expect(concentrationShare([0, 0, 0])).toBe(0);
 });
 
+test("marks extreme sales as boxplot outliers and keeps the median", () => {
+  const stats = boxplotFromValues([0, 10, 20, 30, 40, 50, 1000]);
+  expect(stats).not.toBeNull();
+  expect(stats?.value[2]).toBe(30);
+  expect(stats?.outliers).toEqual([1000]);
+  expect(stats?.value[0]).toBe(0);
+  expect(stats?.value[4]).toBe(50);
+});
+
 test("limits the default universe to active generation members", () => {
   const universe = filterSelectorUniverse(ROWS, [
     generation("5기", "ACTIVE", 5),
@@ -101,6 +111,7 @@ test("marks types with fewer than 5 people as reference", () => {
   const summary = summarizeSelectorDashboard(ROWS.map(enrichSelectorSales));
   expect(summary.types.every((type) => type.reference)).toBe(true);
   expect(summary.selectorCount).toBe(3);
+  expect(summary.types.every((type) => type.boxplot)).toBe(true);
   expect(summary.watchlists.discovery[0]?.key).toBe("salesRise");
 });
 

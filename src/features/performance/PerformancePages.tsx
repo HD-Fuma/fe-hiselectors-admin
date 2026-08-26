@@ -22,23 +22,19 @@ import {
 import {
   getGenerations,
   getSelector,
-  getSelectorSalesPerformance,
+  getSelectorPerformanceSummary,
+  getSelectorPerformanceTrend,
   SelectorDetailPanel,
   type Generation,
   type SelectorDetail,
-  type SelectorSalesPerformance,
 } from "../../entities/selectors";
-import { CampaignPerformanceDashboard } from "./CampaignPerformanceDashboard";
-import { paginate } from "../../lib/pagination";
 import { ContentPerformanceDashboard } from "./ContentPerformanceDashboard";
 import { SelectorPerformanceDashboard } from "./SelectorPerformanceDashboard";
 import {
-  buildSelectorTrend,
-  enrichSelectorSales,
-  filterSelectorUniverse,
-  previousPerformanceRange,
-  summarizeSelectorDashboard,
-  withPreviousPeriodSales,
+  adaptSelectorPerformanceSummary,
+  adaptSelectorPerformanceTrend,
+  EMPTY_SELECTOR_DASHBOARD_SUMMARY,
+  type SelectorDashboardTrendPoint,
   type WatchlistKey,
 } from "./selectorDashboard";
 
@@ -211,11 +207,10 @@ export function SelectorPerformancePage() {
     detail: SelectorDetail | null;
     error: string;
   } | null>(null);
-  const [selectors, setSelectors] = useState<SelectorSalesPerformance[]>([]);
-  const [previousSelectors, setPreviousSelectors] = useState<SelectorSalesPerformance[] | null>(null);
+  const [summary, setSummary] = useState(EMPTY_SELECTOR_DASHBOARD_SUMMARY);
+  const [trend, setTrend] = useState<SelectorDashboardTrendPoint[]>([]);
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [generationsLoading, setGenerationsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [requestVersion, setRequestVersion] = useState(0);
   const {
@@ -225,49 +220,37 @@ export function SelectorPerformancePage() {
     resetFilters,
     updateDraftFilter,
   } = usePerformanceFilterState();
-  const universeRows = generationsLoading
-    ? []
-    : withPreviousPeriodSales(
-      filterSelectorUniverse(
-        selectors,
-        generations,
-        appliedFilters.cohort,
-      ).map(enrichSelectorSales),
-      previousSelectors == null
-        ? null
-        : filterSelectorUniverse(previousSelectors, generations, appliedFilters.cohort),
-    );
-  const dashboardSummary = summarizeSelectorDashboard(
-    universeRows,
-    previousSelectors != null,
-  );
-  const dashboardTrend = buildSelectorTrend(
-    universeRows,
-    appliedFilters.periodStart,
-    appliedFilters.periodEnd,
-  );
+  const generationId = appliedFilters.cohort === ""
+    ? undefined
+    : Number(appliedFilters.cohort);
   const cohortOptions = [
     { label: "전체", value: "" },
-    ...Array.from(new Set(
-      filterSelectorUniverse(selectors, generations, "").flatMap((selector) => (
-        selector.generationName || []
-      )),
-    )).map((generationName) => ({ label: generationName, value: generationName })),
+    ...generations.map((generation) => ({
+      label: generation.generationName,
+      value: String(generation.id),
+    })),
   ];
-  const dashboardLoading = loading || generationsLoading;
 
   useEffect(() => {
     const controller = new AbortController();
-    void getSelectorSalesPerformance({
+    const query = {
       endDate: appliedFilters.periodEnd || undefined,
+      generationId: Number.isFinite(generationId) ? generationId : undefined,
       startDate: appliedFilters.periodStart || undefined,
-    }, controller.signal)
-      .then((items) => {
-        setSelectors(items);
+    };
+    void Promise.all([
+      getSelectorPerformanceSummary(query, controller.signal),
+      getSelectorPerformanceTrend(query, controller.signal),
+    ])
+      .then(([summaryResponse, trendResponse]) => {
+        setSummary(adaptSelectorPerformanceSummary(summaryResponse));
+        setTrend(adaptSelectorPerformanceTrend(trendResponse));
         setErrorMessage("");
       })
       .catch((reason: unknown) => {
         if (controller.signal.aborted) return;
+        setSummary(EMPTY_SELECTOR_DASHBOARD_SUMMARY);
+        setTrend([]);
         setErrorMessage(reason instanceof Error
           ? reason.message
           : "셀렉터스 성과 조회에 실패했습니다.");
@@ -280,40 +263,7 @@ export function SelectorPerformancePage() {
   }, [
     appliedFilters.periodEnd,
     appliedFilters.periodStart,
-    requestVersion,
-  ]);
-
-  useEffect(() => {
-    if (generationsLoading) return;
-    const range = previousPerformanceRange({
-      generations,
-      periodStart: appliedFilters.periodStart,
-      selectedGenerationName: appliedFilters.cohort,
-    });
-    if (!range) {
-      setPreviousSelectors(null);
-      return;
-    }
-
-    const controller = new AbortController();
-    setPreviousSelectors(null);
-    void getSelectorSalesPerformance({
-      endDate: range.endDate,
-      startDate: range.startDate,
-    }, controller.signal)
-      .then((items) => {
-        if (!controller.signal.aborted) setPreviousSelectors(items);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setPreviousSelectors(null);
-      });
-
-    return () => controller.abort();
-  }, [
-    appliedFilters.cohort,
-    appliedFilters.periodStart,
-    generations,
-    generationsLoading,
+    generationId,
     requestVersion,
   ]);
 
@@ -325,9 +275,6 @@ export function SelectorPerformancePage() {
       })
       .catch(() => {
         if (!controller.signal.aborted) setGenerations([]);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setGenerationsLoading(false);
       });
 
     return () => controller.abort();
@@ -359,9 +306,9 @@ export function SelectorPerformancePage() {
   const currentSelectorDetail = selectorDetailState?.id === selectedSelectorId
     ? selectorDetailState
     : null;
-  const openSelectorDetail = (selector: SelectorSalesPerformance) => {
+  const openSelectorDetail = (selectorId: number) => {
     setSelectorDetailState(null);
-    setSelectedSelectorId(selector.selectorId);
+    setSelectedSelectorId(selectorId);
   };
 
   const applyAndResetPage = () => {
@@ -396,11 +343,11 @@ export function SelectorPerformancePage() {
           <EmptyState description={errorMessage} title="셀렉터스 성과를 불러오지 못했습니다." />
         ) : (
           <SelectorPerformanceDashboard
-            loading={dashboardLoading}
-            onSelectSelector={(row) => openSelectorDetail(row.source)}
+            loading={loading}
+            onSelectSelector={(row) => openSelectorDetail(row.selectorId)}
             onWatchlistChange={setWatchlist}
-            summary={dashboardSummary}
-            trend={dashboardTrend.points}
+            summary={summary}
+            trend={trend}
             watchlist={watchlist}
           />
         )}

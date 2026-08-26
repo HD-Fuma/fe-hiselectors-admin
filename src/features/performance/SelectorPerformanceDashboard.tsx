@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { BoxplotChart } from "../../components/charts/BoxplotChart";
 import { CategoryBarChart } from "../../components/charts/CategoryBarChart";
-import { ComparisonBarChart } from "../../components/charts/ComparisonBarChart";
 import { COHORT_SERIES_COLORS } from "../../components/charts/chartColors";
 import { PeriodComboChart } from "../../components/charts/PeriodComboChart";
 import { SegmentedControl } from "../../components/ui/Controls";
@@ -272,40 +272,27 @@ export function SelectorPerformanceDashboard({
             <h2>셀렉터스 유형별 성과</h2>
           </header>
           <p className="fuma-selector-dashboard__note">
-            셀렉터스 대표 유형 기준입니다. 인원 5명 미만은 참고로 흐리게 표시합니다.
+            셀렉터스 대표 유형 기준입니다. 상자는 사분위, 점은 이상치입니다.
+            인원 5명 미만은 참고 값입니다.
           </p>
           {summary.types.length === 0 ? (
             <p className="fuma-selector-dashboard__note">표시할 유형이 없습니다.</p>
           ) : (
-            <>
-              <ul aria-label="유형별 성과 차트 범례" className="fuma-content-cohort-chart__legend">
-                <li className="is-contentCount"><i />평균 매출</li>
-                <li className="is-views is-bar"><i />중앙 매출</li>
-              </ul>
-              <ComparisonBarChart
-              ariaLabel="유형별 평균·중앙 매출"
-              categories={summary.types.map((row) => ({
-                hint: `${formatNumber(row.selectorCount)}명 · CVR ${row.conversionRate}${row.reference ? " · 참고" : ""}`,
-                label: row.category,
-                muted: row.reference,
-              }))}
+            <BoxplotChart
+              ariaLabel="유형별 매출 분포"
+              categories={summary.types.flatMap((row, index) => (
+                row.boxplot
+                  ? [{
+                      color: BUCKET_COLORS[index] ?? BUCKET_COLORS[0],
+                      label: row.category,
+                      outliers: row.boxplot.outliers,
+                      value: row.boxplot.value,
+                    }]
+                  : []
+              ))}
               formatValue={compactDashboardWon}
-              series={[
-                {
-                  color: COHORT_SERIES_COLORS.confirmedSales,
-                  data: summary.types.map((row) => row.averageSales),
-                  mutedColor: "var(--fuma-content-format-5)",
-                  name: "평균 매출",
-                },
-                {
-                  color: COHORT_SERIES_COLORS.confirmedOrderCount,
-                  data: summary.types.map((row) => row.medianSales),
-                  mutedColor: "var(--fuma-content-format-3)",
-                  name: "중앙 매출",
-                },
-              ]}
+              height={220}
             />
-            </>
           )}
         </article>
       </div>
