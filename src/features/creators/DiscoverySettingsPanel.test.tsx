@@ -14,6 +14,30 @@ const fashion = {
 
 const creatorPage = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 };
 
+const fashionCoverage = {
+  categoryId: 1,
+  categoryCode: "FASHION",
+  categoryName: "패션",
+  executedKeywordCount: 1,
+  minimumKeywordCount: 3,
+  observedCreators: 8,
+  estimatedCreators: null,
+  coveragePercent: null,
+  singletonCreators: 8,
+  doubletonCreators: 0,
+  status: "INSUFFICIENT_DATA",
+  recommendation: "최소 3개 키워드가 필요합니다. 현재 1개가 실행됐습니다.",
+  keywords: [{
+    keywordId: 10,
+    keyword: "데일리룩",
+    lastRunAt: "2026-08-25T10:00:00",
+    discoveredCreators: 8,
+    exclusiveCreators: 8,
+    overlapCreators: 0,
+    overlapPercent: 0,
+  }],
+};
+
 function ok(data: unknown, status = 200) {
   return new Response(JSON.stringify({ success: true, code: "OK", message: null, data }), { status });
 }
@@ -26,8 +50,10 @@ test("hides category creation and edits an existing category", async () => {
     .mockResolvedValueOnce(ok(creatorPage))
     .mockResolvedValueOnce(ok([fashion, beauty]))
     .mockResolvedValueOnce(ok([fashion, beauty]))
+    .mockResolvedValueOnce(ok([fashionCoverage]))
     .mockResolvedValueOnce(ok(updated))
-    .mockResolvedValueOnce(ok([updated, beauty])));
+    .mockResolvedValueOnce(ok([updated, beauty]))
+    .mockResolvedValueOnce(ok([fashionCoverage])));
 
   render(
     <MemoryRouter initialEntries={["/creators"]}>
@@ -36,17 +62,18 @@ test("hides category creation and edits an existing category", async () => {
   );
 
   await user.click(screen.getByRole("button", { name: "발굴 설정" }));
-  const panel = await screen.findByRole("dialog", { name: "발굴 카테고리·키워드 설정" });
+  const panel = await screen.findByRole("dialog", { name: "크리에이터 발굴 키워드 설정" });
   expect(within(panel).getByRole("button", { name: /패션.*키워드 1개/ })).toBeInTheDocument();
   expect(within(panel).queryByText("FASHION")).not.toBeInTheDocument();
   expect(within(panel).getByText("데일리룩")).toBeInTheDocument();
+  expect(within(panel).getByRole("region", { name: "패션 발굴 포화도" })).toHaveTextContent("1 / 3개");
+  expect(within(panel).getByRole("region", { name: "패션 발굴 포화도" })).toHaveTextContent("관측 YouTube 계정8명");
   expect(within(panel).queryByRole("button", { name: "카테고리 추가" })).not.toBeInTheDocument();
   expect(within(panel).queryByText("활성")).not.toBeInTheDocument();
   expect(within(panel).getByText("비활성")).toBeInTheDocument();
 
   const edit = within(panel).getByRole("button", { name: "패션 카테고리 수정" });
-  expect(edit).toHaveClass("hsas-button--secondary");
-  expect(edit).not.toHaveClass("hsas-button--ghost");
+  await user.click(within(panel).getByLabelText("패션 카테고리 메뉴"));
   await user.click(edit);
   expect(within(panel).queryByLabelText("카테고리 코드")).not.toBeInTheDocument();
   await user.clear(within(panel).getByLabelText("카테고리명"));
@@ -68,8 +95,10 @@ test("closes a successful edit form even when the following reload fails", async
     .mockResolvedValueOnce(ok(creatorPage))
     .mockResolvedValueOnce(ok([fashion]))
     .mockResolvedValueOnce(ok([fashion]))
+    .mockResolvedValueOnce(ok([fashionCoverage]))
     .mockResolvedValueOnce(ok(updated))
-    .mockResolvedValueOnce(new Response(JSON.stringify({ message: "목록 조회 실패" }), { status: 503 })));
+    .mockResolvedValueOnce(new Response(JSON.stringify({ message: "목록 조회 실패" }), { status: 503 }))
+    .mockResolvedValueOnce(ok([fashionCoverage])));
 
   render(
     <MemoryRouter initialEntries={["/creators"]}>
@@ -78,7 +107,8 @@ test("closes a successful edit form even when the following reload fails", async
   );
 
   await user.click(screen.getByRole("button", { name: "발굴 설정" }));
-  const panel = await screen.findByRole("dialog", { name: "발굴 카테고리·키워드 설정" });
+  const panel = await screen.findByRole("dialog", { name: "크리에이터 발굴 키워드 설정" });
+  await user.click(within(panel).getByLabelText("패션 카테고리 메뉴"));
   await user.click(within(panel).getByRole("button", { name: "패션 카테고리 수정" }));
   await user.click(within(panel).getByRole("button", { name: "저장" }));
 

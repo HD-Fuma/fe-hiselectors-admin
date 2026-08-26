@@ -45,6 +45,38 @@ export interface DiscoveryKeywordCreateResponse {
   warnings: string[];
 }
 
+export type DiscoveryCoverageStatus =
+  | "INSUFFICIENT_DATA"
+  | "EXPLORING"
+  | "MATURING"
+  | "SATURATING";
+
+export interface DiscoveryKeywordCoverage {
+  keywordId: number;
+  keyword: string;
+  lastRunAt: string;
+  discoveredCreators: number;
+  exclusiveCreators: number;
+  overlapCreators: number;
+  overlapPercent: number;
+}
+
+export interface DiscoveryCoverage {
+  categoryId: number;
+  categoryCode: string;
+  categoryName: string;
+  executedKeywordCount: number;
+  minimumKeywordCount: number;
+  observedCreators: number;
+  estimatedCreators: number | null;
+  coveragePercent: number | null;
+  singletonCreators: number;
+  doubletonCreators: number;
+  status: DiscoveryCoverageStatus;
+  recommendation: string;
+  keywords: DiscoveryKeywordCoverage[];
+}
+
 function headers(json = false) {
   const result = new Headers();
   const stored = localStorage.getItem("selectors-auth");
@@ -88,6 +120,14 @@ export function getDiscoveryCategories(signal?: AbortSignal) {
     "/api/admin/categories",
     { signal },
     "발굴 카테고리 조회에 실패했습니다.",
+  );
+}
+
+export function getDiscoveryCoverage(signal?: AbortSignal) {
+  return request<DiscoveryCoverage[]>(
+    "/api/admin/discovery/coverage",
+    { signal },
+    "발굴 포화도 조회에 실패했습니다.",
   );
 }
 
