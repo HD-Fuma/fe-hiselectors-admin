@@ -35,6 +35,7 @@ import {
 import "../../styles/content-inspection.css";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Select, Switch, TextInput } from "../../components/ui/Controls";
+import { BubbleDialog } from "../../components/ui/BubbleDialog";
 import { ContentCollectionCard } from "../../components/ui/ContentCollectionCard";
 import { contentCollectionFormatKey } from "../../components/ui/contentCollectionFormat";
 import { CreatorProfilePhoto } from "../../components/ui/CreatorProfilePhoto";
@@ -2920,34 +2921,28 @@ export function ContentInspectionDetailPage() {
             </Tooltip>
           ) : null}
         </div>
-        {exitConfirmationOpen ? (
-          <div className="fuma-content-inspection-studio__exit-layer">
-            <section
-              aria-describedby="fuma-inspection-exit-description"
-              aria-labelledby="fuma-inspection-exit-title"
-              aria-modal="true"
-              className="fuma-content-inspection-studio__exit-dialog"
-              role="alertdialog"
-            >
-              <h2 id="fuma-inspection-exit-title">검수가 완료되지 않았습니다.</h2>
-              <p id="fuma-inspection-exit-description">그래도 검수 화면에서 나가시겠습니까?</p>
-              <div>
-                <button autoFocus onClick={() => setExitConfirmationOpen(false)} type="button">
-                  취소
-                </button>
-                <button
-                  onClick={() => {
-                    setExitConfirmationOpen(false);
-                    setStudioExiting(true);
-                  }}
-                  type="button"
-                >
-                  확인
-                </button>
-              </div>
-            </section>
-          </div>
-        ) : null}
+        <BubbleDialog
+          actions={(
+            <>
+              <button autoFocus onClick={() => setExitConfirmationOpen(false)} type="button">
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  setExitConfirmationOpen(false);
+                  setStudioExiting(true);
+                }}
+                type="button"
+              >
+                확인
+              </button>
+            </>
+          )}
+          description="그래도 검수 화면에서 나가시겠습니까?"
+          layer="local"
+          open={exitConfirmationOpen}
+          title="검수가 완료되지 않았습니다."
+        />
       </main>
     );
   }

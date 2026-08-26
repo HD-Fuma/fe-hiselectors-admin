@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { CreatorListPage, ProposalComposePage, ProposalHistoryPage } from "./CreatorPages";
+import { CreatorListPage, ProposalHistoryPage } from "./CreatorPages";
 
 function renderCreatorPage(path = "/creators") {
   return render(
@@ -15,14 +15,6 @@ function renderProposalPage(path = "/proposals") {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <ProposalHistoryPage />
-    </MemoryRouter>,
-  );
-}
-
-function renderProposalComposePage(path = "/proposals/new?creator=113") {
-  return render(
-    <MemoryRouter initialEntries={[path]}>
-      <ProposalComposePage />
     </MemoryRouter>,
   );
 }
@@ -386,7 +378,7 @@ describe("creator filters", () => {
     const keyword = within(search).getByRole("textbox", { name: "키워드" });
     const minFollowers = within(search).getByRole("textbox", { name: "최소 팔로워·구독자" });
     const maxFollowers = within(search).getByRole("textbox", { name: "최대 팔로워·구독자" });
-    const excludeBrands = within(search).getByRole("checkbox", { name: "브랜드 계정 제외" });
+    const excludeBrands = screen.getByRole("checkbox", { name: "브랜드 계정 제외" });
     expect(excludeBrands).not.toBeChecked();
     expect(within(search).queryByRole("textbox", { name: "최소 ER" })).not.toBeInTheDocument();
     expect(within(search).queryByRole("textbox", { name: "최근 90일 최소 활동" })).not.toBeInTheDocument();
@@ -405,9 +397,10 @@ describe("creator filters", () => {
     await user.selectOptions(platform, "INSTAGRAM");
     await user.click(excludeBrands);
     expect(excludeBrands).toBeChecked();
+    await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(3));
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
-    expect(creatorRequests(fetchMock)).toHaveLength(2);
+    expect(creatorRequests(fetchMock)).toHaveLength(3);
     expect(screen.getByText("팔로워·구독자 범위를 올바르게 입력해 주세요."))
       .toBeInTheDocument();
 
@@ -415,8 +408,8 @@ describe("creator filters", () => {
     await user.type(minFollowers, "100,000");
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
-    await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(3));
-    const requestUrl = new URL(String(creatorRequests(fetchMock)[2][0]));
+    await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(4));
+    const requestUrl = new URL(String(creatorRequests(fetchMock)[3][0]));
     expect(Object.fromEntries(requestUrl.searchParams)).toMatchObject({
       keyword: "seo",
       minFollower: "100000",
@@ -596,56 +589,6 @@ describe("creator filters", () => {
     expect(dialog).toBeInTheDocument();
     expect(creatorRequests(fetchMock)).toHaveLength(1);
   });
-});
-
-test("single proposal acceptance does not append a completed history entry", async () => {
-  const user = userEvent.setup();
-  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-    const url = new URL(String(input));
-    if (url.pathname === "/api/admin/proposals" && init?.method === "POST") {
-      return Promise.resolve(new Response(JSON.stringify({
-        success: true,
-        data: acceptedProposal("proposal-run-single"),
-      }), { status: 202 }));
-    }
-    if (url.pathname === "/api/admin/proposals") {
-      return Promise.resolve(new Response(JSON.stringify({
-        success: true,
-        data: { content: [], totalElements: 0, totalPages: 0, number: 0, size: 100 },
-      })));
-    }
-    return Promise.resolve(new Response(JSON.stringify({
-      success: true,
-      data: {
-        id: 113,
-        snsCode: "INSTAGRAM",
-        accountId: "seo.yeon",
-        creatorName: "김서연",
-        email: "seoyeon@example.com",
-        followerCount: 82_400,
-        engagementRate: 4.25,
-        lastContentAt: "2026-08-12T20:00:00",
-        category: "BEAUTY",
-      },
-    })));
-  });
-  vi.stubGlobal("fetch", fetchMock);
-  renderProposalComposePage();
-
-  await screen.findByText("이전에 발송한 제안 이력이 없습니다.");
-  expect(screen.getByText("발송 작업을 요청하고 작업 진행상황에서 확인할 수 있습니다."))
-    .toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "제안 발송" }));
-
-  const requested = await screen.findByRole("alertdialog", { name: "제안 발송 요청" });
-  expect(requested).toHaveTextContent("작업 진행상황에서 확인해 주세요.");
-  expect(screen.getByText("이전에 발송한 제안 이력이 없습니다.")).toBeInTheDocument();
-  const proposalRequest = fetchMock.mock.calls.find(([input, init]) => (
-    new URL(String(input)).pathname === "/api/admin/proposals" && init?.method === "POST"
-  ));
-  expect(proposalRequest).toBeDefined();
-  expect(new Headers(proposalRequest?.[1]?.headers).get("Idempotency-Key"))
-    .toMatch(/^[0-9a-f-]{36}$/);
 });
 
 describe("proposal history", () => {

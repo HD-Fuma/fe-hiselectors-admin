@@ -22,9 +22,6 @@ const CreatorTestPage = lazyPage(() =>
 const ProposalHistoryPage = lazyPage(() =>
   import("../features/creators/CreatorPages").then((module) => module.ProposalHistoryPage),
 );
-const ProposalComposePage = lazyPage(() =>
-  import("../features/creators/CreatorPages").then((module) => module.ProposalComposePage),
-);
 const SelectorOverviewPage = lazyPage(() =>
   import("../features/selectors/SelectorPages").then((module) => module.SelectorOverviewPage),
 );
@@ -125,15 +122,6 @@ export const ADMIN_ROUTE_MANIFEST = [
     title: "제안 이력",
     screenCode: "CR201",
     workTabLabel: "제안 이력",
-  },
-  {
-    path: "/proposals/new",
-    Component: ProposalComposePage,
-    group: "recruitment",
-    menuLabel: "크리에이터 풀",
-    title: "셀렉터스 제안",
-    screenCode: "CR202",
-    workTabLabel: "제안 작성",
   },
   {
     path: "/selectors",

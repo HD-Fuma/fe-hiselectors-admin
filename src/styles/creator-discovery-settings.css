@@ -7,10 +7,10 @@
 .fuma-discovery-settings__empty {
   margin: 0;
   padding: var(--hsas-space-10) var(--hsas-space-12);
-  border: 1px solid var(--hsas-status-approved-border);
+  border: 1px solid var(--hsas-border);
   border-radius: var(--hsas-radius);
-  background: var(--hsas-status-approved-bg);
-  color: var(--hsas-status-approved);
+  background: var(--hsas-color-surface-subtle);
+  color: var(--hsas-text);
 }
 
 .fuma-discovery-settings__empty {
@@ -58,7 +58,7 @@
   height: 24px;
   place-items: center;
   border-radius: 50%;
-  background: var(--hsas-teal);
+  background: var(--hsas-color-black);
   color: var(--hsas-text-inverse);
   font-size: var(--hsas-font-10);
   font-weight: 800;
@@ -146,8 +146,65 @@
 }
 
 .fuma-discovery-settings__category-list > li.is-selected {
-  border-color: var(--hsas-teal);
-  background: var(--hsas-status-approved-bg);
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-color-surface-subtle);
+}
+
+.fuma-discovery-settings__keyword-list-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--hsas-space-6);
+}
+
+.fuma-discovery-settings__keyword-list-toolbar button {
+  display: grid;
+  width: var(--hsas-control-height);
+  height: var(--hsas-control-height);
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--hsas-color-black);
+  border-radius: var(--hsas-radius);
+  background: var(--hsas-color-black);
+  color: var(--hsas-text-inverse);
+  cursor: pointer;
+}
+
+.fuma-discovery-settings__keyword-list-toolbar button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fuma-discovery-settings__keyword-list > li {
+  grid-template-columns: auto minmax(0, 1fr);
+  transition: border-color 120ms ease, opacity 120ms ease;
+}
+
+.fuma-discovery-settings__keyword-list > li.is-dragging {
+  border-color: var(--hsas-color-black);
+  opacity: 0.5;
+}
+
+.fuma-discovery-settings__keyword-list > li.is-new > form {
+  display: grid;
+  min-width: 0;
+  grid-column: 1 / -1;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--hsas-space-7);
+}
+
+.fuma-discovery-settings__drag-handle {
+  display: grid;
+  width: 24px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--hsas-text-muted);
+  cursor: grab;
+}
+
+.fuma-discovery-settings__drag-handle:active {
+  cursor: grabbing;
 }
 
 .fuma-discovery-settings__category-select {
@@ -165,8 +222,17 @@
 
 .fuma-discovery-settings__category-select:focus-visible {
   border-radius: 4px;
-  outline: 2px solid var(--hsas-teal);
+  outline: 2px solid var(--hsas-color-black);
   outline-offset: 2px;
+}
+
+.fuma-discovery-settings .hsas-button:focus-visible,
+.fuma-discovery-settings .hsas-control:focus-visible {
+  outline-color: rgb(0 0 0 / 22%);
+}
+
+.fuma-discovery-settings .hsas-checkbox__input {
+  accent-color: var(--hsas-color-black);
 }
 
 .fuma-discovery-settings__category-copy {
@@ -180,6 +246,23 @@
   min-width: 0;
   align-items: center;
   gap: var(--hsas-space-8);
+}
+
+.fuma-discovery-settings__keyword-copy .hsas-text-input {
+  min-width: 0;
+  flex: 1 1 auto;
+  border-color: transparent;
+  background: transparent;
+}
+
+.fuma-discovery-settings__keyword-copy .hsas-text-input:hover:not(:disabled) {
+  border-color: var(--hsas-border);
+  background: var(--hsas-surface);
+}
+
+.fuma-discovery-settings__keyword-copy .hsas-text-input:focus-visible {
+  border-color: var(--hsas-color-black);
+  background: var(--hsas-surface);
 }
 
 .fuma-discovery-settings__category-copy strong,
@@ -206,6 +289,79 @@
 
 .fuma-discovery-settings__row-actions .hsas-button {
   min-width: 42px;
+}
+
+.fuma-discovery-settings__row-menu {
+  position: relative;
+}
+
+.fuma-discovery-settings__row-menu > summary {
+  display: grid;
+  width: var(--hsas-control-height);
+  height: var(--hsas-control-height);
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--hsas-radius);
+  color: var(--hsas-text-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.fuma-discovery-settings__row-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fuma-discovery-settings__row-menu > summary:hover,
+.fuma-discovery-settings__row-menu > summary:focus-visible,
+.fuma-discovery-settings__row-menu[open] > summary {
+  border-color: var(--hsas-border);
+  background: var(--hsas-color-surface-subtle);
+  color: var(--hsas-text);
+}
+
+.fuma-discovery-settings__row-menu > summary:focus-visible {
+  outline: 2px solid rgb(0 0 0 / 22%);
+  outline-offset: 2px;
+}
+
+.fuma-discovery-settings__row-menu > div {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + var(--hsas-space-4));
+  right: 0;
+  display: grid;
+  width: 92px;
+  padding: var(--hsas-space-4);
+  border: 1px solid var(--hsas-border);
+  border-radius: var(--hsas-radius);
+  background: var(--hsas-surface);
+  box-shadow: 0 8px 20px rgb(17 24 39 / 12%);
+}
+
+.fuma-discovery-settings__row-menu button {
+  padding: var(--hsas-space-7) var(--hsas-space-8);
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--hsas-text);
+  font: inherit;
+  font-size: var(--hsas-font-11);
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fuma-discovery-settings__row-menu button:hover:not(:disabled) {
+  background: var(--hsas-color-surface-subtle);
+}
+
+.fuma-discovery-settings__row-menu button.is-danger {
+  color: var(--hsas-status-rejected);
+}
+
+.fuma-discovery-settings__row-menu button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .fuma-creator-toolbar__settings {
