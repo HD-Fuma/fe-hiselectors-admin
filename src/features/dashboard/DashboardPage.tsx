@@ -508,6 +508,14 @@ export function DashboardPage() {
         </DashboardCard>
 
         <DashboardCard
+          action={(
+            <Link
+              className="fuma-dashboard__primary-action fuma-dashboard__primary-action--compact"
+              to="/performance/contents"
+            >
+              콘텐츠 성과 →
+            </Link>
+          )}
           className="fuma-dashboard-card--generation"
           eyebrow="CONTENT"
           status={data.currentGenerationName ?? "확인 중"}
