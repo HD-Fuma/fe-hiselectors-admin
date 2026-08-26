@@ -3576,6 +3576,7 @@
   right: 0;
   top: auto;
   bottom: calc(100% + var(--hsas-space-8));
+  color: #fff;
 }
 
 @keyframes fuma-content-inspection-refresh-spin {
