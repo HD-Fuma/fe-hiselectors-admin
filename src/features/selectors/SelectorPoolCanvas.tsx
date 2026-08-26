@@ -619,6 +619,7 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
       categories.forEach((category, categoryIndex) => {
         const pulse = 1 + Math.sin(time / 1800 + categoryIndex) * 0.02;
         const core = CATEGORY_RADIUS * pulse;
+        const labelScale = 1 / view.scale;
 
         context.save();
         context.globalAlpha = weightOf(categoryIndex);
@@ -667,18 +668,24 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         context.textAlign = "center";
         context.textBaseline = "middle";
         context.fillStyle = `rgb(${INK})`;
-        context.font = "700 15px Pretendard, sans-serif";
-        context.fillText(category.label, category.x, category.y - 6);
+        context.font = `700 ${15 * labelScale}px Pretendard, sans-serif`;
+        context.fillText(category.label, category.x, category.y - 6 * labelScale);
 
-        context.font = "600 11px Pretendard, sans-serif";
+        context.font = `600 ${11 * labelScale}px Pretendard, sans-serif`;
         const countLabel = `${category.count}명`;
-        const chipWidth = context.measureText(countLabel).width + 16;
+        const chipWidth = context.measureText(countLabel).width + 16 * labelScale;
         context.fillStyle = `rgb(${category.rgb} / 16%)`;
         context.beginPath();
-        context.roundRect(category.x - chipWidth / 2, category.y + 6, chipWidth, 17, 9);
+        context.roundRect(
+          category.x - chipWidth / 2,
+          category.y + 6 * labelScale,
+          chipWidth,
+          17 * labelScale,
+          9 * labelScale,
+        );
         context.fill();
         context.fillStyle = `rgb(${category.rgb})`;
-        context.fillText(countLabel, category.x, category.y + 15);
+        context.fillText(countLabel, category.x, category.y + 15 * labelScale);
         context.restore();
       });
 
