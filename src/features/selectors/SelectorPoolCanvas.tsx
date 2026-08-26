@@ -12,7 +12,8 @@ const ORBIT_GAP = 26;
 const DAMPING = 0.86;
 const GOLDEN_ANGLE = 2.39996;
 const INK = "17 24 39";
-const NODE_TINT = INK;
+const WHITE = "255 255 255";
+const NODE_TINT = WHITE;
 
 interface PoolNode {
   x: number;
@@ -35,7 +36,7 @@ interface PoolCategory {
   rgb: string;
 }
 
-const CATEGORY_COLORS = [INK];
+const CATEGORY_COLORS = [WHITE];
 
 
 // 백엔드 필드명이 확정 전이라 카테고리로 쓸 수 있는 키를 순서대로 훑는다.
@@ -751,7 +752,7 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
             className="hsas-selector-pool__chip"
             key={category.label}
             onClick={() => focusCategory(focus === category.label ? null : category.label)}
-            style={{ "--hsas-pool-chip": `rgb(${category.rgb})` } as CSSProperties}
+            style={{ "--hsas-pool-chip": `rgb(${INK})` } as CSSProperties}
             type="button"
           >
             <span aria-hidden="true" className="hsas-selector-pool__chip-dot" />
