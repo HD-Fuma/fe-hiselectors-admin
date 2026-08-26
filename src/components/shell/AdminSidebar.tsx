@@ -244,7 +244,15 @@ export function AdminSidebar({
           <span>관리자 계정</span>
         </span>
         <div className="hsas-admin-sidebar__account-actions">
-          <div className="hsas-theme-settings-anchor" ref={settingsRef}>
+          <div
+            className="hsas-theme-settings-anchor"
+            onMouseEnter={() => setSettingsOpen(true)}
+            onMouseLeave={() => {
+              setSettingsOpen(false);
+              setThemeMenuOpen(false);
+            }}
+            ref={settingsRef}
+          >
             <button
               aria-controls={THEME_SETTINGS_ID}
               aria-expanded={isSettingsOpen}
@@ -272,45 +280,50 @@ export function AdminSidebar({
                   className="hsas-theme-settings__menu"
                   role="group"
                 >
-                  <button
-                    aria-expanded={isThemeMenuOpen}
-                    className="hsas-theme-settings__item"
-                    onClick={() => setThemeMenuOpen((current) => !current)}
-                    type="button"
+                  <div
+                    className="hsas-theme-settings__submenu-anchor"
+                    onMouseEnter={() => setThemeMenuOpen(true)}
                   >
-                    <Sun aria-hidden="true" />
-                    <span>화면 모드</span>
-                    <ChevronRight aria-hidden="true" />
-                  </button>
-                  {isThemeMenuOpen ? (
-                    <div
-                      aria-label="화면 모드"
-                      className="hsas-theme-settings__submenu"
-                      role="group"
+                    <button
+                      aria-expanded={isThemeMenuOpen}
+                      className="hsas-theme-settings__item"
+                      onClick={() => setThemeMenuOpen((current) => !current)}
+                      type="button"
                     >
-                      {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
-                        <button
-                          aria-pressed={theme === value}
-                          className="hsas-theme-settings__item"
-                          key={value}
-                          onClick={() => {
-                            setTheme(value);
-                            saveTheme(value);
-                          }}
-                          type="button"
-                        >
-                          <Icon aria-hidden="true" />
-                          <span>{label}</span>
-                          {theme === value ? (
-                            <Check
-                              aria-hidden="true"
-                              className="hsas-theme-settings__check"
-                            />
-                          ) : null}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
+                      <Sun aria-hidden="true" />
+                      <span>화면 모드</span>
+                      <ChevronRight aria-hidden="true" />
+                    </button>
+                    {isThemeMenuOpen ? (
+                      <div
+                        aria-label="화면 모드"
+                        className="hsas-theme-settings__submenu"
+                        role="group"
+                      >
+                        {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+                          <button
+                            aria-pressed={theme === value}
+                            className="hsas-theme-settings__item"
+                            key={value}
+                            onClick={() => {
+                              setTheme(value);
+                              saveTheme(value);
+                            }}
+                            type="button"
+                          >
+                            <Icon aria-hidden="true" />
+                            <span>{label}</span>
+                            {theme === value ? (
+                              <Check
+                                aria-hidden="true"
+                                className="hsas-theme-settings__check"
+                              />
+                            ) : null}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                   {import.meta.env.DEV ? (
                     <button
                       className="hsas-theme-settings__item hsas-theme-settings__item--danger"

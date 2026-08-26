@@ -23,6 +23,12 @@
   color: var(--hsas-sidebar-strong-text);
 }
 
+.hsas-admin-sidebar__account-action[aria-expanded="true"] {
+  border-color: var(--hsas-sidebar-border);
+  background: var(--hsas-sidebar-hover);
+  color: var(--hsas-sidebar-strong-text);
+}
+
 .hsas-admin-sidebar__account-action:focus-visible {
   outline: 2px solid var(--hsas-teal-accent);
   outline-offset: -2px;
@@ -40,9 +46,9 @@
 
 .hsas-theme-settings-popover {
   position: absolute;
-  right: 0;
-  bottom: calc(100% + var(--hsas-space-8));
-  z-index: 1;
+  bottom: 100%;
+  left: 0;
+  z-index: 1001;
   display: grid;
   width: 174px;
   gap: var(--hsas-space-2);
@@ -54,11 +60,22 @@
 }
 
 .hsas-theme-settings__submenu {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  z-index: 1002;
   display: grid;
+  width: 154px;
   gap: var(--hsas-space-2);
-  margin-left: var(--hsas-space-16);
-  padding-left: var(--hsas-space-4);
-  border-left: 1px solid var(--hsas-sidebar-border);
+  padding: var(--hsas-space-6);
+  border: 1px solid var(--hsas-sidebar-border);
+  border-radius: 12px;
+  background: var(--hsas-sidebar-background);
+  box-shadow: 0 var(--hsas-space-8) var(--hsas-space-24) rgb(15 15 15 / 18%);
+}
+
+.hsas-theme-settings__submenu-anchor {
+  position: relative;
 }
 
 .hsas-theme-settings__label {

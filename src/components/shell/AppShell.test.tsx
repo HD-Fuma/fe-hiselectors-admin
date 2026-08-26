@@ -219,7 +219,7 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
   expect(within(shell).getAllByRole("button", { name: "로그아웃" })).toHaveLength(1);
 });
 
-test("opens anchored environment settings with the light sidebar selected by default", () => {
+test("opens environment settings on hover and closes them when hover leaves", () => {
   renderRoute("/creators");
 
   expect(document.documentElement).toHaveAttribute("data-sidebar-theme", "light");
@@ -227,7 +227,8 @@ test("opens anchored environment settings with the light sidebar selected by def
   expect(document.documentElement.style.colorScheme).toBe("");
 
   const trigger = screen.getByRole("button", { name: "환경설정" });
-  fireEvent.click(trigger);
+  const anchor = trigger.parentElement as HTMLElement;
+  fireEvent.mouseEnter(anchor);
 
   expect(trigger).toHaveAttribute("aria-expanded", "true");
   expect(screen.queryByRole("dialog", { name: "환경설정" })).not.toBeInTheDocument();
@@ -249,6 +250,10 @@ test("opens anchored environment settings with the light sidebar selected by def
     "aria-pressed",
     "false",
   );
+
+  fireEvent.mouseLeave(anchor);
+  expect(screen.queryByRole("group", { name: "환경설정" })).not.toBeInTheDocument();
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
 });
 
 test("switches and persists the selected theme immediately", () => {
