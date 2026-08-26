@@ -1,3 +1,26 @@
+.fuma-settlement-page {
+  --hsas-border: color-mix(in srgb, var(--hsas-color-black) 15%, var(--hsas-color-white));
+  --hsas-border-dark: color-mix(in srgb, var(--hsas-color-black) 31%, var(--hsas-color-white));
+  --hsas-color-line-100: color-mix(in srgb, var(--hsas-color-black) 7%, var(--hsas-color-white));
+  --hsas-color-line-150: color-mix(in srgb, var(--hsas-color-black) 8%, var(--hsas-color-white));
+  --hsas-color-line-200: color-mix(in srgb, var(--hsas-color-black) 10%, var(--hsas-color-white));
+  --hsas-color-line-250: color-mix(in srgb, var(--hsas-color-black) 11%, var(--hsas-color-white));
+  --hsas-color-line-300: color-mix(in srgb, var(--hsas-color-black) 12%, var(--hsas-color-white));
+  --hsas-color-neutral-500: color-mix(in srgb, var(--hsas-color-black) 55%, var(--hsas-color-white));
+  --hsas-color-neutral-600: color-mix(in srgb, var(--hsas-color-black) 65%, var(--hsas-color-white));
+  --hsas-color-neutral-700: color-mix(in srgb, var(--hsas-color-black) 72%, var(--hsas-color-white));
+  --hsas-color-shadow-soft: color-mix(in srgb, var(--hsas-color-black) 4%, transparent);
+  --hsas-color-surface-soft: color-mix(in srgb, var(--hsas-color-black) 1%, var(--hsas-color-white));
+  --hsas-color-surface-subtle: color-mix(in srgb, var(--hsas-color-black) 2%, var(--hsas-color-white));
+  --hsas-status-neutral: color-mix(in srgb, var(--hsas-color-black) 65%, var(--hsas-color-white));
+  --hsas-status-neutral-bg: color-mix(in srgb, var(--hsas-color-black) 6%, var(--hsas-color-white));
+  --hsas-status-neutral-border: color-mix(in srgb, var(--hsas-color-black) 25%, var(--hsas-color-white));
+  --hsas-surface-muted: color-mix(in srgb, var(--hsas-color-black) 3%, var(--hsas-color-white));
+  --hsas-teal-soft: color-mix(in srgb, var(--hsas-color-black) 5%, var(--hsas-color-white));
+  --hsas-text: color-mix(in srgb, var(--hsas-color-black) 86%, var(--hsas-color-white));
+  --hsas-text-muted: color-mix(in srgb, var(--hsas-color-black) 48%, var(--hsas-color-white));
+}
+
 .fuma-settlement-dashboard {
   overflow: hidden;
   border: 1px solid var(--hsas-color-line-300);
@@ -19,7 +42,7 @@
 .fuma-settlement-dashboard__panel :is(header, figcaption) > span,
 .fuma-settlement-dashboard__panel :is(header, figcaption) > div > span {
   display: block;
-  color: var(--hsas-teal-dark);
+  color: var(--hsas-color-black);
   font-size: var(--hsas-font-9);
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -62,9 +85,9 @@
   width: var(--hsas-space-40);
   height: var(--hsas-space-40);
   place-items: center;
-  border: 1px solid var(--hsas-status-approved-border);
+  border: 1px solid var(--hsas-color-line-200);
   border-radius: 10px;
-  color: var(--hsas-teal-dark);
+  color: var(--hsas-color-black);
   background: var(--hsas-surface);
 }
 
@@ -82,7 +105,7 @@
   max-width: 100%;
   margin-top: var(--hsas-space-7);
   overflow: hidden;
-  color: var(--hsas-teal-dark);
+  color: var(--hsas-color-black);
   font-size: var(--hsas-font-28);
   font-variant-numeric: tabular-nums;
   font-weight: 850;
@@ -203,7 +226,7 @@
   width: var(--hsas-space-12);
   height: var(--hsas-space-6);
   border-radius: 2px;
-  background: var(--hsas-color-neutral-700);
+  background: #536963;
 }
 
 .fuma-settlement-trend__legend i.is-rate {
@@ -305,7 +328,7 @@
   min-height: 49px;
   margin: 0;
   padding: var(--hsas-space-16);
-  border-top: 2px solid var(--hsas-teal);
+  border-top: 2px solid var(--hsas-color-black);
   color: var(--hsas-text-muted);
   text-align: center;
 }

@@ -259,10 +259,10 @@ function SettlementTrendChart({
     xAxis: {
       type: "category",
       data: monthlyTrend.map((month) => monthChartLabel(month.activityMonth)),
-      axisLine: { lineStyle: { color: "#dfe7e3" } },
+      axisLine: { lineStyle: { color: "#ddd" } },
       axisTick: { show: false },
       axisLabel: {
-        color: "#596166",
+        color: "#666",
         fontSize: 10,
         fontWeight: 700,
         margin: 12,
@@ -273,15 +273,15 @@ function SettlementTrendChart({
         type: "value",
         min: 0,
         name: "확정 매출 (원)",
-        nameTextStyle: { color: "#596166", fontSize: 9, fontWeight: 700 },
+        nameTextStyle: { color: "#666", fontSize: 9, fontWeight: 700 },
         axisLabel: {
-          color: "#718078",
+          color: "#777",
           fontSize: 9,
           formatter: (value: number) => `${formatCompactCount(value)}원`,
         },
         axisLine: { show: false },
         axisTick: { show: false },
-        splitLine: { lineStyle: { color: "#edf1ef" } },
+        splitLine: { lineStyle: { color: "#eee" } },
       },
       {
         type: "value",
@@ -760,7 +760,7 @@ export function SettlementManagementPage() {
   ) : "조회된 정산 내역이 없습니다.";
 
   return (
-    <section className="fuma-page">
+    <section className="fuma-page fuma-settlement-page">
       <PageHeader title="정산 지급 관리" />
       <div className="fuma-page__body">
         <SettlementFilters
