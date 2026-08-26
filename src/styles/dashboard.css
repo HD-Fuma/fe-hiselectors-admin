@@ -4,11 +4,10 @@
   --dashboard-on-accent: #fff;
   --dashboard-solid: var(--hsas-surface);
   --dashboard-solid-muted: var(--hsas-surface-muted);
-  --dashboard-fluid-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .fuma-dashboard .fuma-page__body {
-  gap: var(--hsas-space-20);
+  gap: var(--hsas-space-16);
   margin-top: var(--hsas-space-16);
 }
 
@@ -21,7 +20,7 @@
 .fuma-dashboard-panel,
 .fuma-dashboard__shortcut-section {
   display: grid;
-  gap: var(--hsas-space-12);
+  gap: var(--hsas-space-10);
 }
 
 .fuma-dashboard__priority > h2,
@@ -33,7 +32,7 @@
 .fuma-dashboard__tasks {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--hsas-space-12);
+  gap: var(--hsas-space-10);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -41,21 +40,16 @@
 
 .fuma-dashboard-task {
   display: flex;
-  min-height: 156px;
+  min-height: 108px;
   align-items: center;
-  gap: var(--hsas-space-16);
-  padding: var(--hsas-space-20) var(--hsas-space-24);
+  gap: var(--hsas-space-12);
+  padding: var(--hsas-space-14) var(--hsas-space-16);
   border: 1px solid var(--dashboard-accent);
   border-radius: 38px 24px 42px 28px / 30px 40px 26px 38px;
   background: var(--dashboard-accent);
-  box-shadow: 0 16px 34px rgb(0 0 0 / 12%);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 10%);
   color: var(--dashboard-on-accent);
   text-decoration: none;
-  transition:
-    transform 420ms var(--dashboard-fluid-ease),
-    border-radius 520ms var(--dashboard-fluid-ease),
-    background-color 240ms ease,
-    box-shadow 420ms ease;
 }
 
 .fuma-dashboard__tasks li:nth-child(2) .fuma-dashboard-task {
@@ -63,15 +57,8 @@
 }
 
 .fuma-dashboard-task:hover {
-  border-radius: 28px 44px 24px 40px / 42px 26px 40px 28px;
   background: var(--dashboard-accent-hover);
-  box-shadow: 0 22px 46px rgb(0 0 0 / 18%);
-  transform: translateY(-5px) scale(1.012);
-}
-
-.fuma-dashboard-task:active {
-  transform: translateY(1px) scale(0.985, 0.95);
-  transition-duration: 100ms;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 14%);
 }
 
 .fuma-dashboard-task:focus-visible,
@@ -83,24 +70,18 @@
 
 .fuma-dashboard-task__icon {
   display: grid;
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   flex: 0 0 auto;
   place-items: center;
   border-radius: 58% 42% 54% 46% / 44% 58% 42% 56%;
   background: var(--dashboard-on-accent);
   color: var(--dashboard-accent);
-  transition: transform 520ms var(--dashboard-fluid-ease), border-radius 520ms var(--dashboard-fluid-ease);
-}
-
-.fuma-dashboard-task:hover .fuma-dashboard-task__icon {
-  border-radius: 38% 62% 42% 58% / 58% 38% 62% 42%;
-  transform: rotate(-7deg) scale(1.08);
 }
 
 .fuma-dashboard-task__icon svg {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
 }
 
 .fuma-dashboard-task__copy {
@@ -111,7 +92,7 @@
 }
 
 .fuma-dashboard-task__copy strong {
-  font-size: var(--hsas-font-18);
+  font-size: var(--hsas-font-16);
 }
 
 .fuma-dashboard-task__copy small {
@@ -119,7 +100,7 @@
 }
 
 .fuma-dashboard-task > b {
-  font-size: var(--hsas-font-28);
+  font-size: var(--hsas-font-24);
   line-height: 1;
 }
 
@@ -131,7 +112,7 @@
 }
 
 .fuma-dashboard-panel {
-  padding: var(--hsas-space-18);
+  padding: var(--hsas-space-16);
   border: 1px solid var(--hsas-border);
   border-radius: 24px;
   background: var(--dashboard-solid);
@@ -140,7 +121,7 @@
 .fuma-dashboard__stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--hsas-space-10);
+  gap: var(--hsas-space-8);
 }
 
 .fuma-dashboard-stat {
@@ -148,34 +129,24 @@
   min-width: 0;
   align-items: flex-start;
   gap: var(--hsas-space-10);
-  padding: var(--hsas-space-16);
+  padding: var(--hsas-space-12);
   border: 1px solid var(--hsas-border);
   border-radius: 20px;
   background: var(--dashboard-solid-muted);
   color: var(--hsas-text);
   text-decoration: none;
-  transition:
-    transform 320ms var(--dashboard-fluid-ease),
-    border-color 200ms ease,
-    background-color 200ms ease,
-    box-shadow 320ms ease;
 }
 
 .fuma-dashboard-stat:hover {
   border-color: var(--dashboard-accent);
   background: var(--dashboard-solid);
-  box-shadow: 0 12px 26px rgb(0 0 0 / 9%);
-  transform: translateY(-3px);
-}
-
-.fuma-dashboard-stat:active {
-  transform: scale(0.98);
+  box-shadow: 0 8px 18px rgb(0 0 0 / 8%);
 }
 
 .fuma-dashboard-stat__icon {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex: 0 0 auto;
   place-items: center;
   border-radius: 12px;
@@ -184,8 +155,8 @@
 }
 
 .fuma-dashboard-stat__icon svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .fuma-dashboard-stat__copy {
@@ -203,7 +174,7 @@
 }
 
 .fuma-dashboard-stat__copy strong {
-  font-size: var(--hsas-font-24);
+  font-size: var(--hsas-font-20);
   line-height: 1.2;
 }
 
@@ -234,11 +205,6 @@
 
 .fuma-dashboard__shortcuts b {
   color: var(--dashboard-accent);
-  transition: transform 240ms var(--dashboard-fluid-ease);
-}
-
-.fuma-dashboard__shortcuts a:hover b {
-  transform: translateX(4px);
 }
 
 :root[data-theme="dark"] .fuma-dashboard {
@@ -256,14 +222,6 @@
   color: rgb(17 17 17 / 68%);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .fuma-dashboard *,
-  .fuma-dashboard *::before,
-  .fuma-dashboard *::after {
-    transition-duration: 0.01ms !important;
-  }
-}
-
 @media (max-width: 1080px) {
   .fuma-dashboard__stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -277,7 +235,7 @@
   }
 
   .fuma-dashboard-task {
-    min-height: 128px;
-    padding: var(--hsas-space-18);
+    min-height: 100px;
+    padding: var(--hsas-space-14);
   }
 }
