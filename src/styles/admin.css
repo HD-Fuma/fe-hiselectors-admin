@@ -88,6 +88,10 @@
   padding: 0 var(--hsas-space-24) 0 var(--hsas-space-7);
 }
 
+.hsas-select:focus-visible {
+  outline-color: rgb(17 17 17 / 22%);
+}
+
 .hsas-checkbox {
   display: inline-flex;
   min-height: var(--hsas-control-height);
@@ -10058,6 +10062,10 @@
 :root[data-theme="dark"] .hsas-segmented-control,
 :root[data-theme="dark"] .hsas-modal {
   border-color: var(--hsas-border);
+}
+
+:root[data-theme="dark"] .hsas-select:focus-visible {
+  outline-color: rgb(255 255 255 / 28%);
 }
 
 :root[data-theme="dark"] .hsas-button:hover:not(:disabled),
