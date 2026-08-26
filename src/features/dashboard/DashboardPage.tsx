@@ -17,18 +17,13 @@ import "../../styles/dashboard.css";
 interface DashboardData {
   activeCampaigns: number | null;
   applicationBreakdown: {
-    approved: number | null;
     instagram: number | null;
-    rejected: number | null;
     youtube: number | null;
   };
   averageInspectionHours: number | null;
   completedContents: number | null;
   contentBreakdown: {
-    edited: number;
     instagram: number;
-    new: number;
-    violations: number;
     youtube: number;
   } | null;
   currentGenerationContentCount: number | null;
@@ -44,7 +39,7 @@ interface DashboardData {
 
 const EMPTY_DASHBOARD: DashboardData = {
   activeCampaigns: null,
-  applicationBreakdown: { approved: null, instagram: null, rejected: null, youtube: null },
+  applicationBreakdown: { instagram: null, youtube: null },
   averageInspectionHours: null,
   completedContents: null,
   contentBreakdown: null,
@@ -391,14 +386,8 @@ export function DashboardPage() {
           ? activeCampaigns.value.totalElements
           : null,
         applicationBreakdown: {
-          approved: approvedApplications.status === "fulfilled"
-            ? approvedApplications.value.totalElements
-            : null,
           instagram: instagramApplications.status === "fulfilled"
             ? instagramApplications.value.totalElements
-            : null,
-          rejected: rejectedApplications.status === "fulfilled"
-            ? rejectedApplications.value.totalElements
             : null,
           youtube: youtubeApplications.status === "fulfilled"
             ? youtubeApplications.value.totalElements
@@ -409,11 +398,8 @@ export function DashboardPage() {
             / inspectionDurations.length / 3_600_000
           : null,
         completedContents,
-        contentBreakdown: inspectionRows && pendingInspectionRows ? {
-          edited: pendingInspectionRows.filter(({ inspection }) => inspection.inspectionType !== "NEW").length,
+        contentBreakdown: pendingInspectionRows ? {
           instagram: pendingInspectionRows.filter(({ content }) => content.snsCode === "INSTAGRAM").length,
-          new: pendingInspectionRows.filter(({ inspection }) => inspection.inspectionType === "NEW").length,
-          violations: inspectionRows.filter(({ inspection }) => inspection.inspectionStatus === "위반").length,
           youtube: pendingInspectionRows.filter(({ content }) => content.snsCode === "YOUTUBE").length,
         } : null,
         currentGenerationContentCount: summary.status === "fulfilled"
@@ -471,11 +457,8 @@ export function DashboardPage() {
           </div>
           <DashboardBreakdown
             items={[
-              { label: "신규 대기", value: data.contentBreakdown?.new ?? null },
-              { label: "수정 대기", value: data.contentBreakdown?.edited ?? null },
-              { label: "위반 확정", value: data.contentBreakdown?.violations ?? null },
-              { label: "인스타 대기", value: data.contentBreakdown?.instagram ?? null },
-              { label: "유튜브 대기", value: data.contentBreakdown?.youtube ?? null },
+              { label: "Instagram", value: data.contentBreakdown?.instagram ?? null },
+              { label: "YouTube", value: data.contentBreakdown?.youtube ?? null },
             ]}
             unit="건"
           />
@@ -493,10 +476,8 @@ export function DashboardPage() {
           <DashboardMetric label="승인 대기 지원자" unit="명" value={count(data.pendingApplications)} />
           <DashboardBreakdown
             items={[
-              { label: "인스타 대기", value: data.applicationBreakdown.instagram },
-              { label: "유튜브 대기", value: data.applicationBreakdown.youtube },
-              { label: "승인 완료", value: data.applicationBreakdown.approved },
-              { label: "반려 완료", value: data.applicationBreakdown.rejected },
+              { label: "Instagram", value: data.applicationBreakdown.instagram },
+              { label: "YouTube", value: data.applicationBreakdown.youtube },
             ]}
             unit="명"
           />
