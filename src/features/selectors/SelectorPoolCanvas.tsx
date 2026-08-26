@@ -62,7 +62,7 @@ function nodeRadius(followerCount: number | null) {
   return 26 + Math.min(20, Math.log10((followerCount ?? 0) + 1) * 4);
 }
 
-/** 카테고리 중심은 큰 원 위에, 미분류는 원 밖 아래에 따로 배치한다. */
+/** 카테고리 중심은 큰 원 위에, 미분류는 원 밖 오른쪽에 따로 배치한다. */
 function layoutCategories(counts: Map<string, number>): PoolCategory[] {
   const entries = [...counts.entries()];
   const categorized = entries.filter(([label]) => label !== "미분류");
@@ -93,8 +93,8 @@ function layoutCategories(counts: Map<string, number>): PoolCategory[] {
     label,
     count,
     rgb: CATEGORY_COLORS[categories.length % CATEGORY_COLORS.length],
-    x: 0,
-    y: categories.length ? ring + clusterReach + clusterRadius(count) + 180 : 0,
+    x: categories.length ? ring + clusterReach + clusterRadius(count) + 180 : 0,
+    y: 0,
   }];
 }
 
