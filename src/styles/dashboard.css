@@ -59,6 +59,10 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   grid-column: span 3;
 }
 
+.fuma-dashboard-card--trend {
+  grid-column: span 12;
+}
+
 .fuma-dashboard-card > header {
   display: flex;
   align-items: flex-start;
@@ -128,6 +132,73 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.fuma-dashboard-trend {
+  display: grid;
+  gap: var(--hsas-space-12);
+  margin-top: var(--hsas-space-14);
+  padding-top: var(--hsas-space-13);
+  border-top: 1px solid rgb(255 255 255 / 58%);
+}
+
+.fuma-dashboard-trend__latest {
+  display: flex;
+  gap: var(--hsas-space-24);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fuma-dashboard-trend__latest li {
+  display: grid;
+  grid-template-columns: 18px auto;
+  align-items: center;
+  column-gap: var(--hsas-space-8);
+}
+
+.fuma-dashboard-trend__latest i {
+  grid-row: 1 / span 2;
+  width: 18px;
+  border-top: 3px solid #111111;
+  border-radius: 999px;
+}
+
+.fuma-dashboard-trend__latest .is-settlement i {
+  border-top-color: #92969a;
+  border-top-style: dashed;
+  border-top-width: 2px;
+}
+
+.fuma-dashboard-trend__latest span {
+  color: rgb(32 34 36 / 48%);
+  font-size: var(--hsas-font-10);
+  font-weight: 750;
+}
+
+.fuma-dashboard-trend__latest strong {
+  font-size: var(--hsas-font-16);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+.fuma-dashboard-trend__plot {
+  min-height: 210px;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 58%);
+  border-radius: 15px;
+  background: rgb(255 255 255 / 26%);
+}
+
+.fuma-dashboard-trend__empty {
+  display: grid;
+  min-height: 210px;
+  margin: var(--hsas-space-14) 0 0;
+  place-items: center;
+  border-top: 1px solid rgb(255 255 255 / 58%);
+  color: rgb(32 34 36 / 48%);
+  font-size: var(--hsas-font-12);
+  font-weight: 700;
 }
 
 .fuma-dashboard::before {
