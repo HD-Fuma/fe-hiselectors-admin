@@ -105,7 +105,7 @@
   width: 14px;
   height: 14px;
   margin: 0;
-  accent-color: var(--hsas-teal);
+  accent-color: var(--hsas-color-black);
 }
 
 .hsas-segmented-control {
@@ -4007,7 +4007,7 @@
   font-weight: 700;
 }
 
-.hsas-dense-table input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--hsas-teal); cursor: pointer; }
+.hsas-dense-table input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--hsas-color-black); cursor: pointer; }
 .fuma-creator-toolbar__divider {
   width: 1px;
   height: 20px;
