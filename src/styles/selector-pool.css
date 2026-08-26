@@ -1,21 +1,28 @@
 .hsas-selector-pool {
   position: relative;
-  border-top: 1px solid var(--hsas-border);
   overflow: hidden;
-  background:
-    radial-gradient(ellipse 42% 18% at 50% 78%, rgb(255 255 255 / 18%), transparent 72%),
-    radial-gradient(circle at 50% 28%, rgb(255 255 255 / 22%) 0, rgb(248 249 249 / 18%) 32%, rgb(233 236 238 / 21%) 100%);
-  backdrop-filter: blur(30px) saturate(0.72);
 }
 
 /* 목록 아래 남은 화면만큼 쓰되 과하게 커지지 않게 상한을 둔다(--hsas-pool-top 은 캔버스 상단 오프셋). */
 .hsas-selector-pool__canvas {
   display: block;
   width: 100%;
-  height: calc(100dvh - var(--hsas-pool-top, 260px) - 20px);
-  min-height: 360px;
+  height: calc(100dvh - var(--hsas-pool-top, 260px) - 52px);
+  min-height: 300px;
   touch-action: none;
   cursor: grab;
+  background:
+    radial-gradient(ellipse 42% 18% at 50% 78%, rgb(255 255 255 / 18%), transparent 72%),
+    radial-gradient(circle at 50% 28%, rgb(255 255 255 / 22%) 0, rgb(248 249 249 / 18%) 32%, rgb(233 236 238 / 21%) 100%);
+  backdrop-filter: blur(30px) saturate(0.72);
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent),
+    linear-gradient(to bottom, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent),
+    linear-gradient(to bottom, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  mask-composite: intersect;
 }
 
 /* 우상단 카테고리 범례 — 누르면 해당 클러스터로 카메라가 이동한다. */
