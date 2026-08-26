@@ -3494,7 +3494,7 @@
 }
 
 .fuma-applicant-search .hsas-search-panel__fields {
-  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
   column-gap: var(--hsas-space-20);
 }
 
