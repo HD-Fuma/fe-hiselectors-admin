@@ -51,6 +51,7 @@ const API_CONTENTS = [
 ] as const;
 
 beforeEach(() => {
+  window.localStorage.removeItem("content-performance-chart-swipe-hint-seen");
   vi.stubGlobal("fetch", vi.fn().mockImplementation((input: RequestInfo | URL) => {
     const isSummary = new URL(String(input)).pathname.endsWith("/summary");
     const data = isSummary
@@ -115,6 +116,8 @@ test("content performance opens card and list details in a side panel", async ()
   const cohortChart = screen.getByRole("article", { name: "기간별 콘텐츠 성과" });
   expect(within(cohortChart).getByRole("tooltip", { hidden: true }))
     .toHaveTextContent("그래프를 좌우로 드래그해서 이동하세요");
+  expect(within(cohortChart).getByRole("tooltip", { hidden: true })).toHaveClass("is-visible");
+  expect(within(cohortChart).queryByRole("button", { name: "차트 이동 방법" })).not.toBeInTheDocument();
   expect(within(cohortChart).getByRole("button", { name: "종합" })).toHaveAttribute("aria-pressed", "true");
   expect(within(cohortChart).getByRole("img", { name: "기간별 전체 성과 추이" })).toBeInTheDocument();
   expect(cohortChart.querySelectorAll("[data-series]")).toHaveLength(4);

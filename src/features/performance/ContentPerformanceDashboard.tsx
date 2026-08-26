@@ -1,5 +1,4 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import { MoveHorizontal } from "lucide-react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AnalysisFormatBreakdown } from "../../components/charts/AnalysisFormatBreakdown";
 import type { AnalysisFormatSegment } from "../../components/charts/AnalysisFormatDonut";
 import { PeriodLineChart } from "../../components/charts/PeriodLineChart";
@@ -34,6 +33,7 @@ import {
 } from "./contentChartEdgeScroll";
 
 const CONTENT_PERFORMANCE_PAGE_SIZE = 20;
+const CONTENT_CHART_SWIPE_HINT_KEY = "content-performance-chart-swipe-hint-seen";
 type ContentPerformanceSort = "latest" | "engagementRate" | "views" | "likes" | "comments";
 
 const CONTENT_PERFORMANCE_SORT_OPTIONS: readonly {
@@ -279,6 +279,18 @@ function ContentOverview({
   });
   const chartMomentumRef = useRef({ animationFrame: 0, velocity: 0 });
   const [isChartDragging, setIsChartDragging] = useState(false);
+  const [showChartSwipeHint, setShowChartSwipeHint] = useState(
+    () => window.localStorage.getItem(CONTENT_CHART_SWIPE_HINT_KEY) !== "true",
+  );
+
+  useEffect(() => {
+    if (!showChartSwipeHint) {
+      return undefined;
+    }
+    window.localStorage.setItem(CONTENT_CHART_SWIPE_HINT_KEY, "true");
+    const hideTimer = window.setTimeout(() => setShowChartSwipeHint(false), 3_200);
+    return () => window.clearTimeout(hideTimer);
+  }, [showChartSwipeHint]);
 
   const stopChartEdgeScroll = () => {
     if (chartEdgeScrollRef.current.animationFrame) {
@@ -512,10 +524,9 @@ function ContentOverview({
             ))}
           </ul>
           <span className="fuma-content-period-chart__help">
-            <button aria-describedby="content-period-chart-help" aria-label="차트 이동 방법" type="button">
-              <MoveHorizontal aria-hidden="true" size={16} />
-            </button>
-            <Tooltip id="content-period-chart-help">그래프를 좌우로 드래그해서 이동하세요</Tooltip>
+            <Tooltip id="content-period-chart-help" visible={showChartSwipeHint}>
+              그래프를 좌우로 드래그해서 이동하세요
+            </Tooltip>
           </span>
         </div>
         {periodMetrics.length > 0 ? (
