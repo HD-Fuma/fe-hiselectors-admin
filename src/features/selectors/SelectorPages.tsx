@@ -711,7 +711,7 @@ export function SelectorOverviewPage() {
               <span>총 {pageData?.totalElements ?? 0}건</span>
             </>
           }
-          title={selectorListTitle}
+          title={selectedStatus ? selectorListTitle : null}
         />
         {listError ? (
           <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
