@@ -216,19 +216,11 @@ function creatorColumns(
   onOpen: (creator: CreatorSummary) => void,
 ): DenseTableColumn<CreatorSummary>[] {
   return [
-  { key: "id", header: "크리에이터 ID", width: 92, align: "center" },
   {
     key: "creatorName",
     header: "계정",
     width: 220,
     render: (creator) => <CreatorAccountCell creator={creator} onOpen={onOpen} />,
-  },
-  {
-    id: "platform",
-    header: "플랫폼",
-    width: 115,
-    align: "center",
-    render: (creator) => <PlatformLabel platform={platformFor(creator.snsCode)} />,
   },
   {
     id: "categories",

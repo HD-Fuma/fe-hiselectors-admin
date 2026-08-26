@@ -196,8 +196,16 @@ describe("creator filters", () => {
     expect(within(table).queryByText("LEGACY_INTERNAL")).not.toBeInTheDocument();
     expect(within(table).getByRole("button", { name: "numeric.instagram 프로필 보기" }).closest("tr"))
       .toHaveTextContent("기타");
+    expect(within(table).queryByRole("columnheader", { name: "크리에이터 ID" }))
+      .not.toBeInTheDocument();
+    expect(within(table).queryByRole("columnheader", { name: "플랫폼" }))
+      .not.toBeInTheDocument();
     expect(within(table).queryByRole("columnheader", { name: "SNS 계정" }))
       .not.toBeInTheDocument();
+    expect(within(within(table).getByRole("button", { name: "김서연 프로필 보기" }))
+      .getByRole("img", { name: "Instagram 플랫폼" })).toBeInTheDocument();
+    expect(within(within(table).getByRole("button", { name: "Clevr TV 프로필 보기" }))
+      .getByRole("img", { name: "YouTube 플랫폼" })).toBeInTheDocument();
     const seoLink = within(table).getByRole("link", { name: "김서연 SNS 계정 열기 (새 창)" });
     expect(seoLink)
       .toHaveAttribute("href", "https://www.instagram.com/seo.yeon");
