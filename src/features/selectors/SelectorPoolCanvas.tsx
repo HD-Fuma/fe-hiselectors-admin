@@ -651,22 +651,23 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         context.stroke();
         context.restore();
 
-        // 흰 코어 + 색 링
+        // 카테고리명이 놓이는 중심은 테두리 없이 빛처럼 퍼지게 한다.
         context.save();
-        context.shadowColor = `rgb(${category.rgb} / 40%)`;
-        context.shadowBlur = 24;
-        context.shadowOffsetY = 6;
-        context.fillStyle = "#fff";
+        context.shadowColor = `rgb(${WHITE} / 64%)`;
+        context.shadowBlur = 48;
+        const coreLight = context.createRadialGradient(
+          category.x, category.y, core * 0.08,
+          category.x, category.y, core * 1.48,
+        );
+        coreLight.addColorStop(0, `rgb(${WHITE} / 96%)`);
+        coreLight.addColorStop(0.48, `rgb(${WHITE} / 84%)`);
+        coreLight.addColorStop(0.74, `rgb(${WHITE} / 42%)`);
+        coreLight.addColorStop(1, `rgb(${WHITE} / 0%)`);
+        context.fillStyle = coreLight;
         context.beginPath();
-        context.arc(category.x, category.y, core, 0, Math.PI * 2);
+        context.arc(category.x, category.y, core * 1.48, 0, Math.PI * 2);
         context.fill();
         context.restore();
-
-        context.strokeStyle = `rgb(${category.rgb})`;
-        context.lineWidth = 3;
-        context.beginPath();
-        context.arc(category.x, category.y, core - 1.5, 0, Math.PI * 2);
-        context.stroke();
 
         context.restore();
       });
