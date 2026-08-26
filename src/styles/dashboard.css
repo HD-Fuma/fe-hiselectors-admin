@@ -1,6 +1,63 @@
+.fuma-dashboard {
+  --dashboard-glass: rgb(255 255 255 / 54%);
+  --dashboard-glass-strong: rgb(255 255 255 / 72%);
+  --dashboard-glass-border: rgb(255 255 255 / 82%);
+  --dashboard-liquid-shadow: rgb(54 65 72 / 13%);
+}
+
 .fuma-dashboard .fuma-page__body {
+  position: relative;
   gap: var(--hsas-space-16);
   margin-top: var(--hsas-space-16);
+  padding: var(--hsas-space-18);
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 32px;
+  background:
+    radial-gradient(ellipse 38% 22% at 12% 18%, rgb(193 229 220 / 28%), transparent 72%),
+    radial-gradient(ellipse 34% 26% at 88% 16%, rgb(255 255 255 / 66%), transparent 74%),
+    radial-gradient(ellipse 42% 30% at 52% 92%, rgb(183 205 200 / 20%), transparent 76%),
+    var(--hsas-surface-muted);
+}
+
+.fuma-dashboard .fuma-page__body::before,
+.fuma-dashboard .fuma-page__body::after {
+  position: absolute;
+  z-index: -1;
+  border: 1px solid rgb(255 255 255 / 66%);
+  background:
+    radial-gradient(circle at 30% 24%, rgb(255 255 255 / 78%), transparent 24%),
+    linear-gradient(145deg, rgb(162 222 209 / 30%), rgb(255 255 255 / 20%));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 74%),
+    0 28px 70px var(--dashboard-liquid-shadow);
+  content: "";
+  filter: blur(0.3px);
+  pointer-events: none;
+}
+
+.fuma-dashboard .fuma-page__body::before {
+  top: -96px;
+  right: 8%;
+  width: 260px;
+  height: 236px;
+  border-radius: 43% 57% 66% 34% / 48% 37% 63% 52%;
+  animation: fuma-dashboard-droplet-float 10s ease-in-out infinite alternate;
+}
+
+.fuma-dashboard .fuma-page__body::after {
+  bottom: -132px;
+  left: 4%;
+  width: 310px;
+  height: 258px;
+  border-radius: 63% 37% 45% 55% / 39% 61% 39% 61%;
+  opacity: 0.68;
+  animation: fuma-dashboard-droplet-float 12s ease-in-out -4s infinite alternate-reverse;
+}
+
+.fuma-dashboard .fuma-page__body > * {
+  position: relative;
+  z-index: 1;
 }
 
 .fuma-dashboard h2,
@@ -9,15 +66,33 @@
 }
 
 .fuma-dashboard__welcome {
+  position: relative;
   display: flex;
   min-height: 112px;
   align-items: center;
   justify-content: space-between;
   gap: var(--hsas-space-24);
   padding: var(--hsas-space-22) var(--hsas-space-24);
-  border: 1px solid var(--hsas-border);
-  border-radius: var(--hsas-space-8);
-  background: linear-gradient(120deg, var(--hsas-surface), var(--hsas-teal-soft));
+  overflow: hidden;
+  border: 1px solid var(--dashboard-glass-border);
+  border-radius: 34px 52px 30px 46px / 32px 38px 50px 44px;
+  background: var(--dashboard-glass);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 80%),
+    0 18px 48px var(--dashboard-liquid-shadow);
+  backdrop-filter: blur(24px) saturate(1.12);
+}
+
+.fuma-dashboard__welcome::after {
+  position: absolute;
+  top: -54px;
+  right: 21%;
+  width: 128px;
+  height: 128px;
+  border-radius: 56% 44% 38% 62% / 45% 59% 41% 55%;
+  background: radial-gradient(circle at 34% 28%, rgb(255 255 255 / 70%), rgb(115 205 188 / 16%) 52%, transparent 74%);
+  content: "";
+  pointer-events: none;
 }
 
 .fuma-dashboard__welcome > div:first-child {
@@ -37,9 +112,17 @@
 
 .fuma-dashboard__today-total {
   display: grid;
-  min-width: 150px;
-  justify-items: end;
+  min-width: 142px;
+  min-height: 82px;
+  padding: var(--hsas-space-12) var(--hsas-space-18);
+  place-content: center;
+  justify-items: center;
   gap: var(--hsas-space-4);
+  border: 1px solid var(--dashboard-glass-border);
+  border-radius: 54% 46% 58% 42% / 44% 60% 40% 56%;
+  background: rgb(255 255 255 / 42%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 80%);
+  backdrop-filter: blur(18px);
 }
 
 .fuma-dashboard__today-total small,
@@ -60,23 +143,42 @@
 }
 
 .fuma-dashboard-stat {
+  position: relative;
   display: flex;
   min-width: 0;
   align-items: flex-start;
   gap: var(--hsas-space-10);
   padding: var(--hsas-space-16);
-  border: 1px solid var(--hsas-border);
-  border-radius: var(--hsas-space-6);
-  background: var(--hsas-surface);
+  border: 1px solid var(--dashboard-glass-border);
+  border-radius: 28px 20px 32px 22px / 24px 30px 22px 32px;
+  background: var(--dashboard-glass-strong);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 82%),
+    0 12px 30px rgb(54 65 72 / 8%);
   color: var(--hsas-text);
   text-decoration: none;
+  backdrop-filter: blur(18px) saturate(1.1);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.fuma-dashboard-stat:nth-child(2n) {
+  border-radius: 20px 30px 22px 34px / 30px 22px 34px 24px;
+}
+
+.fuma-dashboard-stat:nth-child(3) {
+  border-radius: 34px 22px 26px 20px / 22px 34px 24px 30px;
 }
 
 .fuma-dashboard-stat:hover,
 .fuma-dashboard-task:hover,
 .fuma-dashboard__shortcuts a:hover {
   border-color: var(--hsas-teal);
-  background: var(--hsas-teal-soft);
+  background: rgb(255 255 255 / 82%);
+}
+
+.fuma-dashboard-stat:hover {
+  box-shadow: 0 18px 38px rgb(54 65 72 / 14%);
+  transform: translateY(-3px);
 }
 
 .fuma-dashboard-stat__icon,
@@ -84,8 +186,14 @@
   display: grid;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: var(--hsas-space-6);
-  background: var(--hsas-teal-soft);
+  border: 1px solid rgb(255 255 255 / 76%);
+  border-radius: 58% 42% 55% 45% / 42% 58% 42% 58%;
+  background:
+    radial-gradient(circle at 32% 24%, rgb(255 255 255 / 78%), transparent 28%),
+    rgb(142 213 198 / 26%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 80%),
+    0 8px 18px rgb(54 65 72 / 10%);
   color: var(--hsas-teal);
 }
 
@@ -119,9 +227,17 @@
 .fuma-dashboard-panel {
   min-width: 0;
   padding: var(--hsas-space-18);
-  border: 1px solid var(--hsas-border);
-  border-radius: var(--hsas-space-6);
-  background: var(--hsas-surface);
+  border: 1px solid var(--dashboard-glass-border);
+  border-radius: 30px 22px 34px 24px / 24px 34px 25px 32px;
+  background: var(--dashboard-glass);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 78%),
+    0 18px 46px rgb(54 65 72 / 10%);
+  backdrop-filter: blur(24px) saturate(1.12);
+}
+
+.fuma-dashboard-panel:nth-child(2) {
+  border-radius: 22px 34px 24px 30px / 32px 24px 34px 22px;
 }
 
 .fuma-dashboard-panel__header {
@@ -150,10 +266,13 @@
   align-items: center;
   gap: var(--hsas-space-12);
   padding: var(--hsas-space-10) var(--hsas-space-12);
-  border: 1px solid var(--hsas-border);
-  border-radius: var(--hsas-space-5);
+  border: 1px solid rgb(255 255 255 / 76%);
+  border-radius: 18px 24px 18px 26px / 22px 18px 26px 20px;
+  background: rgb(255 255 255 / 42%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 68%);
   color: var(--hsas-text);
   text-decoration: none;
+  backdrop-filter: blur(14px);
 }
 
 .fuma-dashboard-task__icon { width: 38px; height: 38px; }
@@ -188,11 +307,13 @@
   justify-content: space-between;
   gap: var(--hsas-space-8);
   padding: 0 var(--hsas-space-10);
-  border: 1px solid var(--hsas-border);
-  border-radius: var(--hsas-space-4);
+  border: 1px solid rgb(255 255 255 / 76%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 44%);
   color: var(--hsas-text);
   font-weight: 600;
   text-decoration: none;
+  backdrop-filter: blur(12px);
 }
 
 .fuma-dashboard__shortcuts b { color: var(--hsas-teal); font-size: var(--hsas-font-16); }
@@ -203,14 +324,33 @@
   gap: var(--hsas-space-8);
   margin-top: var(--hsas-space-14);
   padding: var(--hsas-space-10);
-  border-radius: var(--hsas-space-4);
-  background: var(--hsas-surface-muted);
+  border: 1px solid rgb(255 255 255 / 68%);
+  border-radius: 20px 28px 18px 24px / 24px 18px 28px 20px;
+  background: rgb(255 255 255 / 34%);
   color: var(--hsas-text-muted);
 }
 
 .fuma-dashboard__notice svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--hsas-teal); }
 .fuma-dashboard__notice span { display: grid; gap: var(--hsas-space-2); }
 .fuma-dashboard__notice strong { color: var(--hsas-text); }
+
+@keyframes fuma-dashboard-droplet-float {
+  from { transform: translate3d(0, 0, 0) rotate(-2deg); }
+  to { transform: translate3d(18px, 12px, 0) rotate(3deg); }
+}
+
+:root[data-theme="dark"] .fuma-dashboard {
+  --dashboard-glass: rgb(28 34 31 / 68%);
+  --dashboard-glass-strong: rgb(34 42 38 / 78%);
+  --dashboard-glass-border: rgb(255 255 255 / 16%);
+  --dashboard-liquid-shadow: rgb(0 0 0 / 28%);
+}
+
+:root[data-theme="dark"] .fuma-dashboard-stat:hover,
+:root[data-theme="dark"] .fuma-dashboard-task:hover,
+:root[data-theme="dark"] .fuma-dashboard__shortcuts a:hover {
+  background: rgb(41 55 49 / 84%);
+}
 
 @media (max-width: 1080px) {
   .fuma-dashboard__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
