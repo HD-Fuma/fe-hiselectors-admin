@@ -44,7 +44,9 @@ test("selector and cohort filters reset data and page bounds", async () => {
     if (url.pathname.endsWith("/generations")) return json(API_GENERATIONS);
     const nickname = url.searchParams.get("nickname");
     const matching = nickname
-      ? API_SELECTORS.filter((selector) => selector.snsAccountId.includes(nickname))
+      ? API_SELECTORS.filter((selector) => (
+        selector.snsAccountId.includes(nickname) || selector.nickname.includes(nickname)
+      ))
       : API_SELECTORS;
     const page = Number(url.searchParams.get("page") ?? 0);
     return json({

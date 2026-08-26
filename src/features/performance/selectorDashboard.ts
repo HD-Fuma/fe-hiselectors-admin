@@ -1,0 +1,551 @@
+import { formatRate } from "../../entities/performance";
+import type { Generation, SelectorSalesPerformance } from "../../entities/selectors";
+import { formatNumber } from "../../lib/formatters";
+
+export const SELECTOR_TYPE_MIN_COUNT = 5;
+export const SALES_SWING_FLOOR = 100_000;
+
+const SELECTOR_TYPES = ["뷰티", "패션", "리빙", "푸드", "기타"] as const;
+const COMMISSION_RATES = [0.03, 0.05, 0.07, 0.1] as const;
+const PREVIOUS_SALES_RATIOS = [0.3, 0.45, 1, 2.2, 3] as const;
+
+const SALES_BUCKETS = [
+  { key: "zero", label: "0원", max: 0 },
+  { key: "to10", label: "1~10만원", max: 100_000 },
+  { key: "to50", label: "10~50만원", max: 500_000 },
+  { key: "to100", label: "50~100만원", max: 1_000_000 },
+  { key: "over100", label: "100만원 이상", max: Number.POSITIVE_INFINITY },
+] as const;
+
+export type WatchlistKey =
+  | "noClicks"
+  | "noUploads"
+  | "clicksNoPurchase"
+  | "salesDrop"
+  | "salesRise"
+  | "newTop10";
+
+export interface SelectorDashboardRow {
+  accruedCommission: number;
+  category: string;
+  clickCount: number;
+  confirmedOrderCount: number;
+  contentCount: number;
+  generationName: string | null;
+  nickname: string;
+  previousPeriodSales: number;
+  profileImageUrl: string;
+  selectorCode: string;
+  selectorId: number;
+  source: SelectorSalesPerformance;
+  totalSales: number;
+}
+
+export interface SelectorTypePerformance {
+  averageSales: number;
+  category: string;
+  clickCount: number;
+  confirmedOrderCount: number;
+  conversionRate: string;
+  medianSales: number;
+  reference: boolean;
+  selectorCount: number;
+}
+
+export interface SalesBucket {
+  count: number;
+  key: string;
+  label: string;
+}
+
+export interface WatchlistGroup {
+  count: number;
+  key: WatchlistKey;
+  label: string;
+}
+
+export interface SelectorDashboardTrendPoint {
+  confirmedOrderCount: number;
+  date: string;
+  label: string;
+  totalSales: number;
+}
+
+export type RankMovement =
+  | { kind: "new" }
+  | { kind: "same" }
+  | { kind: "up"; delta: number }
+  | { kind: "down"; delta: number };
+
+export interface SelectorTopRank extends SelectorDashboardRow {
+  movement: RankMovement;
+  rank: number;
+}
+
+export interface SelectorDashboardSummary {
+  averageSales: number;
+  buckets: readonly SalesBucket[];
+  clickCount: number;
+  concentrationShare: number;
+  confirmedOrderCount: number;
+  conversionRate: string;
+  earnedCommission: number;
+  medianSales: number;
+  previousAverageSales: number;
+  previousConfirmedOrderCount: number;
+  previousEarnedCommission: number;
+  previousTotalSales: number;
+  producingCount: number;
+  selectorCount: number;
+  top5: readonly SelectorTopRank[];
+  totalSales: number;
+  types: readonly SelectorTypePerformance[];
+  watchlists: {
+    discovery: readonly WatchlistGroup[];
+    manage: readonly WatchlistGroup[];
+  };
+  zeroSalesCount: number;
+}
+
+export function compactDashboardNumber(value: number) {
+  if (Math.abs(value) >= 100_000_000) {
+    const eok = value / 100_000_000;
+    return `${eok.toFixed(eok >= 10 || value % 100_000_000 === 0 ? 0 : 2)}억`;
+  }
+  if (Math.abs(value) >= 10_000) {
+    const man = value / 10_000;
+    return `${man.toFixed(man >= 100 || value % 10_000 === 0 ? 0 : 1)}만`;
+  }
+  return formatNumber(value);
+}
+
+export function compactDashboardWon(value: number) {
+  if (Math.abs(value) >= 10_000) return `${compactDashboardNumber(value)}원`;
+  return `${formatNumber(value)}원`;
+}
+
+export function changeRate(current: number, previous: number) {
+  if (previous === 0) return current === 0 ? "0%" : "신규";
+  const delta = ((current - previous) / previous) * 100;
+  const sign = delta > 0 ? "+" : "";
+  return `${sign}${delta.toFixed(1)}%`;
+}
+
+export function rankMovement(currentRank: number, previousRank: number | null): RankMovement {
+  if (previousRank == null) return { kind: "new" };
+  if (previousRank === currentRank) return { kind: "same" };
+  if (previousRank > currentRank) return { kind: "up", delta: previousRank - currentRank };
+  return { kind: "down", delta: currentRank - previousRank };
+}
+
+export function formatRankMovement(movement: RankMovement) {
+  if (movement.kind === "new") return "NEW";
+  if (movement.kind === "same") return "-";
+  if (movement.kind === "up") return `▲${movement.delta}`;
+  return `▼${movement.delta}`;
+}
+
+export function previousPerformanceRange(input: {
+  generations: readonly Generation[];
+  periodStart: string;
+  selectedGenerationName: string;
+}) {
+  if (!input.periodStart) return null;
+  const previousEnd = shiftIsoDate(input.periodStart, -1);
+  const targets = input.selectedGenerationName
+    ? input.generations.filter((generation) => (
+      generation.generationName === input.selectedGenerationName
+    ))
+    : input.generations.filter((generation) => generation.status === "ACTIVE");
+  if (targets.length === 0) return null;
+  const startDate = [...targets]
+    .map((generation) => generation.activityStartDate.slice(0, 10))
+    .sort()[0];
+  if (!startDate || previousEnd < startDate) return null;
+  return { endDate: previousEnd, startDate };
+}
+
+export function withPreviousPeriodSales(
+  rows: readonly SelectorDashboardRow[],
+  previousRows: readonly SelectorSalesPerformance[] | null,
+) {
+  if (previousRows == null) return rows;
+  const previousSales = new Map(previousRows.map((row) => [row.selectorId, row.totalSales]));
+  return rows.map((row) => ({
+    ...row,
+    previousPeriodSales: previousSales.get(row.selectorId) ?? 0,
+  }));
+}
+
+export function medianSales(values: readonly number[]) {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return Math.round((sorted[middle - 1] + sorted[middle]) / 2);
+  }
+  return sorted[middle];
+}
+
+export function concentrationShare(sales: readonly number[]) {
+  const total = sales.reduce((sum, value) => sum + value, 0);
+  if (sales.length === 0 || total === 0) return 0;
+  const ranked = [...sales].sort((left, right) => right - left);
+  const take = sales.length < 50
+    ? Math.min(10, sales.length)
+    : Math.ceil(sales.length * 0.1);
+  const focused = ranked.slice(0, take).reduce((sum, value) => sum + value, 0);
+  return focused / total;
+}
+
+export function enrichSelectorSales(row: SelectorSalesPerformance): SelectorDashboardRow {
+  const seed = row.selectorId;
+  const fallbackClicks = row.confirmedOrderCount === 0
+    ? (seed % 4 === 0 ? 0 : 24 + seed * 7)
+    : Math.max(row.confirmedOrderCount * 18, 80 + seed * 11);
+  const clickCount = row.clickCount ?? fallbackClicks;
+  const contentCount = row.contentCount ?? (
+    clickCount === 0 && seed % 2 === 0 ? 0 : 1 + (seed % 6)
+  );
+  const previousRatio = PREVIOUS_SALES_RATIOS[seed % PREVIOUS_SALES_RATIOS.length];
+  const previousPeriodSales = row.previousPeriodSales
+    ?? Math.round(row.totalSales * previousRatio);
+  const commissionRate = COMMISSION_RATES[seed % COMMISSION_RATES.length];
+
+  return {
+    accruedCommission: row.accruedCommissionAmount
+      ?? Math.round(row.totalSales * commissionRate),
+    category: row.category?.trim() || SELECTOR_TYPES[seed % SELECTOR_TYPES.length],
+    clickCount,
+    confirmedOrderCount: row.confirmedOrderCount,
+    contentCount,
+    generationName: row.generationName,
+    nickname: row.nickname,
+    previousPeriodSales,
+    profileImageUrl: row.profileImageUrl?.trim() || "",
+    selectorCode: row.selectorCode,
+    selectorId: row.selectorId,
+    source: row,
+    totalSales: row.totalSales,
+  };
+}
+
+export function activeGenerationNames(generations: readonly Generation[]) {
+  return generations
+    .filter((generation) => generation.status === "ACTIVE")
+    .map((generation) => generation.generationName);
+}
+
+export function filterSelectorUniverse(
+  rows: readonly SelectorSalesPerformance[],
+  generations: readonly Generation[],
+  selectedGenerationName: string,
+) {
+  if (selectedGenerationName) {
+    return rows.filter((row) => membershipGenerationName(row) === selectedGenerationName);
+  }
+
+  const activeNames = new Set(activeGenerationNames(generations));
+  if (generations.length === 0) return [...rows];
+  if (activeNames.size === 0) return [];
+  return rows.filter((row) => {
+    const generationName = membershipGenerationName(row);
+    return generationName != null && activeNames.has(generationName);
+  });
+}
+
+export function membershipGenerationName(row: SelectorSalesPerformance) {
+  return row.generationName;
+}
+
+export function matchesWatchlist(row: SelectorDashboardRow, key: WatchlistKey) {
+  if (key === "noClicks") return row.clickCount === 0;
+  if (key === "noUploads") return row.contentCount === 0;
+  if (key === "clicksNoPurchase") {
+    return row.clickCount > 0 && row.confirmedOrderCount === 0;
+  }
+  if (key === "salesDrop") {
+    return row.previousPeriodSales >= SALES_SWING_FLOOR
+      && row.totalSales < row.previousPeriodSales * 0.5;
+  }
+  if (key === "salesRise") {
+    return row.previousPeriodSales >= SALES_SWING_FLOOR
+      && row.totalSales >= row.previousPeriodSales * 2;
+  }
+  return false;
+}
+
+export function summarizeSelectorDashboard(
+  rows: readonly SelectorDashboardRow[],
+  previousRankingAvailable = false,
+): SelectorDashboardSummary {
+  const selectorCount = rows.length;
+  const totalSales = sumBy(rows, (row) => row.totalSales);
+  const confirmedOrderCount = sumBy(rows, (row) => row.confirmedOrderCount);
+  const clickCount = sumBy(rows, (row) => row.clickCount);
+  const earnedCommission = sumBy(rows, (row) => row.accruedCommission);
+  const previousTotalSales = sumBy(rows, (row) => row.previousPeriodSales);
+  const previousConfirmedOrderCount = sumBy(rows, (row) => (
+    Math.round(row.confirmedOrderCount * previousRatio(row))
+  ));
+  const previousEarnedCommission = sumBy(rows, (row) => (
+    Math.round(row.accruedCommission * previousRatio(row))
+  ));
+  const sales = rows.map((row) => row.totalSales);
+  const ranked = [...rows].sort(compareSalesRank);
+  const currentRank = rankMap(ranked);
+  const previousRank = rankMap([...rows].sort((left, right) => (
+    right.previousPeriodSales - left.previousPeriodSales
+    || left.selectorCode.localeCompare(right.selectorCode)
+  )));
+  const previousRankedSales = rankMap([...rows]
+    .filter((row) => row.previousPeriodSales > 0)
+    .sort((left, right) => (
+      right.previousPeriodSales - left.previousPeriodSales
+      || left.selectorCode.localeCompare(right.selectorCode)
+    )));
+  const newTop10 = ranked.filter((row) => (
+    (currentRank.get(row.selectorId) ?? 99) <= 10
+    && (previousRank.get(row.selectorId) ?? 0) > 10
+  ));
+
+  return {
+    averageSales: selectorCount === 0 ? 0 : Math.round(totalSales / selectorCount),
+    buckets: SALES_BUCKETS.map((bucket, index) => ({
+      count: rows.filter((row) => inBucket(row.totalSales, index)).length,
+      key: bucket.key,
+      label: bucket.label,
+    })),
+    clickCount,
+    concentrationShare: concentrationShare(sales),
+    confirmedOrderCount,
+    conversionRate: formatRate(confirmedOrderCount, clickCount),
+    earnedCommission,
+    medianSales: medianSales(sales),
+    previousAverageSales: selectorCount === 0
+      ? 0
+      : Math.round(previousTotalSales / selectorCount),
+    previousConfirmedOrderCount,
+    previousEarnedCommission,
+    previousTotalSales,
+    producingCount: rows.filter((row) => row.totalSales > 0).length,
+    selectorCount,
+    top5: ranked.slice(0, 5).map((row, index) => {
+      const rank = index + 1;
+      const previousRankValue = previousRankingAvailable
+        ? previousRankedSales.get(row.selectorId) ?? null
+        : rank;
+      return {
+        ...row,
+        movement: rankMovement(rank, previousRankValue),
+        rank,
+      };
+    }),
+    totalSales,
+    types: typePerformances(rows),
+    watchlists: {
+      discovery: [
+        watchlist("salesRise", "전월 대비 매출 100% 이상 증가", rows.filter((row) => (
+          matchesWatchlist(row, "salesRise")
+        )).length),
+        watchlist("newTop10", "신규 TOP 10 진입", newTop10.length),
+      ],
+      manage: [
+        watchlist("noClicks", "기간 내 클릭 없음", rows.filter((row) => (
+          matchesWatchlist(row, "noClicks")
+        )).length),
+        watchlist("noUploads", "기간 내 업로드 없음", rows.filter((row) => (
+          matchesWatchlist(row, "noUploads")
+        )).length),
+        watchlist("clicksNoPurchase", "클릭 있으나 구매 없음", rows.filter((row) => (
+          matchesWatchlist(row, "clicksNoPurchase")
+        )).length),
+        watchlist("salesDrop", "전월 대비 매출 50% 이상 감소", rows.filter((row) => (
+          matchesWatchlist(row, "salesDrop")
+        )).length),
+      ],
+    },
+    zeroSalesCount: rows.filter((row) => row.totalSales === 0).length,
+  };
+}
+
+export function matchesNewTop10(
+  rows: readonly SelectorDashboardRow[],
+  row: SelectorDashboardRow,
+) {
+  const currentRank = rankMap([...rows].sort(compareSalesRank));
+  const previousRank = rankMap([...rows].sort((left, right) => (
+    right.previousPeriodSales - left.previousPeriodSales
+    || left.selectorCode.localeCompare(right.selectorCode)
+  )));
+  return (currentRank.get(row.selectorId) ?? 99) <= 10
+    && (previousRank.get(row.selectorId) ?? 0) > 10;
+}
+
+export function filterWatchlistRows(
+  rows: readonly SelectorDashboardRow[],
+  key: WatchlistKey | null,
+) {
+  if (key == null) return rows;
+  if (key === "newTop10") return rows.filter((row) => matchesNewTop10(rows, row));
+  return rows.filter((row) => matchesWatchlist(row, key));
+}
+
+export function buildSelectorTrend(
+  rows: readonly SelectorDashboardRow[],
+  periodStart: string,
+  periodEnd: string,
+  now = new Date(),
+): { bucket: "day" | "month"; points: readonly SelectorDashboardTrendPoint[] } {
+  const end = periodEnd || formatIsoDate(now);
+  const start = periodStart || formatIsoDate(addMonths(now, -5));
+  const dayCount = inclusiveDayCount(start, end);
+  const bucket: "day" | "month" = dayCount <= 31 ? "day" : "month";
+  const dates = bucket === "day" ? eachDay(start, end) : eachMonth(start, end);
+  const sales = distribute(sumBy(rows, (row) => row.totalSales), dates.length);
+  const orders = distribute(sumBy(rows, (row) => row.confirmedOrderCount), dates.length);
+
+  return {
+    bucket,
+    points: dates.map((date, index) => ({
+      confirmedOrderCount: orders[index] ?? 0,
+      date,
+      label: trendLabel(date, bucket),
+      totalSales: sales[index] ?? 0,
+    })),
+  };
+}
+
+function previousRatio(row: SelectorDashboardRow) {
+  if (row.totalSales === 0) return 1;
+  return row.previousPeriodSales / row.totalSales;
+}
+
+function compareSalesRank(left: SelectorDashboardRow, right: SelectorDashboardRow) {
+  return right.totalSales - left.totalSales
+    || right.confirmedOrderCount - left.confirmedOrderCount
+    || left.selectorCode.localeCompare(right.selectorCode);
+}
+
+function rankMap(ranked: readonly SelectorDashboardRow[]) {
+  const ranks = new Map<number, number>();
+  ranked.forEach((row, index) => {
+    ranks.set(row.selectorId, index + 1);
+  });
+  return ranks;
+}
+
+function typePerformances(rows: readonly SelectorDashboardRow[]) {
+  const grouped = new Map<string, SelectorDashboardRow[]>();
+  rows.forEach((row) => {
+    const current = grouped.get(row.category) ?? [];
+    current.push(row);
+    grouped.set(row.category, current);
+  });
+
+  return [...grouped.entries()]
+    .map(([category, members]) => {
+      const sales = members.map((row) => row.totalSales);
+      const clickCount = sumBy(members, (row) => row.clickCount);
+      const confirmedOrderCount = sumBy(members, (row) => row.confirmedOrderCount);
+      return {
+        averageSales: Math.round(sumBy(members, (row) => row.totalSales) / members.length),
+        category,
+        clickCount,
+        confirmedOrderCount,
+        conversionRate: formatRate(confirmedOrderCount, clickCount),
+        medianSales: medianSales(sales),
+        reference: members.length < SELECTOR_TYPE_MIN_COUNT,
+        selectorCount: members.length,
+      };
+    })
+    .sort((left, right) => (
+      Number(left.reference) - Number(right.reference)
+      || right.averageSales - left.averageSales
+      || left.category.localeCompare(right.category)
+    ));
+}
+
+function inBucket(sales: number, index: number) {
+  const min = index === 0 ? Number.NEGATIVE_INFINITY : SALES_BUCKETS[index - 1].max;
+  const max = SALES_BUCKETS[index].max;
+  if (index === 0) return sales <= 0;
+  return sales > min && sales <= max;
+}
+
+function watchlist(key: WatchlistKey, label: string, count: number): WatchlistGroup {
+  return { count, key, label };
+}
+
+function sumBy<T>(items: readonly T[], value: (item: T) => number) {
+  return items.reduce((sum, item) => sum + value(item), 0);
+}
+
+function distribute(total: number, count: number) {
+  if (count <= 0) return [];
+  if (total === 0) return Array.from({ length: count }, () => 0);
+  const weights = Array.from({ length: count }, (_, index) => index + 1);
+  const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
+  const values = weights.map((weight) => Math.floor((total * weight) / weightSum));
+  values[values.length - 1] += total - values.reduce((sum, value) => sum + value, 0);
+  return values;
+}
+
+function inclusiveDayCount(start: string, end: string) {
+  const startDate = parseIsoDate(start);
+  const endDate = parseIsoDate(end);
+  return Math.round((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1;
+}
+
+function eachDay(start: string, end: string) {
+  const dates: string[] = [];
+  const cursor = parseIsoDate(start);
+  const last = parseIsoDate(end);
+  while (cursor.getTime() <= last.getTime()) {
+    dates.push(formatIsoDate(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return dates;
+}
+
+function eachMonth(start: string, end: string) {
+  const dates: string[] = [];
+  const cursor = parseIsoDate(start);
+  cursor.setDate(1);
+  const last = parseIsoDate(end);
+  last.setDate(1);
+  while (cursor.getTime() <= last.getTime()) {
+    dates.push(formatIsoDate(cursor));
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return dates;
+}
+
+function trendLabel(date: string, bucket: "day" | "month") {
+  const [, month, day] = date.split("-");
+  if (bucket === "month") return `${Number(month)}월`;
+  return `${Number(month)}.${Number(day)}`;
+}
+
+function addMonths(date: Date, delta: number) {
+  return new Date(date.getFullYear(), date.getMonth() + delta, 1);
+}
+
+function shiftIsoDate(value: string, days: number) {
+  const date = parseIsoDate(value);
+  date.setDate(date.getDate() + days);
+  return formatIsoDate(date);
+}
+
+function parseIsoDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, (month ?? 1) - 1, day ?? 1);
+}
+
+function formatIsoDate(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}

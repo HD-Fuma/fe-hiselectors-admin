@@ -101,13 +101,19 @@ export interface SelectorSearchRequest {
 }
 
 export interface SelectorSalesPerformance {
+  accruedCommissionAmount?: number | null;
+  category?: string | null;
+  clickCount?: number | null;
   confirmedOrderCount: number;
+  contentCount?: number | null;
   excellentActivityType: string | null;
   excellentGenerationName: string | null;
   excellentGenerationSales: number | null;
   generationName: string | null;
   isExcellent: boolean;
   nickname: string;
+  previousPeriodSales?: number | null;
+  profileImageUrl?: string | null;
   roleId: string;
   selectorCode: string;
   selectorId: number;

@@ -193,6 +193,7 @@ describe("selector api pages", () => {
     expect(within(list).queryByText("UC1111111111111111111111")).not.toBeInTheDocument();
     expect(within(list).queryByText("정하린")).not.toBeInTheDocument();
 
+    expect(within(search).getByRole("textbox", { name: "셀렉터스명" })).toBeInTheDocument();
     fireEvent.change(within(search).getByRole("textbox", { name: "SNS 계정" }), {
       target: { value: "hong.selector" },
     });
@@ -210,6 +211,15 @@ describe("selector api pages", () => {
       expect.anything(),
     ));
     expect(screen.getByText("총 2건")).toBeInTheDocument();
+
+    fireEvent.change(within(search).getByRole("textbox", { name: "셀렉터스명" }), {
+      target: { value: "홍길동" },
+    });
+    fireEvent.click(within(search).getByRole("button", { name: "조회" }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/nickname=%ED%99%8D%EA%B8%B8%EB%8F%99/),
+      expect.anything(),
+    ));
 
     fireEvent.click(screen.getByRole("button", { name: "블랙리스트" }));
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(

@@ -558,9 +558,11 @@ export function SelectorOverviewPage() {
     detail: SelectorDetail | null;
     error: string;
   } | null>(null);
+  const [name, setName] = useState("");
   const [keyword, setKeyword] = useState("");
   const [generationId, setGenerationId] = useState("");
   const [sns, setSns] = useState("");
+  const [appliedName, setAppliedName] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
   const [appliedGenerationId, setAppliedGenerationId] = useState("");
   const [appliedSns, setAppliedSns] = useState("");
@@ -592,7 +594,7 @@ export function SelectorOverviewPage() {
     getSelectors({
       roleId: selectedStatus || undefined,
       generationId: appliedGenerationId ? Number(appliedGenerationId) : undefined,
-      nickname: appliedKeyword || undefined,
+      nickname: appliedName || appliedKeyword || undefined,
       snsCode: (appliedSns || undefined) as SelectorSnsCode | undefined,
       page: page - 1,
       size: activeView === "pool" ? POOL_PAGE_SIZE : SELECTOR_PAGE_SIZE,
@@ -605,7 +607,7 @@ export function SelectorOverviewPage() {
       }
     });
     return () => controller.abort();
-  }, [activeView, appliedGenerationId, appliedKeyword, appliedSns, page, selectedStatus]);
+  }, [activeView, appliedGenerationId, appliedKeyword, appliedName, appliedSns, page, selectedStatus]);
 
   const openPoolDetail = (id: number) => {
     setPoolDetail({ id, detail: null, error: "" });
@@ -618,6 +620,7 @@ export function SelectorOverviewPage() {
   };
 
   const applyFilters = () => {
+    setAppliedName(name.trim());
     setAppliedKeyword(keyword.trim());
     setAppliedGenerationId(generationId);
     setAppliedSns(sns);
@@ -625,9 +628,11 @@ export function SelectorOverviewPage() {
   };
 
   const resetFilters = () => {
+    setName("");
     setKeyword("");
     setGenerationId("");
     setSns("");
+    setAppliedName("");
     setAppliedKeyword("");
     setAppliedGenerationId("");
     setAppliedSns("");
@@ -646,6 +651,9 @@ export function SelectorOverviewPage() {
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-selector-search">
           <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
+            <FilterField htmlFor="selector-name" label="셀렉터스명">
+              <TextInput id="selector-name" name="selectorName" onChange={(event) => setName(event.target.value)} placeholder="셀렉터스명 검색" value={name} />
+            </FilterField>
             <FilterField htmlFor="selector-account" label="SNS 계정">
               <TextInput id="selector-account" name="selectorAccount" onChange={(event) => setKeyword(event.target.value)} placeholder="SNS 계정 검색" value={keyword} />
             </FilterField>
