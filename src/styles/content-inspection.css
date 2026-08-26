@@ -1020,6 +1020,7 @@ body:has(.fuma-content-inspection-studio) {
   position: absolute;
   bottom: calc(100% + var(--hsas-space-10));
   left: 0;
+  max-width: none;
   flex: none;
 }
 

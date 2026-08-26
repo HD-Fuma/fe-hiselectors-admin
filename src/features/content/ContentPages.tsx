@@ -2046,7 +2046,6 @@ export function ContentInspectionDetailPage() {
   const submitStudioDecision = useCallback(async (selected: "approve" | "reject") => {
     if (
       !content
-      || !baseContent
       || !content.contentVersionId
       || !studioFinalFocused
       || studioReviewReadOnly
@@ -2065,14 +2064,12 @@ export function ContentInspectionDetailPage() {
     }
 
     const contentVersionId = content.contentVersionId;
-    const preferredNextId = nextContent?.id;
     const controller = new AbortController();
     studioActionRequestRef.current = controller;
     setStudioDecision(selected);
     setStudioActionPending("confirmation");
     setStudioActionError(null);
     setStudioActionFeedback(null);
-    let confirmed = false;
     try {
       const result = await confirmContentInspection(
         Number(content.id),
@@ -2088,40 +2085,14 @@ export function ContentInspectionDetailPage() {
         },
         controller.signal,
       );
-      confirmed = true;
-      const [detail, listedContents] = await Promise.all([
-        getContentVersionDetail(Number(content.id), contentVersionId, controller.signal),
-        getCurrentGenerationContents(controller.signal),
-      ]);
-      const refreshedContents = listedContents.map(adaptContentInspection);
-      const adapted = adaptContentInspectionDetail(
-        detail,
-        refreshedContents.find((item) => item.id === content.id) ?? baseContent,
-      );
-      const confirmedContents = refreshedContents.some((item) => item.id === adapted.id)
-        ? refreshedContents.map((item) => item.id === adapted.id ? adapted : item)
-        : [adapted, ...refreshedContents];
-      setDetailContents(confirmedContents);
       setStudioActionFeedback(
         `${selected === "approve" ? "승인" : "반려"} 처리했습니다. 위반 항목 ${result.updatedCount}건을 갱신했습니다.`,
       );
-
-      const remainingContents = inspectionRequiredContents(confirmedContents)
-        .filter((item) => item.id !== content.id);
-      const target = remainingContents.find((item) => item.id === preferredNextId)
-        ?? remainingContents[0];
-      if (target) {
-        navigateStudioContent(target, "next", confirmedContents);
-        return;
-      }
+      if (nextContent) navigateStudioContent(nextContent, "next");
+      else setStudioExiting(true);
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "AbortError") return;
-      if (confirmed) {
-        setStudioActionFeedback("검수는 완료됐지만 화면 갱신에 실패해 목록으로 돌아갑니다.");
-        setStudioActionPending(null);
-        setStudioExiting(true);
-        return;
-      }
+      setStudioDecision(null);
       setStudioActionError(error instanceof Error
         ? error.message
         : "콘텐츠 검수 확정에 실패했습니다.");
@@ -2132,11 +2103,10 @@ export function ContentInspectionDetailPage() {
       }
     }
   }, [
-    baseContent,
     content,
     hasStudioViolationJudgment,
     navigateStudioContent,
-    nextContent?.id,
+    nextContent,
     studioActionPending,
     studioFinalFocused,
     studioReviewReadOnly,
