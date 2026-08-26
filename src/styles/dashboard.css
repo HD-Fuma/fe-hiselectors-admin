@@ -190,7 +190,7 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   font-size: var(--hsas-font-13);
 }
 
-.fuma-dashboard-inspection__start {
+.fuma-dashboard__primary-action {
   display: flex;
   min-height: 42px;
   padding: 0 var(--hsas-space-16);
@@ -204,11 +204,11 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   text-decoration: none;
 }
 
-.fuma-dashboard-inspection__start:hover {
+.fuma-dashboard__primary-action:hover {
   background: #252525;
 }
 
-.fuma-dashboard-inspection__start:focus-visible {
+.fuma-dashboard__primary-action:focus-visible {
   outline: 2px solid #111111;
   outline-offset: 3px;
 }

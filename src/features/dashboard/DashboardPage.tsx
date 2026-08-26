@@ -376,7 +376,7 @@ export function DashboardPage() {
             <span>검수할 콘텐츠 수</span>
             <strong>{count(data.pendingContents)}<small>건</small></strong>
           </div>
-          <Link className="fuma-dashboard-inspection__start" to="/content/inspections">
+          <Link className="fuma-dashboard__primary-action" to="/content/inspections">
             검수 시작하기
             <span aria-hidden="true">→</span>
           </Link>
@@ -389,6 +389,10 @@ export function DashboardPage() {
           title="지원자 승인"
         >
           <DashboardMetric label="승인 대기 지원자" unit="명" value={count(data.pendingApplications)} />
+          <Link className="fuma-dashboard__primary-action" to="/applicants">
+            지원자 검토하기
+            <span aria-hidden="true">→</span>
+          </Link>
         </DashboardCard>
 
         <DashboardCard
