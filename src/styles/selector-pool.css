@@ -1,3 +1,7 @@
+body:has(.hsas-selector-pool) {
+  overflow-y: hidden;
+}
+
 .hsas-selector-pool {
   position: relative;
   overflow: hidden;
@@ -8,7 +12,7 @@
   display: block;
   width: 100%;
   height: calc(100dvh - var(--hsas-pool-top, 260px) - 52px);
-  min-height: 300px;
+  min-height: 0;
   touch-action: none;
   cursor: grab;
   background: var(--hsas-background);
