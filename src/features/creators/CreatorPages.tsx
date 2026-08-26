@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { Eye, Pencil } from "lucide-react";
+import { Eye, Pencil, RefreshCw } from "lucide-react";
 import { getAdministratorSession } from "../../lib/adminAuthentication";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
-import { AlertDialog } from "../../components/ui/AlertDialog";
 import { Button, Select, Switch, TextInput } from "../../components/ui/Controls";
+import { BubbleDialog } from "../../components/ui/BubbleDialog";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -14,12 +14,12 @@ import { FormRow } from "../../components/ui/FormRow";
 import { Modal } from "../../components/ui/Modal";
 import { Pagination } from "../../components/ui/Pagination";
 import { CreatorProfilePhoto } from "../../components/ui/CreatorProfilePhoto";
-import { ProfileDetailShell, type ProfileDetailProfile } from "../../components/ui/ProfileDetailShell";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { SocialAccountCell } from "../../components/ui/SocialAccountCell";
+import { Tooltip } from "../../components/ui/Tooltip";
 import { formatCompactCount, formatNumber } from "../../lib/formatters";
 import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
@@ -168,13 +168,14 @@ function CreatorAccountCell({
   onOpen: (creator: CreatorSummary) => void;
 }) {
   const accountName = creatorDisplayName(creator);
+  const accountMeta = creator.snsCode === "YOUTUBE" ? creator.accountId : creatorHandle(creator);
   const href = creatorProfileUrl(creator);
   const platform = platformFor(creator.snsCode);
 
   return (
     <SocialAccountCell
       displayName={accountName}
-      handle={creatorHandle(creator)}
+      handle={accountMeta}
       onOpen={() => onOpen(creator)}
       platform={platform}
       profileImageUrl={creator.profileImageUrl ?? ""}
@@ -300,16 +301,14 @@ function renderProposalPreview(text: string, creator: CreatorSummary) {
   return nodes;
 }
 
-function BatchProposalPanel({
+function ProposalComposer({
   creators,
-  onClose,
   onComplete,
   onFailed,
 }: {
   creators: CreatorSummary[];
-  onClose: () => void;
   onComplete: (count: number) => void;
-  onFailed: (creators: CreatorSummary[]) => void;
+  onFailed?: (creators: CreatorSummary[]) => void;
 }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -346,7 +345,7 @@ function BatchProposalPanel({
 
     setSending(false);
     if (failed.length > 0) {
-      onFailed(failed);
+      onFailed?.(failed);
       setError(`${accepted > 0 ? `${accepted}명 요청됨, ` : ""}${failed.length}명 요청에 실패했습니다. ${firstFailure}`);
       return;
     }
@@ -354,22 +353,7 @@ function BatchProposalPanel({
   };
 
   return (
-    <SidePanel
-      actions={(
-        <Button
-          disabled={sending || proposalInvalid}
-          form="batch-proposal-form"
-          type="submit"
-          variant="primary"
-        >
-          {sending ? "요청 중..." : `${creators.length}명에게 제안 발송`}
-        </Button>
-      )}
-      defaultWidth={1160}
-      onClose={() => { if (!sending) onClose(); }}
-      title="제안 발송"
-    >
-      <div className="fuma-detail-panel__content fuma-proposal-compose">
+    <div className="fuma-detail-panel__content fuma-proposal-compose">
         <div className="fuma-proposal-compose__intro">
           <div>
             <p>CREATOR OUTREACH</p>
@@ -406,7 +390,6 @@ function BatchProposalPanel({
             aria-busy={sending}
             aria-label="제안 작성"
             className="fuma-proposal-compose__form"
-            id="batch-proposal-form"
             onSubmit={(event) => {
               event.preventDefault();
               void sendProposals();
@@ -477,9 +460,38 @@ function BatchProposalPanel({
                 </div>
               </div>
             ) : null}
+            <footer className="fuma-proposal-compose__footer">
+              <div className="fuma-applicant-detail-actions__buttons fuma-proposal-compose__submit-actions">
+                <Button
+                  className="fuma-proposal-compose__submit fuma-creator-proposal-action"
+                  disabled={sending || proposalInvalid}
+                  type="submit"
+                  variant="primary"
+                >
+                  {creators.length}명에게 제안 발송
+                </Button>
+              </div>
+            </footer>
           </form>
         </div>
       </div>
+  );
+}
+
+function BatchProposalPanel({
+  creators,
+  onClose,
+  onComplete,
+  onFailed,
+}: {
+  creators: CreatorSummary[];
+  onClose: () => void;
+  onComplete: (count: number) => void;
+  onFailed: (creators: CreatorSummary[]) => void;
+}) {
+  return (
+    <SidePanel defaultWidth={1160} onClose={onClose} title="제안 발송">
+      <ProposalComposer creators={creators} onComplete={onComplete} onFailed={onFailed} />
     </SidePanel>
   );
 }
@@ -557,13 +569,15 @@ function CreatorProfilePanel({
   categoryOptions,
   creator,
   onClose,
-  onProposal,
+  onProposalComplete,
 }: {
   categoryOptions: readonly { label: string; value: string }[];
   creator: CreatorSummary;
   onClose: () => void;
-  onProposal: (creator: CreatorSummary) => void;
+  onProposalComplete: () => void;
 }) {
+  const [proposalOpen, setProposalOpen] = useState(false);
+  const [proposalRequested, setProposalRequested] = useState(false);
   const [result, setResult] = useState<{
     creatorId: number;
     detail: CreatorDetail | null;
@@ -597,117 +611,142 @@ function CreatorProfilePanel({
   const categoryName = visibleCategoryLabel(detail?.category ?? creator.category, categoryOptions);
   const shares = detail?.categoryShares ?? [];
   const shareTotal = shares.reduce((total, share) => total + Number(share.totalShare), 0);
-  const profile: ProfileDetailProfile | undefined = detail ? {
-    audienceLabel: detail.snsCode === "INSTAGRAM" ? "팔로워" : "구독자",
-    audienceValue: detail.followerCount === null ? "-" : formatCompactCount(detail.followerCount),
-    contentCount: recentActivityLabel(creator.recent90DayContentCount),
-    contentLabel: "90일 활동",
-    engagementValue: detail.engagementRate === null ? "-" : `${detail.engagementRate.toFixed(2)}%`,
-    gallery: [],
-    handle: creatorHandle(detail),
-    infoFields: [],
-    name: displayName,
-    platform: platformFor(detail.snsCode),
-    profileImageUrl: detail.profileImageUrl ?? creator.profileImageUrl ?? "",
-    profileUrl,
-    status: null,
-  } : undefined;
+  const platform = detail ? platformFor(detail.snsCode) : platformFor(creator.snsCode);
+  const audienceLabel = platform === "Instagram" ? "팔로워" : "구독자";
+
+  if (proposalOpen && detail) {
+    return (
+      <>
+        <SidePanel
+          actions={<Button onClick={() => setProposalOpen(false)}>프로필로 돌아가기</Button>}
+          defaultWidth={1160}
+          onClose={onClose}
+          title="제안 발송"
+        >
+          <ProposalComposer creators={[creator]} onComplete={() => setProposalRequested(true)} />
+        </SidePanel>
+        <BubbleDialog
+          actions={<button autoFocus onClick={onProposalComplete} type="button">확인</button>}
+          description="제안 발송 요청을 완료했습니다."
+          open={proposalRequested}
+          title="발송 요청 완료"
+        />
+      </>
+    );
+  }
 
   return (
-    <ProfileDetailShell
-      actionSection={null}
-      emptyDescription={loading
-        ? "크리에이터 프로필을 불러오는 중입니다."
-        : currentResult?.error || "요청한 크리에이터 정보를 확인할 수 없습니다."}
-      emptyRole={loading ? "status" : "alert"}
-      emptyTitle={loading ? "프로필을 불러오는 중입니다" : "크리에이터를 찾을 수 없습니다"}
-      onClose={onClose}
-      profile={profile}
-      title="크리에이터 프로필"
-    >
-      {detail ? (
-        <div className="fuma-creator-pool-profile">
-          <section className="fuma-creator-analysis-overview">
-            <span>프로필 요약</span>
-            <p>공개 프로필에서 수집한 핵심 정보를 제안 검토에 필요한 항목만 정리했습니다.</p>
-            <dl>
-              <div><dt>주요 카테고리</dt><dd>{categoryName}</dd></div>
-              <div><dt>최근 활동</dt><dd>{shortDate(detail.lastContentAt)}</dd></div>
-              <div><dt>풀 등록일</dt><dd>{shortDate(detail.registeredAt)}</dd></div>
-            </dl>
-          </section>
-
-          <section className="fuma-content-section fuma-creator-pool-profile__section">
-            <header className="fuma-content-section__header">
-              <div>
-                <h2>발굴 정보</h2>
-                <span>발굴 과정에서 수집한 계정 판정 정보입니다.</span>
+    <SidePanel onClose={onClose} title="크리에이터 상세">
+      <div className="fuma-detail-panel__content fuma-selector-detail-panel fuma-creator-pool-detail-panel">
+        {detail ? (
+          <>
+            <section
+              aria-label="크리에이터 프로필"
+              className="fuma-creator-detail-hero fuma-selector-detail-hero fuma-unified-detail-hero"
+            >
+              <div className="fuma-creator-detail-hero__portrait">
+                <CreatorProfilePhoto
+                  creatorName={displayName}
+                  src={detail.profileImageUrl ?? creator.profileImageUrl ?? ""}
+                />
+                <span className="fuma-creator-detail-hero__platform">
+                  <PlatformIcon platform={platform} />
+                </span>
               </div>
-            </header>
-            <div className="fuma-creator-pool-profile__body">
-              <dl className="fuma-creator-analysis-details">
+              <div className="fuma-creator-detail-hero__content">
+                <div className="fuma-creator-detail-hero__identity">
+                  <div className="fuma-creator-detail-hero__generation">크리에이터 풀</div>
+                  <div className="fuma-creator-detail-hero__title-row"><h2>{displayName}</h2></div>
+                  <div className="fuma-creator-detail-hero__channel">
+                    {profileUrl ? (
+                      <a href={profileUrl} rel="noreferrer" target="_blank">
+                        <strong>{creatorHandle(detail)}</strong> ↗
+                      </a>
+                    ) : <strong>{creatorHandle(detail)}</strong>}
+                  </div>
+                  <div className="fuma-creator-detail-hero__categories">
+                    <strong>{categoryName}</strong>
+                    <span aria-hidden="true">/</span>
+                    <span>{detail.accountId}</span>
+                  </div>
+                </div>
+                <p className="fuma-unified-detail-hero__summary">
+                  풀 등록 {shortDate(detail.registeredAt)} · 최근 업데이트 {shortDate(detail.updatedAt)}
+                </p>
+                <dl className="fuma-creator-detail-hero__metrics">
+                  <div><dt>{audienceLabel}</dt><dd>{detail.followerCount === null ? "-" : formatCompactCount(detail.followerCount)}</dd></div>
+                  <div><dt>90일 활동</dt><dd>{recentActivityLabel(creator.recent90DayContentCount)}</dd></div>
+                  <div><dt>참여율</dt><dd>{detail.engagementRate === null ? "-" : `${detail.engagementRate.toFixed(2)}%`}</dd></div>
+                  <div><dt>최근 콘텐츠</dt><dd>{shortDate(detail.lastContentAt)}</dd></div>
+                </dl>
+              </div>
+            </section>
+
+            <section aria-labelledby="creator-discovery-title" className="fuma-campaign-detail-list-section">
+              <ResultToolbar
+                className="fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar"
+                title="발굴 정보"
+                titleId="creator-discovery-title"
+              />
+              <dl className="fuma-key-value-grid">
+                <div className="fuma-key-value-grid__item"><dt>계정 유형</dt><dd>{detail.brandScore === null ? "판정 정보 없음" : detail.brandScore >= 2 ? "브랜드 계정 확인 필요" : "개인 크리에이터 후보"}</dd></div>
+                <div className="fuma-key-value-grid__item"><dt>최초 발굴</dt><dd>{shortDate(detail.firstDiscoveredAt)}</dd></div>
+                <div className="fuma-key-value-grid__item"><dt>확인 근거</dt><dd>{detail.brandHits || "-"}</dd></div>
+                <div className="fuma-key-value-grid__item"><dt>최근 업데이트</dt><dd>{shortDate(detail.updatedAt)}</dd></div>
                 {detail.snsCode === "YOUTUBE" ? (
-                  <div>
+                  <div className="fuma-key-value-grid__item">
                     <dt>추정 Instagram</dt>
                     <dd className="fuma-creator-pool-profile__links">
-                      {connectedInstagramUrl ? (
-                        <a href={connectedInstagramUrl} rel="noreferrer" target="_blank">
-                          @{detail.igHandle?.replace(/^@/, "")} ↗
-                        </a>
-                      ) : null}
+                      {connectedInstagramUrl ? <a href={connectedInstagramUrl} rel="noreferrer" target="_blank">@{detail.igHandle?.replace(/^@/, "")} ↗</a> : null}
                       <small>{instagramConnectionLabel(detail.igConfidence)}</small>
                     </dd>
                   </div>
                 ) : null}
-                <div>
-                  <dt>계정 유형</dt>
-                  <dd>{detail.brandScore === null
-                    ? "판정 정보가 없습니다."
-                    : detail.brandScore >= 2
-                      ? "브랜드 계정일 가능성이 있어 확인이 필요합니다."
-                      : "개인 크리에이터 후보로 분류되었습니다."}</dd>
-                </div>
-                {detail.brandHits ? <div><dt>확인 근거</dt><dd>{detail.brandHits}</dd></div> : null}
-                <div><dt>최초 발굴</dt><dd>{shortDate(detail.firstDiscoveredAt)}</dd></div>
-                <div><dt>최근 업데이트</dt><dd>{shortDate(detail.updatedAt)}</dd></div>
               </dl>
-            </div>
-          </section>
-
-          {shares.length > 0 && shareTotal > 0 ? (
-            <section className="fuma-content-section fuma-creator-pool-profile__section">
-              <header className="fuma-content-section__header">
-                <div>
-                  <h2>카테고리 발굴 비중</h2>
-                  <span>어떤 분야의 검색에서 주로 발견됐는지 보여줍니다.</span>
-                </div>
-              </header>
-              <ul className="fuma-creator-pool-profile__shares">
-                {shares.map((share) => {
-                  const percentage = Math.round((Number(share.totalShare) / shareTotal) * 100);
-                  return (
-                    <li key={share.categoryCode}>
-                      <div>
-                        <strong>{visibleCategoryLabel(share.categoryCode, categoryOptions)}</strong>
-                        <span>{percentage}%</span>
-                      </div>
-                      <progress aria-label={`${visibleCategoryLabel(share.categoryCode, categoryOptions)} 발굴 비중`} max="100" value={percentage} />
-                    </li>
-                  );
-                })}
-              </ul>
             </section>
-          ) : null}
-          <div className="fuma-creator-pool-profile__action">
-            <Button onClick={() => onProposal(creator)} variant="primary">제안 작성</Button>
+
+            {shares.length > 0 && shareTotal > 0 ? (
+              <section aria-labelledby="creator-category-share-title" className="fuma-campaign-detail-list-section">
+                <ResultToolbar
+                  className="fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar"
+                  meta={<span>총 {shares.length}개 카테고리</span>}
+                  title="카테고리 발굴 비중"
+                  titleId="creator-category-share-title"
+                />
+                <ul className="fuma-creator-pool-profile__shares">
+                  {shares.map((share) => {
+                    const percentage = Math.round((Number(share.totalShare) / shareTotal) * 100);
+                    return (
+                      <li key={share.categoryCode}>
+                        <div><strong>{visibleCategoryLabel(share.categoryCode, categoryOptions)}</strong><span>{percentage}%</span></div>
+                        <progress aria-label={`${visibleCategoryLabel(share.categoryCode, categoryOptions)} 발굴 비중`} max="100" value={percentage} />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ) : null}
+
+            <div className="fuma-creator-pool-detail-panel__actions">
+              <Button className="fuma-creator-proposal-action" onClick={() => setProposalOpen(true)} variant="primary">제안 작성</Button>
+            </div>
+          </>
+        ) : (
+          <div aria-live={loading ? "polite" : undefined} role={loading ? "status" : "alert"}>
+            <EmptyState
+              description={loading ? "크리에이터 프로필을 불러오는 중입니다." : currentResult?.error || "요청한 크리에이터 정보를 확인할 수 없습니다."}
+              title={loading ? "프로필을 불러오는 중입니다" : "크리에이터를 찾을 수 없습니다"}
+            />
           </div>
-        </div>
-      ) : null}
-    </ProfileDetailShell>
+        )}
+      </div>
+    </SidePanel>
   );
 }
 
 export function CreatorListPage() {
+  const navigate = useNavigate();
+  const buildPoolTooltipId = useId();
   const resetDescriptionId = useId();
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_CREATOR_FILTERS);
@@ -724,8 +763,10 @@ export function CreatorListPage() {
   const [resetError, setResetError] = useState("");
   const [discoverySettingsOpen, setDiscoverySettingsOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
-  const [profileProposalCreator, setProfileProposalCreator] = useState<CreatorSummary | null>(null);
   const [proposalRequestedCount, setProposalRequestedCount] = useState(0);
+  const [buildPoolTooltipInitial, setBuildPoolTooltipInitial] = useState(true);
+  const [buildPoolTooltipHovered, setBuildPoolTooltipHovered] = useState(false);
+  const [buildPoolTooltipFocused, setBuildPoolTooltipFocused] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<readonly { label: string; value: string }[]>(
     CREATOR_CATEGORY_OPTIONS,
   );
@@ -738,6 +779,11 @@ export function CreatorListPage() {
       ]);
     })
   ), []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setBuildPoolTooltipInitial(false), 2000);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -784,6 +830,12 @@ export function CreatorListPage() {
   const resetSearch = () => {
     setFilters(EMPTY_CREATOR_FILTERS);
     setAppliedFilters(EMPTY_CREATOR_FILTERS);
+    setSelectedCreators(new Map());
+    setPage(1);
+  };
+  const changeExcludeBrands = (excludeBrands: boolean) => {
+    setFilters((current) => ({ ...current, excludeBrands }));
+    setAppliedFilters((current) => ({ ...current, excludeBrands }));
     setSelectedCreators(new Map());
     setPage(1);
   };
@@ -887,17 +939,7 @@ export function CreatorListPage() {
       <div className="fuma-page__body">
         <div className="fuma-operations-search fuma-settlement-search fuma-creator-pool-search">
           <SearchPanel actions={(
-            <>
-              <Switch
-                checked={filters.excludeBrands}
-                label="브랜드 계정 제외"
-                onChange={(event) => setFilters((current) => ({
-                  ...current,
-                  excludeBrands: event.target.checked,
-                }))}
-              />
-              <SearchActions onReset={resetSearch} onSearch={applySearch} />
-            </>
+            <SearchActions onReset={resetSearch} onSearch={applySearch} />
           )}>
             <FilterField htmlFor="creator-keyword" label="키워드">
               <TextInput
@@ -932,19 +974,38 @@ export function CreatorListPage() {
         <ResultToolbar
           actions={(
             <>
-              <Button
-                disabled={discoveryRunning || resetRunning}
-                onClick={() => void buildCreatorPool()}
+              <span
+                className="fuma-creator-pool-build-action"
+                onBlur={() => setBuildPoolTooltipFocused(false)}
+                onFocus={() => setBuildPoolTooltipFocused(true)}
+                onMouseEnter={() => setBuildPoolTooltipHovered(true)}
+                onMouseLeave={() => setBuildPoolTooltipHovered(false)}
               >
-                {discoveryRunning ? "풀 구축 중..." : "크리에이터 풀 구축"}
-              </Button>
+                <Button
+                  aria-describedby={buildPoolTooltipId}
+                  aria-label={discoveryRunning ? "크리에이터 풀 구축 중" : "크리에이터 풀 구축"}
+                  className="fuma-content-inspection-refresh-button"
+                  disabled={discoveryRunning || resetRunning}
+                  onClick={() => void buildCreatorPool()}
+                >
+                  <RefreshCw
+                    aria-hidden="true"
+                    className={discoveryRunning ? "is-spinning" : undefined}
+                    size={15}
+                  />
+                </Button>
+                <Tooltip
+                  id={buildPoolTooltipId}
+                  placement="top"
+                  visible={buildPoolTooltipInitial || buildPoolTooltipHovered || buildPoolTooltipFocused}
+                >
+                  새로운 크리에이터 풀을 구축할 수 있습니다.
+                </Tooltip>
+              </span>
               <Button
                 aria-haspopup="dialog"
                 disabled={selectedCreators.size === 0}
-                onClick={() => {
-                  setProfileProposalCreator(null);
-                  setProposalPanelOpen(true);
-                }}
+                onClick={() => setProposalPanelOpen(true)}
                 variant="primary"
               >
                 선택 {selectedCreators.size}명 제안 발송
@@ -962,10 +1023,19 @@ export function CreatorListPage() {
               </Button>
             </>
           )}
-          className="fuma-simple-result-toolbar"
+          className="fuma-simple-result-toolbar fuma-applicant-result-toolbar fuma-creator-pool-result-toolbar"
           description={discoveryStatus ? <span role="status">{discoveryStatus}</span> : null}
+          leading={(
+            <div className="fuma-applicant-minimum-filter">
+              <Switch
+                checked={filters.excludeBrands}
+                label="브랜드 계정 제외"
+                onChange={(event) => changeExcludeBrands(event.target.checked)}
+              />
+            </div>
+          )}
           meta={<span>총 {pageData?.totalElements ?? 0}건</span>}
-          title="크리에이터 목록"
+          title={null}
         />
         <div aria-label="크리에이터 목록" className="fuma-wide-table fuma-settlement-table" role="region">
           {error ? (
@@ -994,11 +1064,7 @@ export function CreatorListPage() {
         categoryOptions={categoryOptions}
         creator={profileCreator}
         onClose={() => setProfileCreator(null)}
-        onProposal={(creator) => {
-          setProfileProposalCreator(creator);
-          setProfileCreator(null);
-          setProposalPanelOpen(true);
-        }}
+        onProposalComplete={() => navigate("/proposals")}
       />
     ) : null}
     {discoverySettingsOpen ? (
@@ -1009,28 +1075,30 @@ export function CreatorListPage() {
     ) : null}
     {proposalPanelOpen ? (
       <BatchProposalPanel
-        creators={profileProposalCreator ? [profileProposalCreator] : [...selectedCreators.values()]}
-        onClose={() => {
-          setProfileProposalCreator(null);
-          setProposalPanelOpen(false);
-        }}
+        creators={[...selectedCreators.values()]}
+        onClose={() => setProposalPanelOpen(false)}
         onComplete={(count) => {
-          if (!profileProposalCreator) setSelectedCreators(new Map());
-          setProfileProposalCreator(null);
+          setSelectedCreators(new Map());
           setProposalPanelOpen(false);
           setProposalRequestedCount(count);
         }}
         onFailed={(failed) => {
-          if (profileProposalCreator) setProfileProposalCreator(failed[0] ?? null);
-          else setSelectedCreators(new Map(failed.map((creator) => [creator.id, creator])));
+          setSelectedCreators(new Map(failed.map((creator) => [creator.id, creator])));
         }}
       />
     ) : null}
-    <AlertDialog
-      message={`${proposalRequestedCount}명에게 제안 발송을 요청했습니다. 작업 진행상황에서 확인해 주세요.`}
-      onClose={() => setProposalRequestedCount(0)}
+    <BubbleDialog
+      actions={(
+        <button autoFocus onClick={() => {
+          setProposalRequestedCount(0);
+          navigate("/proposals");
+        }} type="button">
+          확인
+        </button>
+      )}
+      description={`${proposalRequestedCount}명에게 제안 발송 요청을 완료했습니다.`}
       open={proposalRequestedCount > 0}
-      title="제안 발송 요청"
+      title="발송 요청 완료"
     />
     <Modal
       actions={(
@@ -1067,38 +1135,6 @@ export function CreatorListPage() {
       {resetError ? <p role="alert">{resetError}</p> : null}
     </Modal>
     </>
-  );
-}
-
-function ProposalCreatorSummary({ creator }: { creator: CreatorDetail }) {
-  const platform = platformFor(creator.snsCode);
-  const audienceLabel = platform === "Instagram" ? "팔로워" : "구독자";
-
-  return (
-    <aside aria-label="제안 대상" className="fuma-proposal-compose__creator">
-      <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
-      <div className="fuma-proposal-compose__creator-profile">
-        <div>
-          <strong>{creator.creatorName || creator.accountId}</strong>
-          <span>
-            <PlatformLabel platform={platform} />
-          </span>
-        </div>
-      </div>
-      <dl className="fuma-proposal-compose__creator-metrics">
-        <div>
-          <dt>{audienceLabel}</dt>
-          <dd>{creator.followerCount === null ? "-" : formatNumber(creator.followerCount)}</dd>
-        </div>
-        <div>
-          <dt>이메일</dt>
-          <dd>{creator.email}</dd>
-        </div>
-      </dl>
-      <p className="fuma-proposal-compose__creator-note">
-        발송 작업을 요청하고 작업 진행상황에서 확인할 수 있습니다.
-      </p>
-    </aside>
   );
 }
 
@@ -1158,130 +1194,6 @@ function ProposalDeliveryDetail({ proposal }: { proposal: ProposalHistoryEntry }
         </dl>
       </section>
     </div>
-  );
-}
-
-export function ProposalComposePage() {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const creatorId = Number(searchParams.get("creator"));
-  const invalidCreatorId = !Number.isSafeInteger(creatorId) || creatorId <= 0;
-  const [creator, setCreator] = useState<CreatorDetail | null>(null);
-  const [history, setHistory] = useState<ProposalHistoryEntry[] | null>(null);
-  const [error, setError] = useState("");
-  const [sending, setSending] = useState(false);
-  const [proposalRequested, setProposalRequested] = useState(false);
-
-  useEffect(() => {
-    if (invalidCreatorId) return;
-    const controller = new AbortController();
-    getCreator(creatorId, controller.signal).then((result) => {
-      if (!controller.signal.aborted) setCreator(result);
-    }).catch((reason: unknown) => {
-      if (!controller.signal.aborted) {
-        setError(reason instanceof Error ? reason.message : "크리에이터 정보를 불러오지 못했습니다.");
-      }
-    });
-    return () => controller.abort();
-  }, [creatorId, invalidCreatorId]);
-
-  useEffect(() => {
-    if (invalidCreatorId) return;
-    const controller = new AbortController();
-    // ponytail: proposals API has no per-creator filter, so this reads one page and filters
-    // client-side; upgrade to a server-side creatorId filter if history grows past 100 entries.
-    getAdminProposals(0, 100, controller.signal).then((result) => {
-      if (!controller.signal.aborted) {
-        setHistory(result.content.filter((entry) => entry.creatorId === creatorId));
-      }
-    }).catch(() => {
-      if (!controller.signal.aborted) setHistory([]);
-    });
-    return () => controller.abort();
-  }, [creatorId, invalidCreatorId]);
-
-  if (invalidCreatorId) {
-    return (
-      <section className="fuma-page">
-        <PageHeader title="셀렉터스 제안" />
-        <div className="fuma-page__body">
-          <EmptyState
-            description="크리에이터 풀에서 제안할 대상을 선택해 주세요."
-            title="제안 대상이 없습니다"
-          />
-        </div>
-      </section>
-    );
-  }
-
-  const sendProposal = async () => {
-    setSending(true);
-    setError("");
-    try {
-      await postAdminProposal(creatorId);
-      setProposalRequested(true);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "제안 메일 발송 요청에 실패했습니다.");
-    } finally {
-      setSending(false);
-    }
-  };
-
-  return (
-    <>
-    <section className="fuma-page fuma-proposal-compose">
-      <PageHeader title="셀렉터스 제안" />
-      <div className="fuma-page__body">
-        {error ? <EmptyState description={error} title="처리 중 오류가 발생했습니다" /> : null}
-        <div className="fuma-proposal-compose__layout">
-          {creator ? <ProposalCreatorSummary creator={creator} /> : (
-            <aside aria-label="제안 대상" className="fuma-proposal-compose__creator">
-              <p className="fuma-proposal-compose__eyebrow">제안 대상</p>
-              <p>크리에이터 정보를 불러오는 중입니다.</p>
-            </aside>
-          )}
-          <div className="fuma-proposal-compose__form">
-            <div className="fuma-proposal-compose__form-heading">
-              <h2>제안 이력</h2>
-              <span>이 크리에이터에게 이전에 발송한 제안 내역입니다.</span>
-            </div>
-            {history === null ? (
-              <p>제안 이력을 불러오는 중입니다.</p>
-            ) : history.length === 0 ? (
-              <p>이전에 발송한 제안 이력이 없습니다.</p>
-            ) : (
-              <ul>
-                {history.map((entry) => (
-                  <li key={entry.proposalHistoryId}>
-                    {dateTime(entry.createdAt)} · {entry.adminName} 발송
-                  </li>
-                ))}
-              </ul>
-            )}
-            <footer className="fuma-proposal-compose__footer">
-              <div>
-                <Button onClick={() => navigate(-1)}>취소</Button>
-                <Button
-                  className="fuma-proposal-compose__submit"
-                  disabled={!creator || sending}
-                  onClick={sendProposal}
-                  variant="primary"
-                >
-                  {sending ? "요청 중..." : "제안 발송"}
-                </Button>
-              </div>
-            </footer>
-          </div>
-        </div>
-      </div>
-    </section>
-    <AlertDialog
-      message="제안 발송을 요청했습니다. 작업 진행상황에서 확인해 주세요."
-      onClose={() => setProposalRequested(false)}
-      open={proposalRequested}
-      title="제안 발송 요청"
-    />
-    </>
   );
 }
 
