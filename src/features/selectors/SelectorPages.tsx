@@ -696,7 +696,7 @@ export function SelectorOverviewPage() {
           actions={selectedStatus ? null : (
             <ViewModeToggle
               gridLabel="버블"
-              listLabel="표"
+              listLabel="목록"
               onChange={(mode) => {
                 setViewMode(mode === "grid" ? "pool" : "table");
                 setPage(1);
