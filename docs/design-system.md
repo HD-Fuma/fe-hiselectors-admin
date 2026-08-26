@@ -5,7 +5,7 @@
 ## 시각 원칙
 
 - 1280px 이상 데스크톱 shell을 기준으로 한 조밀한 정보 밀도
-- 짙은 회색 sidebar, 흰 surface, teal accent
+- 기본 라이트 모드의 흰 sidebar·surface와 teal accent, 설정에서 다크 모드 선택 가능
 - 기본 본문 12px, control 높이 27px, 작은 radius 중심
 - 장식보다 표, 필터, 상태, 근거 정보의 판독성을 우선
 - 상태는 색만으로 구분하지 않고 텍스트를 함께 표시

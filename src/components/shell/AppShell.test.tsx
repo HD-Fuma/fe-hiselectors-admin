@@ -219,10 +219,10 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
   expect(within(shell).getAllByRole("button", { name: "로그아웃" })).toHaveLength(1);
 });
 
-test("opens anchored environment settings with the original dark sidebar selected by default", () => {
+test("opens anchored environment settings with the light sidebar selected by default", () => {
   renderRoute("/creators");
 
-  expect(document.documentElement).toHaveAttribute("data-sidebar-theme", "dark");
+  expect(document.documentElement).toHaveAttribute("data-sidebar-theme", "light");
   expect(document.documentElement).not.toHaveAttribute("data-theme");
   expect(document.documentElement.style.colorScheme).toBe("");
 
@@ -234,15 +234,16 @@ test("opens anchored environment settings with the original dark sidebar selecte
   const settings = screen.getByRole("group", { name: "환경설정" });
   expect(within(settings).getByRole("button", { name: "라이트 모드" })).toHaveAttribute(
     "aria-pressed",
-    "false",
+    "true",
   );
   expect(within(settings).getByRole("button", { name: "다크 모드" })).toHaveAttribute(
     "aria-pressed",
-    "true",
+    "false",
   );
 });
 
 test("switches and persists the selected theme immediately", () => {
+  localStorage.setItem("selectors-theme", "dark");
   renderRoute("/creators");
   fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
 
@@ -276,8 +277,9 @@ test("closes environment settings with Escape and returns focus", () => {
 });
 
 test.each([
+  ["light", "light", "라이트 모드"],
   ["dark", "dark", "다크 모드"],
-  ["sepia", "dark", "다크 모드"],
+  ["sepia", "light", "라이트 모드"],
 ] as const)(
   "restores stored theme %s as %s when the shell renders",
   (storedTheme, expectedTheme, selectedLabel) => {
