@@ -114,15 +114,17 @@ function DashboardCard({
   className,
   eyebrow,
   title,
+  to,
 }: {
   action?: ReactNode;
   children: ReactNode;
   className: string;
   eyebrow: string;
   title: string;
+  to?: string;
 }) {
-  return (
-    <section className={`fuma-dashboard-card ${className}`}>
+  const content = (
+    <>
       <header>
         <div><span>{eyebrow}</span><strong>{title}</strong></div>
         {action ? (
@@ -132,6 +134,24 @@ function DashboardCard({
         ) : null}
       </header>
       {children}
+    </>
+  );
+
+  if (to) {
+    return (
+      <Link
+        aria-label={`${title} 상세 화면으로 이동`}
+        className={`fuma-dashboard-card fuma-dashboard-card--clickable ${className}`}
+        to={to}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <section className={`fuma-dashboard-card ${className}`}>
+      {content}
     </section>
   );
 }
@@ -515,16 +535,16 @@ export function DashboardPage() {
 
         <DashboardCard
           action={(
-            <Link
+            <span
               className="fuma-dashboard__primary-action fuma-dashboard__primary-action--compact"
-              to="/settlements"
             >
               정산 관리
-            </Link>
+            </span>
           )}
           className="fuma-dashboard-card--trend"
           eyebrow="REVENUE"
           title="매출·정산 추이"
+          to="/settlements"
         >
           <SettlementTrend monthlyTrend={data.settlementTrend} />
         </DashboardCard>
