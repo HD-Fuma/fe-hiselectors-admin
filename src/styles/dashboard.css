@@ -1,6 +1,10 @@
+body:has(.fuma-dashboard) .hsas-admin-shell__content {
+  padding: 0;
+}
+
 .fuma-dashboard {
   position: relative;
-  min-height: calc(100dvh - 61px);
+  min-height: calc(100dvh - 37px);
   isolation: isolate;
   overflow: hidden;
   background:
