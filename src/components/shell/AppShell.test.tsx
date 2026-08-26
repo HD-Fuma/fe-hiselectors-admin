@@ -219,7 +219,7 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
   expect(within(shell).getAllByRole("button", { name: "로그아웃" })).toHaveLength(1);
 });
 
-test("opens environment settings on hover and closes them when hover leaves", () => {
+test("opens environment settings on hover and closes them shortly after hover leaves", async () => {
   renderRoute("/creators");
 
   expect(document.documentElement).toHaveAttribute("data-sidebar-theme", "light");
@@ -252,8 +252,11 @@ test("opens environment settings on hover and closes them when hover leaves", ()
   );
 
   fireEvent.mouseLeave(anchor);
-  expect(screen.queryByRole("group", { name: "환경설정" })).not.toBeInTheDocument();
-  expect(trigger).toHaveAttribute("aria-expanded", "false");
+  expect(screen.getByRole("group", { name: "환경설정" })).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.queryByRole("group", { name: "환경설정" })).not.toBeInTheDocument();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
 });
 
 test("switches and persists the selected theme immediately", () => {
