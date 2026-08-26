@@ -33,12 +33,10 @@ interface DashboardData {
   } | null;
   currentGenerationContentCount: number | null;
   currentGenerationInspectionCount: number | null;
-  currentGenerationName: string | null;
   inspectionDurationSampleCount: number | null;
   pendingApplications: number | null;
   pendingContents: number | null;
   previousGenerationContentCount: number | null;
-  previousGenerationName: string | null;
   processedApplications: number | null;
   settlementTrend: SettlementMonthlySummary[] | null;
   totalApplications: number | null;
@@ -52,12 +50,10 @@ const EMPTY_DASHBOARD: DashboardData = {
   contentBreakdown: null,
   currentGenerationContentCount: null,
   currentGenerationInspectionCount: null,
-  currentGenerationName: null,
   inspectionDurationSampleCount: null,
   pendingApplications: null,
   pendingContents: null,
   previousGenerationContentCount: null,
-  previousGenerationName: null,
   processedApplications: null,
   settlementTrend: null,
   totalApplications: null,
@@ -117,23 +113,20 @@ function DashboardCard({
   children,
   className,
   eyebrow,
-  status,
   title,
 }: {
   action?: ReactNode;
   children: ReactNode;
   className: string;
   eyebrow: string;
-  status?: string;
   title: string;
 }) {
   return (
     <section className={`fuma-dashboard-card ${className}`}>
       <header>
         <div><span>{eyebrow}</span><strong>{title}</strong></div>
-        {status || action ? (
+        {action ? (
           <div className="fuma-dashboard-card__header-actions">
-            {status ? <em>{status}</em> : null}
             {action}
           </div>
         ) : null}
@@ -406,9 +399,6 @@ export function DashboardPage() {
           ? summary.value.currentGenerationContentCount
           : null,
         currentGenerationInspectionCount: inspectionRows?.length ?? null,
-        currentGenerationName: summary.status === "fulfilled"
-          ? summary.value.currentGenerationName
-          : null,
         inspectionDurationSampleCount: inspectionDurations?.length ?? null,
         pendingApplications: pendingApplicationsByPlatform ?? (
           totalApplications != null && processedApplications != null
@@ -418,9 +408,6 @@ export function DashboardPage() {
         pendingContents: pendingInspectionRows?.length ?? null,
         previousGenerationContentCount: summary.status === "fulfilled"
           ? summary.value.previousGenerationContentCount
-          : null,
-        previousGenerationName: summary.status === "fulfilled"
-          ? summary.value.previousGenerationName
           : null,
         processedApplications,
         settlementTrend: settlementSummary.status === "fulfilled"
@@ -501,7 +488,6 @@ export function DashboardPage() {
         <DashboardCard
           className="fuma-dashboard-card--active"
           eyebrow="CAMPAIGN"
-          status={data.activeCampaigns == null ? "확인 중" : `${count(data.activeCampaigns)}건 운영`}
           title="진행 중 캠페인"
         >
           <DashboardMetric label="활성 캠페인 수" unit="건" value={count(data.activeCampaigns)} />
@@ -518,7 +504,6 @@ export function DashboardPage() {
           )}
           className="fuma-dashboard-card--generation"
           eyebrow="CONTENT"
-          status={data.currentGenerationName ?? "확인 중"}
           title="현재 기수 콘텐츠"
         >
           <DashboardMetric
@@ -539,11 +524,6 @@ export function DashboardPage() {
           )}
           className="fuma-dashboard-card--trend"
           eyebrow="REVENUE"
-          status={data.settlementTrend == null
-            ? "확인 중"
-            : data.settlementTrend.length > 0
-              ? `최근 ${data.settlementTrend.length}개월`
-              : "데이터 없음"}
           title="매출·정산 추이"
         >
           <SettlementTrend monthlyTrend={data.settlementTrend} />
@@ -552,7 +532,6 @@ export function DashboardPage() {
         <DashboardCard
           className="fuma-dashboard-card--kpi"
           eyebrow="QUALITY"
-          status={data.currentGenerationName ?? "현재 기수"}
           title="검수 완료율"
         >
           <DashboardMetric
@@ -566,7 +545,6 @@ export function DashboardPage() {
         <DashboardCard
           className="fuma-dashboard-card--kpi"
           eyebrow="SPEED"
-          status="검수 기록 기준"
           title="평균 검수시간"
         >
           <DashboardMetric
@@ -580,7 +558,6 @@ export function DashboardPage() {
         <DashboardCard
           className="fuma-dashboard-card--kpi"
           eyebrow="APPLICATION"
-          status="전체 기준"
           title="지원자 처리율"
         >
           <DashboardMetric
@@ -594,7 +571,6 @@ export function DashboardPage() {
         <DashboardCard
           className="fuma-dashboard-card--kpi"
           eyebrow="GROWTH"
-          status={data.previousGenerationName ?? "이전 기수"}
           title="콘텐츠 증감률"
         >
           <DashboardMetric

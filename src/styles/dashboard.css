@@ -112,20 +112,6 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   line-height: 1.3;
 }
 
-.fuma-dashboard-card > header em {
-  max-width: 48%;
-  padding: var(--hsas-space-5) var(--hsas-space-8);
-  overflow: hidden;
-  border-radius: 999px;
-  color: rgb(32 34 36 / 58%);
-  background: rgb(255 255 255 / 42%);
-  font-size: var(--hsas-font-11);
-  font-style: normal;
-  font-weight: 750;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .fuma-dashboard-card__header-actions {
   display: flex;
   align-items: center;
