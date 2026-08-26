@@ -588,8 +588,9 @@ describe("applicant api pages", () => {
     const report = await within(panel).findByRole("region", { name: "지원자 분석 리포트" });
     const formats = within(report).getByRole("group", { name: "콘텐츠 형식 총 0건" });
 
-    expect(within(report).getByText("업로드 주기").parentElement)
-      .toHaveTextContent("주 0.0회 · 표본 0건");
+    const uploadCadenceMetric = within(report).getByText("업로드 주기").parentElement;
+    expect(uploadCadenceMetric).toHaveTextContent("주 0.0회");
+    expect(uploadCadenceMetric).not.toHaveTextContent("표본");
     expect(within(formats).getByText("0건")).toBeInTheDocument();
   });
 
