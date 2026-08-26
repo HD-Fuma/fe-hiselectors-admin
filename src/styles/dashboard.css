@@ -1,9 +1,12 @@
 .fuma-dashboard {
-  --dashboard-glass: rgb(255 255 255 / 54%);
-  --dashboard-glass-strong: rgb(255 255 255 / 72%);
-  --dashboard-glass-border: rgb(255 255 255 / 82%);
-  --dashboard-liquid-shadow: rgb(54 65 72 / 13%);
+  --dashboard-glass: linear-gradient(135deg, rgb(255 255 255 / 38%), rgb(255 255 255 / 10%));
+  --dashboard-glass-strong: linear-gradient(135deg, rgb(255 255 255 / 48%), rgb(255 255 255 / 16%));
+  --dashboard-glass-soft: linear-gradient(135deg, rgb(255 255 255 / 30%), rgb(255 255 255 / 8%));
+  --dashboard-glass-hover: linear-gradient(135deg, rgb(255 255 255 / 64%), rgb(255 255 255 / 24%));
+  --dashboard-glass-border: rgb(255 255 255 / 62%);
+  --dashboard-liquid-shadow: rgb(20 20 20 / 15%);
   --dashboard-accent: #111;
+  --dashboard-liquid-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .fuma-dashboard .fuma-page__body {
@@ -15,25 +18,26 @@
   overflow: hidden;
   border-radius: 32px;
   background:
-    radial-gradient(ellipse 38% 22% at 12% 18%, rgb(20 20 20 / 10%), transparent 72%),
-    radial-gradient(ellipse 34% 26% at 88% 16%, rgb(255 255 255 / 66%), transparent 74%),
-    radial-gradient(ellipse 42% 30% at 52% 92%, rgb(20 20 20 / 8%), transparent 76%),
+    radial-gradient(ellipse 38% 22% at 12% 18%, rgb(20 20 20 / 15%), transparent 72%),
+    radial-gradient(ellipse 34% 26% at 88% 16%, rgb(255 255 255 / 78%), transparent 74%),
+    radial-gradient(ellipse 42% 30% at 52% 92%, rgb(20 20 20 / 12%), transparent 76%),
     var(--hsas-surface-muted);
 }
 
 .fuma-dashboard .fuma-page__body::before,
 .fuma-dashboard .fuma-page__body::after {
   position: absolute;
-  z-index: -1;
-  border: 1px solid rgb(255 255 255 / 66%);
+  z-index: 0;
+  border: 1px solid rgb(255 255 255 / 58%);
   background:
-    radial-gradient(circle at 30% 24%, rgb(255 255 255 / 78%), transparent 24%),
-    linear-gradient(145deg, rgb(20 20 20 / 14%), rgb(255 255 255 / 20%));
+    radial-gradient(circle at 28% 22%, rgb(255 255 255 / 86%), transparent 22%),
+    linear-gradient(145deg, rgb(20 20 20 / 22%), rgb(255 255 255 / 8%));
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 74%),
+    inset 18px 16px 34px rgb(255 255 255 / 20%),
+    inset -18px -16px 36px rgb(20 20 20 / 8%),
     0 28px 70px var(--dashboard-liquid-shadow);
+  backdrop-filter: blur(10px);
   content: "";
-  filter: blur(0.3px);
   pointer-events: none;
 }
 
@@ -43,7 +47,7 @@
   width: 260px;
   height: 236px;
   border-radius: 43% 57% 66% 34% / 48% 37% 63% 52%;
-  animation: fuma-dashboard-droplet-float 10s ease-in-out infinite alternate;
+  animation: fuma-dashboard-droplet-float 10s var(--dashboard-liquid-ease) infinite alternate;
 }
 
 .fuma-dashboard .fuma-page__body::after {
@@ -53,7 +57,7 @@
   height: 258px;
   border-radius: 63% 37% 45% 55% / 39% 61% 39% 61%;
   opacity: 0.68;
-  animation: fuma-dashboard-droplet-float 12s ease-in-out -4s infinite alternate-reverse;
+  animation: fuma-dashboard-droplet-float 12s var(--dashboard-liquid-ease) -4s infinite alternate-reverse;
 }
 
 .fuma-dashboard .fuma-page__body > * {
@@ -76,12 +80,12 @@
   padding: var(--hsas-space-22) var(--hsas-space-24);
   overflow: hidden;
   border: 1px solid var(--dashboard-glass-border);
-  border-radius: 34px 52px 30px 46px / 32px 38px 50px 44px;
+  border-radius: 48px 72px 42px 64px / 46px 52px 70px 58px;
   background: var(--dashboard-glass);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 80%),
     0 18px 48px var(--dashboard-liquid-shadow);
-  backdrop-filter: blur(24px) saturate(1.12);
+  backdrop-filter: blur(12px) saturate(1.18);
 }
 
 .fuma-dashboard__welcome::after {
@@ -91,9 +95,10 @@
   width: 128px;
   height: 128px;
   border-radius: 56% 44% 38% 62% / 45% 59% 41% 55%;
-  background: radial-gradient(circle at 34% 28%, rgb(255 255 255 / 70%), rgb(20 20 20 / 10%) 52%, transparent 74%);
+  background: radial-gradient(circle at 34% 28%, rgb(255 255 255 / 78%), rgb(20 20 20 / 14%) 52%, transparent 74%);
   content: "";
   pointer-events: none;
+  animation: fuma-dashboard-droplet-float 8s var(--dashboard-liquid-ease) -2s infinite alternate;
 }
 
 .fuma-dashboard__welcome > div:first-child {
@@ -121,9 +126,12 @@
   gap: var(--hsas-space-4);
   border: 1px solid var(--dashboard-glass-border);
   border-radius: 54% 46% 58% 42% / 44% 60% 40% 56%;
-  background: rgb(255 255 255 / 42%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 80%);
-  backdrop-filter: blur(18px);
+  background: var(--dashboard-glass-strong);
+  box-shadow:
+    inset 10px 8px 18px rgb(255 255 255 / 24%),
+    inset -8px -8px 18px rgb(20 20 20 / 6%);
+  backdrop-filter: blur(10px);
+  animation: fuma-dashboard-counter-float 7s ease-in-out infinite;
 }
 
 .fuma-dashboard__today-total small,
@@ -151,35 +159,48 @@
   gap: var(--hsas-space-10);
   padding: var(--hsas-space-16);
   border: 1px solid var(--dashboard-glass-border);
-  border-radius: 28px 20px 32px 22px / 24px 30px 22px 32px;
+  border-radius: 42px 28px 48px 32px / 34px 46px 30px 44px;
   background: var(--dashboard-glass-strong);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 82%),
     0 12px 30px rgb(54 65 72 / 8%);
   color: var(--hsas-text);
   text-decoration: none;
-  backdrop-filter: blur(18px) saturate(1.1);
-  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  backdrop-filter: blur(10px) saturate(1.15);
+  transition:
+    transform 420ms var(--dashboard-liquid-ease),
+    border-radius 520ms var(--dashboard-liquid-ease),
+    border-color 240ms ease,
+    background 240ms ease,
+    box-shadow 420ms ease;
 }
 
 .fuma-dashboard-stat:nth-child(2n) {
-  border-radius: 20px 30px 22px 34px / 30px 22px 34px 24px;
+  border-radius: 30px 48px 34px 52px / 46px 32px 50px 36px;
 }
 
 .fuma-dashboard-stat:nth-child(3) {
-  border-radius: 34px 22px 26px 20px / 22px 34px 24px 30px;
+  border-radius: 52px 32px 44px 28px / 30px 48px 34px 46px;
 }
 
 .fuma-dashboard-stat:hover,
 .fuma-dashboard-task:hover,
 .fuma-dashboard__shortcuts a:hover {
   border-color: var(--dashboard-accent);
-  background: rgb(255 255 255 / 82%);
+  background: var(--dashboard-glass-hover);
 }
 
 .fuma-dashboard-stat:hover {
   box-shadow: 0 18px 38px rgb(54 65 72 / 14%);
-  transform: translateY(-3px);
+  border-radius: 32px 52px 28px 48px / 50px 30px 46px 34px;
+  transform: translateY(-5px) scale(1.018);
+}
+
+.fuma-dashboard-stat:active,
+.fuma-dashboard-task:active,
+.fuma-dashboard__shortcuts a:active {
+  transform: scale(0.975, 0.94);
+  transition-duration: 100ms;
 }
 
 .fuma-dashboard-stat__icon,
@@ -196,6 +217,13 @@
     inset 0 1px 0 rgb(255 255 255 / 80%),
     0 8px 18px rgb(54 65 72 / 10%);
   color: var(--dashboard-accent);
+  transition: transform 520ms var(--dashboard-liquid-ease), border-radius 520ms var(--dashboard-liquid-ease);
+}
+
+.fuma-dashboard-stat:hover .fuma-dashboard-stat__icon,
+.fuma-dashboard-task:hover .fuma-dashboard-task__icon {
+  border-radius: 38% 62% 42% 58% / 58% 38% 62% 42%;
+  transform: rotate(-7deg) scale(1.1);
 }
 
 .fuma-dashboard-stat__icon { width: 34px; height: 34px; }
@@ -229,16 +257,16 @@
   min-width: 0;
   padding: var(--hsas-space-18);
   border: 1px solid var(--dashboard-glass-border);
-  border-radius: 30px 22px 34px 24px / 24px 34px 25px 32px;
+  border-radius: 54px 36px 64px 42px / 40px 62px 38px 58px;
   background: var(--dashboard-glass);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 78%),
     0 18px 46px rgb(54 65 72 / 10%);
-  backdrop-filter: blur(24px) saturate(1.12);
+  backdrop-filter: blur(12px) saturate(1.18);
 }
 
 .fuma-dashboard-panel:nth-child(2) {
-  border-radius: 22px 34px 24px 30px / 32px 24px 34px 22px;
+  border-radius: 38px 62px 42px 58px / 60px 40px 64px 36px;
 }
 
 .fuma-dashboard-panel__header {
@@ -268,12 +296,28 @@
   gap: var(--hsas-space-12);
   padding: var(--hsas-space-10) var(--hsas-space-12);
   border: 1px solid rgb(255 255 255 / 76%);
-  border-radius: 18px 24px 18px 26px / 22px 18px 26px 20px;
-  background: rgb(255 255 255 / 42%);
+  border-radius: 28px 42px 26px 46px / 38px 28px 44px 30px;
+  background: var(--dashboard-glass-soft);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 68%);
   color: var(--hsas-text);
   text-decoration: none;
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(8px);
+  transition:
+    transform 420ms var(--dashboard-liquid-ease),
+    border-radius 520ms var(--dashboard-liquid-ease),
+    border-color 240ms ease,
+    background 240ms ease,
+    box-shadow 420ms ease;
+}
+
+.fuma-dashboard-task:nth-child(2n) {
+  border-radius: 44px 26px 42px 30px / 28px 44px 30px 42px;
+}
+
+.fuma-dashboard-task:hover {
+  border-radius: 36px 26px 46px 24px / 28px 44px 26px 42px;
+  box-shadow: 0 14px 28px rgb(20 20 20 / 12%);
+  transform: translateX(7px) scale(1.008);
 }
 
 .fuma-dashboard-task__icon { width: 38px; height: 38px; }
@@ -309,12 +353,28 @@
   gap: var(--hsas-space-8);
   padding: 0 var(--hsas-space-10);
   border: 1px solid rgb(255 255 255 / 76%);
-  border-radius: 999px;
-  background: rgb(255 255 255 / 44%);
+  border-radius: 26px 38px 24px 42px / 34px 26px 40px 28px;
+  background: var(--dashboard-glass-soft);
   color: var(--hsas-text);
   font-weight: 600;
   text-decoration: none;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(8px);
+  transition:
+    transform 420ms var(--dashboard-liquid-ease),
+    border-radius 520ms var(--dashboard-liquid-ease),
+    border-color 240ms ease,
+    background 240ms ease,
+    box-shadow 420ms ease;
+}
+
+.fuma-dashboard__shortcuts a:nth-child(2n) {
+  border-radius: 40px 24px 38px 26px / 26px 40px 28px 38px;
+}
+
+.fuma-dashboard__shortcuts a:hover {
+  border-radius: 32px 26px 42px 24px / 28px 40px 26px 38px;
+  box-shadow: 0 12px 24px rgb(20 20 20 / 10%);
+  transform: translateY(-3px) scale(1.015);
 }
 
 .fuma-dashboard__shortcuts b { color: var(--dashboard-accent); font-size: var(--hsas-font-16); }
@@ -327,7 +387,7 @@
   padding: var(--hsas-space-10);
   border: 1px solid rgb(255 255 255 / 68%);
   border-radius: 20px 28px 18px 24px / 24px 18px 28px 20px;
-  background: rgb(255 255 255 / 34%);
+  background: var(--dashboard-glass-soft);
   color: var(--hsas-text-muted);
 }
 
@@ -336,14 +396,31 @@
 .fuma-dashboard__notice strong { color: var(--hsas-text); }
 
 @keyframes fuma-dashboard-droplet-float {
-  from { transform: translate3d(0, 0, 0) rotate(-2deg); }
-  to { transform: translate3d(18px, 12px, 0) rotate(3deg); }
+  0% {
+    border-radius: 43% 57% 66% 34% / 48% 37% 63% 52%;
+    transform: translate3d(0, 0, 0) rotate(-2deg) scale(1);
+  }
+  55% {
+    border-radius: 58% 42% 38% 62% / 35% 58% 42% 65%;
+    transform: translate3d(10px, 16px, 0) rotate(1deg) scale(1.04, 0.97);
+  }
+  100% {
+    border-radius: 36% 64% 54% 46% / 62% 42% 58% 38%;
+    transform: translate3d(20px, 8px, 0) rotate(3deg) scale(0.98, 1.04);
+  }
+}
+
+@keyframes fuma-dashboard-counter-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.025, 0.98); }
 }
 
 :root[data-theme="dark"] .fuma-dashboard {
-  --dashboard-glass: rgb(30 30 30 / 68%);
-  --dashboard-glass-strong: rgb(38 38 38 / 78%);
-  --dashboard-glass-border: rgb(255 255 255 / 16%);
+  --dashboard-glass: linear-gradient(135deg, rgb(255 255 255 / 10%), rgb(255 255 255 / 2%));
+  --dashboard-glass-strong: linear-gradient(135deg, rgb(255 255 255 / 15%), rgb(255 255 255 / 4%));
+  --dashboard-glass-soft: linear-gradient(135deg, rgb(255 255 255 / 8%), rgb(255 255 255 / 2%));
+  --dashboard-glass-hover: linear-gradient(135deg, rgb(255 255 255 / 20%), rgb(255 255 255 / 7%));
+  --dashboard-glass-border: rgb(255 255 255 / 22%);
   --dashboard-liquid-shadow: rgb(0 0 0 / 28%);
   --dashboard-accent: #fff;
 }
@@ -351,7 +428,16 @@
 :root[data-theme="dark"] .fuma-dashboard-stat:hover,
 :root[data-theme="dark"] .fuma-dashboard-task:hover,
 :root[data-theme="dark"] .fuma-dashboard__shortcuts a:hover {
-  background: rgb(52 52 52 / 84%);
+  background: var(--dashboard-glass-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fuma-dashboard *,
+  .fuma-dashboard *::before,
+  .fuma-dashboard *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media (max-width: 1080px) {
