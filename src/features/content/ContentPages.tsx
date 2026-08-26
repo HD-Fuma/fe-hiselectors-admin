@@ -13,6 +13,7 @@ import {
   Bookmark,
   Captions,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Heart,
@@ -53,6 +54,7 @@ import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
 import {
+  CONTENT_VIOLATION_TYPE_OPTIONS,
   INSPECTION_TYPE_LABELS,
   adaptContentInspection,
   adaptContentInspectionDetail,
@@ -129,7 +131,6 @@ function contentSummaryBullets(content: ContentInspectionFixture) {
     content.aiSummary,
     content.report.purpose,
     content.report.flow,
-    content.report.overallAssessment,
   ].flatMap((value) => {
     const text = value?.trim();
     if (!text || text === "분석 대기" || text === "분석 완료") return [];
@@ -185,12 +186,6 @@ function versionCreationReasonLabel(reason?: string) {
 
 function showsInspectionGuideline(signal: { guidance?: string; title: string }) {
   return Boolean(signal.guidance && /광고|수수료|경제적 이해/.test(signal.title));
-}
-
-function detectionSourceLabel(source: string) {
-  if (source.includes("OCR")) return "OCR";
-  if (source.includes("STT") || source.includes("음성")) return "STT";
-  return "본문";
 }
 
 interface QueueFilterValues {
@@ -767,7 +762,9 @@ interface IndexedContentAnnotation extends ContentAnnotation {
 }
 
 function annotationQuote(target: ContentAnnotationTarget) {
-  return target.kind === "text" || target.kind === "media" ? target.quote : null;
+  return target.kind === "text" || target.kind === "text-start" || target.kind === "media"
+    ? target.quote
+    : null;
 }
 
 function annotationMatchesSignal(
@@ -796,7 +793,7 @@ function annotationFromSignal(
   ordinal: number,
 ): IndexedContentAnnotation {
   const startIndex = snapshot.text.indexOf(signal.evidence);
-  const sourceIsText = signal.source.includes("본문") && startIndex >= 0;
+  const sourceIsText = signal.source.includes("본문");
   const timeRange = timeRangeFromSource(signal.source);
 
   return {
@@ -808,7 +805,7 @@ function annotationFromSignal(
     severity: signal.tone === "warning" ? "warning" : "critical",
     source: "자동 감지",
     state: "active",
-    target: sourceIsText
+    target: sourceIsText && startIndex >= 0
       ? {
           endIndex: startIndex + signal.evidence.length,
           kind: "text",
@@ -816,10 +813,12 @@ function annotationFromSignal(
           quote: signal.evidence,
           startIndex,
         }
+      : sourceIsText
+        ? {
+            kind: "text-start",
+            quote: signal.evidence,
+          }
       : {
-          box: timeRange
-            ? { x: 7, y: 70, width: 86, height: 15 }
-            : { x: 14, y: 31, width: 72, height: 18 },
           kind: "media",
           mediaIndex: mediaIndexFromSource(signal.source, snapshot),
           quote: signal.evidence,
@@ -882,9 +881,10 @@ function ViolationHighlightedText({
   text: string;
   useStoredIndexes?: boolean;
 }) {
+  const startAnnotations = annotations.filter(({ target }) => target.kind === "text-start");
   const ranges = annotations.flatMap((annotation) => {
     const target = annotation.target;
-    if (target.kind === "url") return [];
+    if (target.kind === "url" || target.kind === "text-start") return [];
     const storedRange = target.kind === "text"
       && useStoredIndexes
       && target.startIndex !== undefined
@@ -901,8 +901,6 @@ function ViolationHighlightedText({
     );
     return range ? [{ ...range, annotation }] : [];
   }).sort((left, right) => left.start - right.start || left.end - right.end);
-
-  if (ranges.length === 0) return <>{text}</>;
 
   const nodes: ReactNode[] = [];
   let cursor = 0;
@@ -931,7 +929,30 @@ function ViolationHighlightedText({
   });
   if (cursor < text.length) nodes.push(text.slice(cursor));
 
-  return <>{nodes}</>;
+  return (
+    <>
+      {startAnnotations.map((annotation) => (
+        <button
+          aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
+          className="fuma-inspection-text-start-violation"
+          data-focused={focusedOrdinal === annotation.ordinal}
+          data-severity={annotation.severity}
+          data-violation-anchor={annotation.ordinal}
+          id={focusedOrdinal !== undefined ? `violation-text-${annotation.ordinal}` : undefined}
+          key={annotation.id}
+          onClick={onSelectViolation ? () => onSelectViolation(annotation.ordinal) : undefined}
+          tabIndex={onSelectViolation ? 0 : focusedOrdinal !== undefined ? -1 : undefined}
+          title={`${annotation.title}: ${annotation.reason}`}
+          type="button"
+        >
+          <span>{annotation.ordinal}</span>
+          {annotation.title}
+        </button>
+      ))}
+      {startAnnotations.length > 0 && text ? " " : null}
+      {nodes}
+    </>
+  );
 }
 
 function MinimalVersionCard({
@@ -1278,6 +1299,15 @@ function MinimalAiAnalysis({
   const summaryBullets = analysisPending ? [] : contentSummaryBullets(content);
   const issues = inspectionIssueSignals(content);
   const passSignals = inspectionPassSignals(content);
+  const receivedViolationTypes = new Set(
+    content.report.signals.flatMap(({ violationItemId, violationType }) => (
+      violationItemId != null && violationType ? [violationType] : []
+    )),
+  );
+  const normalViolationTypes = CONTENT_VIOLATION_TYPE_OPTIONS.filter(
+    ({ value }) => !receivedViolationTypes.has(value),
+  );
+  const normalItemCount = normalViolationTypes.length + passSignals.length;
   const extracts = content.report.extracts;
   const versionNo = currentDisplayedVersionNo(content);
   const showChanges = versionNo > 1 && content.changeItems.length > 0;
@@ -1308,7 +1338,7 @@ function MinimalAiAnalysis({
             <section aria-label="검수 근거" className="fuma-content-inspection-evidence">
               <header>
                 <h4>검수 근거</h4>
-                <span>위반 후보 {issues.length}건</span>
+                <span>위반 후보 {issues.length} · 정상 {normalItemCount}</span>
               </header>
               {issues.length > 0 ? (
                 <ul>
@@ -1322,28 +1352,11 @@ function MinimalAiAnalysis({
                         onClick={() => onSelectViolation(issue.ordinal)}
                         type="button"
                       >
-                        <strong>
-                          {issueOrdinalLabel(issue.ordinal)} {issue.title}
-                          {issue.detectorSource ? (
-                            <span className="fuma-content-inspection-evidence__source">
-                              {issue.detectorSource}
-                              {issue.inspectionPolicyId != null
-                                ? ` · 정책 #${issue.inspectionPolicyId}`
-                                : ""}
-                            </span>
-                          ) : null}
-                        </strong>
+                        <span className="fuma-content-inspection-evidence__candidate-label">
+                          가이드 위반 후보 {issueOrdinalLabel(issue.ordinal)}
+                        </span>
+                        <strong>{issue.title}</strong>
                         <p>{issue.detail}</p>
-                        <dl>
-                          <div>
-                            <dt>위치</dt>
-                            <dd>{issue.source}</dd>
-                          </div>
-                          <div>
-                            <dt>{detectionSourceLabel(issue.source)}</dt>
-                            <dd>{issue.evidence.trim() || "검출 문구 없음"}</dd>
-                          </div>
-                        </dl>
                         {showsInspectionGuideline(issue) ? (
                           <aside>
                             <span>검수 기준</span>
@@ -1354,17 +1367,27 @@ function MinimalAiAnalysis({
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p>표시할 위반 근거가 없습니다.</p>
-              )}
-              {passSignals.length > 0 ? (
-                <details>
-                  <summary>정상 항목 {passSignals.length}건</summary>
+              ) : null}
+              {normalItemCount > 0 ? (
+                <details className="fuma-content-inspection-evidence__normal-group">
+                  <summary>
+                    <strong>가이드 준수 항목</strong>
+                    <span>{normalItemCount}건 <ChevronDown aria-hidden="true" size={14} /></span>
+                  </summary>
                   <ul>
-                    {passSignals.map((signal) => (
-                      <li key={signal.title}>
-                        <strong>{signal.title}</strong>
-                        <span>{signal.detail}</span>
+                    {normalViolationTypes.map(({ label, value }) => (
+                      <li key={value}>
+                        <span>{label}</span>
+                        <strong>정상</strong>
+                      </li>
+                    ))}
+                    {passSignals.map((signal, index) => (
+                      <li key={`${signal.title}-${index}`}>
+                        <span className="fuma-content-inspection-evidence__normal-copy">
+                          <span>{signal.title}</span>
+                          {signal.evidence ? <small>{signal.evidence}</small> : null}
+                        </span>
+                        <strong>정상</strong>
                       </li>
                     ))}
                   </ul>
@@ -1414,8 +1437,15 @@ function MinimalFinalInspection({
   const [confirmationError, setConfirmationError] = useState<string | null>(null);
   const [confirmationFeedback, setConfirmationFeedback] = useState<string | null>(null);
   const [confirmationPending, setConfirmationPending] = useState(false);
+  const persistedDecision = content.inspectionDecision === "APPROVED"
+    ? "승인"
+    : content.inspectionDecision === "REJECTED" ? "반려" : null;
+  const displayedDecision = decision ?? persistedDecision;
   const analysisPending = content.aiStatus === "pending";
   const candidates = readOnly ? [] : pendingInspectionCandidates(content);
+  const inspectionPolicyId = content.report.signals.find(
+    ({ inspectionPolicyId: policyId }) => policyId != null,
+  )?.inspectionPolicyId;
   const [judgments, setJudgments] = useState<Partial<Record<number, InspectionJudgment>>>({});
   const judgedCount = candidates.filter((candidate) => judgments[candidate.ordinal]).length;
   const allJudged = candidates.length === 0 || judgedCount === candidates.length;
@@ -1478,7 +1508,11 @@ function MinimalFinalInspection({
         <ShieldCheck aria-hidden="true" size={22} />
       </header>
       <dl>
-        <div><dt>검수 상태</dt><dd>{decision ?? "검수 전"}</dd></div>
+        <div>
+          <dt>검수 정책</dt>
+          <dd>{inspectionPolicyId != null ? `정책 #${inspectionPolicyId}` : "-"}</dd>
+        </div>
+        <div><dt>검수 상태</dt><dd>{displayedDecision ?? "검수 전"}</dd></div>
         <div><dt>후보 판정</dt><dd>{judgedCount} / {candidates.length}</dd></div>
       </dl>
       <section className="fuma-minimal-final-inspection__candidates">
@@ -1529,24 +1563,30 @@ function MinimalFinalInspection({
               : "판정할 위반 후보가 없습니다."}</p>
         )}
       </section>
-      <div className="fuma-minimal-final-inspection__actions">
-        <Button
-          aria-pressed={decision === "반려"}
-          className={decision === "반려" ? "is-rejected" : undefined}
-          disabled={!rejectEnabled || confirmationPending}
-          onClick={() => void submitDecision("반려")}
-        >
-          반려
-        </Button>
-        <Button
-          aria-pressed={decision === "승인"}
-          className={decision === "승인" ? "is-approved" : undefined}
-          disabled={!approveEnabled || confirmationPending}
-          onClick={() => void submitDecision("승인")}
-        >
-          승인
-        </Button>
-      </div>
+      {!readOnly ? (
+        <div className="fuma-minimal-final-inspection__actions">
+          {displayedDecision !== "승인" ? (
+            <Button
+              aria-pressed={displayedDecision === "반려"}
+              className={displayedDecision === "반려" ? "is-rejected" : undefined}
+              disabled={displayedDecision != null || !rejectEnabled || confirmationPending}
+              onClick={() => void submitDecision("반려")}
+            >
+              반려
+            </Button>
+          ) : null}
+          {displayedDecision !== "반려" ? (
+            <Button
+              aria-pressed={displayedDecision === "승인"}
+              className={displayedDecision === "승인" ? "is-approved" : undefined}
+              disabled={displayedDecision != null || !approveEnabled || confirmationPending}
+              onClick={() => void submitDecision("승인")}
+            >
+              승인
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       {analysisPending
         ? <p>분석이 완료된 후 최종 검수를 진행할 수 있습니다.</p>
         : confirmationError ? <p role="alert">{confirmationError}</p>
@@ -1559,14 +1599,18 @@ function MinimalFinalInspection({
 function ContentInspectionDetailContent({
   content,
   nextContent,
-  onBack,
+  onList,
   onNext,
+  onPrevious,
+  previousContent,
   remainingCount,
 }: {
   content: ContentInspectionFixture;
   nextContent?: ContentInspectionFixture;
-  onBack: () => void;
+  onList: () => void;
   onNext: () => void;
+  onPrevious: () => void;
+  previousContent?: ContentInspectionFixture;
   remainingCount: number;
 }) {
   const [focusedViolation, setFocusedViolation] = useState<{
@@ -1666,9 +1710,9 @@ function ContentInspectionDetailContent({
   return (
     <>
       <div className="fuma-detail-toolbar fuma-minimal-inspection-toolbar">
-        <button className="hsas-button fuma-detail-toolbar__link" onClick={onBack} type="button">
+        <button className="hsas-button fuma-detail-toolbar__link" onClick={onList} type="button">
           <ArrowLeft aria-hidden="true" size={14} strokeWidth={1.8} />
-          대기열
+          검수 목록
         </button>
         <div className="fuma-minimal-inspection-toolbar__next">
           <span><strong>{remainingCount}건</strong>의 콘텐츠가 남았습니다.</span>
@@ -1678,6 +1722,13 @@ function ContentInspectionDetailContent({
             variant="secondary"
           >
             {inspectionPending ? "검수 중" : "자동 검수 실행"}
+          </Button>
+          <Button
+            disabled={!previousContent}
+            onClick={onPrevious}
+            variant="secondary"
+          >
+            <ChevronLeft aria-hidden="true" size={14} /> 이전 콘텐츠
           </Button>
           <Button
             className="fuma-content-inspection-next-button"
@@ -1706,19 +1757,16 @@ function ContentInspectionDetailContent({
         <main className="fuma-minimal-inspection-main">
           <section aria-label="셀렉터스 계정" className="fuma-content-inspection-identity">
             <div className="fuma-content-inspection-author">
-              <CreatorProfilePhoto creatorName={content.author} src={content.profileImageUrl ?? ""} />
+              <span className="fuma-content-inspection-author__portrait">
+                <CreatorProfilePhoto creatorName={content.author} src={content.profileImageUrl ?? ""} />
+                <PlatformIcon decorative platform={contentPlatform(content.sourcePlatform)} />
+              </span>
               <div className="fuma-content-inspection-author__copy">
                 <div className="fuma-content-inspection-author__account">
                   <strong>{content.author}</strong>
-                  <div>
-                    <PlatformIcon decorative platform={contentPlatform(content.sourcePlatform)} />
-                  </div>
                   <small>{content.accountId ?? content.author}</small>
                 </div>
                 <p className="fuma-content-inspection-author__title">{displayed.contentTitle}</p>
-                <p className="fuma-content-inspection-author__format">
-                  {displayed.sourcePlatform} · {displayed.contentFormat}
-                </p>
               </div>
             </div>
             <div className="fuma-content-inspection-meta">
@@ -2937,10 +2985,17 @@ export function ContentInspectionDetailPage() {
             content={content}
             key={content.id}
             nextContent={nextContent}
-            onBack={() => typeof returnPath === "string" ? navigate(-1) : navigate("/content/inspections")}
+            onList={() => navigate(
+              typeof returnPath === "string" ? returnPath : "/content/inspections",
+            )}
             onNext={() => nextContent && navigate(`/content/inspections/${nextContent.id}`, {
               state: { ...routeState, content: nextContent, contents: detailContents },
             })}
+            onPrevious={() => previousContent && navigate(
+              `/content/inspections/${previousContent.id}`,
+              { state: { ...routeState, content: previousContent, contents: detailContents } },
+            )}
+            previousContent={previousContent}
             remainingCount={remainingCount}
           />
         ) : invalidContentId ? (

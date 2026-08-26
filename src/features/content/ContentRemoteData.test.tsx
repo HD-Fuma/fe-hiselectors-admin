@@ -123,7 +123,7 @@ function requestPathname(input: RequestInfo | URL) {
 
 function mockContentApis(
   contents: ReturnType<typeof contentItem>[],
-  detail: Response | (() => Response) = () => detailResponse(),
+  detail: Response | ((contentId: number) => Response) = () => detailResponse(),
   versionDetail?: Response | ((contentVersionId: number) => Response),
   inspection?: Response | (() => Response),
   confirmation?: Response | (() => Response),
@@ -149,7 +149,8 @@ function mockContentApis(
       );
     }
     if (/\/api\/admin\/contents\/\d+$/.test(pathname)) {
-      return Promise.resolve(typeof detail === "function" ? detail() : detail);
+      const contentId = Number(pathname.split("/").at(-1));
+      return Promise.resolve(typeof detail === "function" ? detail(contentId) : detail);
     }
     return Promise.resolve(pageResponse(contents));
   });
@@ -221,7 +222,7 @@ test("shows a YouTube thumbnail when the video has no direct media URL", async (
 test("loads a direct detail route and keeps pending analysis and decisions honest", async () => {
   const fetchMock = mockContentApis([contentItem()]);
 
-  renderRoute("/content/inspections/901");
+  const { router } = renderRoute("/content/inspections/901");
 
   await waitFor(
     () => expect(screen.getByRole("heading", { name: "콘텐츠 원문" })).toBeInTheDocument(),
@@ -249,8 +250,32 @@ test("loads a direct detail route and keeps pending analysis and decisions hones
   expect(within(finalInspection).getByText("위반 정보 없음")).toBeInTheDocument();
   expect(within(finalInspection).getByRole("button", { name: "승인" })).toBeEnabled();
   expect(within(finalInspection).getByRole("button", { name: "반려" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "이전 콘텐츠" })).toBeDisabled();
   expect(screen.queryByText(/좋아요 [\d,]+개/)).not.toBeInTheDocument();
   expect(screen.queryByText(/조회수 [\d,]+회/)).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "검수 목록" }));
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content/inspections"));
+});
+
+test("moves to the previous pending content from the detail toolbar", async () => {
+  const contents = [
+    contentItem({ contentId: 900, latestVersionId: 9000, snsContentId: "api-900" }),
+    contentItem(),
+    contentItem({ contentId: 902, latestVersionId: 9020, snsContentId: "api-902" }),
+  ];
+  mockContentApis(contents, (contentId) => detailResponse({ contentId }));
+
+  const { router } = renderRoute("/content/inspections/901");
+
+  const previous = await screen.findByRole("button", { name: "이전 콘텐츠" }, {
+    timeout: 3_000,
+  });
+  await waitFor(() => expect(previous).toBeEnabled());
+  expect(screen.getByRole("button", { name: "다음 콘텐츠" })).toBeEnabled();
+
+  fireEvent.click(previous);
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content/inspections/902"));
 });
 
 test("shows completion dialog after confirming the final content", async () => {
@@ -299,11 +324,11 @@ test("loads violations and submits the final judgment in one request", async () 
           locations: [{
             bbox: null,
             contentMediaId: 90101,
-            endIndex: 11,
+            endIndex: 103,
             endTime: null,
             excerpt: "가장 저렴한",
             mediaType: "TEXT",
-            startIndex: 3,
+            startIndex: 100,
             startTime: null,
           }],
           reason: "비교 근거 없이 최저가를 단정했습니다.",
@@ -351,16 +376,36 @@ test("loads violations and submits the final judgment in one request", async () 
   ))).toBe(true);
   expect(screen.getAllByText("상품 소개").length).toBeGreaterThan(0);
   expect(screen.getAllByText("본문에서 상품을 소개한 뒤 링크를 안내합니다.").length).toBeGreaterThan(0);
-  expect(screen.getAllByText("과장 표현 수정 후 재검수가 필요합니다.").length).toBeGreaterThan(0);
+  expect(screen.queryByText("과장 표현 수정 후 재검수가 필요합니다.")).not.toBeInTheDocument();
 
   const report = screen.getByRole("region", { name: "AI 분석" });
   expect(within(report).getByText("광고 표기는 확인됐고 최저가 단정 표현이 있습니다.")).toBeInTheDocument();
   expect(within(report).getByRole("heading", { name: "검수 근거" })).toBeInTheDocument();
-  expect(within(report).getByText("① 허위·과장 표현")).toBeInTheDocument();
+  expect(within(report).getByText("가이드 위반 후보 ①")).toBeInTheDocument();
+  expect(within(report).getByText("허위·과장 표현")).toBeInTheDocument();
+  expect(within(report).queryByText("게시물 본문(TEXT)")).not.toBeInTheDocument();
+  expect(within(report).getByText("광고 수수료 안내문구 표시")).toBeInTheDocument();
+  expect(within(report).getByText("제휴링크 누락·불일치")).toBeInTheDocument();
+  expect(within(report).getByText("욕설/비속어")).toBeInTheDocument();
+  expect(within(report).queryByText("허위/과장 표현")).not.toBeInTheDocument();
+  expect(within(report).getByText("위반 후보 1 · 정상 9")).toBeInTheDocument();
+  const compliantItemsLabel = within(report).getByText("가이드 준수 항목");
+  const compliantItems = compliantItemsLabel.closest("details");
+  expect(compliantItems).not.toHaveAttribute("open");
+  expect(within(report).getAllByText("정상")).toHaveLength(9);
+  fireEvent.click(compliantItemsLabel);
+  expect(compliantItems).toHaveAttribute("open");
   expect(within(report).queryByText("분석 대기")).not.toBeInTheDocument();
   expect(within(report).queryByText("2026-08-18T11:06:00")).not.toBeInTheDocument();
 
+  const textStartMarker = screen.getByRole("button", { name: "위반 1: 허위·과장 표현" });
+  expect(textStartMarker.parentElement).toHaveTextContent("지금 가장 저렴한 가격 #광고");
+  expect(textStartMarker.parentElement?.tagName).toBe("P");
+
   const finalInspection = screen.getByRole("region", { name: "최종 검수" });
+  expect(within(finalInspection).getByText("검수 정책")).toBeInTheDocument();
+  expect(within(finalInspection).getByText("정책 #9")).toBeInTheDocument();
+  expect(within(finalInspection).queryByText("AI")).not.toBeInTheDocument();
   expect(within(finalInspection).getByText("① 허위·과장 표현")).toBeInTheDocument();
   expect(within(finalInspection).getByText("“가장 저렴한”")).toBeInTheDocument();
   const markViolation = within(finalInspection).getByRole("button", { name: "위반" });
@@ -371,14 +416,15 @@ test("loads violations and submits the final judgment in one request", async () 
   expect(reject).toBeDisabled();
   expect(within(finalInspection).getByText("0 / 1")).toBeInTheDocument();
 
-  fireEvent.click(within(report).getByRole("button", { name: /① 허위·과장 표현/ }));
+  fireEvent.click(within(report).getByRole("button", { name: /가이드 위반 후보 ①/ }));
   expect(document.querySelector('[data-violation-anchor="1"][data-focused="true"]')).not.toBeNull();
 
-  fireEvent.click(within(report).getByRole("button", { name: /① 허위·과장 표현/ }));
+  fireEvent.click(within(report).getByRole("button", { name: /가이드 위반 후보 ①/ }));
   expect(document.querySelector('[data-violation-anchor="1"][data-focused="true"]')).toBeNull();
 
   fireEvent.click(markViolation);
   expect(markViolation).toHaveAttribute("aria-pressed", "true");
+  expect(markViolation).toHaveClass("hsas-button--secondary");
   expect(within(finalInspection).getByText("1 / 1")).toBeInTheDocument();
   expect(approve).toBeDisabled();
   expect(reject).toBeEnabled();
@@ -400,8 +446,11 @@ test("loads violations and submits the final judgment in one request", async () 
 
   await waitFor(() => expect(within(finalInspection).getByRole("status"))
     .toHaveTextContent("반려 처리했습니다. 위반 항목 1건을 갱신했습니다."));
+  expect(within(finalInspection).getByRole("button", { name: "반려" })).toBeDisabled();
+  expect(within(finalInspection).queryByRole("button", { name: "승인" }))
+    .not.toBeInTheDocument();
   expect(within(finalInspection).queryByText("① 허위·과장 표현")).not.toBeInTheDocument();
-  expect(within(report).getByText("① 허위·과장 표현")).toBeInTheDocument();
+  expect(within(report).getByText("가이드 위반 후보 ①")).toBeInTheDocument();
   const confirmationCall = fetchMock.mock.calls.find(([input]) => (
     requestPathname(input) === "/api/admin/contents/901/versions/9010/inspection"
   ));
@@ -455,6 +504,7 @@ test("loads a past content version when the version select changes", async () =>
       contentVersionId: 9010,
       createdAt: "2026-08-18T11:05:00",
       inspectedAt: "2026-08-18T11:06:00",
+      inspectionDecision: "APPROVED",
       inspectionStatus: "COMPLETED",
       media: versionMedia(["지금 가장 저렴한 가격 #광고"]),
       violations: [],
@@ -494,6 +544,12 @@ test("loads a past content version when the version select changes", async () =>
   );
   const versionSelect = screen.getByRole("combobox", { name: "버전" });
   expect(versionSelect).toHaveDisplayValue("v2 · 콘텐츠 수정 · 최신 버전");
+  const finalInspection = screen.getByRole("region", { name: "최종 검수" });
+  expect(within(finalInspection).getByText("검수 상태").nextElementSibling)
+    .toHaveTextContent("승인");
+  expect(within(finalInspection).getByRole("button", { name: "승인" })).toBeDisabled();
+  expect(within(finalInspection).queryByRole("button", { name: "반려" }))
+    .not.toBeInTheDocument();
 
   fireEvent.change(versionSelect, { target: { value: "9001" } });
 
@@ -502,12 +558,21 @@ test("loads a past content version when the version select changes", async () =>
   expect(screen.getByText("26.08.17 09:00")).toBeInTheDocument();
   expect(versionSelect).toHaveDisplayValue("v1");
   expect(screen.queryByText("지금 가장 저렴한 가격 #광고")).not.toBeInTheDocument();
+  const historicalFinalInspection = screen.getByRole("region", { name: "최종 검수" });
+  expect(within(historicalFinalInspection).queryByRole("button", { name: "반려" }))
+    .not.toBeInTheDocument();
+  expect(within(historicalFinalInspection).queryByRole("button", { name: "승인" }))
+    .not.toBeInTheDocument();
   expect(fetchMock.mock.calls.map(([input]) => requestPathname(input))).toEqual(
     expect.arrayContaining(["/api/admin/contents/901/versions/9001"]),
   );
 
   fireEvent.change(versionSelect, { target: { value: "9010" } });
   expect(screen.getAllByText("지금 가장 저렴한 가격 #광고").length).toBeGreaterThan(0);
+  const latestFinalInspection = screen.getByRole("region", { name: "최종 검수" });
+  expect(within(latestFinalInspection).queryByRole("button", { name: "반려" }))
+    .not.toBeInTheDocument();
+  expect(within(latestFinalInspection).getByRole("button", { name: "승인" })).toBeDisabled();
   expect(fetchMock.mock.calls.filter(([input]) => (
     requestPathname(input) === "/api/admin/contents/901/versions/9001"
   ))).toHaveLength(1);

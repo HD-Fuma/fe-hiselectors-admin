@@ -11,6 +11,8 @@ test("keeps annotation targets valid and resolved content free of active violati
       const occurrenceCount = previous.text.split(target.quote).length - 1;
       expect(target.quote).not.toBe("");
       expect(occurrenceCount).toBeGreaterThanOrEqual(target.occurrence ?? 1);
+    } else if (target.kind === "text-start") {
+      expect(target.quote).not.toBe("");
     } else if (target.kind === "url") {
       expect(previous.urls[target.targetIndex]).toBeDefined();
     } else {

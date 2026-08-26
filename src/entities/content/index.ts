@@ -23,8 +23,10 @@ export type {
   ContentVersionMedia,
   ContentVersionSummary,
   ContentViolation,
+  ContentViolationType,
 } from "./api";
 export { adaptContentInspection, adaptContentInspectionDetail } from "./model/adapter";
+export { CONTENT_VIOLATION_TYPE_OPTIONS } from "./model/violationTypes";
 export {
   CONTENT_INSPECTIONS,
   INSPECTION_TYPE_LABELS,

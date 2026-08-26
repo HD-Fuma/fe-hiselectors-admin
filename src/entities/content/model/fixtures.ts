@@ -1,3 +1,5 @@
+import type { ContentInspectionDecision, ContentViolationType } from "../api";
+
 export type InspectionType = "NEW" | "VIOLATION_CORRECTION" | "EDITED";
 export type InspectionStatus = "검수 대기" | "수정 요청" | "승인" | "위반";
 export type ProcessingState = "미처리" | "안내 대기" | "처리 완료";
@@ -15,6 +17,10 @@ export type ContentAnnotationTarget =
       occurrence?: number;
       startIndex?: number;
       endIndex?: number;
+    }
+  | {
+      kind: "text-start";
+      quote: string;
     }
   | {
       kind: "url";
@@ -74,6 +80,7 @@ export interface ContentInspectionSignal {
   detectorSource?: "RULE" | "AI";
   locationAvailable?: boolean;
   violationItemId?: number;
+  violationType?: ContentViolationType;
   violationStatus?: "PENDING" | "VIOLATION_CONFIRMED" | "EDIT_REQUESTED" | "DISMISSED" | "RESOLVED";
   inspectionPolicyId?: number;
   violationEvidenceHistoryId?: number;
@@ -133,6 +140,7 @@ export interface ContentInspectionFixture {
   aiSummary: string;
   detectedIssues: string[];
   violationType: string | null;
+  inspectionDecision?: ContentInspectionDecision | null;
   inspectionStatus: InspectionStatus;
   processingState: ProcessingState;
   availableActions: string[];
