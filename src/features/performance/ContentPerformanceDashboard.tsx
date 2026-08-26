@@ -112,6 +112,7 @@ function ContentTableTrendChart({ content }: { content: ContentInfluence }) {
   return (
     <div className="fuma-content-table-trend">
       <SparklineChart
+        animated
         ariaLabel="날짜별 조회수 및 좋아요 추이"
         categories={dates}
         categoryLabels={dates.map((date) => trendDateLabel(date))}
@@ -358,6 +359,7 @@ function ContentOverview({
         <section aria-label="콘텐츠 유형" className="fuma-content-upload-status__formats">
           <h3>콘텐츠 유형</h3>
           <AnalysisFormatBreakdown
+            animated
             segments={formatSegments}
             showTotal={false}
             total={uploadSummary?.totalContentCount ?? 0}
@@ -428,6 +430,7 @@ function ContentOverview({
             role="region"
           >
             <PeriodLineChart
+              animated
               ariaLabel={cohortChartMode === "all"
                 ? "기간별 전체 성과 추이"
                 : `기간별 ${visibleCohortSeries[0].label} 추이`}
@@ -590,6 +593,7 @@ function ContentPerformanceDetailPanel({
                 ))}
               </ul>
               <PeriodLineChart
+                animated
                 ariaLabel="콘텐츠 조회 및 반응 추이"
                 categories={trendDates}
                 categoryLabels={trendDates.map((date) => trendDateLabel(date))}

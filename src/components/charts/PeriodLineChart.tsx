@@ -10,6 +10,7 @@ export interface PeriodLineSeries {
 }
 
 interface PeriodLineChartProps {
+  animated?: boolean;
   ariaLabel: string;
   categories: readonly string[];
   categoryLabels: readonly string[];
@@ -25,6 +26,7 @@ interface PeriodLineChartProps {
 }
 
 export function PeriodLineChart({
+  animated = false,
   ariaLabel,
   categories,
   categoryLabels,
@@ -39,7 +41,9 @@ export function PeriodLineChart({
   width,
 }: PeriodLineChartProps) {
   const option: EChartsOption = {
-    animation: false,
+    animation: animated,
+    animationDuration: animated ? 700 : 0,
+    animationEasing: "cubicOut",
     grid: {
       bottom: 28,
       left: 18,

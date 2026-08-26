@@ -7,6 +7,7 @@ interface SparklineSeries {
 }
 
 interface SparklineChartProps {
+  animated?: boolean;
   ariaLabel: string;
   categories: readonly string[];
   categoryLabels: readonly string[];
@@ -17,6 +18,7 @@ interface SparklineChartProps {
 }
 
 export function SparklineChart({
+  animated = false,
   ariaLabel,
   categories,
   categoryLabels,
@@ -34,7 +36,9 @@ export function SparklineChart({
   }).join(". ");
 
   const option: EChartsOption = {
-    animation: false,
+    animation: animated,
+    animationDuration: animated ? 700 : 0,
+    animationEasing: "cubicOut",
     grid: {
       bottom: 16,
       left: 8,

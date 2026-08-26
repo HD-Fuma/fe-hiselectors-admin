@@ -813,6 +813,11 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(dl, dl > div, .fuma
   .fuma-content-cohort-chart__legend,
   .fuma-content-table-trend__header small
 ) { color: var(--hsas-color-black); }
+.fuma-content-performance-page .fuma-content-period-chart__toolbar .hsas-segmented-control__item,
+.fuma-content-performance-page .fuma-content-cohort-chart__legend {
+  font-size: var(--hsas-font-11);
+  font-weight: 700;
+}
 .fuma-content-performance-page .fuma-content-cohort-chart__selected,
 .fuma-content-performance-page .fuma-content-cohort-chart__plot [data-highlighted="true"] .fuma-content-cohort-chart__label { fill: var(--hsas-color-black); }
 .fuma-content-cohort-chart__point { fill: var(--hsas-color-white); stroke: var(--cohort-series-color); stroke-width: 2.5; }
