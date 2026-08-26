@@ -214,6 +214,33 @@ function drawCurve(
   context.stroke();
 }
 
+function drawGlassShape(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+  phase: number,
+) {
+  const points = Array.from({ length: 8 }, (_, index) => {
+    const angle = -Math.PI / 2 + (index * Math.PI * 2) / 8;
+    const tension =
+      1 + Math.sin(phase + index * 1.73) * 0.14 + Math.cos(phase * 0.7 + index * 2.31) * 0.04;
+    return {
+      x: x + Math.cos(angle) * radius * tension,
+      y: y + Math.sin(angle) * radius * tension,
+    };
+  });
+  const last = points.at(-1)!;
+  const first = points[0];
+  context.beginPath();
+  context.moveTo((last.x + first.x) / 2, (last.y + first.y) / 2);
+  points.forEach((point, index) => {
+    const next = points[(index + 1) % points.length];
+    context.quadraticCurveTo(point.x, point.y, (point.x + next.x) / 2, (point.y + next.y) / 2);
+  });
+  context.closePath();
+}
+
 function drawBubble(
   context: CanvasRenderingContext2D,
   node: PoolNode,
@@ -222,29 +249,64 @@ function drawBubble(
   radius: number,
   image: HTMLImageElement | undefined,
 ) {
-  const shellRadius = radius + 5;
+  const shellRadius = radius + 10;
 
-  // 콘텐츠 검수 확인 팝업과 같은 반투명 흰색·테두리·그림자 재질.
+  // 확인 팝업 재질을 비대칭 표면 장력 형태로 그려 물방울 패딩을 만든다.
   context.save();
   context.shadowColor = "rgb(54 65 72 / 12%)";
-  context.shadowBlur = 18;
-  context.shadowOffsetY = 6;
-  context.fillStyle = "rgb(255 255 255 / 58%)";
-  context.beginPath();
-  context.arc(x, y, shellRadius, 0, Math.PI * 2);
+  context.shadowBlur = 20;
+  context.shadowOffsetY = 7;
+  const glass = context.createRadialGradient(
+    x - shellRadius * 0.38,
+    y - shellRadius * 0.42,
+    shellRadius * 0.08,
+    x,
+    y,
+    shellRadius * 1.12,
+  );
+  glass.addColorStop(0, "rgb(255 255 255 / 76%)");
+  glass.addColorStop(0.48, "rgb(255 255 255 / 58%)");
+  glass.addColorStop(1, "rgb(255 255 255 / 34%)");
+  context.fillStyle = glass;
+  drawGlassShape(context, x, y, shellRadius, node.phase);
   context.fill();
   context.restore();
 
   context.save();
   context.strokeStyle = "rgb(255 255 255 / 78%)";
+  context.lineWidth = 1.4;
+  drawGlassShape(context, x, y, shellRadius - 0.7, node.phase);
+  context.stroke();
+
+  // 팝업의 inset highlight를 물방울 윗면 반사광으로 옮긴다.
+  context.strokeStyle = "rgb(255 255 255 / 72%)";
+  context.lineCap = "round";
+  context.lineWidth = Math.max(1.5, radius * 0.08);
+  context.beginPath();
+  context.moveTo(x - shellRadius * 0.66, y - shellRadius * 0.12);
+  context.bezierCurveTo(
+    x - shellRadius * 0.62,
+    y - shellRadius * 0.42,
+    x - shellRadius * 0.4,
+    y - shellRadius * 0.7,
+    x - shellRadius * 0.04,
+    y - shellRadius * 0.78,
+  );
+  context.stroke();
+
+  // 밝은 바탕에서도 유리 두께가 보이도록 아래쪽 굴절면만 얇게 남긴다.
+  context.strokeStyle = "rgb(54 65 72 / 10%)";
   context.lineWidth = 1;
   context.beginPath();
-  context.arc(x, y, shellRadius - 0.5, 0, Math.PI * 2);
-  context.stroke();
-  context.strokeStyle = "rgb(255 255 255 / 72%)";
-  context.lineWidth = 1.5;
-  context.beginPath();
-  context.arc(x, y, shellRadius - 2, Math.PI * 1.08, Math.PI * 1.82);
+  context.moveTo(x + shellRadius * 0.67, y + shellRadius * 0.06);
+  context.bezierCurveTo(
+    x + shellRadius * 0.62,
+    y + shellRadius * 0.43,
+    x + shellRadius * 0.39,
+    y + shellRadius * 0.69,
+    x + shellRadius * 0.04,
+    y + shellRadius * 0.78,
+  );
   context.stroke();
   context.restore();
 
@@ -653,8 +715,13 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         if (active) {
           context.strokeStyle = `rgb(${NODE_TINT} / 45%)`;
           context.lineWidth = 2;
-          context.beginPath();
-          context.arc(position.x, position.y, radius + 8 + Math.sin(time / 240) * 3, 0, Math.PI * 2);
+          drawGlassShape(
+            context,
+            position.x,
+            position.y,
+            radius + 14 + Math.sin(time / 240) * 3,
+            node.phase,
+          );
           context.stroke();
         }
 
@@ -663,8 +730,7 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         if (active) {
           context.strokeStyle = `rgb(${NODE_TINT})`;
           context.lineWidth = 2.6;
-          context.beginPath();
-          context.arc(position.x, position.y, radius + 6, 0, Math.PI * 2);
+          drawGlassShape(context, position.x, position.y, radius + 8, node.phase);
           context.stroke();
         }
         context.restore();
