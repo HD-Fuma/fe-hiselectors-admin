@@ -16,12 +16,12 @@
     radial-gradient(circle at 50% 28%, rgb(255 255 255 / 22%) 0, rgb(248 249 249 / 18%) 32%, rgb(233 236 238 / 21%) 100%);
   backdrop-filter: blur(30px) saturate(0.72);
   -webkit-mask-image:
-    linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent),
-    linear-gradient(to bottom, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+    linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent),
+    linear-gradient(to bottom, transparent, #000 48px, #000 calc(100% - 48px), transparent);
   -webkit-mask-composite: source-in;
   mask-image:
-    linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent),
-    linear-gradient(to bottom, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+    linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent),
+    linear-gradient(to bottom, transparent, #000 48px, #000 calc(100% - 48px), transparent);
   mask-composite: intersect;
 }
 
