@@ -908,6 +908,17 @@ body:has(.fuma-content-inspection-studio) {
   font-weight: 800;
 }
 
+.fuma-content-inspection-studio__navigation-tooltip {
+  position: absolute;
+  bottom: 92px;
+  left: 50%;
+  z-index: 4;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  flex: none;
+  translate: -50% 0;
+}
+
 .fuma-content-inspection-studio__decision {
   position: absolute;
   bottom: 28px;

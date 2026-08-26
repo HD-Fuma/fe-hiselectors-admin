@@ -2828,16 +2828,6 @@ export function ContentInspectionDetailPage() {
                               >
                                 위반 허용
                               </button>
-                              {judgment ? (
-                                <Tooltip
-                                  className="fuma-content-inspection-studio__report-choice-tooltip"
-                                  placement="none"
-                                  role="status"
-                                  visible
-                                >
-                                  <kbd>Space</kbd> 바를 눌러 다음으로 이동하세요
-                                </Tooltip>
-                              ) : null}
                             </div>
                           ) : null}
                         </div>
@@ -2848,6 +2838,17 @@ export function ContentInspectionDetailPage() {
               ) : <p className="fuma-content-inspection-studio__report-empty">위반 사항이 없습니다.</p>}
             </section>
           </aside>
+        ) : null}
+        {focusedStudioViolationIndex >= 0
+          && studioViolationJudgments[focusedStudioViolationIndex] ? (
+          <Tooltip
+            className="fuma-content-inspection-studio__report-choice-tooltip fuma-content-inspection-studio__navigation-tooltip"
+            placement="none"
+            role="status"
+            visible
+          >
+            <kbd>Space</kbd> 바를 눌러 다음으로 이동하세요
+          </Tooltip>
         ) : null}
         <div
           aria-label="최종 검수"
