@@ -3,14 +3,16 @@ import {
   contentChartDraggedScrollLeft,
   contentChartDragVelocity,
   contentChartEdgeScrollSpeed,
+  contentChartEdgeScrollVelocity,
   contentChartMomentumVelocity,
 } from "./contentChartEdgeScroll";
 
 describe("contentChartEdgeScrollSpeed", () => {
   test("scrolls toward a nearby edge and stops in the center", () => {
-    expect(contentChartEdgeScrollSpeed(70, 0, 500)).toBe(-3);
+    expect(contentChartEdgeScrollSpeed(70, 0, 500)).toBeLessThan(0);
     expect(contentChartEdgeScrollSpeed(250, 0, 500)).toBe(0);
-    expect(contentChartEdgeScrollSpeed(495, 0, 500)).toBe(6);
+    expect(contentChartEdgeScrollSpeed(495, 0, 500)).toBeGreaterThan(5);
+    expect(contentChartEdgeScrollVelocity(0, 6)).toBeCloseTo(0.6);
   });
 
   test("moves the chart opposite to the pointer drag", () => {

@@ -29,6 +29,7 @@ import {
   contentChartDraggedScrollLeft,
   contentChartDragVelocity,
   contentChartEdgeScrollSpeed,
+  contentChartEdgeScrollVelocity,
   contentChartMomentumVelocity,
 } from "./contentChartEdgeScroll";
 
@@ -267,7 +268,7 @@ function ContentOverview({
     end: defaultPeriodEnd,
   });
   const chartScrollRef = useRef<HTMLDivElement>(null);
-  const chartEdgeScrollRef = useRef({ animationFrame: 0, speed: 0 });
+  const chartEdgeScrollRef = useRef({ animationFrame: 0, speed: 0, targetSpeed: 0 });
   const chartDragRef = useRef({
     lastTime: 0,
     lastX: 0,
@@ -289,7 +290,7 @@ function ContentOverview({
     if (chartEdgeScrollRef.current.animationFrame) {
       window.cancelAnimationFrame(chartEdgeScrollRef.current.animationFrame);
     }
-    chartEdgeScrollRef.current = { animationFrame: 0, speed: 0 };
+    chartEdgeScrollRef.current = { animationFrame: 0, speed: 0, targetSpeed: 0 };
   };
 
   const stopChartMomentum = () => {
@@ -316,10 +317,18 @@ function ContentOverview({
 
   const scrollChartAtEdge = () => {
     const scrollArea = chartScrollRef.current;
-    if (!scrollArea || !chartEdgeScrollRef.current.speed) {
+    if (!scrollArea) {
       return;
     }
 
+    chartEdgeScrollRef.current.speed = contentChartEdgeScrollVelocity(
+      chartEdgeScrollRef.current.speed,
+      chartEdgeScrollRef.current.targetSpeed,
+    );
+    if (!chartEdgeScrollRef.current.speed) {
+      stopChartEdgeScroll();
+      return;
+    }
     const previousScrollLeft = scrollArea.scrollLeft;
     scrollArea.scrollLeft += chartEdgeScrollRef.current.speed;
     if (scrollArea.scrollLeft === previousScrollLeft) {
@@ -339,11 +348,9 @@ function ContentOverview({
 
     const bounds = scrollArea.getBoundingClientRect();
     const speed = contentChartEdgeScrollSpeed(event.clientX, bounds.left, bounds.right);
-    chartEdgeScrollRef.current.speed = speed;
-    if (speed && !chartEdgeScrollRef.current.animationFrame) {
+    chartEdgeScrollRef.current.targetSpeed = speed;
+    if ((speed || chartEdgeScrollRef.current.speed) && !chartEdgeScrollRef.current.animationFrame) {
       chartEdgeScrollRef.current.animationFrame = window.requestAnimationFrame(scrollChartAtEdge);
-    } else if (!speed) {
-      stopChartEdgeScroll();
     }
   };
 

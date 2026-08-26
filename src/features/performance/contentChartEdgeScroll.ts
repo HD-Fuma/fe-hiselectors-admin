@@ -4,12 +4,17 @@ export function contentChartEdgeScrollSpeed(clientX: number, left: number, right
   const rightDistance = right - clientX;
 
   if (leftDistance < edgeWidth) {
-    return -Math.min(6, Math.ceil((edgeWidth - leftDistance) / 8));
+    return -6 * Math.pow(Math.min(1, (edgeWidth - leftDistance) / edgeWidth), 1.8);
   }
   if (rightDistance < edgeWidth) {
-    return Math.min(6, Math.ceil((edgeWidth - rightDistance) / 8));
+    return 6 * Math.pow(Math.min(1, (edgeWidth - rightDistance) / edgeWidth), 1.8);
   }
   return 0;
+}
+
+export function contentChartEdgeScrollVelocity(current: number, target: number) {
+  const next = current + (target - current) * 0.1;
+  return !target && Math.abs(next) < 0.05 ? 0 : next;
 }
 
 export function contentChartDraggedScrollLeft(startScrollLeft: number, startX: number, currentX: number) {
