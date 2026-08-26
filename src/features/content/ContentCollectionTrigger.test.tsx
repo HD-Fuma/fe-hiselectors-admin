@@ -118,6 +118,7 @@ test("requests one content collection run with idempotency and hides the accepte
   expect(refreshButton.parentElement?.tagName).toBe("SPAN");
   expect(refreshButton.querySelector("svg")).toBeInTheDocument();
   expect(within(categoryTabs).getByRole("button", { name: "검수 시작" })).toBeEnabled();
+  expect(within(categoryTabs).getByRole("button", { name: "검수 상태 초기화" })).toBeEnabled();
 
   const requestsBeforeRun = fetchMock.mock.calls.length;
   fireEvent.click(refreshButton);

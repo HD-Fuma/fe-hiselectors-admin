@@ -188,6 +188,11 @@ export interface ContentInspectionConfirmationResponse {
   updatedCount: number;
 }
 
+export interface ContentInspectionResetResponse {
+  resetVersionCount: number;
+  resetViolationCount: number;
+}
+
 export interface ContentDetail {
   contentId: number;
   contentType: CollectedContentType;
@@ -250,6 +255,25 @@ export async function runContentBatch(): Promise<ContentBatchRunResponse> {
     throw new Error(result.message || "콘텐츠 배치 실행에 실패했습니다.");
   }
 
+  return result.data;
+}
+
+export async function resetContentInspections(): Promise<ContentInspectionResetResponse> {
+  const headers = new Headers();
+  const authorization = authorizationHeader();
+  if (authorization) headers.set("Authorization", authorization);
+  const confirmation = encodeURIComponent("RESET_CONTENT_INSPECTIONS");
+  const response = await adminFetch(
+    `${API_BASE_URL}/api/admin/contents/inspection-decisions?confirmation=${confirmation}`,
+    { headers, method: "DELETE" },
+  );
+  if (!response.ok) {
+    throw new Error(await errorMessage(response, "검수 상태 초기화에 실패했습니다."));
+  }
+  const result = await response.json() as ApiResult<ContentInspectionResetResponse>;
+  if (!result.success || !result.data) {
+    throw new Error(result.message || "검수 상태 초기화에 실패했습니다.");
+  }
   return result.data;
 }
 

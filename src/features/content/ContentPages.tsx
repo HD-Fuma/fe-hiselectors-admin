@@ -23,6 +23,7 @@ import {
   Play,
   Repeat2,
   RefreshCw,
+  RotateCcw,
   Send,
   Settings,
   Share2,
@@ -61,6 +62,7 @@ import {
   getContentVersionDetail,
   getCurrentGenerationContents,
   inspectContentVersion,
+  resetContentInspections,
   runContentBatch,
   type ContentAnnotation,
   type ContentAnnotationTarget,
@@ -433,6 +435,9 @@ function ContentInspectionCategoryTabs({
   onSelect: (category: ContentInspectionCategory) => void;
 }) {
   const [isCollecting, setIsCollecting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetFeedback, setResetFeedback] = useState<string | null>(null);
   const [collectionError, setCollectionError] = useState<string | null>(null);
   const collectionRequestRef = useRef<AbortController | null>(null);
 
@@ -467,15 +472,47 @@ function ContentInspectionCategoryTabs({
     }
   };
 
+  const resetInspectionState = async () => {
+    setIsResetting(true);
+    setCollectionError(null);
+    setResetFeedback(null);
+    try {
+      const result = await resetContentInspections();
+      await onCollectionComplete();
+      setResetDialogOpen(false);
+      setResetFeedback(
+        `콘텐츠 ${result.resetVersionCount}건과 위반 판정 ${result.resetViolationCount}건을 초기화했습니다.`,
+      );
+    } catch (error) {
+      setCollectionError(
+        error instanceof Error ? error.message : "검수 상태 초기화에 실패했습니다.",
+      );
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <>
       <ChoiceTabs
         actions={(
           <span className="fuma-content-collection-run-actions">
+            {import.meta.env.DEV ? (
+              <Button
+                aria-label="검수 상태 초기화"
+                disabled={isCollecting || isResetting}
+                onClick={() => setResetDialogOpen(true)}
+                title="현재 기수의 검수 상태 초기화"
+                variant="danger"
+              >
+                <RotateCcw aria-hidden="true" size={15} />
+                초기화
+              </Button>
+            ) : null}
             <Button
               aria-label={isCollecting ? "콘텐츠 새로고침 중" : "콘텐츠 새로고침"}
               className="fuma-content-inspection-refresh-button"
-              disabled={isCollecting}
+              disabled={isCollecting || isResetting}
               onClick={() => void runContentCollection()}
               title={isCollecting ? "콘텐츠 새로고침 중" : "콘텐츠 새로고침"}
             >
@@ -504,6 +541,31 @@ function ContentInspectionCategoryTabs({
         >
           {collectionError}
         </p>
+      ) : resetFeedback ? (
+        <p className="fuma-content-inspection-collection-feedback" role="status">
+          {resetFeedback}
+        </p>
+      ) : null}
+      {import.meta.env.DEV ? (
+        <BubbleDialog
+          actions={(
+            <>
+              <Button disabled={isResetting} onClick={() => setResetDialogOpen(false)}>
+                취소
+              </Button>
+              <Button
+                disabled={isResetting}
+                onClick={() => void resetInspectionState()}
+                variant="danger"
+              >
+                {isResetting ? "초기화 중" : "초기화"}
+              </Button>
+            </>
+          )}
+          description="현재 활동 기수의 최종 승인·반려와 위반 판정을 초기화합니다. 패널티, 블랙리스트, 감사 이력은 유지됩니다."
+          open={resetDialogOpen}
+          title="검수 상태를 초기화할까요?"
+        />
       ) : null}
     </>
   );

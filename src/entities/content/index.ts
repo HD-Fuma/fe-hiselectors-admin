@@ -4,6 +4,7 @@ export {
   confirmContentInspection,
   getCurrentGenerationContents,
   inspectContentVersion,
+  resetContentInspections,
   runContentBatch,
 } from "./api";
 export type {
@@ -13,6 +14,7 @@ export type {
   ContentBatchRunResponse,
   ContentInspectionConfirmationRequest,
   ContentInspectionConfirmationResponse,
+  ContentInspectionResetResponse,
   ContentDetail,
   ContentInspectionSnsCode,
   ContentInspectionRunResponse,
