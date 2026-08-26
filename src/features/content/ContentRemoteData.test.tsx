@@ -247,8 +247,8 @@ test("loads a direct detail route and keeps pending analysis and decisions hones
 
   const finalInspection = screen.getByRole("region", { name: "최종 검수" });
   expect(within(finalInspection).getByText("위반 정보 없음")).toBeInTheDocument();
-  expect(within(finalInspection).getByRole("button", { name: "승인" })).toBeDisabled();
-  expect(within(finalInspection).getByRole("button", { name: "반려" })).toBeDisabled();
+  expect(within(finalInspection).getByRole("button", { name: "승인" })).toBeEnabled();
+  expect(within(finalInspection).getByRole("button", { name: "반려" })).toBeEnabled();
   expect(screen.queryByText(/좋아요 [\d,]+개/)).not.toBeInTheDocument();
   expect(screen.queryByText(/조회수 [\d,]+회/)).not.toBeInTheDocument();
 });

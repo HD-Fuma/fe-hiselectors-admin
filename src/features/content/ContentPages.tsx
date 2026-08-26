@@ -1409,8 +1409,8 @@ function MinimalFinalInspection({
   const judgedCount = candidates.filter((candidate) => judgments[candidate.ordinal]).length;
   const allJudged = candidates.length === 0 || judgedCount === candidates.length;
   const hasViolationJudgment = candidates.some((candidate) => judgments[candidate.ordinal] === "위반");
-  const approveEnabled = !analysisPending && allJudged && !hasViolationJudgment;
-  const rejectEnabled = !analysisPending && allJudged && hasViolationJudgment;
+  const approveEnabled = allJudged && (analysisPending || !hasViolationJudgment);
+  const rejectEnabled = allJudged && (analysisPending || hasViolationJudgment);
 
   const setJudgment = (ordinal: number, judgment: InspectionJudgment) => {
     setJudgments((current) => {
@@ -1851,11 +1851,12 @@ export function ContentInspectionDetailPage() {
     [content, studioReviewReadOnly],
   );
   const studioReportReady = content?.aiStatus === "ready";
-  const studioViolationReviewComplete = studioReportReady
-    && !studioReviewReadOnly
+  const studioViolationReviewComplete = !studioReviewReadOnly
     && studioReportRefreshVersionId === null
-    && studioViolationJudgments.length === studioViolationSignals.length
-    && studioViolationJudgments.every(Boolean);
+    && (!studioReportReady || (
+      studioViolationJudgments.length === studioViolationSignals.length
+      && studioViolationJudgments.every(Boolean)
+    ));
   const studioFinalFocused = studioViolationReviewComplete
     && focusedStudioViolationIndex < 0;
   const studioCardFocusedViolation = useMemo(() => {
@@ -2052,7 +2053,8 @@ export function ContentInspectionDetailPage() {
       || studioActionPending
       || studioActionRequestRef.current
     ) return;
-    if (selected === "reject" ? !hasStudioViolationJudgment : hasStudioViolationJudgment) {
+    if (studioReportReady
+      && (selected === "reject" ? !hasStudioViolationJudgment : hasStudioViolationJudgment)) {
       setStudioActionError(hasStudioViolationJudgment
         ? "위반 판정이 있어 최종 반려만 가능합니다."
         : "모든 항목이 위반 아님이므로 최종 승인만 가능합니다.");
@@ -2109,6 +2111,7 @@ export function ContentInspectionDetailPage() {
     nextContent,
     studioActionPending,
     studioFinalFocused,
+    studioReportReady,
     studioReviewReadOnly,
     studioViolationJudgments,
     studioViolationSignals,
@@ -2305,8 +2308,7 @@ export function ContentInspectionDetailPage() {
       if (spacePressed) {
         event.preventDefault();
         if (
-          !studioReportReady
-          || studioReviewReadOnly
+          studioReviewReadOnly
           || studioReportRefreshVersionId !== null
         ) return;
         if (focusedStudioViolationIndex >= 0) {
@@ -2325,7 +2327,7 @@ export function ContentInspectionDetailPage() {
       }
       if (decisionShortcut) {
         event.preventDefault();
-        if (!studioReportReady || studioReviewReadOnly || studioReportRefreshVersionId !== null) return;
+        if (studioReviewReadOnly || studioReportRefreshVersionId !== null) return;
         if (focusedStudioViolationIndex >= 0) {
           judgeStudioViolation(
             focusedStudioViolationIndex,
@@ -2335,7 +2337,7 @@ export function ContentInspectionDetailPage() {
         }
         if (studioFinalFocused) {
           const selected = decisionShortcut === "1" ? "reject" : "approve";
-          if ((selected === "reject") !== hasStudioViolationJudgment) return;
+          if (studioReportReady && (selected === "reject") !== hasStudioViolationJudgment) return;
           setStudioActionError(null);
           setStudioDecision(selected);
         }
@@ -2428,7 +2430,7 @@ export function ContentInspectionDetailPage() {
   ]);
 
   useEffect(() => {
-    if (!routeState?.inspectionSession || !studioReportReady || exitConfirmationOpen) return undefined;
+    if (!routeState?.inspectionSession || exitConfirmationOpen) return undefined;
     const focusFrame = window.requestAnimationFrame(() => {
       if (focusedStudioViolationIndex >= 0) {
         const violationItem = studioReportRef.current
@@ -2447,7 +2449,6 @@ export function ContentInspectionDetailPage() {
     exitConfirmationOpen,
     focusedStudioViolationIndex,
     routeState?.inspectionSession,
-    studioReportReady,
     studioViolationReviewComplete,
   ]);
 
@@ -2771,7 +2772,7 @@ export function ContentInspectionDetailPage() {
               </div>
               {!studioReportReady ? (
                 <p className="fuma-content-inspection-studio__report-empty">
-                  위반 사항을 불러오는 중입니다.
+                  리포트가 생성되지 않았습니다.
                 </p>
               ) : studioViolationSignals.length > 0 ? (
                 <ul>
@@ -2864,7 +2865,7 @@ export function ContentInspectionDetailPage() {
             className="is-reject"
             disabled={
               !studioFinalFocused
-              || !hasStudioViolationJudgment
+              || (studioReportReady && !hasStudioViolationJudgment)
               || studioActionPending !== null
             }
             onClick={() => void submitStudioDecision("reject")}
@@ -2881,7 +2882,7 @@ export function ContentInspectionDetailPage() {
             className="is-approve"
             disabled={
               !studioFinalFocused
-              || hasStudioViolationJudgment
+              || (studioReportReady && hasStudioViolationJudgment)
               || studioActionPending !== null
             }
             onClick={() => void submitStudioDecision("approve")}
