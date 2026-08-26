@@ -33,7 +33,7 @@ export type {
   SelectorSummary,
   SpringPage,
 } from "./api";
-export { SelectorDetailPanel } from "./ui/SelectorDetailPanel";
+export { SelectorDetailPanel, snsAccountHref } from "./ui/SelectorDetailPanel";
 export {
   ExcellentSelectorTable,
   SelectorSalesPerformanceTable,

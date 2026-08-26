@@ -15,21 +15,22 @@ function ruleFor(selector: string) {
 }
 
 describe("TaskRun floating panel layout", () => {
-  test("uses a viewport-wide gesture stage with a 380px right-aligned panel", () => {
+  test("fixes the capsule bottom-right within a viewport-wide gesture stage", () => {
     const panelRule = ruleFor(".fuma-task-run-panel");
     const headerRule = ruleFor(".fuma-task-run-panel__header");
     const listRule = ruleFor(".fuma-task-run-panel__list");
 
     expect(panelRule).toMatch(/position:\s*fixed;/);
-    expect(panelRule).toMatch(/left:\s*var\(--hsas-space-20\);/);
-    expect(panelRule).toMatch(/right:\s*var\(--hsas-space-20\);/);
+    expect(panelRule).toMatch(/left:\s*0;/);
+    expect(panelRule).toMatch(/right:\s*0;/);
     expect(panelRule).toMatch(/bottom:\s*var\(--hsas-space-20\);/);
     expect(panelRule).toMatch(/width:\s*auto;/);
+    expect(panelRule).toMatch(/padding:\s*0 var\(--hsas-space-20\);/);
     expect(panelRule).toMatch(/overflow-x:\s*hidden;/);
     expect(panelRule).toMatch(/overflow-y:\s*auto;/);
     expect(panelRule).toMatch(/pointer-events:\s*none;/);
     expect(headerRule).toMatch(/width:\s*min\(380px, 100%\);/);
-    expect(headerRule).toMatch(/justify-self:\s*end;/);
+    expect(headerRule).toMatch(/margin-left:\s*auto;/);
     expect(headerRule).toMatch(/pointer-events:\s*auto;/);
     expect(listRule).toMatch(/display:\s*grid;/);
     expect(listRule).toMatch(/gap:\s*var\(--hsas-space-10\);/);
@@ -47,7 +48,7 @@ describe("TaskRun floating panel layout", () => {
     expect(trackRule).not.toMatch(/margin(?:-\w+)?:\s*-/);
   });
 
-  test("clips the list downward while collapsing over 240ms", () => {
+  test("collapses the list without isolating card backdrop filters", () => {
     const expandedRule = ruleFor(".fuma-task-run-panel__list-viewport");
     const collapsedRule = ruleFor(
       '.fuma-task-run-panel[data-expanded="false"] .fuma-task-run-panel__list-viewport',
@@ -65,12 +66,9 @@ describe("TaskRun floating panel layout", () => {
     expect(contentRule).toMatch(/min-height:\s*0;/);
     expect(contentRule).toMatch(/overflow:\s*hidden;/);
     expect(contentRule).toMatch(/transform-origin:\s*bottom;/);
-    expect(contentRule).toMatch(/clip-path:\s*inset\(0\);/);
-    expect(contentRule).toMatch(/transform:\s*translateY\(0\);/);
-    expect(contentRule).toMatch(/clip-path 240ms cubic-bezier/);
-    expect(collapsedContentRule).toMatch(
-      /clip-path:\s*inset\(100% 0 0 0\);/,
-    );
+    expect(contentRule).not.toMatch(/clip-path:/);
+    expect(contentRule).toMatch(/transform:\s*none;/);
+    expect(contentRule).toMatch(/transform 240ms cubic-bezier/);
     expect(collapsedContentRule).toMatch(
       /transform:\s*translateY\(var\(--hsas-space-12\)\);/,
     );
@@ -88,72 +86,104 @@ describe("TaskRun floating panel layout", () => {
     );
   });
 
-  test("keeps 12px mobile edges", () => {
+  test("keeps 12px mobile edges with viewport padding", () => {
     const mobileBlock = taskFloatingPanelStyles.match(
       /@media \(max-width:\s*480px\)\s*\{([\s\S]*?)\n\}/,
     )?.[1];
 
-    expect(mobileBlock).toMatch(/right:\s*var\(--hsas-space-12\);/);
+    expect(mobileBlock).toMatch(/right:\s*0;/);
     expect(mobileBlock).toMatch(/bottom:\s*var\(--hsas-space-12\);/);
-    expect(mobileBlock).toMatch(/left:\s*var\(--hsas-space-12\);/);
+    expect(mobileBlock).toMatch(/left:\s*0;/);
+    expect(mobileBlock).toMatch(/padding:\s*0 var\(--hsas-space-12\);/);
   });
 });
 
 describe("TaskRun floating panel surfaces", () => {
-  test("uses theme-aware capsule colors for the title and collapse control", () => {
+  test("adds static specular layers to both glass surfaces", () => {
+    const headerRule = ruleFor(".fuma-task-run-panel__header");
+    const surfaceRule = ruleFor(".fuma-task-run-card-surface");
+    const sharedSheenRule = taskFloatingPanelStyles.match(
+      /\.fuma-task-run-panel__header::before,\s*\.fuma-task-run-card-surface::before\s*\{([^}]*)\}/,
+    )?.[1];
+
+    expect(headerRule).toMatch(/position:\s*relative;/);
+    expect(surfaceRule).toMatch(/position:\s*relative;/);
+    expect(sharedSheenRule).toMatch(/position:\s*absolute;/);
+    expect(sharedSheenRule).toMatch(/inset:\s*1px;/);
+    expect(sharedSheenRule).toMatch(/border-radius:\s*inherit;/);
+    expect(sharedSheenRule).toMatch(/background:\s*radial-gradient/);
+    expect(sharedSheenRule).toMatch(/pointer-events:\s*none;/);
+  });
+
+  test("uses a translucent local glass material for the title capsule", () => {
+    const panelRule = ruleFor(".fuma-task-run-panel");
     const headerRule = ruleFor(".fuma-task-run-panel__header");
     const titleRule = ruleFor(".fuma-task-run-panel__title");
     const countRule = ruleFor(".fuma-task-run-panel__count");
     const collapseRule = ruleFor(".fuma-task-run-panel__collapse");
 
-    expect(headerRule).toMatch(
-      /border:\s*1px solid var\(--hsas-sidebar-border\);/,
+    expect(panelRule).toMatch(
+      /--fuma-task-glass-surface:\s*rgb\(255 255 255 \/ 58%\);/,
+    );
+    expect(panelRule).toMatch(
+      /--fuma-task-glass-border:\s*rgb\(255 255 255 \/ 78%\);/,
     );
     expect(headerRule).toMatch(
-      /background:\s*var\(--hsas-sidebar-background\);/,
+      /border:\s*1px solid var\(--fuma-task-glass-border\);/,
+    );
+    expect(headerRule).toMatch(
+      /background-color:\s*var\(--fuma-task-glass-surface\);/,
+    );
+    expect(headerRule).toMatch(
+      /backdrop-filter:\s*blur\(24px\) saturate\(1\.3\) brightness\(1\.04\);/,
     );
     expect(headerRule).toMatch(
       /border-radius:\s*calc\(var\(--hsas-sidebar-radius\) \* 3\);/,
     );
-    expect(titleRule).toMatch(/color:\s*var\(--hsas-sidebar-strong-text\);/);
-    expect(countRule).toMatch(/color:\s*var\(--hsas-sidebar-heading\);/);
+    expect(titleRule).toMatch(/color:\s*var\(--fuma-task-glass-ink\);/);
+    expect(countRule).toMatch(/color:\s*rgb\(32 34 36 \/ 58%\);/);
     expect(collapseRule).toMatch(
-      /border:\s*1px solid var\(--hsas-sidebar-border\);/,
+      /border:\s*1px solid var\(--fuma-task-glass-control-border\);/,
     );
     expect(collapseRule).toMatch(
-      /background:\s*var\(--hsas-sidebar-hover\);/,
+      /background:\s*var\(--fuma-task-glass-control-surface\);/,
     );
-    expect(collapseRule).toMatch(/color:\s*var\(--hsas-sidebar-strong-text\);/);
+    expect(collapseRule).toMatch(/color:\s*var\(--fuma-task-glass-ink\);/);
   });
 
-  test("uses a soft shadow on the task capsule surface", () => {
+  test("uses the same translucent material on task cards", () => {
     const surfaceRule = ruleFor(".fuma-task-run-card-surface");
     const cardRule = ruleFor(".fuma-task-run-card");
+    const trackRule = ruleFor(".fuma-task-run-track");
 
     expect(surfaceRule).toMatch(
-      /border:\s*1px solid var\(--hsas-sidebar-border\);/,
+      /border:\s*1px solid var\(--fuma-task-glass-border\);/,
     );
     expect(surfaceRule).toMatch(
       /border-radius:\s*calc\(var\(--hsas-sidebar-radius\) \* 3\);/,
     );
     expect(surfaceRule).toMatch(
-      /background:\s*var\(--hsas-sidebar-background\);/,
+      /background-color:\s*var\(--fuma-task-glass-surface\);/,
+    );
+    expect(surfaceRule).not.toMatch(/backdrop-filter/);
+    expect(trackRule).toMatch(
+      /backdrop-filter:\s*blur\(24px\) saturate\(1\.3\) brightness\(1\.04\);/,
     );
     expect(surfaceRule).toMatch(
-      /box-shadow:\s*0 12px 32px -8px rgb\(15 15 15 \/ 20%\);/,
+      /box-shadow:\s*var\(--fuma-task-glass-shadow\);/,
     );
     expect(cardRule).toMatch(
       /padding:\s*var\(--hsas-space-14\) var\(--hsas-space-16\);/,
     );
   });
 
-  test("ships one tokenized material path", () => {
+  test("ships one glass material path", () => {
     expect(taskFloatingPanelStyles).not.toMatch(
       /fuma-task-run-(?:panel|card)--(?:dark|light)/,
     );
-    expect(taskFloatingPanelStyles).not.toMatch(/liquid|backdrop-filter/i);
+    expect(taskFloatingPanelStyles).not.toMatch(/liquid/i);
     expect(ruleFor(".fuma-task-run-card")).toMatch(
-      /background:\s*var\(--hsas-sidebar-background\);/,
+      /background:\s*transparent;/,
     );
   });
 });

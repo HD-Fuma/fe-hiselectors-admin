@@ -21,4 +21,11 @@ export const COHORT_SERIES_COLORS = {
   soldQuantity: "#9bc6bd",
 } as const;
 
+export const ECHARTS_TOOLTIP_STYLE = {
+  backgroundColor: "#303030",
+  borderColor: "#303030",
+  borderRadius: 7,
+  textStyle: { color: "#fff" },
+} as const;
+
 export type CohortSeriesColorKey = keyof typeof COHORT_SERIES_COLORS;

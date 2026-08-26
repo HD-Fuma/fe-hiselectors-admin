@@ -1,8 +1,10 @@
 import { describe, expect, test } from "vitest";
 import {
+  apiStatusesForFilter,
   primarySettlementPaymentStatus,
   settlementHoldReason,
   settlementStatusLabel,
+  settlementStatusTone,
 } from "./model";
 
 describe("settlement payment status", () => {
@@ -25,5 +27,15 @@ describe("settlement payment status", () => {
 
   test("keeps list labels as 정산 보류", () => {
     expect(settlementStatusLabel("PAYMENT_HOLD_INFO")).toBe("정산 보류");
+  });
+
+  test("presents and filters carried-over payments", () => {
+    expect(settlementStatusLabel("PAYMENT_CARRYOVER")).toBe("지급 이월");
+    expect(settlementStatusTone("PAYMENT_CARRYOVER")).toBe("pending");
+    expect(apiStatusesForFilter("PAYMENT_CARRYOVER")).toEqual(["PAYMENT_CARRYOVER"]);
+    expect(primarySettlementPaymentStatus([
+      "PAYMENT_PENDING",
+      "PAYMENT_CARRYOVER",
+    ])).toBe("PAYMENT_PENDING");
   });
 });

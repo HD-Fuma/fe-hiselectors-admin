@@ -75,9 +75,13 @@ function ContentProgressRow({
   );
 }
 
-function determinateContentProgress(processedCount: number, totalCount: number) {
+function determinateContentProgress(
+  processedCount: number,
+  totalCount: number,
+  emptyText = "0건 완료",
+) {
   if (totalCount === 0) {
-    return { max: 1, percentage: undefined, text: "0건 완료", value: 1 };
+    return { max: 1, percentage: undefined, text: emptyText, value: 1 };
   }
 
   const value = Math.min(Math.max(processedCount, 0), totalCount);
@@ -128,6 +132,7 @@ function ContentSyncProgress({ run }: { run: TaskRun }) {
     : determinateContentProgress(
         newProgress.processedCount,
         newProgress.totalCount,
+        "신규 콘텐츠 없음",
       );
   const storedWaiting = run.currentStep === "NEW_CONTENT_SYNC"
     && storedProgress.totalCount == null;

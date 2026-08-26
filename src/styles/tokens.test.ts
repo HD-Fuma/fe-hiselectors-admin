@@ -65,16 +65,16 @@ describe("shared component visual contracts", () => {
     expect(wrapperRule).not.toMatch(/border-top\s*:/);
   });
 
-  test("keeps approved task statuses readable on themed floating cards", () => {
+  test("keeps approved task statuses readable on glass floating cards", () => {
     const approvedTaskStatusRule = taskFloatingPanelStyles.match(
       /\.fuma-task-run-card__status\.hsas-status-pill--approved\s*\{([^}]*)\}/,
     )?.[1];
 
     expect(approvedTaskStatusRule).toMatch(
-      /background:\s*var\(--hsas-sidebar-hover\);/,
+      /background:\s*var\(--fuma-task-glass-control-surface\);/,
     );
     expect(approvedTaskStatusRule).toMatch(
-      /color:\s*var\(--hsas-sidebar-strong-text\);/,
+      /color:\s*var\(--fuma-task-glass-ink\);/,
     );
   });
 

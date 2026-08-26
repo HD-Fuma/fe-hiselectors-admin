@@ -22,7 +22,6 @@ export type CollectedContentType = "SHORT_FORM" | "LONG_FORM" | "SHORTS" | "FEED
 export interface CollectedContentMedia {
   mediaType: "IMAGE" | "VIDEO";
   mediaUrl: string | null;
-  thumbnailUrl?: string | null;
   snsMediaId: string | null;
   sequenceNo: number;
 }
@@ -137,7 +136,6 @@ export interface ContentVersionMedia {
   contentMediaId: number;
   mediaType: ContentEvidenceMediaType;
   mediaUrl: string | null;
-  thumbnailUrl?: string | null;
   sequenceNo: number;
   snsMediaId: string | null;
   text: string | null;

@@ -1,7 +1,24 @@
 .fuma-task-run-panel {
+  --fuma-task-glass-surface: rgb(255 255 255 / 58%);
+  --fuma-task-glass-surface-hover: rgb(255 255 255 / 66%);
+  --fuma-task-glass-border: rgb(255 255 255 / 78%);
+  --fuma-task-glass-border-hover: rgb(255 255 255 / 94%);
+  --fuma-task-glass-control-surface: rgb(255 255 255 / 72%);
+  --fuma-task-glass-control-border: rgb(255 255 255 / 82%);
+  --fuma-task-glass-ink: #202224;
+  --fuma-task-glass-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 88%),
+    inset 1px 0 0 rgb(255 255 255 / 28%),
+    0 4px 12px rgb(41 53 58 / 10%),
+    0 18px 48px rgb(41 53 58 / 16%);
+  --fuma-task-glass-shadow-hover:
+    inset 0 1px 0 rgb(255 255 255 / 94%),
+    inset 1px 0 0 rgb(255 255 255 / 34%),
+    0 5px 14px rgb(41 53 58 / 12%),
+    0 20px 52px rgb(41 53 58 / 19%);
   position: fixed;
-  left: var(--hsas-space-20);
-  right: var(--hsas-space-20);
+  left: 0;
+  right: 0;
   bottom: var(--hsas-space-20);
   z-index: 900;
   display: grid;
@@ -9,10 +26,10 @@
   width: auto;
   max-height: calc(100vh - (var(--hsas-space-20) * 2));
   max-height: calc(100dvh - (var(--hsas-space-20) * 2));
-  padding: 0;
+  padding: 0 var(--hsas-space-20);
   overflow-x: hidden;
   overflow-y: auto;
-  color: var(--hsas-sidebar-strong-text);
+  color: var(--fuma-task-glass-ink);
   font-family: var(--hsas-font-family);
   overscroll-behavior: contain;
   pointer-events: none;
@@ -20,30 +37,54 @@
 }
 
 .fuma-task-run-panel__header {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: var(--hsas-space-7);
   padding: var(--hsas-space-10) var(--hsas-space-12);
-  border: 1px solid var(--hsas-sidebar-border);
+  overflow: hidden;
+  border: 1px solid var(--fuma-task-glass-border);
   border-radius: calc(var(--hsas-sidebar-radius) * 3);
-  background: var(--hsas-sidebar-background);
-  box-shadow: 0 12px 32px -8px rgb(15 15 15 / 18%);
+  background-color: var(--fuma-task-glass-surface);
+  box-shadow: var(--fuma-task-glass-shadow);
   width: min(380px, 100%);
-  justify-self: end;
+  margin-left: auto;
+  isolation: isolate;
+  -webkit-backdrop-filter: blur(24px) saturate(1.3) brightness(1.04);
+  backdrop-filter: blur(24px) saturate(1.3) brightness(1.04);
   pointer-events: auto;
+}
+
+.fuma-task-run-panel__header::before,
+.fuma-task-run-card-surface::before {
+  position: absolute;
+  z-index: 0;
+  inset: 1px;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse 120% 82% at 4% -18%, rgb(255 255 255 / 78%) 0%, rgb(255 255 255 / 18%) 42%, transparent 64%),
+    linear-gradient(116deg, transparent 24%, rgb(255 255 255 / 24%) 43%, transparent 61%),
+    radial-gradient(circle at 96% 112%, rgb(30 157 139 / 16%), transparent 44%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.fuma-task-run-panel__header > * {
+  position: relative;
+  z-index: 1;
 }
 
 .fuma-task-run-panel__title {
   margin: 0;
-  color: var(--hsas-sidebar-strong-text);
+  color: var(--fuma-task-glass-ink);
   font-size: var(--hsas-font-13);
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .fuma-task-run-panel__count {
-  color: var(--hsas-sidebar-heading);
+  color: rgb(32 34 36 / 58%);
   font-size: var(--hsas-font-10);
   font-weight: 700;
 }
@@ -54,10 +95,11 @@
   height: var(--hsas-space-28);
   padding: 0;
   place-items: center;
-  border: 1px solid var(--hsas-sidebar-border);
+  border: 1px solid var(--fuma-task-glass-control-border);
   border-radius: var(--hsas-sidebar-radius);
-  background: var(--hsas-sidebar-hover);
-  color: var(--hsas-sidebar-strong-text);
+  background: var(--fuma-task-glass-control-surface);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 72%);
+  color: var(--fuma-task-glass-ink);
   cursor: pointer;
 }
 
@@ -95,16 +137,12 @@
 .fuma-task-run-panel__list-viewport > div {
   min-height: 0;
   overflow: hidden;
-  clip-path: inset(0);
-  transform: translateY(0);
+  transform: none;
   transform-origin: bottom;
-  transition:
-    clip-path 240ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .fuma-task-run-panel[data-expanded="false"] .fuma-task-run-panel__list-viewport > div {
-  clip-path: inset(100% 0 0 0);
   transform: translateY(var(--hsas-space-12));
 }
 
@@ -124,6 +162,9 @@
   height: var(--fuma-task-dismiss-height, auto);
   margin: 0;
   opacity: 1;
+  border-radius: calc(var(--hsas-sidebar-radius) * 3);
+  -webkit-backdrop-filter: blur(24px) saturate(1.3) brightness(1.04);
+  backdrop-filter: blur(24px) saturate(1.3) brightness(1.04);
   transform: translate3d(var(--fuma-task-dismiss-x, 0), 0, 0);
 }
 
@@ -158,22 +199,33 @@
 }
 
 .fuma-task-run-card-surface {
+  position: relative;
   overflow: hidden;
-  border: 1px solid var(--hsas-sidebar-border);
+  border: 1px solid var(--fuma-task-glass-border);
   border-radius: calc(var(--hsas-sidebar-radius) * 3);
-  background: var(--hsas-sidebar-background);
-  box-shadow: 0 12px 32px -8px rgb(15 15 15 / 20%);
+  background-color: var(--fuma-task-glass-surface);
+  box-shadow: var(--fuma-task-glass-shadow);
+  isolation: isolate;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.fuma-task-run-card-surface:hover {
+  border-color: var(--fuma-task-glass-border-hover);
+  background-color: var(--fuma-task-glass-surface-hover);
+  box-shadow: var(--fuma-task-glass-shadow-hover);
 }
 
 .fuma-task-run-card {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: var(--hsas-space-10);
   width: 100%;
   margin: 0;
   padding: var(--hsas-space-14) var(--hsas-space-16);
   border-radius: calc(var(--hsas-sidebar-radius) * 3);
-  background: var(--hsas-sidebar-background);
-  color: var(--hsas-sidebar-strong-text);
+  background: transparent;
+  color: var(--fuma-task-glass-ink);
   font-family: var(--hsas-font-family);
 }
 
@@ -196,15 +248,15 @@
 }
 
 .fuma-task-run-card__status.hsas-status-pill--approved {
-  border-color: var(--hsas-sidebar-border);
-  background: var(--hsas-sidebar-hover);
-  color: var(--hsas-sidebar-strong-text);
+  border-color: var(--fuma-task-glass-control-border);
+  background: var(--fuma-task-glass-control-surface);
+  color: var(--fuma-task-glass-ink);
 }
 
 .fuma-task-run-card__step,
 .fuma-task-run-card__summary {
   margin: 0;
-  color: var(--hsas-sidebar-text);
+  color: rgb(32 34 36 / 68%);
   font-size: var(--hsas-font-12);
   line-height: 1.45;
 }
@@ -213,7 +265,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--hsas-space-5) var(--hsas-space-8);
-  color: var(--hsas-sidebar-heading);
+  color: rgb(32 34 36 / 62%);
   font-size: var(--hsas-font-11);
 }
 
@@ -230,8 +282,8 @@
   overflow: hidden;
   border: 0;
   border-radius: var(--hsas-sidebar-radius);
-  background: var(--hsas-sidebar-hover);
-  accent-color: var(--hsas-teal);
+  background: rgb(32 34 36 / 12%);
+  accent-color: var(--hsas-color-black);
 }
 
 .fuma-task-run-card__progress progress::-webkit-progress-bar,
@@ -243,14 +295,14 @@
 .fuma-task-run-card__progress progress::-webkit-progress-value,
 .fuma-task-run-card__content-progress-row progress::-webkit-progress-value {
   border-radius: var(--hsas-sidebar-radius);
-  background: var(--hsas-teal);
+  background: var(--hsas-color-black);
   transition: width 180ms ease;
 }
 
 .fuma-task-run-card__progress progress::-moz-progress-bar,
 .fuma-task-run-card__content-progress-row progress::-moz-progress-bar {
   border-radius: var(--hsas-sidebar-radius);
-  background: var(--hsas-teal);
+  background: var(--hsas-color-black);
   transition: width 180ms ease;
 }
 
@@ -262,7 +314,7 @@
 .fuma-task-run-card__content-progress-row {
   display: grid;
   gap: var(--hsas-space-5);
-  color: var(--hsas-sidebar-heading);
+  color: rgb(32 34 36 / 62%);
   font-size: var(--hsas-font-11);
 }
 
@@ -277,14 +329,14 @@
 }
 
 .fuma-task-run-card__content-progress-text {
-  color: var(--hsas-sidebar-text);
+  color: rgb(32 34 36 / 68%);
 }
 
 .fuma-task-run-card__indeterminate {
   display: flex;
   align-items: center;
   gap: var(--hsas-space-7);
-  color: var(--hsas-sidebar-text);
+  color: rgb(32 34 36 / 68%);
   font-size: var(--hsas-font-11);
 }
 
@@ -293,7 +345,7 @@
   height: var(--hsas-space-7);
   flex: 0 0 auto;
   border-radius: 50%;
-  background: var(--hsas-teal);
+  background: var(--hsas-color-black);
   animation: fuma-task-run-pulse 1.4s ease-in-out infinite;
 }
 
@@ -302,12 +354,12 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--hsas-space-6) var(--hsas-space-10);
-  color: var(--hsas-sidebar-heading);
+  color: rgb(32 34 36 / 58%);
   font-size: var(--hsas-font-10);
 }
 
 .fuma-task-run-card__failure {
-  color: var(--hsas-sidebar-strong-text);
+  color: var(--fuma-task-glass-ink);
   font-weight: 800;
 }
 
@@ -321,7 +373,7 @@
 .fuma-task-run-card__terminal > svg {
   width: var(--hsas-space-18);
   height: var(--hsas-space-18);
-  color: var(--hsas-sidebar-heading);
+  color: rgb(32 34 36 / 58%);
 }
 
 .fuma-task-run-card__terminal-content {
@@ -354,10 +406,10 @@
   padding: 0 var(--hsas-space-8);
   margin: 0;
   overflow: visible;
-  border: 1px solid var(--hsas-sidebar-border);
+  border: 1px solid var(--fuma-task-glass-control-border);
   border-radius: var(--hsas-sidebar-radius);
-  background: var(--hsas-sidebar-hover);
-  color: var(--hsas-sidebar-strong-text);
+  background: var(--fuma-task-glass-control-surface);
+  color: var(--fuma-task-glass-ink);
   clip: auto;
   opacity: 1;
   font-size: var(--hsas-font-10);
@@ -382,16 +434,18 @@
 
 @media (max-width: 480px) {
   .fuma-task-run-panel {
-    right: var(--hsas-space-12);
+    right: 0;
     bottom: var(--hsas-space-12);
-    left: var(--hsas-space-12);
+    left: 0;
     width: auto;
+    padding: 0 var(--hsas-space-12);
     max-height: calc(100vh - (var(--hsas-space-12) * 2));
     max-height: calc(100dvh - (var(--hsas-space-12) * 2));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fuma-task-run-card-surface,
   .fuma-task-run-panel__collapse svg,
   .fuma-task-run-panel__list-viewport,
   .fuma-task-run-panel__list-viewport > div,

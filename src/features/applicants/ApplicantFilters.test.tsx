@@ -16,10 +16,12 @@ const applicants = [
     snsCode: "INSTAGRAM",
     snsAccountId: "minji.daily",
     snsDisplayName: "minji.daily",
+    profileImageUrl: "https://cdn.example.com/minji-profile.jpg",
     followerCount: 58_420,
     engagementRate: 2.55,
     totalContentCount: 126,
     recent90DayContentCount: 29,
+    lastPublishedAt: "2026-08-02T12:00:00",
     status: "PENDING",
     mediaCollectionStatus: "DONE",
     appliedAt: "2026-08-03T09:12:00",
@@ -38,10 +40,12 @@ const applicants = [
     snsCode: "YOUTUBE",
     snsAccountId: "UC1111111111111111111111",
     snsDisplayName: "하린의 생활연구소",
+    profileImageUrl: "https://cdn.example.com/harin-profile.jpg",
     followerCount: 83_100,
     engagementRate: 3.1,
     totalContentCount: 94,
     recent90DayContentCount: 23,
+    lastPublishedAt: "2026-08-01T16:40:00",
     status: "APPROVED",
     mediaCollectionStatus: "DONE",
     appliedAt: "2026-08-02T16:40:00",
@@ -60,10 +64,12 @@ const applicants = [
     snsCode: "INSTAGRAM",
     snsAccountId: "sora.daily",
     snsDisplayName: "sora.daily",
+    profileImageUrl: null,
     followerCount: 400,
     engagementRate: null,
     totalContentCount: null,
     recent90DayContentCount: 2,
+    lastPublishedAt: null,
     status: "PENDING",
     mediaCollectionStatus: "DONE",
     appliedAt: "2026-08-03T10:46:00",
@@ -248,9 +254,18 @@ describe("applicant api pages", () => {
 
     expect(await screen.findByText("정하린")).toBeInTheDocument();
     const applicantList = screen.getByRole("region", { name: "지원자 목록" });
+    expect(within(applicantList).getAllByRole("columnheader").map((header) => header.textContent))
+      .toEqual(["계정", "팔로워/구독자", "ER", "최근 90일 활동", "최근 활동일", "신청일", "심사 상태"]);
     expect(within(applicantList).getByText("하린의 생활연구소")).toBeInTheDocument();
     expect(within(applicantList).queryByText("UC1111111111111111111111"))
       .not.toBeInTheDocument();
+    expect(within(applicantList).getByRole("img", { name: "정하린 프로필 이미지" }))
+      .toHaveAttribute("src", "https://cdn.example.com/harin-profile.jpg");
+    expect(within(applicantList).getByRole("img", { name: "YouTube 플랫폼" }))
+      .toBeInTheDocument();
+    expect(within(applicantList).getByRole("link", { name: "정하린 SNS 계정 열기 (새 창)" }))
+      .toHaveAttribute("href", "https://www.youtube.com/channel/UC1111111111111111111111");
+    expect(within(applicantList).getByText("2026-08-01")).toBeInTheDocument();
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
       expect.stringMatching(/keyword=.*snsCode=YOUTUBE.*status=APPROVED.*generationId=3.*page=0.*size=20/),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
@@ -258,7 +273,7 @@ describe("applicant api pages", () => {
     expect(screen.getByText("총 1건")).toBeInTheDocument();
     expect(screen.getByText("1 / 1 페이지")).toBeInTheDocument();
 
-    await user.click(screen.getByText("정하린"));
+    await user.click(within(applicantList).getByRole("button", { name: "정하린 프로필 보기" }));
     const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
     expect(await within(panel).findByRole("link", { name: "하린의 생활연구소 ↗" }))
       .toHaveAttribute("href", "https://www.youtube.com/channel/UC1111111111111111111111");
@@ -588,8 +603,9 @@ describe("applicant api pages", () => {
     const report = await within(panel).findByRole("region", { name: "지원자 분석 리포트" });
     const formats = within(report).getByRole("group", { name: "콘텐츠 형식 총 0건" });
 
-    expect(within(report).getByText("업로드 주기").parentElement)
-      .toHaveTextContent("주 0.0회 · 표본 0건");
+    const uploadCadenceMetric = within(report).getByText("업로드 주기").parentElement;
+    expect(uploadCadenceMetric).toHaveTextContent("주 0.0회");
+    expect(uploadCadenceMetric).not.toHaveTextContent("표본");
     expect(within(formats).getByText("0건")).toBeInTheDocument();
   });
 

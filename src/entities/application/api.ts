@@ -39,9 +39,11 @@ export interface AdminApplicationIdentity {
 }
 
 export interface AdminApplicationSummary extends AdminApplicationIdentity {
+  profileImageUrl: string | null;
   engagementRate: number | null;
   totalContentCount: number | null;
   recent90DayContentCount: number | null;
+  lastPublishedAt: string | null;
 }
 
 export interface ApplicationMetricValue {

@@ -4,8 +4,9 @@ export interface ResultToolbarProps {
   actions?: ReactNode;
   className?: string;
   description?: ReactNode;
+  leading?: ReactNode;
   meta?: ReactNode;
-  title: ReactNode;
+  title?: ReactNode;
   titleId?: string;
 }
 
@@ -17,13 +18,19 @@ export function ResultToolbar({
   actions,
   className,
   description,
+  leading,
   meta,
   title,
   titleId,
 }: ResultToolbarProps) {
   return (
     <div className={["fuma-result-toolbar", className].filter(Boolean).join(" ")}>
-      <strong id={titleId}>{title}</strong>
+      {hasSlot(leading) ? (
+        <div className="fuma-result-toolbar__heading">
+          {hasSlot(title) ? <strong id={titleId}>{title}</strong> : null}
+          {leading}
+        </div>
+      ) : hasSlot(title) ? <strong id={titleId}>{title}</strong> : null}
       {hasSlot(description) ? (
         <span className="fuma-result-toolbar__description">{description}</span>
       ) : null}

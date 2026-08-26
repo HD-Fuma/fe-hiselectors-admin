@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { GripVertical, MoreHorizontal, Plus } from "lucide-react";
 import { Button, Checkbox, TextInput } from "../../components/ui/Controls";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill } from "../../components/ui/StatusPill";
@@ -21,10 +22,7 @@ interface CategoryDraft {
 }
 
 interface KeywordDraft {
-  id: number | null;
   keyword: string;
-  priority: string;
-  enabled: boolean;
 }
 
 function reasonMessage(reason: unknown, fallback: string) {
@@ -32,7 +30,7 @@ function reasonMessage(reason: unknown, fallback: string) {
 }
 
 function emptyKeywordDraft(): KeywordDraft {
-  return { id: null, keyword: "", priority: "0", enabled: true };
+  return { keyword: "" };
 }
 
 const RELOAD_ERROR = "변경사항은 저장됐지만 목록을 새로고침하지 못했습니다. 패널을 닫았다 다시 열어 주세요.";
@@ -42,6 +40,8 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [categoryDraft, setCategoryDraft] = useState<CategoryDraft | null>(null);
   const [keywordDraft, setKeywordDraft] = useState<KeywordDraft | null>(null);
+  const [keywordEdits, setKeywordEdits] = useState<Record<number, string>>({});
+  const [draggedKeywordId, setDraggedKeywordId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -51,6 +51,7 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
   async function reload(preferredId?: number) {
     const nextCategories = await getDiscoveryCategories();
     setCategories(nextCategories);
+    setKeywordEdits({});
     setSelectedId((current) => {
       const nextId = preferredId ?? current;
       return nextCategories.some((category) => category.id === nextId)
@@ -130,53 +131,95 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
     event.preventDefault();
     if (!keywordDraft || !selectedCategory) return;
     const categoryId = selectedCategory.id;
-    const priority = Number(keywordDraft.priority);
-    if (keywordDraft.id === null) {
-      setSaving(true);
-      setError("");
-      setNotice("");
-      try {
-        const result = await createDiscoveryKeyword(categoryId, {
-          keyword: keywordDraft.keyword.trim(),
-          priority,
-        });
-        setKeywordDraft(null);
-        await finishMutation(
-          categoryId,
-          result.warnings.length > 0 ? result.warnings.join(" ") : "키워드를 추가했습니다.",
-        );
-      } catch (reason) {
-        setError(reasonMessage(reason, "키워드 생성에 실패했습니다."));
-      } finally {
-        setSaving(false);
-      }
+    const keyword = keywordDraft.keyword.trim();
+    if (!keyword) return;
+    const priority = Math.max(0, ...selectedCategory.keywords.map((item) => item.priority)) + 10;
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await createDiscoveryKeyword(categoryId, { keyword, priority });
+      setKeywordDraft(null);
+      await finishMutation(
+        categoryId,
+        result.warnings.length > 0 ? result.warnings.join(" ") : "키워드를 추가했습니다.",
+      );
+    } catch (reason) {
+      setError(reasonMessage(reason, "키워드 생성에 실패했습니다."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function renameKeyword(keyword: DiscoveryKeyword, value: string) {
+    if (!selectedCategory) return;
+    const nextKeyword = value.trim();
+    if (!nextKeyword || nextKeyword === keyword.keyword) {
+      setKeywordEdits((current) => {
+        const next = { ...current };
+        delete next[keyword.id];
+        return next;
+      });
       return;
     }
 
-    const keywordId = keywordDraft.id;
-    const updated = await mutate(
-      () => updateDiscoveryKeyword(categoryId, keywordId, {
-        enabled: keywordDraft.enabled,
-        priority,
-      }),
-      categoryId,
-      "키워드를 수정했습니다.",
-    );
-    if (updated) setKeywordDraft(null);
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const created = await createDiscoveryKeyword(selectedCategory.id, {
+        keyword: nextKeyword,
+        priority: keyword.priority,
+      });
+      if (!keyword.enabled) {
+        await updateDiscoveryKeyword(selectedCategory.id, created.keyword.id, {
+          enabled: false,
+          priority: keyword.priority,
+        });
+      }
+      await deleteDiscoveryKeyword(selectedCategory.id, keyword.id);
+      await finishMutation(selectedCategory.id, "키워드를 수정했습니다.");
+    } catch (reason) {
+      setError(reasonMessage(reason, "키워드 수정에 실패했습니다."));
+    } finally {
+      setSaving(false);
+    }
   }
 
-  async function removeKeyword(keyword: DiscoveryKeyword) {
-    if (!selectedCategory || !window.confirm(`'${keyword.keyword}' 키워드를 삭제할까요?`)) return;
-    const removed = await mutate(
-      () => deleteDiscoveryKeyword(selectedCategory.id, keyword.id),
-      selectedCategory.id,
-      "키워드를 삭제했습니다.",
-    );
-    if (removed) setKeywordDraft(null);
+  async function reorderKeywords(targetId: number) {
+    if (!selectedCategory || draggedKeywordId === null || draggedKeywordId === targetId) return;
+    const original = selectedCategory.keywords;
+    const fromIndex = original.findIndex((keyword) => keyword.id === draggedKeywordId);
+    const toIndex = original.findIndex((keyword) => keyword.id === targetId);
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    const reordered = [...original];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    setCategories((current) => current.map((category) => (
+      category.id === selectedCategory.id ? { ...category, keywords: reordered } : category
+    )));
+    setDraggedKeywordId(null);
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      await Promise.all(reordered.map((keyword, index) => updateDiscoveryKeyword(
+        selectedCategory.id,
+        keyword.id,
+        { enabled: keyword.enabled, priority: (reordered.length - index) * 10 },
+      )));
+      await finishMutation(selectedCategory.id, "키워드 순서를 변경했습니다.");
+    } catch (reason) {
+      setError(reasonMessage(reason, "키워드 순서 변경에 실패했습니다."));
+      try { await reload(selectedCategory.id); } catch { setError(RELOAD_ERROR); }
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <SidePanel onClose={onClose} title="발굴 카테고리·키워드 설정">
+    <SidePanel onClose={onClose} title="크리에이터 발굴 키워드 설정">
       <div className="fuma-detail-panel__content fuma-discovery-settings">
         {error ? <p className="fuma-discovery-settings__message fuma-discovery-settings__message--error" role="alert">{error}</p> : null}
         {notice ? <p className="fuma-discovery-settings__message" role="status">{notice}</p> : null}
@@ -226,10 +269,40 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
                     </span>
                     {!category.enabled ? <StatusPill tone="neutral">비활성</StatusPill> : null}
                   </button>
-                  <div className="fuma-discovery-settings__row-actions">
-                    <Button aria-label={`${category.name} 카테고리 수정`} disabled={saving} onClick={() => { setSelectedId(category.id); setCategoryDraft({ id: category.id, name: category.name, displayOrder: String(category.displayOrder), enabled: category.enabled }); }}>수정</Button>
-                    <Button aria-label={`${category.name} 카테고리 삭제`} disabled={saving} onClick={() => removeCategory(category)} variant="danger">삭제</Button>
-                  </div>
+                  <details className="fuma-discovery-settings__row-menu">
+                    <summary aria-label={`${category.name} 카테고리 메뉴`}>
+                      <MoreHorizontal aria-hidden="true" size={18} />
+                    </summary>
+                    <div>
+                      <button
+                        disabled={saving}
+                        onClick={(event) => {
+                          event.currentTarget.closest("details")?.removeAttribute("open");
+                          setSelectedId(category.id);
+                          setCategoryDraft({
+                            id: category.id,
+                            name: category.name,
+                            displayOrder: String(category.displayOrder),
+                            enabled: category.enabled,
+                          });
+                        }}
+                        type="button"
+                      >
+                        수정
+                      </button>
+                      <button
+                        className="is-danger"
+                        disabled={saving}
+                        onClick={(event) => {
+                          event.currentTarget.closest("details")?.removeAttribute("open");
+                          void removeCategory(category);
+                        }}
+                        type="button"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </details>
                 </li>
               ))}
             </ul>
@@ -242,48 +315,93 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
                 <h3>{selectedCategory ? `${selectedCategory.name} 발굴 키워드` : "발굴 키워드"}</h3>
                 <p>해당 분야의 크리에이터를 찾을 검색어를 관리합니다.</p>
               </div>
-              <Button disabled={!selectedCategory || saving} onClick={() => setKeywordDraft(emptyKeywordDraft())} variant="primary">키워드 추가</Button>
             </header>
 
-            {keywordDraft ? (
-              <form className="fuma-discovery-settings__form" onSubmit={saveKeyword}>
-                <label>
-                  <span>검색할 키워드</span>
-                  <TextInput disabled={keywordDraft.id !== null} maxLength={100} onChange={(event) => setKeywordDraft({ ...keywordDraft, keyword: event.target.value })} placeholder="예: 데일리 메이크업" required value={keywordDraft.keyword} />
-                </label>
-                <label>
-                  <span>실행 우선순위</span>
-                  <TextInput onChange={(event) => setKeywordDraft({ ...keywordDraft, priority: event.target.value })} required type="number" value={keywordDraft.priority} />
-                  <small>숫자가 클수록 먼저 검색합니다.</small>
-                </label>
-                {keywordDraft.id !== null ? (
-                  <Checkbox checked={keywordDraft.enabled} label="크리에이터 발굴에 사용" onChange={(event) => setKeywordDraft({ ...keywordDraft, enabled: event.target.checked })} />
-                ) : null}
-                <div className="fuma-discovery-settings__form-actions">
-                  <Button disabled={saving} type="submit" variant="primary">저장</Button>
-                  <Button disabled={saving} onClick={() => setKeywordDraft(null)}>취소</Button>
-                </div>
-              </form>
-            ) : null}
-
             {!selectedCategory ? <p className="fuma-discovery-settings__empty">카테고리를 선택해 주세요.</p> : null}
-            {selectedCategory && selectedCategory.keywords.length === 0 ? <p className="fuma-discovery-settings__empty">등록된 키워드가 없습니다.</p> : null}
             {selectedCategory ? (
-              <ul className="fuma-discovery-settings__keyword-list">
-                {selectedCategory.keywords.map((keyword) => (
-                  <li key={keyword.id}>
-                    <div className="fuma-discovery-settings__keyword-copy">
-                      <strong>{keyword.keyword}</strong>
-                      <span>실행 우선순위 {keyword.priority}</span>
-                      {!keyword.enabled ? <StatusPill tone="neutral">비활성</StatusPill> : null}
-                    </div>
-                    <div className="fuma-discovery-settings__row-actions">
-                      <Button aria-label={`${keyword.keyword} 키워드 수정`} disabled={saving} onClick={() => setKeywordDraft({ id: keyword.id, keyword: keyword.keyword, priority: String(keyword.priority), enabled: keyword.enabled })}>수정</Button>
-                      <Button aria-label={`${keyword.keyword} 키워드 삭제`} disabled={saving} onClick={() => removeKeyword(keyword)} variant="danger">삭제</Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <div className="fuma-discovery-settings__keyword-list-toolbar">
+                  <button
+                    aria-label="키워드 추가"
+                    disabled={saving || keywordDraft !== null}
+                    onClick={() => setKeywordDraft(emptyKeywordDraft())}
+                    type="button"
+                  >
+                    <Plus aria-hidden="true" size={17} />
+                  </button>
+                </div>
+                <ul className="fuma-discovery-settings__keyword-list">
+                  {keywordDraft ? (
+                    <li className="is-new">
+                      <form onSubmit={saveKeyword}>
+                        <span aria-hidden="true" className="fuma-discovery-settings__drag-handle"><GripVertical size={17} /></span>
+                        <TextInput
+                          autoFocus
+                          maxLength={100}
+                          onBlur={(event) => {
+                            if (!event.currentTarget.value.trim()) setKeywordDraft(null);
+                          }}
+                          onChange={(event) => setKeywordDraft({ ...keywordDraft, keyword: event.target.value })}
+                          placeholder="새 키워드를 입력하고 Enter"
+                          value={keywordDraft.keyword}
+                        />
+                      </form>
+                    </li>
+                  ) : null}
+                  {selectedCategory.keywords.map((keyword) => (
+                    <li
+                      className={draggedKeywordId === keyword.id ? "is-dragging" : undefined}
+                      key={keyword.id}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => void reorderKeywords(keyword.id)}
+                    >
+                      <span
+                        aria-label={`${keyword.keyword} 순서 변경`}
+                        className="fuma-discovery-settings__drag-handle"
+                        draggable={!saving}
+                        onDragEnd={() => setDraggedKeywordId(null)}
+                        onDragStart={(event) => {
+                          event.dataTransfer.effectAllowed = "move";
+                          setDraggedKeywordId(keyword.id);
+                        }}
+                        role="img"
+                      >
+                        <GripVertical aria-hidden="true" size={17} />
+                      </span>
+                      <div className="fuma-discovery-settings__keyword-copy">
+                        <TextInput
+                          aria-label={`${keyword.keyword} 키워드`}
+                          disabled={saving}
+                          maxLength={100}
+                          onBlur={(event) => void renameKeyword(keyword, event.currentTarget.value)}
+                          onChange={(event) => setKeywordEdits((current) => ({
+                            ...current,
+                            [keyword.id]: event.target.value,
+                          }))}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") event.currentTarget.blur();
+                            if (event.key === "Escape") {
+                              event.preventDefault();
+                              event.currentTarget.value = keyword.keyword;
+                              setKeywordEdits((current) => {
+                                const next = { ...current };
+                                delete next[keyword.id];
+                                return next;
+                              });
+                              event.currentTarget.blur();
+                            }
+                          }}
+                          value={keywordEdits[keyword.id] ?? keyword.keyword}
+                        />
+                        {!keyword.enabled ? <StatusPill tone="neutral">비활성</StatusPill> : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                {selectedCategory.keywords.length === 0 && !keywordDraft ? (
+                  <p className="fuma-discovery-settings__empty">등록된 키워드가 없습니다.</p>
+                ) : null}
+              </>
             ) : null}
           </section>
         </div>

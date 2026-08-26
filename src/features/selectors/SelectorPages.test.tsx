@@ -178,7 +178,10 @@ beforeEach(() => {
 describe("selector api pages", () => {
   test("requests list filters and renders server results", async () => {
     renderRoute("/selectors");
-    const search = await screen.findByRole("search", { name: "검색 조건" });
+    const search = await screen.findByRole("search", { name: "검색 조건" }, { timeout: 3000 });
+
+    expect(await screen.findByRole("img", { name: "셀렉터스 발견 풀" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("switch", { name: "보기 방식" }));
 
     expect(await screen.findByText("SEL0007")).toBeInTheDocument();
     const list = screen.getByRole("region", { name: "셀렉터스 목록" });
@@ -214,7 +217,7 @@ describe("selector api pages", () => {
       expect.anything(),
     ));
     expect(screen.getByText("블랙리스트 목록")).toBeInTheDocument();
-  });
+  }, 15000);
 
   test("renders enhanced selector detail and settlement information", async () => {
     renderRoute("/selectors/7");

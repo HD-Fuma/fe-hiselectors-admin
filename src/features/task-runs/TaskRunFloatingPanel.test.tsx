@@ -58,14 +58,15 @@ test("keeps an empty polite announcement mounted without a visual section", () =
   expect(screen.getByTestId("task-run-announcement")).toBeEmptyDOMElement();
 });
 
-test("shows determinate progress and administrator context", () => {
+test("shows determinate progress with a manual execution label", () => {
   render(<TaskRunFloatingPanel runs={[runningSettlement]} />);
 
   const panel = screen.getByRole("region", { name: "작업 진행상황" });
   expect(panel).not.toHaveAttribute("tabindex");
   expect(within(panel).getByText("정산 계산")).toBeInTheDocument();
   expect(within(panel).getByText("프로필 정보를 동기화하는 중")).toBeInTheDocument();
-  expect(within(panel).getByText("김관리자 실행")).toBeInTheDocument();
+  expect(within(panel).getByText("수동 실행")).toBeInTheDocument();
+  expect(within(panel).queryByText(/김관리자/)).not.toBeInTheDocument();
   expect(within(panel).getByText("84 / 120")).toBeInTheDocument();
   expect(within(panel).getByText("70%")).toBeInTheDocument();
   expect(within(panel).getByText("진행 중")).toHaveClass(
@@ -249,6 +250,28 @@ test("treats a zero stored total as completed", () => {
   })).toHaveAttribute("value", "1");
 });
 
+test("shows an empty new-content phase as completed", () => {
+  render(
+    <TaskRunFloatingPanel
+      runs={[{
+        ...runningContentSync,
+        stepProgress: {
+          NEW_CONTENT_SYNC: { processedCount: 0, totalCount: 0 },
+          STORED_CONTENT_SYNC: { processedCount: 0, totalCount: null },
+        },
+      }]}
+    />,
+  );
+
+  expect(screen.getByText("신규 콘텐츠 없음")).toBeInTheDocument();
+  expect(screen.getByRole("progressbar", {
+    name: "신규 콘텐츠 수집 진행률",
+  })).toHaveAttribute("max", "1");
+  expect(screen.getByRole("progressbar", {
+    name: "신규 콘텐츠 수집 진행률",
+  })).toHaveAttribute("value", "1");
+});
+
 test("announces content collection progress updates politely on rerender", () => {
   const { rerender } = render(
     <TaskRunFloatingPanel
@@ -298,7 +321,7 @@ test("shows an accessible loading status for a scheduled task with an unknown to
     failedCount: 0,
     skippedCount: 0,
     progressPercent: null,
-    startedBy: null,
+    startedBy: { adminId: 2, name: "노출금지 스케줄러 관리자" },
     startedAt: "2026-08-23T00:00:00Z",
     finishedAt: null,
   };
@@ -308,7 +331,8 @@ test("shows an accessible loading status for a scheduled task with an unknown to
   const panel = screen.getByRole("region", { name: "작업 진행상황" });
   expect(within(panel).getByText("지원자 리포트 생성")).toBeInTheDocument();
   expect(within(panel).getByText("지원자 분석 결과를 생성하는 중")).toBeInTheDocument();
-  expect(within(panel).getByText("자동 실행")).toBeInTheDocument();
+  expect(within(panel).getByText("스케줄러")).toBeInTheDocument();
+  expect(within(panel).queryByText(/노출금지/)).not.toBeInTheDocument();
   expect(within(panel).getByRole("status", { name: "진행 상황 확인 중" })).toBeInTheDocument();
   expect(within(panel).queryByText(/%/)).not.toBeInTheDocument();
   expect(within(panel).queryByRole("progressbar")).not.toBeInTheDocument();

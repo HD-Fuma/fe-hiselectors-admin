@@ -272,10 +272,8 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
         },
         {
           label: "업로드 주기",
-          value: collectionDone
-            ? `${applicant.metrics.uploadCadence.weeklyAverage === null
-              ? "-"
-              : `주 ${applicant.metrics.uploadCadence.weeklyAverage.toFixed(1)}회`} · 표본 ${formatNumber(applicant.metrics.uploadCadence.sampleCount)}건`
+          value: collectionDone && applicant.metrics.uploadCadence.weeklyAverage !== null
+            ? `주 ${applicant.metrics.uploadCadence.weeklyAverage.toFixed(1)}회`
             : "-",
         },
         {

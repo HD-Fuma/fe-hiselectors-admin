@@ -1,16 +1,21 @@
 import { useEffect, useId, useState } from "react";
+import { Tooltip } from "./Tooltip";
 
 export type ViewMode = "grid" | "list";
 
 export interface ViewModeToggleProps {
   value: ViewMode;
   onChange: (value: ViewMode) => void;
+  gridLabel?: string;
+  listLabel?: string;
   tooltip?: string;
 }
 
 export function ViewModeToggle({
   value,
   onChange,
+  gridLabel = "카드",
+  listLabel = "목록",
   tooltip = "보기 방식을 변경할 수 있습니다",
 }: ViewModeToggleProps) {
   const tooltipId = useId();
@@ -38,19 +43,19 @@ export function ViewModeToggle({
       >
         <span aria-hidden="true" className="hsas-view-mode-toggle__slider" />
         <span aria-hidden="true" className="hsas-view-mode-toggle__label is-grid">
-          카드
+          {gridLabel}
         </span>
         <span aria-hidden="true" className="hsas-view-mode-toggle__label is-list">
-          목록
+          {listLabel}
         </span>
       </button>
-      <span
-        className={`hsas-view-mode-toggle__tooltip${showTooltip ? " is-visible" : ""}`}
+      <Tooltip
         id={tooltipId}
-        role="tooltip"
+        placement="bottom"
+        visible={showTooltip}
       >
         {tooltip}
-      </span>
+      </Tooltip>
     </div>
   );
 }

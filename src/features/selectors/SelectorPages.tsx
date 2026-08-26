@@ -15,6 +15,7 @@ import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { ViewModeToggle } from "../../components/ui/ViewModeToggle";
 import {
   createGeneration,
   getGenerations,
@@ -36,6 +37,7 @@ import {
   getSettlementSelectorDetail,
   type SettlementSelectorDetail,
 } from "../../entities/settlement";
+import { SelectorPoolCanvas } from "./SelectorPoolCanvas";
 import { formatNumber } from "../../lib/formatters";
 import { paginate } from "../../lib/pagination";
 
@@ -533,9 +535,29 @@ const SELECTOR_COLUMNS: DenseTableColumn<SelectorSummary>[] = [
 ];
 
 const SELECTOR_PAGE_SIZE = 20;
+const POOL_PAGE_SIZE = 200;
+// 버블/도크에 마우스를 올릴 때 상세를 미리 받아 둔다(모달이 즉시 뜨도록).
+const selectorDetailCache = new Map<number, Promise<SelectorDetail>>();
+
+function prefetchSelectorDetail(id: number) {
+  const cached = selectorDetailCache.get(id);
+  if (cached) return cached;
+  const pending = getSelector(id);
+  selectorDetailCache.set(id, pending);
+  pending.catch(() => selectorDetailCache.delete(id));
+  return pending;
+}
+type SelectorViewMode = "pool" | "table";
 
 export function SelectorOverviewPage() {
   const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState<SelectorViewMode>("pool");
+  // 버블에서 고른 셀렉터스는 화면 이동 없이 가운데 모달로 보여준다.
+  const [poolDetail, setPoolDetail] = useState<{
+    id: number;
+    detail: SelectorDetail | null;
+    error: string;
+  } | null>(null);
   const [keyword, setKeyword] = useState("");
   const [generationId, setGenerationId] = useState("");
   const [sns, setSns] = useState("");
@@ -554,6 +576,8 @@ export function SelectorOverviewPage() {
       : selectedStatus === "BLACKLIST"
         ? "블랙리스트 목록"
         : "셀렉터스 목록";
+  // 버블 뷰는 상태 필터가 없는 전체 목록에서만 사용한다.
+  const activeView: SelectorViewMode = selectedStatus ? "table" : viewMode;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -571,7 +595,7 @@ export function SelectorOverviewPage() {
       nickname: appliedKeyword || undefined,
       snsCode: (appliedSns || undefined) as SelectorSnsCode | undefined,
       page: page - 1,
-      size: SELECTOR_PAGE_SIZE,
+      size: activeView === "pool" ? POOL_PAGE_SIZE : SELECTOR_PAGE_SIZE,
     }, controller.signal).then((result) => {
       setPageData(result);
       setListError("");
@@ -581,7 +605,17 @@ export function SelectorOverviewPage() {
       }
     });
     return () => controller.abort();
-  }, [appliedGenerationId, appliedKeyword, appliedSns, page, selectedStatus]);
+  }, [activeView, appliedGenerationId, appliedKeyword, appliedSns, page, selectedStatus]);
+
+  const openPoolDetail = (id: number) => {
+    setPoolDetail({ id, detail: null, error: "" });
+    prefetchSelectorDetail(id).then((detail) => {
+      setPoolDetail((current) => current?.id === id ? { ...current, detail } : current);
+    }).catch((reason: unknown) => {
+      const message = reason instanceof Error ? reason.message : "셀렉터스 상세 조회에 실패했습니다.";
+      setPoolDetail((current) => current?.id === id ? { ...current, error: message } : current);
+    });
+  };
 
   const applyFilters = () => {
     setAppliedKeyword(keyword.trim());
@@ -659,6 +693,17 @@ export function SelectorOverviewPage() {
           value={selectedStatus}
         />
         <ResultToolbar
+          actions={selectedStatus ? null : (
+            <ViewModeToggle
+              gridLabel="버블"
+              listLabel="표"
+              onChange={(mode) => {
+                setViewMode(mode === "grid" ? "pool" : "table");
+                setPage(1);
+              }}
+              value={viewMode === "pool" ? "grid" : "list"}
+            />
+          )}
           className="fuma-simple-result-toolbar"
           meta={
             <>
@@ -668,14 +713,20 @@ export function SelectorOverviewPage() {
           }
           title={selectorListTitle}
         />
-        <div
-          aria-label={selectorListTitle}
-          className="fuma-wide-table fuma-settlement-table fuma-selector-list-table"
-          role="region"
-        >
-          {listError ? (
-            <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
-          ) : (
+        {listError ? (
+          <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
+        ) : activeView === "pool" ? (
+          <SelectorPoolCanvas
+            onPrefetch={(selector) => { void prefetchSelectorDetail(selector.id); }}
+            onSelect={(selector) => openPoolDetail(selector.id)}
+            selectors={pageData?.content ?? []}
+          />
+        ) : (
+          <div
+            aria-label={selectorListTitle}
+            className="fuma-wide-table fuma-settlement-table fuma-selector-list-table"
+            role="region"
+          >
             <DenseTable
               columns={SELECTOR_COLUMNS}
               emptyMessage={pageData ? "셀렉터스가 없습니다." : "셀렉터스를 불러오는 중입니다."}
@@ -683,15 +734,27 @@ export function SelectorOverviewPage() {
               rowKey={(selector) => selector.id}
               rows={pageData?.content ?? []}
             />
-          )}
-        </div>
-        <Pagination
-          onPageChange={setPage}
-          page={page}
-          pageSize={SELECTOR_PAGE_SIZE}
-          totalPages={Math.max(1, pageData?.totalPages ?? 1)}
-        />
+          </div>
+        )}
+        {activeView === "table" ? (
+          <Pagination
+            onPageChange={setPage}
+            page={page}
+            pageSize={SELECTOR_PAGE_SIZE}
+            totalPages={Math.max(1, pageData?.totalPages ?? 1)}
+          />
+        ) : null}
       </div>
+      {poolDetail ? (
+        <SelectorDetailPanel
+          hideSettlement
+          onClose={() => setPoolDetail(null)}
+          presentation="modal"
+          selectorDetail={poolDetail.detail}
+          selectorDetailError={poolDetail.error}
+          selectorDetailLoading={!poolDetail.detail && !poolDetail.error}
+        />
+      ) : null}
     </section>
   );
 }

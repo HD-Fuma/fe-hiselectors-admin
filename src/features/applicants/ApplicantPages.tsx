@@ -2,9 +2,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { CircleHelp } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
-import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
-import { Button, Select, TextInput } from "../../components/ui/Controls";
+import { Button, Select, Switch, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
@@ -14,7 +13,9 @@ import { Pagination } from "../../components/ui/Pagination";
 import { ProfileDetailShell, type ProfileDetailProfile } from "../../components/ui/ProfileDetailShell";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
+import { SocialAccountCell } from "../../components/ui/SocialAccountCell";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
+import { Tooltip } from "../../components/ui/Tooltip";
 import {
   createAdminApplicationTest,
   getAdminApplication,
@@ -187,23 +188,15 @@ function uniqueContentsByPost(contents: readonly ApplicationContent[]) {
   return [...posts.values()];
 }
 
-function PlatformLabel({ platform }: { platform: ApplicantPlatform }) {
-  return (
-    <span className="fuma-platform-label">
-      <PlatformIcon platform={platform} />
-      <span aria-hidden="true">{platform}</span>
-    </span>
-  );
-}
-
 interface ApplicantListRow {
   id: number;
-  theHyundaiHiMemberNumber: string;
   name: string;
   platform: ApplicantPlatform;
   channelName: string;
-  generationName: string;
+  profileImageUrl: string;
+  profileUrl: string;
   recent90DayContentCount: number | null;
+  lastPublishedAt: string;
   followerCount: number | null;
   engagementRate: number | null;
   appliedAt: string;
@@ -215,17 +208,40 @@ function applicantToListRow(
 ): ApplicantListRow {
   return {
     id: applicant.id,
-    theHyundaiHiMemberNumber: applicant.hiId,
     name: applicant.applicantName,
     platform: platformFor(applicant.snsCode),
     channelName: displaySnsName(applicant),
-    generationName: applicant.generationName,
+    profileImageUrl: applicant.profileImageUrl ?? "",
+    profileUrl: profileUrl(applicant),
     recent90DayContentCount: applicant.recent90DayContentCount,
+    lastPublishedAt: applicant.lastPublishedAt?.slice(0, 10) ?? "-",
     followerCount: applicant.followerCount,
     engagementRate: applicant.engagementRate,
     appliedAt: dateTime(applicant.appliedAt),
     reviewStatus: reviewStatusFor(applicant),
   };
+}
+
+function ApplicantAccountCell({
+  applicant,
+  onOpen,
+}: {
+  applicant: ApplicantListRow;
+  onOpen: (applicant: ApplicantListRow) => void;
+}) {
+  const handle = applicant.platform === "Instagram"
+    ? `@${applicant.channelName.replace(/^@/, "")}`
+    : applicant.channelName;
+  return (
+    <SocialAccountCell
+      displayName={applicant.name}
+      handle={handle}
+      onOpen={() => onOpen(applicant)}
+      platform={applicant.platform}
+      profileImageUrl={applicant.profileImageUrl}
+      profileUrl={applicant.profileUrl}
+    />
+  );
 }
 
 function ApplicantApprovalToolbar({
@@ -244,15 +260,11 @@ function ApplicantApprovalToolbar({
   return (
     <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-applicant-result-toolbar">
       <div className="fuma-applicant-minimum-filter">
-        <label className="fuma-applicant-minimum-toggle">
-          <input
-            checked={minimumCriteriaOnly}
-            onChange={(event) => onMinimumCriteriaOnlyChange(event.target.checked)}
-            type="checkbox"
-          />
-          <span aria-hidden="true" />
-          <b>최저 기준 필터링</b>
-        </label>
+        <Switch
+          checked={minimumCriteriaOnly}
+          label="최저 기준 필터링"
+          onChange={(event) => onMinimumCriteriaOnlyChange(event.target.checked)}
+        />
         <span className="fuma-applicant-minimum-tooltip">
           <button
             aria-describedby="applicant-minimum-tooltip"
@@ -261,19 +273,16 @@ function ApplicantApprovalToolbar({
           >
             <CircleHelp aria-hidden="true" size={15} strokeWidth={1.8} />
           </button>
-          <span id="applicant-minimum-tooltip" role="tooltip">
+          <Tooltip id="applicant-minimum-tooltip">
             팔로워·구독자 500명 이하 또는 최근 3개월 내 활동 콘텐츠가 3건 이하인 지원자를 필터링합니다.
-          </span>
+          </Tooltip>
         </span>
-        <label className="fuma-applicant-minimum-toggle fuma-applicant-ai-report-toggle">
-          <input
-            checked={hasAiReportOnly}
-            onChange={(event) => onHasAiReportOnlyChange(event.target.checked)}
-            type="checkbox"
-          />
-          <span aria-hidden="true" />
-          <b>AI 리포트 있는 지원자만</b>
-        </label>
+        <Switch
+          checked={hasAiReportOnly}
+          className="fuma-applicant-ai-report-toggle"
+          label="AI 리포트 있는 지원자만"
+          onChange={(event) => onHasAiReportOnlyChange(event.target.checked)}
+        />
       </div>
       <div className="fuma-settlement-result-meta">
         <span>총 {count}건</span>
@@ -282,48 +291,20 @@ function ApplicantApprovalToolbar({
   );
 }
 
-function applicantListColumns(): DenseTableColumn<ApplicantListRow>[] {
+function applicantListColumns(
+  onOpen: (applicant: ApplicantListRow) => void,
+): DenseTableColumn<ApplicantListRow>[] {
   return [
     {
-      key: "theHyundaiHiMemberNumber",
-      header: "회원번호",
-      width: 126,
-      align: "center",
-    },
-    { key: "name", header: "이름", width: 70, align: "center" },
-    {
-      id: "platform",
-      header: "플랫폼",
-      width: 115,
-      align: "center",
-      render: (applicant) => <PlatformLabel platform={applicant.platform} />,
-    },
-    {
       id: "account",
-      header: "SNS 계정",
-      width: 130,
-      align: "center",
-      render: (applicant) => applicant.channelName,
-    },
-    {
-      key: "generationName",
-      header: "기수",
-      width: 110,
-      align: "center",
-    },
-    {
-      key: "recent90DayContentCount",
-      header: "최근 90일 활동",
-      width: 165,
-      align: "right",
-      render: (applicant) => applicant.recent90DayContentCount === null
-        ? "-"
-        : `${formatNumber(applicant.recent90DayContentCount)}건`,
+      header: "계정",
+      width: 240,
+      render: (applicant) => <ApplicantAccountCell applicant={applicant} onOpen={onOpen} />,
     },
     {
       key: "followerCount",
       header: "팔로워/구독자",
-      width: 105,
+      width: 120,
       align: "right",
       render: (applicant) => applicant.followerCount === null
         ? "-"
@@ -332,16 +313,31 @@ function applicantListColumns(): DenseTableColumn<ApplicantListRow>[] {
     {
       key: "engagementRate",
       header: "ER",
-      width: 72,
+      width: 80,
       align: "right",
       render: (applicant) => applicant.engagementRate === null
         ? "-"
         : `${applicant.engagementRate.toFixed(2)}%`,
     },
     {
+      key: "recent90DayContentCount",
+      header: "최근 90일 활동",
+      width: 120,
+      align: "right",
+      render: (applicant) => applicant.recent90DayContentCount === null
+        ? "-"
+        : `${formatNumber(applicant.recent90DayContentCount)}건`,
+    },
+    {
+      key: "lastPublishedAt",
+      header: "최근 활동일",
+      width: 105,
+      align: "center",
+    },
+    {
       key: "appliedAt",
       header: "신청일",
-      width: 96,
+      width: 125,
       align: "center",
     },
     {
@@ -466,7 +462,7 @@ export function ApplicantListPage() {
     setPage(1);
     navigate("/applicants");
   };
-  const columns = applicantListColumns();
+  const columns = applicantListColumns(openApplicant);
   const loading = pageData === null && !listError;
 
   return (
@@ -714,7 +710,7 @@ export function ApplicantDetailPage({
     ],
     name: currentInitialSummary.applicantName,
     platform: platformFor(currentInitialSummary.snsCode),
-    profileImageUrl: "",
+    profileImageUrl: currentInitialSummary.profileImageUrl ?? "",
     profileUrl: profileUrl(currentInitialSummary),
     status: (
       <StatusPill tone={reviewStatusTone(fallbackReviewStatus)}>

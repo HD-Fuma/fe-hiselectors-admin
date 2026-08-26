@@ -246,14 +246,6 @@ function historyFromVersions(
   return items;
 }
 
-function mediaPreviewUrl(media: {
-  mediaType: "TEXT" | "IMAGE" | "VIDEO";
-  mediaUrl: string | null;
-  thumbnailUrl?: string | null;
-}) {
-  return media.thumbnailUrl ?? (media.mediaType === "IMAGE" ? media.mediaUrl : null) ?? "";
-}
-
 export function adaptContentInspection(content: CollectedContent): ContentInspectionFixture {
   const texts = trimmedTexts(content.texts);
   const media = [...(content.media ?? [])].sort((left, right) => left.sequenceNo - right.sequenceNo);
@@ -274,12 +266,13 @@ export function adaptContentInspection(content: CollectedContent): ContentInspec
     contentFormat,
     contentTitle: texts[0] ?? content.snsContentId,
     contentUrl: content.contentUrl,
+    contentVersionId: content.latestVersionId,
     currentSnapshot: {
       capturedAt: content.latestVersionStoredAt,
       label: contentFormat,
       mediaCount: media.length,
       mediaKinds: media.map(({ mediaType }) => mediaType === "VIDEO" ? "동영상" : "이미지"),
-      mediaUrls: media.map(mediaPreviewUrl),
+      mediaUrls: media.map(({ mediaUrl }) => mediaUrl ?? ""),
       text: texts.join("\n"),
       urls: content.contentUrl ? [content.contentUrl] : [],
       youtubeVideoId,
@@ -359,7 +352,7 @@ export function adaptContentInspectionDetail(
       contentMediaIds: visualMedia.map((item) => item.contentMediaId),
       mediaCount: visualMedia.length,
       mediaKinds: visualMedia.map((item) => item.mediaType === "VIDEO" ? "동영상" : "이미지"),
-      mediaUrls: visualMedia.map(mediaPreviewUrl),
+      mediaUrls: visualMedia.map((item) => item.mediaUrl ?? ""),
       text,
       urls: base?.currentSnapshot.urls
         ?? (detail.contentUrl ? [detail.contentUrl] : []),
