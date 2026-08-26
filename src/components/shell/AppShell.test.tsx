@@ -49,6 +49,7 @@ test("renders the complete administrator navigation in one sidebar", () => {
   const navigation = sidebarQueries.getByRole("navigation", { name: "관리자 메뉴" });
 
   expect(sidebarQueries.getByRole("img", { name: "더현대Hi" })).toBeInTheDocument();
+  expect(sidebarQueries.getByRole("link", { name: "더현대Hi" })).toHaveAttribute("href", "/");
   expect(screen.getAllByRole("navigation", { name: "관리자 메뉴" })).toHaveLength(1);
   const sidebarLinks = within(navigation).getAllByRole("link");
   expect(sidebarLinks).toHaveLength(13);

@@ -121,13 +121,13 @@ export function AdminSidebar({
   return (
     <aside className="hsas-admin-sidebar" data-shell-part="sidebar">
       <div className="hsas-admin-sidebar__brand">
-        <span className="hsas-admin-sidebar__brand-logo-shell">
+        <Link className="hsas-admin-sidebar__brand-logo-shell" to="/">
           <img
             className="hsas-admin-sidebar__brand-logo"
             src={`${import.meta.env.BASE_URL}brand/thehyundai-hi.svg`}
             alt="더현대Hi"
           />
-        </span>
+        </Link>
       </div>
       <nav
         className="hsas-admin-sidebar__navigation"
