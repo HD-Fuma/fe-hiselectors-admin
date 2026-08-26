@@ -1,6 +1,6 @@
 .fuma-dashboard {
   --dashboard-accent: #111;
-  --dashboard-canvas: #e7ecf4;
+  --dashboard-canvas: var(--hsas-surface-muted);
   --dashboard-panel: #fff;
   --dashboard-tile: #f4f6fa;
   --dashboard-on-accent: #fff;
