@@ -54,7 +54,8 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
 .fuma-dashboard-card--inspection,
 .fuma-dashboard-card--applications,
 .fuma-dashboard-card--active,
-.fuma-dashboard-card--generation {
+.fuma-dashboard-card--generation,
+.fuma-dashboard-card--kpi {
   grid-column: span 3;
 }
 
@@ -119,6 +120,14 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   color: rgb(32 34 36 / 48%);
   font-size: var(--hsas-font-12);
   font-weight: 750;
+}
+
+.fuma-dashboard__metric > .fuma-dashboard__metric-detail {
+  overflow: hidden;
+  font-size: var(--hsas-font-10);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fuma-dashboard::before {
