@@ -1967,6 +1967,7 @@ export function ContentInspectionDetailPage() {
     if (
       !baseContent
       || !studioLatestVersion
+      || studioReviewReadOnly
       || studioActionPending
       || studioActionRequestRef.current
     ) return;
@@ -2039,6 +2040,7 @@ export function ContentInspectionDetailPage() {
     studioActionPending,
     studioLatestVersion,
     studioReportRefreshVersionId,
+    studioReviewReadOnly,
   ]);
 
   const submitStudioDecision = useCallback(async (selected: "approve" | "reject") => {
@@ -2312,7 +2314,7 @@ export function ContentInspectionDetailPage() {
         return;
       }
       if (event.repeat && (
-        ["0", "1"].includes(event.key)
+        ["1", "2"].includes(event.key)
         || event.code === "Space"
       )) {
         event.preventDefault();
@@ -2345,18 +2347,18 @@ export function ContentInspectionDetailPage() {
         }
         return;
       }
-      if (event.key === "0" || event.key === "1") {
+      if (event.key === "1" || event.key === "2") {
         event.preventDefault();
         if (!studioReportReady || studioReviewReadOnly || studioReportRefreshVersionId !== null) return;
         if (focusedStudioViolationIndex >= 0) {
           judgeStudioViolation(
             focusedStudioViolationIndex,
-            event.key === "0" ? "violation" : "clear",
+            event.key === "1" ? "violation" : "clear",
           );
           return;
         }
         if (studioFinalFocused) {
-          const selected = event.key === "0" ? "reject" : "approve";
+          const selected = event.key === "1" ? "reject" : "approve";
           if ((selected === "reject") !== hasStudioViolationJudgment) return;
           setStudioActionError(null);
           setStudioDecision(selected);
@@ -2528,7 +2530,7 @@ export function ContentInspectionDetailPage() {
           || studioHistoryPending
           || studioContentTransition !== "idle"
         }
-        aria-label="집중 검수 스튜디오"
+        aria-label="콘텐츠 검수"
         aria-modal="true"
         className="fuma-content-inspection-studio"
         data-exiting={studioExiting}
@@ -2549,7 +2551,7 @@ export function ContentInspectionDetailPage() {
           </button>
           <div className="fuma-content-inspection-studio__header-title">
             <span>CONTENT INSPECTION</span>
-            <strong>콘텐츠 집중 검수</strong>
+            <strong>콘텐츠 검수</strong>
           </div>
           <nav aria-label="검수 콘텐츠 이동" className="fuma-content-inspection-studio__queue">
             <div className="fuma-content-inspection-studio__queue-progress">
@@ -2725,6 +2727,7 @@ export function ContentInspectionDetailPage() {
                   data-pending={studioActionPending === "report"}
                   disabled={
                     studioActionPending !== null
+                    || studioReviewReadOnly
                     || !studioLatestVersion?.contentVersionId
                   }
                   onClick={() => void generateStudioReport()}
@@ -2826,7 +2829,7 @@ export function ContentInspectionDetailPage() {
                               role="group"
                             >
                               <button
-                                aria-keyshortcuts="0"
+                                aria-keyshortcuts="1"
                                 aria-pressed={judgment === "violation"}
                                 disabled={
                                   studioActionPending !== null
@@ -2838,7 +2841,7 @@ export function ContentInspectionDetailPage() {
                                 위반
                               </button>
                               <button
-                                aria-keyshortcuts="1"
+                                aria-keyshortcuts="2"
                                 aria-pressed={judgment === "clear"}
                                 disabled={
                                   studioActionPending !== null
@@ -2879,6 +2882,7 @@ export function ContentInspectionDetailPage() {
           tabIndex={-1}
         >
           <button
+            aria-keyshortcuts="1"
             aria-pressed={studioDecision === "reject"}
             className="is-reject"
             disabled={
@@ -2889,12 +2893,13 @@ export function ContentInspectionDetailPage() {
             onClick={() => void submitStudioDecision("reject")}
             type="button"
           >
-            <kbd>0</kbd>
+            <kbd>1</kbd>
             {studioActionPending === "confirmation" && studioDecision === "reject"
               ? "반려 처리 중"
               : "최종 반려"}
           </button>
           <button
+            aria-keyshortcuts="2"
             aria-pressed={studioDecision === "approve"}
             className="is-approve"
             disabled={
@@ -2905,7 +2910,7 @@ export function ContentInspectionDetailPage() {
             onClick={() => void submitStudioDecision("approve")}
             type="button"
           >
-            <kbd>1</kbd>
+            <kbd>2</kbd>
             {studioActionPending === "confirmation" && studioDecision === "approve"
               ? "승인 처리 중"
               : "최종 승인"}
