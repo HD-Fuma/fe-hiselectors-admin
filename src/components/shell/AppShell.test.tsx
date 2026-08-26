@@ -219,7 +219,7 @@ test("keeps the administrator identity and utility controls in the sidebar", () 
   expect(within(shell).getAllByRole("button", { name: "로그아웃" })).toHaveLength(1);
 });
 
-test("opens anchored environment settings with the light sidebar selected by default", () => {
+test("opens and closes environment settings only when the icon is clicked", () => {
   renderRoute("/creators");
 
   expect(document.documentElement).toHaveAttribute("data-sidebar-theme", "light");
@@ -227,19 +227,39 @@ test("opens anchored environment settings with the light sidebar selected by def
   expect(document.documentElement.style.colorScheme).toBe("");
 
   const trigger = screen.getByRole("button", { name: "환경설정" });
+  const anchor = trigger.parentElement as HTMLElement;
+  fireEvent.mouseEnter(anchor);
+
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByRole("group", { name: "환경설정" })).not.toBeInTheDocument();
   fireEvent.click(trigger);
 
   expect(trigger).toHaveAttribute("aria-expanded", "true");
   expect(screen.queryByRole("dialog", { name: "환경설정" })).not.toBeInTheDocument();
   const settings = screen.getByRole("group", { name: "환경설정" });
-  expect(within(settings).getByRole("button", { name: "라이트 모드" })).toHaveAttribute(
+  const themeMenuTrigger = within(settings).getByRole("button", { name: "화면 모드" });
+  expect(themeMenuTrigger).toHaveAttribute("aria-expanded", "false");
+  expect(within(settings).queryByRole("button", { name: "라이트 모드" })).not.toBeInTheDocument();
+  expect(within(settings).getByRole("button", { name: "검수 상태 초기화" })).toBeEnabled();
+
+  fireEvent.click(themeMenuTrigger);
+
+  expect(themeMenuTrigger).toHaveAttribute("aria-expanded", "true");
+  const themeMenu = within(settings).getByRole("group", { name: "화면 모드" });
+  expect(within(themeMenu).getByRole("button", { name: "라이트 모드" })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
-  expect(within(settings).getByRole("button", { name: "다크 모드" })).toHaveAttribute(
+  expect(within(themeMenu).getByRole("button", { name: "다크 모드" })).toHaveAttribute(
     "aria-pressed",
     "false",
   );
+
+  fireEvent.mouseLeave(anchor);
+  expect(screen.getByRole("group", { name: "환경설정" })).toBeInTheDocument();
+  fireEvent.click(trigger);
+  expect(screen.queryByRole("group", { name: "환경설정" })).not.toBeInTheDocument();
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
 });
 
 test("switches and persists the selected theme immediately", () => {
@@ -248,13 +268,15 @@ test("switches and persists the selected theme immediately", () => {
   fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
 
   const settings = screen.getByRole("group", { name: "환경설정" });
-  fireEvent.click(within(settings).getByRole("button", { name: "라이트 모드" }));
+  fireEvent.click(within(settings).getByRole("button", { name: "화면 모드" }));
+  const themeMenu = within(settings).getByRole("group", { name: "화면 모드" });
+  fireEvent.click(within(themeMenu).getByRole("button", { name: "라이트 모드" }));
 
-  expect(within(settings).getByRole("button", { name: "라이트 모드" })).toHaveAttribute(
+  expect(within(themeMenu).getByRole("button", { name: "라이트 모드" })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
-  expect(within(settings).getByRole("button", { name: "다크 모드" })).toHaveAttribute(
+  expect(within(themeMenu).getByRole("button", { name: "다크 모드" })).toHaveAttribute(
     "aria-pressed",
     "false",
   );
@@ -292,6 +314,7 @@ test.each([
     expect(document.documentElement.style.colorScheme).toBe("");
 
     fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
+    fireEvent.click(screen.getByRole("button", { name: "화면 모드" }));
     expect(screen.getByRole("button", { name: selectedLabel })).toHaveAttribute(
       "aria-pressed",
       "true",

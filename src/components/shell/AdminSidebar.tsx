@@ -3,9 +3,11 @@ import {
   Bell,
   Check,
   ChevronDown,
+  ChevronRight,
   ClipboardList,
   LogOut,
   Moon,
+  RotateCcw,
   Settings,
   Sun,
   UsersRound,
@@ -14,6 +16,7 @@ import {
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, matchPath, useNavigate } from "react-router-dom";
 import { applyTheme, getTheme, saveTheme } from "../../lib/theme";
+import { resetContentInspections } from "../../entities/content";
 import {
   clearAdministratorSession,
   getAdministratorSession,
@@ -23,6 +26,8 @@ import type {
   NavGroup,
   NavGroupMeta,
 } from "./navigationModel";
+import { BubbleDialog } from "../ui/BubbleDialog";
+import { Button } from "../ui/Controls";
 import "../../styles/sidebar-account.css";
 import "../../styles/sidebar-brand.css";
 
@@ -75,6 +80,10 @@ export function AdminSidebar({
   const session = getAdministratorSession();
   const administratorName = session?.name ?? session?.loginId ?? "관리자";
   const [isSettingsOpen, setSettingsOpen] = useState(false);
+  const [isThemeMenuOpen, setThemeMenuOpen] = useState(false);
+  const [isResetDialogOpen, setResetDialogOpen] = useState(false);
+  const [isResetting, setResetting] = useState(false);
+  const [resetFeedback, setResetFeedback] = useState<string | null>(null);
   const [theme, setTheme] = useState(getTheme);
   const settingsRef = useRef<HTMLDivElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
@@ -90,11 +99,13 @@ export function AdminSidebar({
     const closeOnPointerDown = (event: PointerEvent) => {
       if (event.target instanceof Node && !settingsRef.current?.contains(event.target)) {
         setSettingsOpen(false);
+        setThemeMenuOpen(false);
       }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setSettingsOpen(false);
+      setThemeMenuOpen(false);
       settingsButtonRef.current?.focus();
     };
 
@@ -116,6 +127,24 @@ export function AdminSidebar({
       }
       return next;
     });
+  };
+
+  const resetInspectionState = async () => {
+    setResetting(true);
+    setResetFeedback(null);
+    try {
+      const result = await resetContentInspections();
+      setResetDialogOpen(false);
+      setResetFeedback(
+        `콘텐츠 ${result.resetVersionCount}건, 위반 판정 ${result.resetViolationCount}건을 초기화했습니다.`,
+      );
+    } catch (error) {
+      setResetFeedback(
+        error instanceof Error ? error.message : "검수 상태 초기화에 실패했습니다.",
+      );
+    } finally {
+      setResetting(false);
+    }
   };
 
   return (
@@ -217,13 +246,19 @@ export function AdminSidebar({
           <span>관리자 계정</span>
         </span>
         <div className="hsas-admin-sidebar__account-actions">
-          <div className="hsas-theme-settings-anchor" ref={settingsRef}>
+          <div
+            className="hsas-theme-settings-anchor"
+            ref={settingsRef}
+          >
             <button
               aria-controls={THEME_SETTINGS_ID}
               aria-expanded={isSettingsOpen}
               aria-label="환경설정"
               className="hsas-admin-sidebar__account-action"
-              onClick={() => setSettingsOpen((current) => !current)}
+              onClick={() => {
+                setSettingsOpen((current) => !current);
+                setThemeMenuOpen(false);
+              }}
               ref={settingsButtonRef}
               type="button"
             >
@@ -236,36 +271,100 @@ export function AdminSidebar({
                 id={THEME_SETTINGS_ID}
                 role="group"
               >
-                <span className="hsas-theme-settings__label">화면 모드</span>
+                <span className="hsas-theme-settings__label">환경설정</span>
                 <div
-                  aria-label="화면 모드"
+                  aria-label="환경설정 메뉴"
                   className="hsas-theme-settings__menu"
                   role="group"
                 >
-                  {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+                  <div
+                    className="hsas-theme-settings__submenu-anchor"
+                    onMouseEnter={() => setThemeMenuOpen(true)}
+                  >
                     <button
-                      aria-pressed={theme === value}
+                      aria-expanded={isThemeMenuOpen}
                       className="hsas-theme-settings__item"
-                      key={value}
-                      onClick={() => {
-                        setTheme(value);
-                        saveTheme(value);
-                      }}
+                      onClick={() => setThemeMenuOpen((current) => !current)}
                       type="button"
                     >
-                      <Icon aria-hidden="true" />
-                      <span>{label}</span>
-                      {theme === value && (
-                        <Check
-                          aria-hidden="true"
-                          className="hsas-theme-settings__check"
-                        />
-                      )}
+                      <Sun aria-hidden="true" />
+                      <span>화면 모드</span>
+                      <ChevronRight aria-hidden="true" />
                     </button>
-                  ))}
+                    {isThemeMenuOpen ? (
+                      <div
+                        aria-label="화면 모드"
+                        className="hsas-theme-settings__submenu"
+                        role="group"
+                      >
+                        {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+                          <button
+                            aria-pressed={theme === value}
+                            className="hsas-theme-settings__item"
+                            key={value}
+                            onClick={() => {
+                              setTheme(value);
+                              saveTheme(value);
+                            }}
+                            type="button"
+                          >
+                            <Icon aria-hidden="true" />
+                            <span>{label}</span>
+                            {theme === value ? (
+                              <Check
+                                aria-hidden="true"
+                                className="hsas-theme-settings__check"
+                              />
+                            ) : null}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                  <button
+                    className="hsas-theme-settings__item hsas-theme-settings__item--danger"
+                    onClick={() => {
+                      setResetFeedback(null);
+                      setResetDialogOpen(true);
+                    }}
+                    type="button"
+                  >
+                    <RotateCcw aria-hidden="true" />
+                    <span>검수 상태 초기화</span>
+                  </button>
                 </div>
+                {resetFeedback ? (
+                  <p className="hsas-theme-settings__feedback" role="status">
+                    {resetFeedback}
+                  </p>
+                ) : null}
               </div>
             )}
+            <BubbleDialog
+              actions={(
+                <>
+                  <Button disabled={isResetting} onClick={() => setResetDialogOpen(false)}>
+                    취소
+                  </Button>
+                  <Button
+                    disabled={isResetting}
+                    onClick={() => void resetInspectionState()}
+                    variant="danger"
+                  >
+                    {isResetting ? "초기화 중" : "초기화"}
+                  </Button>
+                </>
+              )}
+              description={(
+                <>
+                  현재 활동 기수의 최종 승인·반려와 위반 판정을 초기화합니다.
+                  <br />
+                  패널티, 블랙리스트, 감사 이력은 유지됩니다.
+                </>
+              )}
+              open={isResetDialogOpen}
+              title="검수 상태를 초기화할까요?"
+            />
           </div>
           <button
             type="button"

@@ -662,7 +662,7 @@
   height: 100dvh;
   align-self: start;
   grid-template-rows: 68px minmax(0, 1fr) auto;
-  overflow: hidden;
+  overflow: visible;
   border-right: 1px solid var(--hsas-sidebar-border);
   background: var(--hsas-sidebar-background);
   color: var(--hsas-sidebar-text);

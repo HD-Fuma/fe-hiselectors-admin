@@ -264,3 +264,25 @@ test("confirms all violation judgments in one PATCH request", async () => {
   expect(new Headers(init.headers).get("Authorization")).toBe("Bearer admin.jwt");
   expect(new Headers(init.headers).get("Content-Type")).toBe("application/json");
 });
+
+test("resets current generation inspection decisions in one DELETE request", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    code: "OK",
+    data: { resetVersionCount: 3, resetViolationCount: 5 },
+    message: null,
+    success: true,
+  }), { headers: { "Content-Type": "application/json" }, status: 200 }));
+  vi.stubGlobal("fetch", fetchMock);
+
+  await expect(contentEntity.resetContentInspections()).resolves.toEqual({
+    resetVersionCount: 3,
+    resetViolationCount: 5,
+  });
+
+  const [input, init] = fetchMock.mock.calls[0];
+  const url = new URL(String(input));
+  expect(url.pathname).toBe("/api/admin/contents/inspection-decisions");
+  expect(url.searchParams.get("confirmation")).toBe("RESET_CONTENT_INSPECTIONS");
+  expect(init).toEqual(expect.objectContaining({ method: "DELETE" }));
+  expect(new Headers(init.headers).get("Authorization")).toBe("Bearer admin.jwt");
+});

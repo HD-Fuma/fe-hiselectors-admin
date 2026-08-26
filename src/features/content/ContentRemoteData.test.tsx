@@ -247,10 +247,35 @@ test("loads a direct detail route and keeps pending analysis and decisions hones
 
   const finalInspection = screen.getByRole("region", { name: "최종 검수" });
   expect(within(finalInspection).getByText("위반 정보 없음")).toBeInTheDocument();
-  expect(within(finalInspection).getByRole("button", { name: "승인" })).toBeDisabled();
-  expect(within(finalInspection).getByRole("button", { name: "반려" })).toBeDisabled();
+  expect(within(finalInspection).getByRole("button", { name: "승인" })).toBeEnabled();
+  expect(within(finalInspection).getByRole("button", { name: "반려" })).toBeEnabled();
   expect(screen.queryByText(/좋아요 [\d,]+개/)).not.toBeInTheDocument();
   expect(screen.queryByText(/조회수 [\d,]+회/)).not.toBeInTheDocument();
+});
+
+test("shows completion dialog after confirming the final content", async () => {
+  const confirmationResponse = new Response(JSON.stringify({
+    code: "OK",
+    data: { updatedCount: 0 },
+    message: null,
+    success: true,
+  }), { headers: { "Content-Type": "application/json" }, status: 200 });
+  mockContentApis([contentItem()], detailResponse(), undefined, undefined, confirmationResponse);
+  const { router } = renderRoute("/content/inspections");
+
+  const start = await screen.findByRole("button", { name: "검수 시작" }, { timeout: 3_000 });
+  await waitFor(() => expect(start).toBeEnabled());
+  fireEvent.click(start);
+  const approve = await screen.findByRole("button", { name: /최종 승인/ }, { timeout: 3_000 });
+  await waitFor(() => expect(approve).toBeEnabled());
+  fireEvent.keyDown(window, { code: "Digit2", key: "2" });
+
+  const completion = await screen.findByRole("alertdialog", {
+    name: "콘텐츠 검수를 완료했습니다.",
+  });
+  expect(completion).toHaveTextContent("검수 목록으로 돌아갑니다.");
+  fireEvent.click(within(completion).getByRole("button", { name: "확인" }));
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content/inspections"));
 });
 
 test("loads violations and submits the final judgment in one request", async () => {
