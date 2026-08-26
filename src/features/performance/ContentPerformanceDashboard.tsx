@@ -24,6 +24,7 @@ import {
 } from "../../entities/performance";
 import { assetUrl } from "../../lib/assetUrl";
 import { paginate } from "../../lib/pagination";
+import { contentChartEdgeScrollSpeed } from "./contentChartEdgeScroll";
 
 const CONTENT_PERFORMANCE_PAGE_SIZE = 20;
 type ContentPerformanceSort = "latest" | "engagementRate" | "views" | "likes" | "comments";
@@ -260,48 +261,45 @@ function ContentOverview({
     end: defaultPeriodEnd,
   });
   const chartScrollRef = useRef<HTMLDivElement>(null);
-  const chartDragRef = useRef({ pointerId: -1, startScrollLeft: 0, startX: 0 });
-  const [isChartDragging, setIsChartDragging] = useState(false);
+  const chartEdgeScrollRef = useRef({ animationFrame: 0, speed: 0 });
 
-  const startChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) {
-      return;
+  const stopChartEdgeScroll = () => {
+    if (chartEdgeScrollRef.current.animationFrame) {
+      window.cancelAnimationFrame(chartEdgeScrollRef.current.animationFrame);
     }
-
-    const scrollArea = chartScrollRef.current;
-    if (!scrollArea) {
-      return;
-    }
-
-    chartDragRef.current = {
-      pointerId: event.pointerId,
-      startScrollLeft: scrollArea.scrollLeft,
-      startX: event.clientX,
-    };
-    scrollArea.setPointerCapture(event.pointerId);
-    setIsChartDragging(true);
+    chartEdgeScrollRef.current = { animationFrame: 0, speed: 0 };
   };
 
-  const moveChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const scrollChartAtEdge = () => {
     const scrollArea = chartScrollRef.current;
-    if (!scrollArea || chartDragRef.current.pointerId !== event.pointerId) {
+    if (!scrollArea || !chartEdgeScrollRef.current.speed) {
       return;
     }
 
-    scrollArea.scrollLeft = chartDragRef.current.startScrollLeft - (event.clientX - chartDragRef.current.startX);
+    const previousScrollLeft = scrollArea.scrollLeft;
+    scrollArea.scrollLeft += chartEdgeScrollRef.current.speed;
+    if (scrollArea.scrollLeft === previousScrollLeft) {
+      stopChartEdgeScroll();
+      return;
+    }
+    chartEdgeScrollRef.current.animationFrame = window.requestAnimationFrame(scrollChartAtEdge);
   };
 
-  const endChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const updateChartEdgeScroll = (event: ReactPointerEvent<HTMLDivElement>) => {
     const scrollArea = chartScrollRef.current;
-    if (!scrollArea || chartDragRef.current.pointerId !== event.pointerId) {
+    if (!scrollArea || scrollArea.scrollWidth <= scrollArea.clientWidth) {
+      stopChartEdgeScroll();
       return;
     }
 
-    if (scrollArea.hasPointerCapture(event.pointerId)) {
-      scrollArea.releasePointerCapture(event.pointerId);
+    const bounds = scrollArea.getBoundingClientRect();
+    const speed = contentChartEdgeScrollSpeed(event.clientX, bounds.left, bounds.right);
+    chartEdgeScrollRef.current.speed = speed;
+    if (speed && !chartEdgeScrollRef.current.animationFrame) {
+      chartEdgeScrollRef.current.animationFrame = window.requestAnimationFrame(scrollChartAtEdge);
+    } else if (!speed) {
+      stopChartEdgeScroll();
     }
-    chartDragRef.current.pointerId = -1;
-    setIsChartDragging(false);
   };
   const dailyMetrics = new Map<string, {
     comments: number;
@@ -421,11 +419,10 @@ function ContentOverview({
         {periodMetrics.length > 0 ? (
           <div
             aria-label="기간별 콘텐츠 성과 그래프 좌우 이동"
-            className={`fuma-content-cohort-chart__scroll fuma-content-cohort-chart__scroll--draggable${isChartDragging ? " is-dragging" : ""}`}
-            onPointerCancel={endChartDrag}
-            onPointerDown={startChartDrag}
-            onPointerMove={moveChartDrag}
-            onPointerUp={endChartDrag}
+            className="fuma-content-cohort-chart__scroll"
+            onPointerCancel={stopChartEdgeScroll}
+            onPointerLeave={stopChartEdgeScroll}
+            onPointerMove={updateChartEdgeScroll}
             ref={chartScrollRef}
             role="region"
           >

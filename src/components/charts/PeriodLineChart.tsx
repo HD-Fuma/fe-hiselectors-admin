@@ -99,7 +99,7 @@ export function PeriodLineChart({
         opacity: seriesOpacity(modeClass, item.id, series.length),
       },
       itemStyle: {
-        color: "#ffffff",
+        color: item.color,
         borderColor: item.color,
         borderWidth: 2.5,
       },
