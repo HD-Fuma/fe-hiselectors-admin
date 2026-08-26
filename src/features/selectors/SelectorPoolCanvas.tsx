@@ -838,7 +838,6 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
             style={{ "--hsas-pool-chip": `rgb(${INK})` } as CSSProperties}
             type="button"
           >
-            <span aria-hidden="true" className="hsas-selector-pool__chip-dot" />
             {category.label}
             <em>{category.count}</em>
           </button>
