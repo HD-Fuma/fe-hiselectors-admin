@@ -62,20 +62,22 @@ function nodeRadius(followerCount: number | null) {
   return 26 + Math.min(20, Math.log10((followerCount ?? 0) + 1) * 4);
 }
 
-/** 카테고리 중심을 큰 원 하나 위에 고르게 배치한다. */
+/** 카테고리 중심은 큰 원 위에, 미분류는 원 밖 아래에 따로 배치한다. */
 function layoutCategories(counts: Map<string, number>): PoolCategory[] {
   const entries = [...counts.entries()];
+  const categorized = entries.filter(([label]) => label !== "미분류");
+  const uncategorized = entries.find(([label]) => label === "미분류");
   // 각 클러스터가 차지하는 반지름을 먼저 재고, 서로 닿지 않을 만큼 큰 원을 잡는다.
   const clusterReach = Math.max(
-    ...entries.map(([, count]) => clusterRadius(count)),
+    ...categorized.map(([, count]) => clusterRadius(count)),
     CATEGORY_RADIUS * 2,
   );
-  const ring = entries.length < 2
+  const ring = categorized.length < 2
     ? 0
-    : Math.max(320, (clusterReach * 2.3 * entries.length) / (2 * Math.PI));
+    : Math.max(320, (clusterReach * 2.3 * categorized.length) / (2 * Math.PI));
 
-  return entries.map(([label, count], index) => {
-    const angle = (index / entries.length) * Math.PI * 2 - Math.PI / 2;
+  const categories = categorized.map(([label, count], index) => {
+    const angle = (index / categorized.length) * Math.PI * 2 - Math.PI / 2;
     return {
       label,
       count,
@@ -84,6 +86,16 @@ function layoutCategories(counts: Map<string, number>): PoolCategory[] {
       y: Math.sin(angle) * ring,
     };
   });
+
+  if (!uncategorized) return categories;
+  const [label, count] = uncategorized;
+  return [...categories, {
+    label,
+    count,
+    rgb: CATEGORY_COLORS[categories.length % CATEGORY_COLORS.length],
+    x: 0,
+    y: categories.length ? ring + clusterReach + clusterRadius(count) + 64 : 0,
+  }];
 }
 
 /** 카테고리 하나가 차지하는 반지름(가장 바깥 궤도까지). */
