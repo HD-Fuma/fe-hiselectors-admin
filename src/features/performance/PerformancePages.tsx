@@ -516,7 +516,7 @@ export function ContentPerformancePage() {
   };
 
   return (
-    <section className="fuma-page fuma-performance-page">
+    <section className="fuma-page fuma-performance-page fuma-content-performance-page">
       <PageHeader title="콘텐츠 성과" />
       <div className="fuma-page__body">
         <ContentPerformanceDashboard

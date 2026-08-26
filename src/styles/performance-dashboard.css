@@ -797,6 +797,24 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(dl, dl > div, .fuma
 .fuma-content-cohort-chart__legend .is-likes { --cohort-series-color: #9bc6bd; }
 .fuma-content-cohort-chart__series.is-comments,
 .fuma-content-cohort-chart__legend .is-comments { --cohort-series-color: #bfd8d2; }
+.fuma-content-performance-page .fuma-content-cohort-chart__series.is-contentCount,
+.fuma-content-performance-page .fuma-content-cohort-chart__legend .is-contentCount { --cohort-series-color: #111; }
+.fuma-content-performance-page .fuma-content-cohort-chart__series.is-views,
+.fuma-content-performance-page .fuma-content-cohort-chart__legend .is-views { --cohort-series-color: #3f3f3f; }
+.fuma-content-performance-page .fuma-content-cohort-chart__series.is-likes,
+.fuma-content-performance-page .fuma-content-cohort-chart__legend .is-likes { --cohort-series-color: #707070; }
+.fuma-content-performance-page .fuma-content-cohort-chart__series.is-comments,
+.fuma-content-performance-page .fuma-content-cohort-chart__legend .is-comments { --cohort-series-color: #a0a0a0; }
+.fuma-content-performance-page :is(
+  .fuma-content-performance-panel header > span,
+  .fuma-content-performance-panel header > div > span,
+  .fuma-content-performance-panel figcaption > div > span,
+  .fuma-content-period-chart__period strong,
+  .fuma-content-cohort-chart__legend,
+  .fuma-content-table-trend__header small
+) { color: var(--hsas-color-black); }
+.fuma-content-performance-page .fuma-content-cohort-chart__selected,
+.fuma-content-performance-page .fuma-content-cohort-chart__plot [data-highlighted="true"] .fuma-content-cohort-chart__label { fill: var(--hsas-color-black); }
 .fuma-content-cohort-chart__point { fill: var(--hsas-color-white); stroke: var(--cohort-series-color); stroke-width: 2.5; }
 .fuma-content-cohort-chart__plot.is-all .fuma-content-cohort-chart__series.is-views { opacity: .72; }
 .fuma-content-cohort-chart__plot.is-all .fuma-content-cohort-chart__series.is-likes { opacity: .58; }
@@ -1056,6 +1074,8 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(dl, dl > div, .fuma
 .fuma-content-table-trend__header i:first-child { margin-left: 0; }
 .fuma-content-table-trend__header .is-views { --cohort-series-color: #6ba99d; }
 .fuma-content-table-trend__header .is-likes { --cohort-series-color: #9bc6bd; }
+.fuma-content-performance-page .fuma-content-table-trend__header .is-views { --cohort-series-color: #3f3f3f; }
+.fuma-content-performance-page .fuma-content-table-trend__header .is-likes { --cohort-series-color: #707070; }
 .fuma-content-table-trend__plot { width: 100%; min-width: 0; height: 56px; }
 .fuma-content-table-trend__plot .fuma-content-cohort-chart__line { stroke-width: 2; }
 .fuma-content-table-trend__plot .fuma-content-cohort-chart__label { font-size: var(--hsas-font-8); }

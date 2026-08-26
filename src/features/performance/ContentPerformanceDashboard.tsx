@@ -1,6 +1,5 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AnalysisFormatBreakdown } from "../../components/charts/AnalysisFormatBreakdown";
-import { COHORT_SERIES_COLORS } from "../../components/charts/chartColors";
 import type { AnalysisFormatSegment } from "../../components/charts/AnalysisFormatDonut";
 import { PeriodLineChart } from "../../components/charts/PeriodLineChart";
 import { SparklineChart } from "../../components/charts/SparklineChart";
@@ -40,12 +39,19 @@ const CONTENT_PERFORMANCE_SORT_OPTIONS: readonly {
   { label: "댓글 높은순", value: "comments" },
 ];
 const CONTENT_FORMAT_COLORS = [
-  "var(--fuma-content-format-1)",
-  "var(--fuma-content-format-2)",
-  "var(--fuma-content-format-3)",
-  "var(--fuma-content-format-4)",
-  "var(--fuma-content-format-5)",
+  "#111111",
+  "#3f3f3f",
+  "#707070",
+  "#a0a0a0",
+  "#c9c9c9",
 ] as const;
+const CONTENT_CHART_COLORS = {
+  contentCount: "#111111",
+  views: "#3f3f3f",
+  likes: "#707070",
+  comments: "#a0a0a0",
+} as const;
+const CONTENT_CHART_LABEL_COLOR = "#111111";
 
 const CONTENT_MEDIA: Record<string, { creatorImage: string; thumbnail: string }> = {
   "ct-001": { thumbnail: "creator-media/kr-cr-001-01.jpg", creatorImage: "creator-media/kr-cr-001-profile.jpg" },
@@ -112,16 +118,19 @@ function ContentTableTrendChart({ content }: { content: ContentInfluence }) {
         endLabel={trendDateLabel(dates.at(-1))}
         series={[
           {
+            color: CONTENT_CHART_COLORS.views,
             id: "views",
             name: "조회수",
             data: dates.map((date) => content.viewsTrend.find((point) => point.recordedAt === date)?.views ?? 0),
           },
           {
+            color: CONTENT_CHART_COLORS.likes,
             id: "likes",
             name: "좋아요",
             data: dates.map((date) => content.reactionTrend.find((point) => point.recordedAt === date)?.likes ?? 0),
           },
         ]}
+        labelColor={CONTENT_CHART_LABEL_COLOR}
         startLabel={trendDateLabel(dates[0])}
       />
     </div>
@@ -427,9 +436,10 @@ function ContentOverview({
               className="fuma-content-period-chart__plot"
               formatValue={formatCount}
               height={246}
+              labelColor={CONTENT_CHART_LABEL_COLOR}
               modeClass={cohortChartMode}
               series={visibleCohortSeries.map((series) => ({
-                color: COHORT_SERIES_COLORS[series.value],
+                color: CONTENT_CHART_COLORS[series.value],
                 data: periodMetrics.map((metric) => metric[series.value]),
                 id: series.value,
                 name: series.label,
@@ -585,9 +595,10 @@ function ContentPerformanceDetailPanel({
                 categoryLabels={trendDates.map((date) => trendDateLabel(date))}
                 formatValue={formatCount}
                 height={148}
+                labelColor={CONTENT_CHART_LABEL_COLOR}
                 modeClass={trendMode}
                 series={detailTrendSeries.map((series) => ({
-                  color: COHORT_SERIES_COLORS[series.value],
+                  color: CONTENT_CHART_COLORS[series.value],
                   data: series.data,
                   id: series.value,
                   name: series.label,

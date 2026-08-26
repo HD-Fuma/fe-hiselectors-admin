@@ -16,6 +16,7 @@ interface PeriodLineChartProps {
   className?: string;
   formatValue?: (value: number) => string;
   height: number;
+  labelColor?: string;
   modeClass?: string;
   series: readonly PeriodLineSeries[];
   showValueLabels?: boolean;
@@ -30,6 +31,7 @@ export function PeriodLineChart({
   className = "",
   formatValue = (value) => value.toLocaleString("ko-KR"),
   height,
+  labelColor = "#4b5752",
   modeClass = "all",
   series,
   showValueLabels = false,
@@ -57,7 +59,7 @@ export function PeriodLineChart({
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
-        color: "#4b5752",
+        color: labelColor,
         fontSize: 9,
         fontWeight: 700,
         margin: 12,
@@ -101,7 +103,7 @@ export function PeriodLineChart({
         ? {
             show: true,
             position: "top" as const,
-            color: "#65716c",
+            color: labelColor,
             fontSize: 8,
             fontWeight: 700,
             formatter: (params: { value: unknown }) => formatValue(Number(params.value ?? 0)),
