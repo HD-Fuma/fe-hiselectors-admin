@@ -9,13 +9,11 @@
   --fuma-task-glass-shadow:
     inset 0 1px 0 rgb(255 255 255 / 88%),
     inset 1px 0 0 rgb(255 255 255 / 28%),
-    inset 0 -1px 0 rgb(41 53 58 / 9%),
     0 4px 12px rgb(41 53 58 / 10%),
     0 18px 48px rgb(41 53 58 / 16%);
   --fuma-task-glass-shadow-hover:
     inset 0 1px 0 rgb(255 255 255 / 94%),
     inset 1px 0 0 rgb(255 255 255 / 34%),
-    inset 0 -1px 0 rgb(41 53 58 / 10%),
     0 5px 14px rgb(41 53 58 / 12%),
     0 20px 52px rgb(41 53 58 / 19%);
   position: fixed;
