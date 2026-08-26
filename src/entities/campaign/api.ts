@@ -7,7 +7,6 @@ import type {
   CampaignUpdateRequest,
   CampaignSearchRequest,
   CampaignProduct,
-  CampaignPerformanceDetail,
   ProductStatusCode,
   SpringPage,
 } from "./model";
@@ -58,19 +57,6 @@ export function getCampaign(id: number, signal?: AbortSignal) {
 
 export function getCampaignParticipants(id: number, page: number, size: number, signal?: AbortSignal) {
   return request<SpringPage<CampaignParticipant>>(`/api/admin/campaigns/${id}/participants?${query({ page, size })}`, { signal }, "참여 셀렉터스 조회에 실패했습니다.");
-}
-
-export function getCampaignPerformance(
-  id: number,
-  input: { startDate?: string; endDate?: string } = {},
-  signal?: AbortSignal,
-) {
-  const params = query(input);
-  return request<CampaignPerformanceDetail>(
-    `/api/admin/campaigns/${id}/performance${params ? `?${params}` : ""}`,
-    { signal },
-    "캠페인 성과 조회에 실패했습니다.",
-  );
 }
 
 export function getProducts(input: { keyword?: string; status?: ProductStatusCode; page: number; size: number }, signal?: AbortSignal) {

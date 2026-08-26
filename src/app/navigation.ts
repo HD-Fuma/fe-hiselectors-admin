@@ -59,11 +59,6 @@ const ContentPerformancePage = lazyPage(() =>
     (module) => module.ContentPerformancePage,
   ),
 );
-const ProductPerformancePage = lazyPage(() =>
-  import("../features/performance/PerformancePages").then(
-    (module) => module.ProductPerformancePage,
-  ),
-);
 const SettlementManagementPage = lazyPage(() =>
   import("../features/settlements/SettlementPages").then(
     (module) => module.SettlementManagementPage,
@@ -264,21 +259,11 @@ export const ADMIN_ROUTE_MANIFEST = [
     workTabLabel: "콘텐츠 성과",
   },
   {
-    path: "/performance/products",
-    Component: ProductPerformancePage,
-    group: "performance",
-    menuLabel: "캠페인 성과",
-    menuOrder: 2,
-    title: "캠페인 성과",
-    screenCode: "PF203",
-    workTabLabel: "캠페인 성과",
-  },
-  {
     path: "/settlements",
     Component: SettlementManagementPage,
     group: "performance",
     menuLabel: "정산 관리",
-    menuOrder: 3,
+    menuOrder: 2,
     title: "정산 관리",
     screenCode: "ST101",
     workTabLabel: "정산 관리",

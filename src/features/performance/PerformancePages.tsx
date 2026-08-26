@@ -31,7 +31,6 @@ import {
   type SelectorSalesPerformance,
 } from "../../entities/selectors";
 import { paginate } from "../../lib/pagination";
-import { CampaignPerformanceDashboard } from "./CampaignPerformanceDashboard";
 import { ContentPerformanceDashboard } from "./ContentPerformanceDashboard";
 
 const COHORT_OPTIONS = [
@@ -550,13 +549,3 @@ export function ContentPerformancePage() {
   );
 }
 
-export function ProductPerformancePage() {
-  return (
-    <section className="fuma-page fuma-performance-page">
-      <PageHeader title="캠페인 성과" />
-      <div className="fuma-page__body">
-        <CampaignPerformanceDashboard />
-      </div>
-    </section>
-  );
-}
