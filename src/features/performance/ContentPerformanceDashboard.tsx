@@ -1,4 +1,5 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { MoveHorizontal } from "lucide-react";
 import { AnalysisFormatBreakdown } from "../../components/charts/AnalysisFormatBreakdown";
 import type { AnalysisFormatSegment } from "../../components/charts/AnalysisFormatDonut";
 import { PeriodLineChart } from "../../components/charts/PeriodLineChart";
@@ -13,6 +14,7 @@ import { Pagination } from "../../components/ui/Pagination";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill } from "../../components/ui/StatusPill";
+import { Tooltip } from "../../components/ui/Tooltip";
 import { ViewModeToggle, type ViewMode } from "../../components/ui/ViewModeToggle";
 import {
   creatorNameById,
@@ -24,7 +26,7 @@ import {
 } from "../../entities/performance";
 import { assetUrl } from "../../lib/assetUrl";
 import { paginate } from "../../lib/pagination";
-import { contentChartEdgeScrollSpeed } from "./contentChartEdgeScroll";
+import { contentChartDraggedScrollLeft, contentChartEdgeScrollSpeed } from "./contentChartEdgeScroll";
 
 const CONTENT_PERFORMANCE_PAGE_SIZE = 20;
 type ContentPerformanceSort = "latest" | "engagementRate" | "views" | "likes" | "comments";
@@ -262,6 +264,8 @@ function ContentOverview({
   });
   const chartScrollRef = useRef<HTMLDivElement>(null);
   const chartEdgeScrollRef = useRef({ animationFrame: 0, speed: 0 });
+  const chartDragRef = useRef({ pointerId: -1, startScrollLeft: 0, startX: 0 });
+  const [isChartDragging, setIsChartDragging] = useState(false);
 
   const stopChartEdgeScroll = () => {
     if (chartEdgeScrollRef.current.animationFrame) {
@@ -300,6 +304,43 @@ function ContentOverview({
     } else if (!speed) {
       stopChartEdgeScroll();
     }
+  };
+
+  const startChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || !chartScrollRef.current) {
+      return;
+    }
+    stopChartEdgeScroll();
+    chartDragRef.current = {
+      pointerId: event.pointerId,
+      startScrollLeft: chartScrollRef.current.scrollLeft,
+      startX: event.clientX,
+    };
+    chartScrollRef.current.setPointerCapture(event.pointerId);
+    setIsChartDragging(true);
+  };
+
+  const moveChart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (chartScrollRef.current && chartDragRef.current.pointerId === event.pointerId) {
+      chartScrollRef.current.scrollLeft = contentChartDraggedScrollLeft(
+        chartDragRef.current.startScrollLeft,
+        chartDragRef.current.startX,
+        event.clientX,
+      );
+      return;
+    }
+    updateChartEdgeScroll(event);
+  };
+
+  const endChartDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!chartScrollRef.current || chartDragRef.current.pointerId !== event.pointerId) {
+      return;
+    }
+    if (chartScrollRef.current.hasPointerCapture(event.pointerId)) {
+      chartScrollRef.current.releasePointerCapture(event.pointerId);
+    }
+    chartDragRef.current.pointerId = -1;
+    setIsChartDragging(false);
   };
   const dailyMetrics = new Map<string, {
     comments: number;
@@ -415,14 +456,22 @@ function ContentOverview({
               <li className={`is-${series.value}`} key={series.value}><i />{series.label}</li>
             ))}
           </ul>
+          <span className="fuma-content-period-chart__help">
+            <button aria-describedby="content-period-chart-help" aria-label="차트 이동 방법" type="button">
+              <MoveHorizontal aria-hidden="true" size={16} />
+            </button>
+            <Tooltip id="content-period-chart-help">그래프를 좌우로 드래그해서 이동하세요</Tooltip>
+          </span>
         </div>
         {periodMetrics.length > 0 ? (
           <div
             aria-label="기간별 콘텐츠 성과 그래프 좌우 이동"
-            className="fuma-content-cohort-chart__scroll"
-            onPointerCancel={stopChartEdgeScroll}
+            className={`fuma-content-cohort-chart__scroll fuma-content-cohort-chart__scroll--draggable${isChartDragging ? " is-dragging" : ""}`}
+            onPointerCancel={endChartDrag}
+            onPointerDown={startChartDrag}
             onPointerLeave={stopChartEdgeScroll}
-            onPointerMove={updateChartEdgeScroll}
+            onPointerMove={moveChart}
+            onPointerUp={endChartDrag}
             ref={chartScrollRef}
             role="region"
           >

@@ -97,7 +97,7 @@ export function SparklineChart({
         width: 2,
       },
       itemStyle: {
-        color: item.color,
+        color: "#ffffff",
         borderColor: item.color,
         borderWidth: 2,
       },

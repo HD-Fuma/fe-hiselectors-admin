@@ -54,7 +54,20 @@ export function PeriodLineChart({
     tooltip: {
       ...ECHARTS_TOOLTIP_STYLE,
       trigger: "axis",
-      valueFormatter: (value) => formatValue(Number(value)),
+      formatter: (params: unknown) => {
+        const items = (Array.isArray(params) ? params : [params]) as Array<{
+          axisValueLabel?: string;
+          seriesName?: string;
+          value?: unknown;
+        }>;
+        return [
+          items[0]?.axisValueLabel ?? "",
+          ...items.map((item) => {
+            const color = series.find((entry) => entry.name === item.seriesName)?.color ?? labelColor;
+            return `<span style="display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:${color}"></span>${item.seriesName ?? ""} ${formatValue(Number(item.value ?? 0))}`;
+          }),
+        ].filter(Boolean).join("<br/>");
+      },
     },
     xAxis: {
       type: "category",
@@ -99,7 +112,7 @@ export function PeriodLineChart({
         opacity: seriesOpacity(modeClass, item.id, series.length),
       },
       itemStyle: {
-        color: item.color,
+        color: "#ffffff",
         borderColor: item.color,
         borderWidth: 2.5,
       },
