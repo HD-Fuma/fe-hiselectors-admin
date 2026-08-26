@@ -27,8 +27,8 @@ interface DashboardData {
   averageInspectionHours: number | null;
   completedContents: number | null;
   contentBreakdown: {
-    instagram: number;
-    youtube: number;
+    instagram: { editedCount: number; newCount: number; violationCount: number };
+    youtube: { editedCount: number; newCount: number; violationCount: number };
   } | null;
   currentGenerationContentCount: number | null;
   currentGenerationInspectionCount: number | null;
@@ -193,6 +193,35 @@ function DashboardBreakdown({
         </div>
       ))}
     </dl>
+  );
+}
+
+function DashboardPlatformBreakdown({
+  items,
+}: {
+  items: readonly {
+    editedCount: number | null;
+    label: string;
+    newCount: number | null;
+    violationCount: number | null;
+  }[];
+}) {
+  return (
+    <div className="fuma-dashboard__platform-breakdown">
+      {items.map(({ editedCount, label, newCount, violationCount }) => (
+        <div key={label}>
+          <strong>{label}</strong>
+          <DashboardBreakdown
+            items={[
+              { label: "신규", value: newCount },
+              { label: "수정", value: editedCount },
+              { label: "위반", value: violationCount },
+            ]}
+            unit="건"
+          />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -370,6 +399,17 @@ export function DashboardPage() {
       const pendingInspectionRows = inspectionRows?.filter(({ inspection }) => (
         inspection.inspectionStatus === "검수 대기"
       )) ?? null;
+      const contentBreakdown = inspectionRows?.reduce((breakdown, { content, inspection }) => {
+        const platform = content.snsCode === "YOUTUBE" ? "youtube" : "instagram";
+        const platformCounts = breakdown[platform];
+        if (inspection.inspectionType === "NEW") platformCounts.newCount += 1;
+        else platformCounts.editedCount += 1;
+        if (inspection.inspectionStatus === "위반") platformCounts.violationCount += 1;
+        return breakdown;
+      }, {
+        instagram: { editedCount: 0, newCount: 0, violationCount: 0 },
+        youtube: { editedCount: 0, newCount: 0, violationCount: 0 },
+      }) ?? null;
       const inspectionDurations = inspectionRows?.flatMap(({ content }) => {
         if (!content.inspectedAt) return [];
         const duration = Date.parse(content.inspectedAt) - Date.parse(content.storedAt);
@@ -404,10 +444,7 @@ export function DashboardPage() {
             / inspectionDurations.length / 3_600_000
           : null,
         completedContents,
-        contentBreakdown: pendingInspectionRows ? {
-          instagram: pendingInspectionRows.filter(({ content }) => content.snsCode === "INSTAGRAM").length,
-          youtube: pendingInspectionRows.filter(({ content }) => content.snsCode === "YOUTUBE").length,
-        } : null,
+        contentBreakdown,
         currentGenerationContentCount: summary.status === "fulfilled"
           ? summary.value.currentGenerationContentCount
           : null,
@@ -447,6 +484,8 @@ export function DashboardPage() {
     ? null
     : ((data.currentGenerationContentCount - data.previousGenerationContentCount)
       / data.previousGenerationContentCount) * 100;
+  const showAbsoluteContentGrowth = data.previousGenerationContentCount === 0
+    && data.currentGenerationContentCount != null;
   const inspectionStartContent = data.inspectionContents
     ?.filter((content) => content.inspectionStatus === "검수 대기")
     .slice()
@@ -466,12 +505,21 @@ export function DashboardPage() {
             <span>검수할 콘텐츠 수</span>
             <strong>{count(data.pendingContents)}<small>건</small></strong>
           </div>
-          <DashboardBreakdown
+          <DashboardPlatformBreakdown
             items={[
-              { label: "Instagram", value: data.contentBreakdown?.instagram ?? null },
-              { label: "YouTube", value: data.contentBreakdown?.youtube ?? null },
+              {
+                editedCount: data.contentBreakdown?.instagram.editedCount ?? null,
+                label: "Instagram",
+                newCount: data.contentBreakdown?.instagram.newCount ?? null,
+                violationCount: data.contentBreakdown?.instagram.violationCount ?? null,
+              },
+              {
+                editedCount: data.contentBreakdown?.youtube.editedCount ?? null,
+                label: "YouTube",
+                newCount: data.contentBreakdown?.youtube.newCount ?? null,
+                violationCount: data.contentBreakdown?.youtube.violationCount ?? null,
+              },
             ]}
-            unit="건"
           />
           <Link
             className="fuma-dashboard__primary-action"
@@ -539,16 +587,16 @@ export function DashboardPage() {
 
         <DashboardCard
           action={(
-            <span
+            <Link
               className="fuma-dashboard__primary-action fuma-dashboard__primary-action--compact"
+              to="/settlements"
             >
               정산 관리
-            </span>
+            </Link>
           )}
           className="fuma-dashboard-card--trend"
           eyebrow="REVENUE"
           title="매출·정산 추이"
-          to="/settlements"
         >
           <SettlementTrend monthlyTrend={data.settlementTrend} />
         </DashboardCard>
@@ -600,8 +648,10 @@ export function DashboardPage() {
           <DashboardMetric
             detail={`${count(data.previousGenerationContentCount)}건 → ${count(data.currentGenerationContentCount)}건`}
             label="이전 기수 대비 현재 기수"
-            unit="%"
-            value={growth(contentGrowthRate)}
+            unit={showAbsoluteContentGrowth ? "건" : "%"}
+            value={showAbsoluteContentGrowth
+              ? `+${count(data.currentGenerationContentCount)}`
+              : growth(contentGrowthRate)}
           />
         </DashboardCard>
       </div>
