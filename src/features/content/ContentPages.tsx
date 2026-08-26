@@ -2277,6 +2277,12 @@ export function ContentInspectionDetailPage() {
   useEffect(() => {
     if (!routeState?.inspectionSession) return undefined;
     const exitSession = (event: globalThis.KeyboardEvent) => {
+      const decisionShortcut = event.code === "Digit1" || event.code === "Numpad1" || event.key === "1"
+        ? "1"
+        : event.code === "Digit2" || event.code === "Numpad2" || event.key === "2"
+          ? "2"
+          : null;
+      const spacePressed = event.code === "Space" || event.key === " " || event.key === "Spacebar";
       if (studioExiting) return;
       if (event.target instanceof HTMLSelectElement) return;
       if (studioActionPending) {
@@ -2284,8 +2290,8 @@ export function ContentInspectionDetailPage() {
         return;
       }
       if (event.repeat && (
-        ["1", "2"].includes(event.key)
-        || event.code === "Space"
+        decisionShortcut !== null
+        || spacePressed
       )) {
         event.preventDefault();
         return;
@@ -2296,7 +2302,7 @@ export function ContentInspectionDetailPage() {
         return;
       }
       if (exitConfirmationOpen) return;
-      if (event.code === "Space") {
+      if (spacePressed) {
         event.preventDefault();
         if (
           !studioReportReady
@@ -2317,18 +2323,18 @@ export function ContentInspectionDetailPage() {
         }
         return;
       }
-      if (event.key === "1" || event.key === "2") {
+      if (decisionShortcut) {
         event.preventDefault();
         if (!studioReportReady || studioReviewReadOnly || studioReportRefreshVersionId !== null) return;
         if (focusedStudioViolationIndex >= 0) {
           judgeStudioViolation(
             focusedStudioViolationIndex,
-            event.key === "1" ? "violation" : "clear",
+            decisionShortcut === "1" ? "violation" : "clear",
           );
           return;
         }
         if (studioFinalFocused) {
-          const selected = event.key === "1" ? "reject" : "approve";
+          const selected = decisionShortcut === "1" ? "reject" : "approve";
           if ((selected === "reject") !== hasStudioViolationJudgment) return;
           setStudioActionError(null);
           setStudioDecision(selected);
