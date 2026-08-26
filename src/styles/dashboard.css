@@ -1,9 +1,8 @@
 .fuma-dashboard {
   --dashboard-accent: #111;
-  --dashboard-accent-hover: #222;
-  --dashboard-canvas: #f3f1ed;
+  --dashboard-canvas: #e7ecf4;
   --dashboard-panel: #fff;
-  --dashboard-tile: #f8f7f4;
+  --dashboard-tile: #f4f6fa;
   --dashboard-on-accent: #fff;
   --dashboard-focus: #111;
 }
@@ -11,10 +10,10 @@
 .fuma-dashboard .fuma-page__body {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: var(--hsas-space-10);
+  gap: var(--hsas-space-4);
   margin-top: var(--hsas-space-10);
-  padding: var(--hsas-space-12);
-  border: 1px solid var(--hsas-border);
+  padding: var(--hsas-space-5);
+  border: 0;
   border-radius: 22px;
   background: var(--dashboard-canvas);
 }
@@ -81,8 +80,8 @@
 .fuma-dashboard__shortcut-section {
   min-width: 0;
   padding: var(--hsas-space-14);
-  border: 1px solid var(--hsas-border);
-  border-radius: 18px;
+  border: 0;
+  border-radius: 20px;
   background: var(--dashboard-panel);
 }
 
@@ -91,10 +90,11 @@
   min-height: 226px;
   grid-area: priority;
   align-content: start;
-  gap: var(--hsas-space-12);
-  border-color: var(--dashboard-accent);
-  background: var(--dashboard-accent);
-  color: var(--dashboard-on-accent);
+  gap: var(--hsas-space-8);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--hsas-text);
 }
 
 .fuma-dashboard__campaigns {
@@ -110,6 +110,9 @@
   grid-area: stats;
   align-content: start;
   gap: var(--hsas-space-10);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .fuma-dashboard__shortcut-section {
@@ -126,21 +129,21 @@
   font-size: var(--hsas-font-16);
 }
 
+.fuma-dashboard__priority > h2,
+.fuma-dashboard-panel--stats > h2 {
+  padding: 0 var(--hsas-space-10);
+}
+
 .fuma-dashboard__tasks {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
+  gap: var(--hsas-space-4);
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  border: 1px solid #363636;
-  border-radius: 14px;
-  background: #1d1d1d;
+  overflow: visible;
+  border: 0;
+  background: transparent;
   list-style: none;
-}
-
-.fuma-dashboard__tasks li + li {
-  border-left: 1px solid #363636;
 }
 
 .fuma-dashboard-task {
@@ -149,14 +152,16 @@
   align-items: center;
   gap: var(--hsas-space-10);
   padding: var(--hsas-space-14);
-  border: 0;
-  background: transparent;
-  color: var(--dashboard-on-accent);
+  border: 1px solid transparent;
+  border-radius: 20px;
+  background: var(--dashboard-panel);
+  color: var(--hsas-text);
   text-decoration: none;
 }
 
 .fuma-dashboard-task:hover {
-  background: var(--dashboard-accent-hover);
+  border-color: var(--dashboard-accent);
+  background: var(--dashboard-panel);
 }
 
 .fuma-dashboard-task:focus-visible,
@@ -174,8 +179,8 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 10px;
-  background: var(--dashboard-on-accent);
-  color: var(--dashboard-accent);
+  background: var(--dashboard-accent);
+  color: var(--dashboard-on-accent);
 }
 
 .fuma-dashboard-task__icon svg {
@@ -196,7 +201,7 @@
 
 .fuma-dashboard-task__copy small,
 .fuma-dashboard-task > b small {
-  color: #bdbdbd;
+  color: var(--hsas-text-muted);
 }
 
 .fuma-dashboard-task > b {
@@ -302,9 +307,9 @@
   align-items: flex-start;
   gap: var(--hsas-space-10);
   padding: var(--hsas-space-12);
-  border: 1px solid var(--hsas-border);
-  border-radius: 14px;
-  background: var(--dashboard-tile);
+  border: 1px solid transparent;
+  border-radius: 20px;
+  background: var(--dashboard-panel);
   color: var(--hsas-text);
   text-decoration: none;
 }
@@ -362,8 +367,8 @@
   justify-content: space-between;
   gap: var(--hsas-space-6);
   padding: 0 var(--hsas-space-10);
-  border: 1px solid var(--hsas-border);
-  border-radius: 12px;
+  border: 1px solid transparent;
+  border-radius: 14px;
   background: var(--dashboard-tile);
   color: var(--hsas-text);
   font-size: var(--hsas-font-12);
@@ -392,40 +397,17 @@
     "stats stats stats stats stats stats stats stats stats stats stats stats";
 }
 
-.fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard__priority,
-.fuma-dashboard[data-dashboard-variant="5"] .fuma-dashboard__priority {
-  border-color: var(--hsas-border);
-  background: var(--dashboard-panel);
-  color: var(--hsas-text);
-}
-
 .fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard__priority {
   min-height: 226px;
-}
-
-.fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard__tasks,
-.fuma-dashboard[data-dashboard-variant="5"] .fuma-dashboard__tasks {
-  gap: var(--hsas-space-8);
-  overflow: visible;
-  border: 0;
-  background: transparent;
 }
 
 .fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard__tasks {
   grid-template-columns: 1fr;
 }
 
-.fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard__tasks li + li,
-.fuma-dashboard[data-dashboard-variant="5"] .fuma-dashboard__tasks li + li {
-  border: 0;
-}
-
 .fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard-task,
 .fuma-dashboard[data-dashboard-variant="5"] .fuma-dashboard-task {
   min-height: 88px;
-  border: 1px solid var(--dashboard-accent);
-  border-radius: 14px;
-  background: var(--dashboard-accent);
 }
 
 .fuma-dashboard[data-dashboard-variant="1"] .fuma-dashboard__stats {
@@ -479,28 +461,14 @@
 
 .fuma-dashboard[data-dashboard-variant="4"] .fuma-dashboard__priority {
   min-height: auto;
-  border-color: var(--hsas-border);
-  background: var(--dashboard-panel);
-  color: var(--hsas-text);
 }
 
 .fuma-dashboard[data-dashboard-variant="4"] .fuma-dashboard__tasks {
   grid-template-columns: 1fr;
-  gap: var(--hsas-space-8);
-  overflow: visible;
-  border: 0;
-  background: transparent;
-}
-
-.fuma-dashboard[data-dashboard-variant="4"] .fuma-dashboard__tasks li + li {
-  border: 0;
 }
 
 .fuma-dashboard[data-dashboard-variant="4"] .fuma-dashboard-task {
   min-height: 82px;
-  border: 1px solid var(--dashboard-accent);
-  border-radius: 12px;
-  background: var(--dashboard-accent);
 }
 
 .fuma-dashboard[data-dashboard-variant="4"] .fuma-dashboard__stats {
@@ -548,11 +516,6 @@
 
   .fuma-dashboard__tasks {
     grid-template-columns: 1fr;
-  }
-
-  .fuma-dashboard__tasks li + li {
-    border-top: 1px solid #363636;
-    border-left: 0;
   }
 
   .fuma-dashboard[data-dashboard-variant] .fuma-dashboard-task {
