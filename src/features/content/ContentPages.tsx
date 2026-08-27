@@ -908,7 +908,6 @@ function ViolationHighlightedText({
       <mark
         aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
         className="fuma-inspection-text-violation"
-        data-bubble={annotation.title}
         data-focused={focusedOrdinal === annotation.ordinal}
         data-ordinal={annotation.ordinal}
         data-severity={annotation.severity}
@@ -919,7 +918,17 @@ function ViolationHighlightedText({
         tabIndex={onSelectViolation ? 0 : focusedOrdinal !== undefined ? -1 : undefined}
         title={`${annotation.title}: ${annotation.reason}`}
       >
-        {text.slice(start, end)}
+        <span className="fuma-inspection-text-violation__highlight">
+          {text.slice(start, end)}
+        </span>
+        <span
+          aria-hidden="true"
+          className="fuma-inspection-violation-bubble"
+          data-violation-bubble={annotation.ordinal}
+        >
+          <span>{annotation.ordinal}</span>
+          <strong>{annotation.title}</strong>
+        </span>
       </mark>,
     );
     cursor = end;
@@ -931,9 +940,10 @@ function ViolationHighlightedText({
       {startAnnotations.map((annotation) => {
         const annotationProperties = {
           "aria-label": `위반 ${annotation.ordinal}: ${annotation.title}`,
-          className: "fuma-inspection-text-start-violation",
+          className: "fuma-inspection-text-start-violation fuma-inspection-violation-bubble",
           "data-focused": focusedOrdinal === annotation.ordinal,
           "data-severity": annotation.severity,
+          "data-violation-bubble": annotation.ordinal,
           "data-violation-anchor": annotation.ordinal,
           id: focusedOrdinal !== undefined ? `violation-text-${annotation.ordinal}` : undefined,
           title: `${annotation.title}: ${annotation.reason}`,
@@ -941,7 +951,7 @@ function ViolationHighlightedText({
         const annotationLabel = (
           <>
             <span>{annotation.ordinal}</span>
-            {annotation.title}
+            <strong>{annotation.title}</strong>
           </>
         );
         return onSelectViolation ? (

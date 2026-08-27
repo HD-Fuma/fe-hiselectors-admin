@@ -587,6 +587,8 @@ test("loads violations and submits the final judgment in one request", async () 
   expect(within(report).queryByText("2026-08-18T11:06:00")).not.toBeInTheDocument();
 
   const textStartMarker = screen.getByRole("button", { name: "위반 1: 허위·과장 표현" });
+  expect(textStartMarker).toHaveClass("fuma-inspection-violation-bubble");
+  expect(within(textStartMarker).getByText("허위·과장 표현")).toBeInTheDocument();
   expect(textStartMarker.parentElement).toHaveTextContent("지금 가장 저렴한 가격 #광고");
   expect(textStartMarker.parentElement?.tagName).toBe("P");
 

@@ -75,6 +75,19 @@ describe("shared component visual contracts", () => {
     expect(sessionHelpRule).toMatch(/grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);/);
   });
 
+  test("separates red violation bubbles from highlighted body copy", () => {
+    const bubbleRule = contentInspectionStyles.match(
+      /(?:^|\n)\.fuma-inspection-violation-bubble\s*\{([^}]*)\}/,
+    )?.[1];
+    const highlightRule = contentInspectionStyles.match(
+      /(?:^|\n)\.fuma-inspection-text-violation__highlight\s*\{([^}]*)\}/,
+    )?.[1];
+
+    expect(bubbleRule).toMatch(/background:\s*var\(--hsas-color-danger\);/);
+    expect(bubbleRule).toMatch(/border-radius:\s*12px 12px 12px 4px;/);
+    expect(highlightRule).toMatch(/background:\s*rgb\(180 35 24 \/ 14%\);/);
+  });
+
   test("keeps selected content cards free of a selection outline", () => {
     expect(contentInspectionStyles).not.toMatch(
       /\.fuma-content-inspection-studio__version\[data-selected="true"\]\s*>\s*\.fuma-minimal-version-card\s*\{[^}]*outline/s,
