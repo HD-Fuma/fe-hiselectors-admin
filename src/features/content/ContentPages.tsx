@@ -1147,7 +1147,13 @@ function MinimalVersionCard({
             <span className="fuma-platform-inspection-frame__avatar">
               {avatarUrl
                 ? <CreatorProfilePhoto creatorName={content.author} src={avatarUrl} />
-                : <UserRound aria-label="익명 프로필 이미지" role="img" size={19} />}
+                : (
+                    <UserRound
+                      aria-label={`${content.author} 프로필 이미지 없음`}
+                      role="img"
+                      size={19}
+                    />
+                  )}
             </span>
             <div><strong>{handle}</strong><small>현대홈쇼핑 셀렉터스 · {content.cohort}</small></div>
             <button aria-label="게시물 메뉴" type="button"><MoreHorizontal aria-hidden="true" size={20} /></button>
@@ -1360,7 +1366,13 @@ function MinimalVersionCard({
                 <span className="fuma-platform-inspection-frame__avatar">
                   {avatarUrl
                     ? <CreatorProfilePhoto creatorName={content.author} src={avatarUrl} />
-                    : <UserRound aria-label="익명 프로필 이미지" role="img" size={18} />}
+                    : (
+                        <UserRound
+                          aria-label={`${content.author} 프로필 이미지 없음`}
+                          role="img"
+                          size={18}
+                        />
+                      )}
                 </span>
                 <strong>{handle}</strong>
                 <button type="button">구독</button>
@@ -2824,7 +2836,13 @@ export function ContentInspectionDetailPage() {
                           src={snsAccount?.profileImageUrl ?? content.profileImageUrl ?? ""}
                         />
                       )
-                    : <UserRound aria-label="익명 프로필 이미지" role="img" size={24} />}
+                    : (
+                        <UserRound
+                          aria-label={`${studioSelector?.nickname ?? content.author} 프로필 이미지 없음`}
+                          role="img"
+                          size={24}
+                        />
+                      )}
                 </span>
                 <div>
                   <strong>{studioSelector?.nickname ?? content.author}</strong>
