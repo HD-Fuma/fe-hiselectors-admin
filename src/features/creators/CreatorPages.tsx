@@ -43,13 +43,15 @@ import {
 const PROPOSAL_PAGE_SIZE = 20;
 const PROPOSAL_LIST_FETCH_SIZE = 100;
 const CREATOR_LIST_PAGE_SIZE = 20;
-const DEFAULT_PROPOSAL_SUBJECT = "[셀렉터스] ${creatorName}님, 크리에이터 활동을 제안드립니다";
+const DEFAULT_PROPOSAL_SUBJECT = "[셀렉터스 지원 제안] ${creatorName}님께 지원을 제안드립니다";
 const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
 셀렉터스 운영팀입니다.
 
-\${creatorName}님의 콘텐츠를 관심 있게 보고, 셀렉터스 활동을 제안드리고자 연락드립니다.
+\${creatorName}님의 콘텐츠를 관심 있게 보고, 셀렉터스 지원을 제안드리고자 연락드립니다.
 
 셀렉터스는 크리에이터의 개성과 전문성을 바탕으로 다양한 상품과 브랜드를 소개하는 크리에이터 파트너 프로그램입니다.
+
+본 메일은 셀렉터스 활동 확정 안내가 아닌 지원 제안입니다.
 
 [제안 내용]
 - 주요 캠페인 및 콘텐츠 협업
@@ -253,10 +255,6 @@ const PROPOSAL_VARIABLE_LABELS: Record<string, string> = {
 const PROPOSAL_APPLY_BASE_URL = "https://hiselectors.shop/apply";
 const PROPOSAL_VARIABLE_PATTERN = /\$\{(\w+)\}/g;
 
-function proposalLinkFor(creator: CreatorSummary) {
-  return `${PROPOSAL_APPLY_BASE_URL}?creatorId=${creator.id}`;
-}
-
 /** ${creatorName} 같은 코드 표기를 실제 값(대상 정보·로그인한 담당자 정보)이나 남은 항목은 안내 칩으로 바꿔 보여준다. */
 function renderProposalPreview(text: string, creator: CreatorSummary) {
   const adminName = getAdministratorSession()?.name ?? null;
@@ -277,7 +275,7 @@ function renderProposalPreview(text: string, creator: CreatorSummary) {
     } else if (variableName === "proposalLink") {
       nodes.push(
         <strong className="fuma-proposal-preview__value" key={key++}>
-          {proposalLinkFor(creator)}
+          {PROPOSAL_APPLY_BASE_URL}
         </strong>,
       );
     } else if (variableName === "adminName" && adminName) {
@@ -1125,6 +1123,10 @@ function ProposalDeliveryDetail({ proposal }: { proposal: ProposalHistoryEntry }
           <div>
             <dt>이메일</dt>
             <dd>{proposal.email}</dd>
+          </div>
+          <div>
+            <dt>제안사</dt>
+            <dd>더현대</dd>
           </div>
           <div>
             <dt>발송자</dt>
