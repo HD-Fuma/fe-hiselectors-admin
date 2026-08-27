@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import type { CollectedContent } from "../../entities/content";
 import adminStyles from "../../styles/admin.css?raw";
 import contentInspectionStyles from "../../styles/content-inspection.css?raw";
 import { getTaskRunPanelApiMock, renderRoute } from "../../test/renderRoute";
@@ -32,7 +33,7 @@ function collectionResponse(overrides: Record<string, unknown> = {}) {
   });
 }
 
-function contentItem(contentId: number, title: string) {
+function contentItem(contentId: number, title: string): CollectedContent {
   const storedAt = `2026-08-18T10:${String(contentId).padStart(2, "0")}:00`;
   return {
     accountId: `account-${contentId}`,
