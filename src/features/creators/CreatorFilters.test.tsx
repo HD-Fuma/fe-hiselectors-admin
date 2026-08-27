@@ -505,89 +505,17 @@ describe("creator filters", () => {
     ]);
   });
 
-  test("requires typed confirmation before resetting the existing pool", async () => {
-    const user = userEvent.setup();
-    let resolveReset: (() => void) | undefined;
-    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (url.endsWith("/api/admin/categories")) {
+  test("keeps the creator pool reset action in environment settings", async () => {
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      if (String(input).endsWith("/api/admin/categories")) {
         return Promise.resolve(new Response(JSON.stringify({ success: true, data: [] })));
       }
-      if (url.includes("confirmation=DELETE_CREATOR_POOL") && init?.method === "DELETE") {
-        return new Promise<Response>((resolve) => {
-          resolveReset = () => resolve(new Response(JSON.stringify({
-            success: true,
-            data: { softDeletedCount: 598 },
-          })));
-        });
-      }
-      if (url.includes("/api/admin/creators?")) return Promise.resolve(ok());
-      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} })));
-    });
-    vi.stubGlobal("fetch", fetchMock);
+      return Promise.resolve(ok());
+    }));
     renderCreatorPage();
-    const table = screen.getByRole("region", { name: "크리에이터 목록" });
-    await within(table).findByRole("button", { name: "김서연 프로필 보기" });
-    await user.click(within(table).getByRole("checkbox", { name: "김서연 선택" }));
 
-    await user.click(screen.getByRole("button", { name: "기존 풀 초기화" }));
-    const dialog = screen.getByRole("alertdialog", { name: "기존 크리에이터 풀 초기화" });
-    expect(dialog).toHaveAttribute("aria-describedby");
-    expect(document.getElementById(dialog.getAttribute("aria-describedby") || ""))
-      .toHaveTextContent("현재 YouTube·Instagram 크리에이터가 목록과 후보에서 모두 숨겨집니다.");
-    const confirm = within(dialog).getByRole("button", { name: "초기화" });
-    expect(confirm).toBeDisabled();
-
-    await user.type(within(dialog).getByRole("textbox", { name: "초기화 확인 문구" }), "초기화");
-    expect(confirm).toBeEnabled();
-    await user.click(confirm);
-
-    expect(within(dialog).getByRole("button", { name: "초기화 중..." })).toBeDisabled();
-    const resetRequests = fetchMock.mock.calls.filter(([input, requestInit]) => (
-      String(input).endsWith("/api/admin/creators?confirmation=DELETE_CREATOR_POOL")
-      && requestInit?.method === "DELETE"
-    ));
-    expect(resetRequests).toHaveLength(1);
-
-    resolveReset?.();
-    await waitFor(() => expect(screen.queryByRole("alertdialog", {
-      name: "기존 크리에이터 풀 초기화",
-    })).not.toBeInTheDocument());
-    expect(screen.getByRole("status"))
-      .toHaveTextContent("기존 크리에이터 풀 598건을 초기화했습니다.");
-    expect(screen.getByRole("button", { name: "선택 0명 제안 발송" })).toBeDisabled();
-    await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(2));
-  });
-
-  test("keeps the reset dialog open when the API fails", async () => {
-    const user = userEvent.setup();
-    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (url.endsWith("/api/admin/categories")) {
-        return Promise.resolve(new Response(JSON.stringify({ success: true, data: [] })));
-      }
-      if (url.includes("confirmation=DELETE_CREATOR_POOL") && init?.method === "DELETE") {
-        return Promise.resolve(new Response(JSON.stringify({
-          success: false,
-          data: null,
-          message: "초기화 실패",
-        }), { status: 500 }));
-      }
-      if (url.includes("/api/admin/creators?")) return Promise.resolve(ok());
-      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} })));
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    renderCreatorPage();
     await screen.findByRole("button", { name: "김서연 프로필 보기" });
-
-    await user.click(screen.getByRole("button", { name: "기존 풀 초기화" }));
-    const dialog = screen.getByRole("alertdialog", { name: "기존 크리에이터 풀 초기화" });
-    await user.type(within(dialog).getByRole("textbox", { name: "초기화 확인 문구" }), "초기화");
-    await user.click(within(dialog).getByRole("button", { name: "초기화" }));
-
-    expect(await within(dialog).findByRole("alert")).toHaveTextContent("초기화 실패");
-    expect(dialog).toBeInTheDocument();
-    expect(creatorRequests(fetchMock)).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "기존 풀 초기화" })).not.toBeInTheDocument();
   });
 });
 

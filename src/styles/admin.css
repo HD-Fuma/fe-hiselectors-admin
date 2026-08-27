@@ -886,6 +886,10 @@
   flex: 1;
 }
 
+.hsas-admin-sidebar__direct-link {
+  text-decoration: none;
+}
+
 .hsas-admin-sidebar__chevron {
   width: 14px !important;
   height: 14px !important;

@@ -58,6 +58,7 @@ test("shows the exact loading and empty history states", async () => {
 
   renderPage();
 
+  expect(screen.getByRole("heading", { name: "모니터링" })).toBeInTheDocument();
   expect(screen.getByRole("status")).toHaveTextContent(
     "작업 실행 이력을 불러오는 중입니다.",
   );
@@ -96,7 +97,7 @@ test("renders the completed history contract and safe execution subjects", async
 
   renderPage();
 
-  const history = await screen.findByRole("region", { name: "작업 실행 이력" });
+  const history = await screen.findByRole("region", { name: "모니터링" });
   expect(within(history).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual([
     "종료 시각",
     "시작 시각",

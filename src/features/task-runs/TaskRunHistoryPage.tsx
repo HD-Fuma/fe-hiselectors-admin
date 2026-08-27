@@ -127,14 +127,14 @@ export function TaskRunHistoryPage() {
 
   return (
     <section className="fuma-page">
-      <PageHeader title="작업 실행 이력" />
+      <PageHeader title="모니터링" />
       <div className="fuma-page__body">
         <ResultToolbar
           className="fuma-simple-result-toolbar"
           meta={<span>총 {historyPage.totalElements.toLocaleString("ko-KR")}건</span>}
-          title="작업 실행 이력"
+          title="모니터링"
         />
-        <section aria-label="작업 실행 이력">
+        <section aria-label="모니터링">
           <DenseTable
             columns={columns}
             emptyMessage={emptyMessage}

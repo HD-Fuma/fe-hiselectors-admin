@@ -88,7 +88,7 @@ const NAV_GROUPS: readonly NavGroupMeta[] = [
   { id: "recruitment", label: "모집·선발" },
   { id: "operations", label: "운영" },
   { id: "performance", label: "성과·정산" },
-  { id: "notifications", label: "알림·메시지" },
+  { id: "notifications", label: "시스템 관리" },
 ];
 
 export const ADMIN_ROUTE_MANIFEST = [
@@ -304,12 +304,12 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/task-runs",
     Component: TaskRunHistoryPage,
-    group: "operations",
-    menuLabel: "실행 이력",
-    menuOrder: 3,
-    title: "작업 실행 이력",
+    group: "notifications",
+    menuLabel: "모니터링",
+    menuOrder: 1,
+    title: "모니터링",
     screenCode: "TR101",
-    workTabLabel: "실행 이력",
+    workTabLabel: "모니터링",
   },
 ] as const satisfies readonly AdminRouteManifestEntry[];
 
