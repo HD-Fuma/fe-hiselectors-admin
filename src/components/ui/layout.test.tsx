@@ -79,6 +79,21 @@ test("renders search fields and actions inside an accessible search landmark", (
   expect(within(search).getByRole("button", { name: "Search" })).toBeInTheDocument();
 });
 
+test("submits a shared search once when Enter is pressed in a field", async () => {
+  const user = userEvent.setup();
+  const onSearch = vi.fn();
+
+  render(
+    <SearchPanel actions={<SearchActions onReset={vi.fn()} onSearch={onSearch} />}>
+      <TextInput aria-label="Search term" />
+    </SearchPanel>,
+  );
+
+  await user.type(screen.getByRole("textbox", { name: "Search term" }), "creator{Enter}");
+
+  expect(onSearch).toHaveBeenCalledOnce();
+});
+
 test("shows the current page, total pages, and page size", () => {
   render(<Pagination page={2} totalPages={7} pageSize={20} />);
 

@@ -29,6 +29,7 @@ export function SearchActions({
       <Button
         className={classes(className, searchClassName)}
         onClick={onSearch}
+        type="submit"
         variant="primary"
       >
         {searchLabel}

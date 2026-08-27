@@ -4,7 +4,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type KeyboardEvent,
   type ReactNode,
 } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -256,13 +255,6 @@ function QueueFilters({
     setPlatform("");
     onReset();
   };
-  const applyOnEnter = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      applyFilters();
-    }
-  };
-
   return (
     <ListSearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
       <FilterField htmlFor="content-inspection-keyword" label="콘텐츠/작성자">
@@ -270,7 +262,6 @@ function QueueFilters({
           aria-label="콘텐츠/작성자"
           id="content-inspection-keyword"
           onChange={(event) => setKeyword(event.target.value)}
-          onKeyDown={applyOnEnter}
           placeholder="콘텐츠 ID 또는 작성자"
           value={keyword}
         />

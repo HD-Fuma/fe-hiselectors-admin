@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type KeyboardEvent,
 } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import "../../styles/content-inspection.css";
@@ -229,13 +228,6 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
     resetPage();
   };
 
-  const applySearchOnEnter = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      applySearch();
-    }
-  };
-
   const resetSearch = () => {
     setKeyword("");
     setPeriodStart("");
@@ -281,7 +273,6 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
                 aria-label="검색어"
                 id="campaign-keyword"
                 onChange={(event) => setKeyword(event.target.value)}
-                onKeyDown={applySearchOnEnter}
                 placeholder="캠페인명 또는 ID 검색"
                 value={keyword}
               />
