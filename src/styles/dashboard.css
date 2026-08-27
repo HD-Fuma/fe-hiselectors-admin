@@ -90,24 +90,14 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   grid-column: 1;
 }
 
-.fuma-dashboard-card--active {
-  grid-column: 3;
-  grid-row: 1;
-}
-
-.fuma-dashboard-card--generation {
-  grid-column: 4;
-  grid-row: 1;
-}
-
 .fuma-dashboard-card--daily {
-  grid-column: span 2;
+  grid-column: span 1;
   align-self: stretch;
 }
 
 .fuma-dashboard-card--trend {
   grid-column: 3 / span 2;
-  grid-row: 2;
+  grid-row: 1;
 }
 
 .fuma-dashboard-card > header {

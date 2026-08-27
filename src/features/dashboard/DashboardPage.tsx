@@ -3,20 +3,17 @@ import { Link } from "react-router-dom";
 import { HsECharts, type EChartsOption } from "../../components/charts/HsECharts";
 import { ECHARTS_TOOLTIP_STYLE } from "../../components/charts/chartColors";
 import { getAdminApplications } from "../../entities/application";
-import { getCampaigns } from "../../entities/campaign";
 import {
   adaptContentInspection,
   getCurrentGenerationContents,
   type ContentInspectionFixture,
 } from "../../entities/content";
-import { getContentPerformanceSummary } from "../../entities/performance";
 import { getSelectorPerformanceSummary } from "../../entities/selectors";
 import { getAdministratorSession } from "../../lib/adminAuthentication";
 import { formatCompactCount, formatNumber, formatWon } from "../../lib/formatters";
 import "../../styles/dashboard.css";
 
 interface DashboardData {
-  activeCampaigns: number | null;
   applicationBreakdown: {
     instagram: number | null;
     youtube: number | null;
@@ -25,7 +22,6 @@ interface DashboardData {
     instagram: number;
     youtube: number;
   } | null;
-  currentGenerationContentCount: number | null;
   inspectionContents: ContentInspectionFixture[] | null;
   pendingApplications: number | null;
   pendingContents: number | null;
@@ -49,10 +45,8 @@ const REVENUE_COLORS = {
 } as const;
 
 const EMPTY_DASHBOARD: DashboardData = {
-  activeCampaigns: null,
   applicationBreakdown: { instagram: null, youtube: null },
   contentBreakdown: null,
-  currentGenerationContentCount: null,
   inspectionContents: null,
   pendingApplications: null,
   pendingContents: null,
@@ -356,15 +350,11 @@ export function DashboardPage() {
         snsCode: "YOUTUBE",
         status: "PENDING",
       }, controller.signal),
-      getCampaigns({ page: 0, size: 1, status: "ACTIVE" }, controller.signal),
-      getContentPerformanceSummary(controller.signal),
       revenueTrend,
     ]).then(([
       contents,
       instagramApplications,
       youtubeApplications,
-      activeCampaigns,
-      summary,
       dailyRevenue,
     ]) => {
       if (controller.signal.aborted) return;
@@ -397,9 +387,6 @@ export function DashboardPage() {
         : null;
 
       setData({
-        activeCampaigns: activeCampaigns.status === "fulfilled"
-          ? activeCampaigns.value.totalElements
-          : null,
         applicationBreakdown: {
           instagram: instagramApplications.status === "fulfilled"
             ? instagramApplications.value.totalElements
@@ -409,9 +396,6 @@ export function DashboardPage() {
             : null,
         },
         contentBreakdown,
-        currentGenerationContentCount: summary.status === "fulfilled"
-          ? summary.value.currentGenerationContentCount
-          : null,
         inspectionContents: inspectionRows?.map(({ inspection }) => inspection) ?? null,
         pendingApplications: pendingApplicationsByPlatform,
         pendingContents: pendingInspectionRows?.length ?? null,
@@ -486,34 +470,6 @@ export function DashboardPage() {
             지원자 검토하기
             <span aria-hidden="true">→</span>
           </Link>
-        </DashboardCard>
-
-        <DashboardCard
-          className="fuma-dashboard-card--active"
-          eyebrow="CAMPAIGN"
-          title="진행 중 캠페인"
-        >
-          <DashboardMetric label="활성 캠페인 수" unit="건" value={count(data.activeCampaigns)} />
-        </DashboardCard>
-
-        <DashboardCard
-          action={(
-            <Link
-              className="fuma-dashboard__primary-action fuma-dashboard__primary-action--compact"
-              to="/performance/contents"
-            >
-              콘텐츠 성과
-            </Link>
-          )}
-          className="fuma-dashboard-card--generation"
-          eyebrow="CONTENT"
-          title="현재 기수 콘텐츠"
-        >
-          <DashboardMetric
-            label="등록된 콘텐츠 수"
-            unit="건"
-            value={count(data.currentGenerationContentCount)}
-          />
         </DashboardCard>
 
         <DashboardCard
