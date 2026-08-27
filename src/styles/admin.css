@@ -386,6 +386,7 @@
 }
 
 .hsas-pagination__button {
+  display: grid;
   width: var(--hsas-control-height);
   height: var(--hsas-control-height);
   padding: 0;
@@ -394,6 +395,9 @@
   background: var(--hsas-surface);
   box-shadow: none;
   color: #777f84;
+  font-size: var(--hsas-font-20);
+  line-height: 1;
+  place-items: center;
 }
 
 .hsas-pagination__button--interactive {
