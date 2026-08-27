@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { CreatorListPage, ProposalHistoryPage } from "./CreatorPages";
@@ -648,8 +648,12 @@ describe("proposal history", () => {
     expect(await within(table).findByText("Clevr TV")).toBeInTheDocument();
 
     const search = screen.getByRole("search", { name: "검색 조건" });
-    await user.type(within(search).getByLabelText("발송 시작일"), "2026-08-10");
-    await user.type(within(search).getByLabelText("발송 종료일"), "2026-08-31");
+    fireEvent.change(within(search).getByLabelText("발송 시작일"), {
+      target: { value: "2026-08-10" },
+    });
+    fireEvent.change(within(search).getByLabelText("발송 종료일"), {
+      target: { value: "2026-08-31" },
+    });
     await user.click(within(search).getByRole("button", { name: "조회" }));
 
     expect(within(table).queryByText("김서연")).not.toBeInTheDocument();
