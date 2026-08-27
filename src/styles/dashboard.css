@@ -229,6 +229,18 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   font-size: var(--hsas-font-9);
 }
 
+.fuma-dashboard-card--daily .fuma-dashboard__breakdown dt {
+  font-size: var(--hsas-font-13);
+}
+
+.fuma-dashboard-card--daily .fuma-dashboard__breakdown dd {
+  font-size: var(--hsas-font-18);
+}
+
+.fuma-dashboard-card--daily .fuma-dashboard__breakdown small {
+  font-size: var(--hsas-font-11);
+}
+
 .fuma-dashboard-inspection__focus {
   display: flex;
   flex: 1;
