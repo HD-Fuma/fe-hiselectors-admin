@@ -99,7 +99,8 @@ body:has(.fuma-content-inspection-studio) {
   overflow: visible;
   align-content: start;
   align-items: stretch;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, var(--studio-version-width)));
+  justify-content: center;
   gap: var(--studio-gap);
 }
 
