@@ -236,11 +236,12 @@ export async function getTaskRun(runId: string, signal?: AbortSignal): Promise<T
 
 export async function getRecentTaskRuns(
   page: number,
+  size = 20,
   signal?: AbortSignal,
 ): Promise<SpringPage<TaskRun>> {
   const search = new URLSearchParams({
     page: String(Math.max(0, page - 1)),
-    size: "20",
+    size: String(size),
   });
   const response = await adminFetch(
     `${API_BASE_URL}/api/admin/task-runs/recent?${search}`,

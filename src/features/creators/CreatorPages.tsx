@@ -750,6 +750,7 @@ export function CreatorListPage() {
   const [selectedCreators, setSelectedCreators] = useState<Map<number, CreatorSummary>>(new Map());
   const [profileCreator, setProfileCreator] = useState<CreatorSummary | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(CREATOR_LIST_PAGE_SIZE);
   const [pageData, setPageData] = useState<Awaited<ReturnType<typeof getCreators>> | null>(null);
   const [error, setError] = useState("");
   const [discoveryRunning, setDiscoveryRunning] = useState(false);
@@ -788,7 +789,7 @@ export function CreatorListPage() {
       maxFollower: numericFilter(appliedFilters.maxFollower),
       maxBrandScore: appliedFilters.excludeBrands ? 1 : undefined,
       page: page - 1,
-      size: CREATOR_LIST_PAGE_SIZE,
+      size: pageSize,
     }, controller.signal).then((result) => {
       setPageData(result);
       setError("");
@@ -798,7 +799,7 @@ export function CreatorListPage() {
       }
     });
     return () => controller.abort();
-  }, [appliedFilters, page]);
+  }, [appliedFilters, page, pageSize]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1025,8 +1026,12 @@ export function CreatorListPage() {
         </div>
         <Pagination
           onPageChange={setPage}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          }}
           page={page}
-          pageSize={CREATOR_LIST_PAGE_SIZE}
+          pageSize={pageSize}
           totalPages={Math.max(1, pageData?.totalPages ?? 1)}
         />
       </div>
@@ -1154,6 +1159,7 @@ const EMPTY_PROPOSAL_PERIOD = { from: "", to: "" };
 
 export function ProposalHistoryPage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PROPOSAL_PAGE_SIZE);
   const [items, setItems] = useState<ProposalHistoryEntry[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -1185,13 +1191,13 @@ export function ProposalHistoryPage() {
     }),
     [appliedPeriod.from, appliedPeriod.to, items, platform],
   );
-  const pageSlice = paginate(visibleItems, page, PROPOSAL_PAGE_SIZE);
+  const pageSlice = paginate(visibleItems, page, pageSize);
   const ordinalById = useMemo(() => {
-    const start = (pageSlice.currentPage - 1) * PROPOSAL_PAGE_SIZE;
+    const start = (pageSlice.currentPage - 1) * pageSize;
     return new Map(
       pageSlice.pagedItems.map((item, index) => [item.proposalHistoryId, start + index + 1]),
     );
-  }, [pageSlice.currentPage, pageSlice.pagedItems]);
+  }, [pageSize, pageSlice.currentPage, pageSlice.pagedItems]);
 
   const changePlatform = (nextPlatform: ProposalHistoryEntry["snsCode"] | null) => {
     setPlatform(nextPlatform);
@@ -1274,8 +1280,12 @@ export function ProposalHistoryPage() {
         </div>
         <Pagination
           onPageChange={setPage}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          }}
           page={pageSlice.currentPage}
-          pageSize={PROPOSAL_PAGE_SIZE}
+          pageSize={pageSize}
           totalPages={pageSlice.totalPages}
         />
       </div>

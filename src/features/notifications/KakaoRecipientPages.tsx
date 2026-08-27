@@ -20,8 +20,8 @@ import {
 
 const PAGE_SIZE = 20;
 
-function emptyPage(): SpringPage<KakaoRecipientItem> {
-  return { content: [], number: 0, size: PAGE_SIZE, totalElements: 0, totalPages: 0 };
+function emptyPage(pageSize = PAGE_SIZE): SpringPage<KakaoRecipientItem> {
+  return { content: [], number: 0, size: pageSize, totalElements: 0, totalPages: 0 };
 }
 
 function displayValue(value: string | null | undefined) {
@@ -59,6 +59,7 @@ export function KakaoRecipientStatusPage() {
   const [appliedKeyword, setAppliedKeyword] = useState("");
   const [status, setStatus] = useState<KakaoRecipientFilterStatus | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [requestVersion, setRequestVersion] = useState(0);
   const [recipientPage, setRecipientPage] = useState(emptyPage);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,7 +74,7 @@ export function KakaoRecipientStatusPage() {
     getKakaoRecipients({
       keyword: appliedKeyword.trim() || undefined,
       page: page - 1,
-      size: PAGE_SIZE,
+      size: pageSize,
       status: status ?? undefined,
     }, controller.signal)
       .then((result) => {
@@ -85,7 +86,7 @@ export function KakaoRecipientStatusPage() {
         if (latestRequestId.current !== requestId || (error instanceof Error && error.name === "AbortError")) {
           return;
         }
-        setRecipientPage(emptyPage());
+        setRecipientPage(emptyPage(pageSize));
         setHasError(true);
       })
       .finally(() => {
@@ -93,7 +94,7 @@ export function KakaoRecipientStatusPage() {
       });
 
     return () => controller.abort();
-  }, [appliedKeyword, page, requestVersion, status]);
+  }, [appliedKeyword, page, pageSize, requestVersion, status]);
 
   const columns = useMemo<DenseTableColumn<KakaoRecipientItem>[]>(() => [
     {
@@ -172,6 +173,13 @@ export function KakaoRecipientStatusPage() {
     prepareRequest();
   };
 
+  const changePageSize = (nextPageSize: number) => {
+    setPage(1);
+    setPageSize(nextPageSize);
+    setRecipientPage(emptyPage(nextPageSize));
+    prepareRequest();
+  };
+
   const emptyMessage = isLoading ? (
     <span aria-live="polite" role="status">카카오 수신 현황을 불러오는 중입니다.</span>
   ) : hasError ? (
@@ -221,6 +229,7 @@ export function KakaoRecipientStatusPage() {
         {!isLoading && !hasError && recipientPage.totalPages > 0 ? (
           <Pagination
             onPageChange={changePage}
+            onPageSizeChange={changePageSize}
             page={recipientPage.number + 1}
             pageSize={recipientPage.size}
             totalPages={recipientPage.totalPages}

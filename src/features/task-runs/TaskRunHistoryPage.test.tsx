@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { getRecentTaskRuns, type SpringPage, type TaskRun } from "../../entities/task-run";
 import { TaskRunHistoryPage } from "./TaskRunHistoryPage";
@@ -116,6 +116,22 @@ test("renders the completed history contract and safe execution subjects", async
   expect(within(history).getAllByText("-").length).toBeGreaterThan(0);
 });
 
+test("reloads the first page with the selected page size", async () => {
+  vi.mocked(getRecentTaskRuns).mockResolvedValue(page([taskRun()]));
+
+  renderPage();
+  await screen.findByRole("region", { name: "모니터링" });
+  fireEvent.change(screen.getByRole("combobox", { name: "페이지당 표시 개수" }), {
+    target: { value: "50" },
+  });
+
+  await waitFor(() => expect(getRecentTaskRuns).toHaveBeenLastCalledWith(
+    1,
+    50,
+    expect.any(AbortSignal),
+  ));
+});
+
 test("falls back from a blank non-creator progress message to the count summary", async () => {
   vi.mocked(getRecentTaskRuns).mockResolvedValue(page([
     taskRun({
@@ -147,10 +163,10 @@ test("requests UI pages as one-based values and moves through Spring results", a
   renderPage();
 
   expect(await screen.findByText("1 / 2 페이지")).toBeInTheDocument();
-  expect(getRecentTaskRuns).toHaveBeenNthCalledWith(1, 1, expect.any(AbortSignal));
+  expect(getRecentTaskRuns).toHaveBeenNthCalledWith(1, 1, 20, expect.any(AbortSignal));
 
   fireEvent.click(screen.getByRole("button", { name: "다음 페이지" }));
 
   expect(await screen.findByText("2 / 2 페이지")).toBeInTheDocument();
-  expect(getRecentTaskRuns).toHaveBeenNthCalledWith(2, 2, expect.any(AbortSignal));
+  expect(getRecentTaskRuns).toHaveBeenNthCalledWith(2, 2, 20, expect.any(AbortSignal));
 });

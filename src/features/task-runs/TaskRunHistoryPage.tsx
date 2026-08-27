@@ -17,13 +17,13 @@ import {
   triggerLabel,
 } from "./taskRunPresentation";
 
-const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 20;
 
-function emptyPage(): SpringPage<TaskRun> {
+function emptyPage(pageSize = DEFAULT_PAGE_SIZE): SpringPage<TaskRun> {
   return {
     content: [],
     number: 0,
-    size: PAGE_SIZE,
+    size: pageSize,
     totalElements: 0,
     totalPages: 0,
   };
@@ -82,6 +82,7 @@ const columns: DenseTableColumn<TaskRun>[] = [
 
 export function TaskRunHistoryPage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [historyPage, setHistoryPage] = useState<SpringPage<TaskRun>>(emptyPage);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -91,7 +92,7 @@ export function TaskRunHistoryPage() {
 
     async function load() {
       try {
-        const result = await getRecentTaskRuns(page, controller.signal);
+        const result = await getRecentTaskRuns(page, pageSize, controller.signal);
         if (!controller.signal.aborted) setHistoryPage(result);
       } catch (error: unknown) {
         if (
@@ -110,13 +111,21 @@ export function TaskRunHistoryPage() {
     void load();
 
     return () => controller.abort();
-  }, [page]);
+  }, [page, pageSize]);
 
   const changePage = (nextPage: number) => {
-    setHistoryPage(emptyPage());
+    setHistoryPage(emptyPage(pageSize));
     setIsLoading(true);
     setHasError(false);
     setPage(nextPage);
+  };
+
+  const changePageSize = (nextPageSize: number) => {
+    setHistoryPage(emptyPage(nextPageSize));
+    setIsLoading(true);
+    setHasError(false);
+    setPage(1);
+    setPageSize(nextPageSize);
   };
 
   const emptyMessage = isLoading ? (
@@ -145,8 +154,9 @@ export function TaskRunHistoryPage() {
         {!isLoading && !hasError && historyPage.totalPages > 0 ? (
           <Pagination
             onPageChange={changePage}
+            onPageSizeChange={changePageSize}
             page={historyPage.number + 1}
-            pageSize={historyPage.size}
+            pageSize={pageSize}
             totalPages={historyPage.totalPages}
           />
         ) : null}

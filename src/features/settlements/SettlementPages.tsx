@@ -56,11 +56,11 @@ function currentSettlementMonth(date = new Date()) {
   ].join("-");
 }
 
-function emptySettlementPage(): SpringPage<SettlementEstimate> {
+function emptySettlementPage(pageSize = SETTLEMENT_PAGE_SIZE): SpringPage<SettlementEstimate> {
   return {
     content: [],
     number: 0,
-    size: SETTLEMENT_PAGE_SIZE,
+    size: pageSize,
     totalElements: 0,
     totalPages: 0,
   };
@@ -532,6 +532,7 @@ export function SettlementManagementPage() {
   const [appliedMonth, setAppliedMonth] = useState(defaultMonth);
   const [selectedStatus, setSelectedStatus] = useState<SettlementStatusFilter | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(SETTLEMENT_PAGE_SIZE);
   const [tableRequestVersion, setTableRequestVersion] = useState(0);
   const [summaryRequestVersion, setSummaryRequestVersion] = useState(0);
   const [settlementPage, setSettlementPage] = useState(emptySettlementPage);
@@ -555,7 +556,7 @@ export function SettlementManagementPage() {
     getSettlementEstimates({
       activityMonth: appliedMonth,
       page: page - 1,
-      size: SETTLEMENT_PAGE_SIZE,
+      size: pageSize,
       statuses: apiStatusesForFilter(selectedStatus),
     }, controller.signal)
       .then((pageResult) => {
@@ -571,7 +572,7 @@ export function SettlementManagementPage() {
           return;
         }
 
-        setSettlementPage(emptySettlementPage());
+        setSettlementPage(emptySettlementPage(pageSize));
         setHasTableError(true);
       })
       .finally(() => {
@@ -579,7 +580,7 @@ export function SettlementManagementPage() {
       });
 
     return () => controller.abort();
-  }, [appliedMonth, page, selectedStatus, tableRequestVersion]);
+  }, [appliedMonth, page, pageSize, selectedStatus, tableRequestVersion]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -676,10 +677,10 @@ export function SettlementManagementPage() {
     });
   };
 
-  const prepareTableRequest = () => {
+  const prepareTableRequest = (nextPageSize = pageSize) => {
     latestTableRequestId.current += 1;
     closeSettlementDetail();
-    setSettlementPage(emptySettlementPage());
+    setSettlementPage(emptySettlementPage(nextPageSize));
     setHasTableError(false);
     setIsTableLoading(true);
     setTableRequestVersion((version) => version + 1);
@@ -722,6 +723,12 @@ export function SettlementManagementPage() {
     prepareTableRequest();
   };
 
+  const changePageSize = (nextPageSize: number) => {
+    setPage(1);
+    setPageSize(nextPageSize);
+    prepareTableRequest(nextPageSize);
+  };
+
   const usingDemoData = !isTableLoading
     && !isSummaryLoading
     && !hasTableError
@@ -733,7 +740,7 @@ export function SettlementManagementPage() {
     ? getDemoSettlementPage({
       activityMonth: appliedMonth,
       page: page - 1,
-      size: SETTLEMENT_PAGE_SIZE,
+      size: pageSize,
       statuses: apiStatusesForFilter(selectedStatus),
     })
     : settlementPage;
@@ -808,6 +815,7 @@ export function SettlementManagementPage() {
         {!isTableLoading && !hasTableError && displayedSettlementPage.totalPages > 0 ? (
           <Pagination
             onPageChange={changePage}
+            onPageSizeChange={changePageSize}
             page={displayedSettlementPage.number + 1}
             pageSize={displayedSettlementPage.size}
             totalPages={displayedSettlementPage.totalPages}

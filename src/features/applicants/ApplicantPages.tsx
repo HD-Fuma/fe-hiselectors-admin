@@ -373,6 +373,7 @@ export function ApplicantListPage() {
     status: Exclude<ApplicationStatus, "PENDING">;
   } | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(APPLICANT_PAGE_SIZE);
   const [listRequestVersion, setListRequestVersion] = useState(0);
   const listRequestKey = [
     appliedKeyword,
@@ -382,6 +383,7 @@ export function ApplicantListPage() {
     minimumCriteriaOnly ? "minimum" : "all",
     hasAiReportOnly ? "hasAiReport" : "all",
     page,
+    pageSize,
     listRequestVersion,
   ].join("|");
   const [pageData, setPageData] = useState<SpringPage<AdminApplicationSummary> | null>(null);
@@ -409,7 +411,7 @@ export function ApplicantListPage() {
       hasAiReport: hasAiReportOnly || undefined,
       minimumCriteriaOnly: apiMinimumCriteriaOnly(appliedReviewStatus, minimumCriteriaOnly),
       page: page - 1,
-      size: APPLICANT_PAGE_SIZE,
+      size: pageSize,
     }, controller.signal).then((result) => {
       if (!controller.signal.aborted) {
         setPageData(result);
@@ -436,6 +438,7 @@ export function ApplicantListPage() {
     listRequestKey,
     minimumCriteriaOnly,
     page,
+    pageSize,
   ]);
 
   const isListFetching = resolvedListKey !== listRequestKey;
@@ -557,8 +560,12 @@ export function ApplicantListPage() {
           {!loading && !listError ? (
             <Pagination
               onPageChange={setPage}
+              onPageSizeChange={(nextPageSize) => {
+                setPageSize(nextPageSize);
+                setPage(1);
+              }}
               page={page}
-              pageSize={APPLICANT_PAGE_SIZE}
+              pageSize={pageSize}
               totalPages={Math.max(1, pageData?.totalPages ?? 1)}
             />
           ) : null}

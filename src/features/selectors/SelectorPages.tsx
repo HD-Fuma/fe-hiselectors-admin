@@ -144,6 +144,7 @@ export function CohortManagementPage() {
   const [appliedPeriodEnd, setAppliedPeriodEnd] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<GenerationStatus | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(COHORT_PAGE_SIZE);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [detailCohort, setDetailCohort] = useState<Generation | null>(null);
   const [editingCohort, setEditingCohort] = useState<Generation | null>(null);
@@ -190,7 +191,7 @@ export function CohortManagementPage() {
     currentPage,
     pagedItems: pagedCohorts,
     totalPages,
-  } = paginate(filteredCohorts, page, COHORT_PAGE_SIZE);
+  } = paginate(filteredCohorts, page, pageSize);
   const resetFilters = () => {
     setKeyword("");
     setPeriodStart("");
@@ -409,8 +410,12 @@ export function CohortManagementPage() {
         </div>
         <Pagination
           onPageChange={!isCohortLoading && !listError ? setPage : undefined}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          }}
           page={currentPage}
-          pageSize={COHORT_PAGE_SIZE}
+          pageSize={pageSize}
           totalPages={totalPages}
         />
       </div>
@@ -568,6 +573,7 @@ export function SelectorOverviewPage() {
   const [appliedSns, setAppliedSns] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(SELECTOR_PAGE_SIZE);
   const [pageData, setPageData] = useState<SpringPage<SelectorSummary> | null>(null);
   const [listError, setListError] = useState("");
   const [generations, setGenerations] = useState<SelectorFilterGeneration[]>([]);
@@ -597,7 +603,7 @@ export function SelectorOverviewPage() {
       nickname: appliedName || appliedKeyword || undefined,
       snsCode: (appliedSns || undefined) as SelectorSnsCode | undefined,
       page: page - 1,
-      size: activeView === "pool" ? POOL_PAGE_SIZE : SELECTOR_PAGE_SIZE,
+      size: activeView === "pool" ? POOL_PAGE_SIZE : pageSize,
     }, controller.signal).then((result) => {
       setPageData(result);
       setListError("");
@@ -607,7 +613,7 @@ export function SelectorOverviewPage() {
       }
     });
     return () => controller.abort();
-  }, [activeView, appliedGenerationId, appliedKeyword, appliedName, appliedSns, page, selectedStatus]);
+  }, [activeView, appliedGenerationId, appliedKeyword, appliedName, appliedSns, page, pageSize, selectedStatus]);
 
   const openPoolDetail = (id: number) => {
     setPoolDetail({ id, detail: null, error: "" });
@@ -738,8 +744,12 @@ export function SelectorOverviewPage() {
         {activeView === "table" ? (
           <Pagination
             onPageChange={setPage}
+            onPageSizeChange={(nextPageSize) => {
+              setPageSize(nextPageSize);
+              setPage(1);
+            }}
             page={page}
-            pageSize={SELECTOR_PAGE_SIZE}
+            pageSize={pageSize}
             totalPages={Math.max(1, pageData?.totalPages ?? 1)}
           />
         ) : null}

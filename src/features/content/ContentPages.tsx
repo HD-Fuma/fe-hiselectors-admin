@@ -560,6 +560,7 @@ export function ContentInspectionListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [contents, setContents] = useState<ContentInspectionFixture[]>([]);
+  const [pageSize, setPageSize] = useState(CONTENT_INSPECTION_PAGE_SIZE);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const fetchContents = useCallback(async (signal?: AbortSignal) => (
@@ -621,7 +622,7 @@ export function ContentInspectionListPage() {
   const { currentPage, pagedItems: pageContents, totalPages } = paginate(
     filteredContents,
     requestedPage,
-    CONTENT_INSPECTION_PAGE_SIZE,
+    pageSize,
   );
   const pendingContents = inspectionRequiredContents(contents);
 
@@ -737,8 +738,12 @@ export function ContentInspectionListPage() {
         {!isLoading && !loadError && filteredContents.length > 0 ? (
           <Pagination
             onPageChange={(page) => updateListParam("page", String(page), "1")}
+            onPageSizeChange={(nextPageSize) => {
+              setPageSize(nextPageSize);
+              updateListParam("page", "1", "1");
+            }}
             page={currentPage}
-            pageSize={CONTENT_INSPECTION_PAGE_SIZE}
+            pageSize={pageSize}
             totalPages={totalPages}
           />
         ) : null}

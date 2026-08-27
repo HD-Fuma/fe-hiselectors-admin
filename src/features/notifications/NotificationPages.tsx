@@ -252,6 +252,7 @@ export function NotificationHistoryPage() {
   const [appliedFilters, setAppliedFilters] = useState<NotificationFilters>(EMPTY_FILTERS);
   const [channel, setChannel] = useState<NotificationChannel | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [requestVersion, setRequestVersion] = useState(0);
   const [items, setItems] = useState<NotificationHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -298,10 +299,10 @@ export function NotificationHistoryPage() {
     () => (channel ? items.filter((item) => item.channel === channel) : items),
     [channel, items],
   );
-  const pageSlice = paginate(visibleItems, page, PAGE_SIZE);
+  const pageSlice = paginate(visibleItems, page, pageSize);
 
   const columns = useMemo<DenseTableColumn<NotificationHistoryItem>[]>(() => {
-    const start = (pageSlice.currentPage - 1) * PAGE_SIZE;
+    const start = (pageSlice.currentPage - 1) * pageSize;
     const ordinalById = new Map(
       pageSlice.pagedItems.map((item, index) => [item.notificationId, start + index + 1]),
     );
@@ -326,7 +327,7 @@ export function NotificationHistoryPage() {
         width: "13%",
       },
     ];
-  }, [pageSlice.currentPage, pageSlice.pagedItems]);
+  }, [pageSize, pageSlice.currentPage, pageSlice.pagedItems]);
 
   const prepareRequest = () => {
     latestRequestId.current += 1;
@@ -369,6 +370,11 @@ export function NotificationHistoryPage() {
 
   const changePage = (nextPage: number) => {
     setPage(nextPage);
+  };
+
+  const changePageSize = (nextPageSize: number) => {
+    setPageSize(nextPageSize);
+    setPage(1);
   };
 
   const confirmResend = async () => {
@@ -432,8 +438,9 @@ export function NotificationHistoryPage() {
         {!isLoading && !hasError && visibleItems.length > 0 ? (
           <Pagination
             onPageChange={changePage}
+            onPageSizeChange={changePageSize}
             page={pageSlice.currentPage}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
             totalPages={pageSlice.totalPages}
           />
         ) : null}
