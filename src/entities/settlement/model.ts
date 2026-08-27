@@ -1,5 +1,5 @@
 export const SETTLEMENT_STATUSES = [
-  { label: "계산 중", value: "CALCULATING" },
+  { label: "집계 예정", value: "CALCULATING" },
   { label: "지급 이월", value: "PAYMENT_CARRYOVER" },
   { label: "지급 대기", value: "PAYMENT_PENDING" },
   { label: "정산 보류", value: "PAYMENT_HOLD_INFO" },
@@ -16,7 +16,7 @@ export const SETTLEMENT_HOLD_STATUSES = [
 ] as const satisfies readonly SettlementStatus[];
 
 export const SETTLEMENT_STATUS_FILTERS = [
-  { label: "계산 중", value: "CALCULATING" },
+  { label: "집계 예정", value: "CALCULATING" },
   { label: "지급 이월", value: "PAYMENT_CARRYOVER" },
   { label: "지급 대기", value: "PAYMENT_PENDING" },
   { label: "정산 보류", value: "SETTLEMENT_HOLD" },
