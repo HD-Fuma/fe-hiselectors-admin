@@ -164,6 +164,61 @@ function inspectionPassSignals(content: ContentInspectionFixture) {
   ));
 }
 
+function inspectionAnalysisData(content: ContentInspectionFixture) {
+  const issues = inspectionIssueSignals(content);
+  const passSignals = inspectionPassSignals(content);
+  const receivedViolationTypes = new Set(
+    content.report.signals.flatMap(({ violationItemId, violationType }) => (
+      violationItemId != null && violationType ? [violationType] : []
+    )),
+  );
+  const normalViolationTypes = CONTENT_VIOLATION_TYPE_OPTIONS.filter(
+    ({ value }) => !receivedViolationTypes.has(value),
+  );
+
+  return {
+    issues,
+    normalItemCount: normalViolationTypes.length + passSignals.length,
+    normalViolationTypes,
+    passSignals,
+    summaryBullets: contentSummaryBullets(content),
+  };
+}
+
+function GuidelineComplianceDetails({
+  analysis,
+}: {
+  analysis: ReturnType<typeof inspectionAnalysisData>;
+}) {
+  if (analysis.normalItemCount === 0) return null;
+
+  return (
+    <details className="fuma-content-inspection-evidence__normal-group">
+      <summary>
+        <strong>가이드 준수 항목</strong>
+        <span>{analysis.normalItemCount}건 <ChevronDown aria-hidden="true" size={14} /></span>
+      </summary>
+      <ul>
+        {analysis.normalViolationTypes.map(({ label, value }) => (
+          <li key={value}>
+            <span>{label}</span>
+            <strong>정상</strong>
+          </li>
+        ))}
+        {analysis.passSignals.map((signal, index) => (
+          <li key={`${signal.title}-${index}`}>
+            <span className="fuma-content-inspection-evidence__normal-copy">
+              <span>{signal.title}</span>
+              {signal.evidence ? <small>{signal.evidence}</small> : null}
+            </span>
+            <strong>정상</strong>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 function issueOrdinalLabel(ordinal: number) {
   return ordinal >= 1 && ordinal <= 20 ? String.fromCharCode(0x245F + ordinal) : String(ordinal);
 }
@@ -1557,18 +1612,8 @@ function MinimalAiAnalysis({
   onSelectViolation: (ordinal: number) => void;
 }) {
   const analysisPending = content.aiStatus === "pending";
-  const summaryBullets = analysisPending ? [] : contentSummaryBullets(content);
-  const issues = inspectionIssueSignals(content);
-  const passSignals = inspectionPassSignals(content);
-  const receivedViolationTypes = new Set(
-    content.report.signals.flatMap(({ violationItemId, violationType }) => (
-      violationItemId != null && violationType ? [violationType] : []
-    )),
-  );
-  const normalViolationTypes = CONTENT_VIOLATION_TYPE_OPTIONS.filter(
-    ({ value }) => !receivedViolationTypes.has(value),
-  );
-  const normalItemCount = normalViolationTypes.length + passSignals.length;
+  const analysis = inspectionAnalysisData(content);
+  const { issues, normalItemCount, summaryBullets } = analysis;
   const extracts = content.report.extracts;
   const versionNo = currentDisplayedVersionNo(content);
   const showChanges = versionNo > 1 && content.changeItems.length > 0;
@@ -1629,31 +1674,7 @@ function MinimalAiAnalysis({
                   ))}
                 </ul>
               ) : null}
-              {normalItemCount > 0 ? (
-                <details className="fuma-content-inspection-evidence__normal-group">
-                  <summary>
-                    <strong>가이드 준수 항목</strong>
-                    <span>{normalItemCount}건 <ChevronDown aria-hidden="true" size={14} /></span>
-                  </summary>
-                  <ul>
-                    {normalViolationTypes.map(({ label, value }) => (
-                      <li key={value}>
-                        <span>{label}</span>
-                        <strong>정상</strong>
-                      </li>
-                    ))}
-                    {passSignals.map((signal, index) => (
-                      <li key={`${signal.title}-${index}`}>
-                        <span className="fuma-content-inspection-evidence__normal-copy">
-                          <span>{signal.title}</span>
-                          {signal.evidence ? <small>{signal.evidence}</small> : null}
-                        </span>
-                        <strong>정상</strong>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              ) : null}
+              <GuidelineComplianceDetails analysis={analysis} />
               {extracts.length > 0 ? (
                 <details>
                   <summary>전체 추출 내용 보기</summary>
@@ -2173,6 +2194,10 @@ export function ContentInspectionDetailPage() {
       ) ?? null;
   const studioSelectedIsLatest = selectedStudioVersionId === null;
   const studioReportContent = studioSelectedIsLatest ? content : selectedStudioHistoricalContent;
+  const studioReportAnalysis = useMemo(
+    () => studioReportContent ? inspectionAnalysisData(studioReportContent) : null,
+    [studioReportContent],
+  );
   const studioReviewReadOnly = content != null && content.inspectionStatus !== "검수 대기";
   const studioViolationSignals = useMemo(
     () => content
@@ -2186,10 +2211,7 @@ export function ContentInspectionDetailPage() {
     () => studioReportContent
       ? studioSelectedIsLatest
         ? studioViolationSignals
-        : studioReportContent.report.signals.map((signal, index) => ({
-            ...signal,
-            ordinal: index + 1,
-          }))
+        : inspectionIssueSignals(studioReportContent)
       : [],
     [studioReportContent, studioSelectedIsLatest, studioViolationSignals],
   );
@@ -2213,7 +2235,6 @@ export function ContentInspectionDetailPage() {
       ? { ordinal: focused.ordinal, requestId: focusedStudioViolationIndex }
       : null;
   }, [focusedStudioViolationIndex, studioSelectedIsLatest, studioViolationSignals]);
-  const judgedStudioViolationCount = studioViolationJudgments.filter(Boolean).length;
   const hasStudioViolationJudgment = studioViolationJudgments.includes("violation");
   const visibleError = loadError !== null && loadError.id === contentId
     ? loadError.message
@@ -3165,19 +3186,33 @@ export function ContentInspectionDetailPage() {
                 <strong>{studioReportContent.contentFormat}</strong>
               </div>
             </section>
-            <section className="fuma-content-inspection-studio__report-summary">
+            <section
+              aria-label="콘텐츠 요약"
+              className="fuma-content-inspection-studio__report-summary"
+            >
               <span>콘텐츠 요약</span>
-              <p>{studioReportContent.aiSummary}</p>
+              {!studioSelectedReportReady ? (
+                <p>리포트가 생성되지 않았습니다.</p>
+              ) : studioReportAnalysis && studioReportAnalysis.summaryBullets.length > 0 ? (
+                <ul>
+                  {studioReportAnalysis.summaryBullets.map((bullet) => (
+                    <li key={bullet}>{bullet}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p>요약 정보가 없습니다.</p>
+              )}
             </section>
-            <section className="fuma-content-inspection-studio__report-evidence">
+            <section
+              aria-label="검수 근거"
+              className="fuma-content-inspection-studio__report-evidence"
+            >
               <div>
-                <span>위반 사항</span>
+                <span>검수 근거</span>
                 <small>
-                  {!studioSelectedIsLatest || studioReviewReadOnly
-                    ? "완료"
-                    : studioSelectedReportReady
-                      ? `${judgedStudioViolationCount}/${studioReportViolationSignals.length}`
-                      : "-"}
+                  {studioSelectedReportReady && studioReportAnalysis
+                    ? `위반 후보 ${studioReportViolationSignals.length} · 정상 ${studioReportAnalysis.normalItemCount}`
+                    : "-"}
                 </small>
               </div>
               {!studioSelectedReportReady ? (
@@ -3205,6 +3240,9 @@ export function ContentInspectionDetailPage() {
                         tabIndex={-1}
                       >
                         <div>
+                          <span className="fuma-content-inspection-evidence__candidate-label">
+                            가이드 위반 후보 {issueOrdinalLabel(signal.ordinal)}
+                          </span>
                           <div>
                             <strong>{signal.title}</strong>
                             <small data-judgment={judgment ?? "pending"}>
@@ -3213,7 +3251,13 @@ export function ContentInspectionDetailPage() {
                                 : judgment === "clear" ? "위반 아님" : signal.source}
                             </small>
                           </div>
-                          <p>{signal.evidence || signal.detail}</p>
+                          <p>{signal.detail || signal.evidence}</p>
+                          {showsInspectionGuideline(signal) ? (
+                            <aside className="fuma-content-inspection-studio__report-guideline">
+                              <span>검수 기준</span>
+                              <p>{signal.guidance}</p>
+                            </aside>
+                          ) : null}
                           {studioSelectedIsLatest && !studioReviewReadOnly && focused ? (
                             <div
                               aria-label={`${signal.title} 판정`}
@@ -3253,6 +3297,9 @@ export function ContentInspectionDetailPage() {
                 </ul>
               ) : <p className="fuma-content-inspection-studio__report-empty">위반 사항이 없습니다.</p>}
             </section>
+            {studioSelectedReportReady && studioReportAnalysis ? (
+              <GuidelineComplianceDetails analysis={studioReportAnalysis} />
+            ) : null}
           </aside>
         ) : null}
         {studioSelectedIsLatest ? (

@@ -915,6 +915,18 @@ button.fuma-content-inspection-studio__violation-bubble {
   line-height: 1.55;
 }
 
+.fuma-content-inspection-studio__report-summary ul {
+  margin: 7px 0 0;
+  padding-left: 18px;
+  color: rgb(32 34 36 / 76%);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.fuma-content-inspection-studio__report-summary li + li {
+  margin-top: 4px;
+}
+
 .fuma-content-inspection-studio__report-evidence {
   min-width: 0;
   margin-top: 17px;
@@ -1038,6 +1050,19 @@ button.fuma-content-inspection-studio__violation-bubble {
   color: rgb(32 34 36 / 60%);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.fuma-content-inspection-studio__report-guideline {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 9px;
+  background: rgb(255 255 255 / 38%);
+}
+
+.fuma-content-inspection-studio__report-guideline > span {
+  color: rgb(32 34 36 / 54%);
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .fuma-content-inspection-studio__report-empty {
@@ -1204,6 +1229,12 @@ button.fuma-content-inspection-studio__violation-bubble {
   font-size: var(--hsas-font-12);
   font-weight: 700;
   white-space: nowrap;
+}
+
+.fuma-content-inspection-studio__report > .fuma-content-inspection-evidence__normal-group {
+  margin-top: 17px;
+  border-color: rgb(255 255 255 / 58%);
+  background: rgb(255 255 255 / 22%);
 }
 
 .fuma-content-inspection-studio__session-help > span + span {
