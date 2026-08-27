@@ -369,7 +369,7 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
     });
     return layoutCategories(counts);
   }, [selectors]);
-  const [dockOpen, setDockOpen] = useState(false);
+  const [dockOpen, setDockOpen] = useState(true);
 
   useEffect(() => {
     selectRef.current = onSelect;
@@ -471,6 +471,11 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         && Math.hypot(node.x - worldX, node.y - worldY) <= node.r + 4
       )) ?? null
     );
+    const hitTestCategory = (worldX: number, worldY: number) => (
+      categories.find((category) => (
+        Math.hypot(category.x - worldX, category.y - worldY) <= CATEGORY_RADIUS * 1.48
+      )) ?? null
+    );
 
     const onPointerDown = (event: PointerEvent) => {
       dragging = true;
@@ -495,13 +500,23 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
       const nextHovered = dragging ? null : hitTest(world.x, world.y);
       if (nextHovered && nextHovered !== hovered) prefetchRef.current?.(nextHovered.selector);
       hovered = nextHovered;
-      canvas.style.cursor = dragging ? "grabbing" : hovered ? "pointer" : "grab";
+      if (dragging) canvas.style.cursor = "grabbing";
+      else canvas.style.cursor = hovered || hitTestCategory(world.x, world.y) ? "pointer" : "grab";
     };
     const onPointerUp = (event: PointerEvent) => {
       if (dragging && moved < 5) {
         const world = toWorld(event.clientX, event.clientY);
         const picked = hitTest(world.x, world.y);
-        if (picked) selectRef.current(picked.selector);
+        if (picked) {
+          selectRef.current(picked.selector);
+        } else {
+          const category = hitTestCategory(world.x, world.y);
+          if (category) {
+            const nextFocus = focusRef.current === category.label ? null : category.label;
+            setFocus(nextFocus);
+            cameraRef.current?.(nextFocus);
+          }
+        }
       }
       dragging = false;
       canvas.releasePointerCapture(event.pointerId);
