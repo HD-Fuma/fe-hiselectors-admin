@@ -1084,7 +1084,10 @@ function MinimalVersionCard({
   snapshot: ContentSnapshot;
 }) {
   const cardRef = useRef<HTMLElement>(null);
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
   const handledFocusedViolationRef = useRef<string | null>(null);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [descriptionOverflowing, setDescriptionOverflowing] = useState(false);
   const annotations = useMemo(
     () => showAnnotations ? indexedViolationAnnotations(content, snapshot) : [],
     [content, showAnnotations, snapshot],
@@ -1138,6 +1141,7 @@ function MinimalVersionCard({
   const focusedViolationRequestKey = focusedViolation && focusedAnnotation
     ? `${content.id}:${snapshot.capturedAt}:${focusedViolation.requestId}:${focusedAnnotation.id}:${JSON.stringify(focusedAnnotation.target)}`
     : null;
+  const descriptionId = `content-description-${content.id}-${snapshot.capturedAt.replace(/\W/g, "")}`;
 
   const moveMedia = (direction: -1 | 1) => {
     setActiveMediaIndex((current) => Math.min(
@@ -1158,6 +1162,42 @@ function MinimalVersionCard({
       [index]: { height: naturalHeight, width: naturalWidth },
     }));
   };
+
+  useEffect(() => {
+    setDescriptionExpanded(false);
+    setDescriptionOverflowing(false);
+  }, [content.id, snapshot.capturedAt]);
+
+  useEffect(() => {
+    if (descriptionExpanded) return;
+    const description = descriptionRef.current;
+    if (!description) return;
+    const measureOverflow = () => {
+      setDescriptionOverflowing(description.scrollHeight > description.clientHeight + 1);
+    };
+    const animationFrame = window.requestAnimationFrame(measureOverflow);
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(measureOverflow);
+    resizeObserver?.observe(description);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      resizeObserver?.disconnect();
+    };
+  }, [descriptionExpanded, snapshot.text]);
+
+  useEffect(() => {
+    if (!descriptionExpanded) return;
+    const collapseOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setDescriptionExpanded(false);
+    };
+    window.addEventListener("keydown", collapseOnEscape, true);
+    return () => window.removeEventListener("keydown", collapseOnEscape, true);
+  }, [descriptionExpanded]);
 
   useEffect(() => {
     if (!focusedViolation || !focusedAnnotation || !focusedViolationRequestKey) {
@@ -1186,11 +1226,27 @@ function MinimalVersionCard({
     return () => window.cancelAnimationFrame(animationFrame);
   }, [focusedAnnotation, focusedViolation, focusedViolationRequestKey, visibleIndex]);
 
+  const descriptionToggle = descriptionOverflowing || descriptionExpanded ? (
+    <button
+      aria-controls={descriptionId}
+      aria-expanded={descriptionExpanded}
+      className="fuma-platform-inspection-frame__description-toggle"
+      onClick={(event) => {
+        event.stopPropagation();
+        setDescriptionExpanded((current) => !current);
+      }}
+      type="button"
+    >
+      {descriptionExpanded ? "접기" : "더보기"}
+    </button>
+  ) : null;
+
   return (
     <article
       aria-label={`${label} ${platformCardLabel}`}
       className="fuma-minimal-version-card fuma-platform-content-card"
       data-content-format={platformCardVariant}
+      data-description-expanded={descriptionExpanded}
       data-platform-card={platformCardVariant}
       data-platform={platform.toLowerCase()}
       inert={inert}
@@ -1407,7 +1463,18 @@ function MinimalVersionCard({
               <button aria-label="저장" type="button"><Bookmark aria-hidden="true" size={23} /></button>
             </div>
             <div className="fuma-platform-inspection-frame__instagram-copy">
-              <p><b>{handle}</b>{" "}<ViolationHighlightedText annotations={annotations} focusedOrdinal={focusedViolation?.ordinal} onSelectViolation={onSelectViolation} showBubbles={showTextBubbles} text={snapshot.text} useStoredIndexes /></p>
+              <p id={descriptionId} ref={descriptionRef}>
+                <b>{handle}</b>{" "}
+                <ViolationHighlightedText
+                  annotations={annotations}
+                  focusedOrdinal={focusedViolation?.ordinal}
+                  onSelectViolation={onSelectViolation}
+                  showBubbles={showTextBubbles}
+                  text={snapshot.text}
+                  useStoredIndexes
+                />
+              </p>
+              {descriptionToggle}
               <time>{postDate}</time>
             </div>
           </>
@@ -1455,7 +1522,7 @@ function MinimalVersionCard({
                 <strong>{handle}</strong>
                 <button type="button">구독</button>
               </div>
-              <p>
+              <p id={descriptionId} ref={descriptionRef}>
                 <ViolationHighlightedText
                   annotations={annotations}
                   focusedOrdinal={focusedViolation?.ordinal}
@@ -1465,6 +1532,7 @@ function MinimalVersionCard({
                   useStoredIndexes
                 />
               </p>
+              {descriptionToggle}
             </div>
           </>
         ) : (
@@ -1499,7 +1567,17 @@ function MinimalVersionCard({
             </div>
             <div className="fuma-platform-inspection-frame__youtube-description">
               <strong>{postDate}</strong>
-              <p><ViolationHighlightedText annotations={annotations} focusedOrdinal={focusedViolation?.ordinal} onSelectViolation={onSelectViolation} showBubbles={showTextBubbles} text={snapshot.text} useStoredIndexes /></p>
+              <p id={descriptionId} ref={descriptionRef}>
+                <ViolationHighlightedText
+                  annotations={annotations}
+                  focusedOrdinal={focusedViolation?.ordinal}
+                  onSelectViolation={onSelectViolation}
+                  showBubbles={showTextBubbles}
+                  text={snapshot.text}
+                  useStoredIndexes
+                />
+              </p>
+              {descriptionToggle}
             </div>
           </div>
         )}
@@ -2708,8 +2786,8 @@ export function ContentInspectionDetailPage() {
       }
 
       const scrollSurface = event.target instanceof Element
-        ? event.target.closest<HTMLElement>(
-            ".fuma-content-inspection-studio__report, .fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p",
+          ? event.target.closest<HTMLElement>(
+            ".fuma-content-inspection-studio__report, .fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p, .fuma-platform-inspection-frame__shorts-overlay p",
           )
         : null;
       if (scrollSurface) {
