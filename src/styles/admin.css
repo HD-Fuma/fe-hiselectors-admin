@@ -875,7 +875,7 @@
   outline-offset: -2px;
 }
 
-.hsas-admin-sidebar__group[data-selected-group="true"] .hsas-admin-sidebar__group-toggle {
+.hsas-admin-sidebar__group[data-selected-group="true"] .hsas-admin-sidebar__group-toggle:not(.hsas-admin-sidebar__direct-link) {
   color: var(--hsas-sidebar-strong-text);
   font-weight: 800;
 }
