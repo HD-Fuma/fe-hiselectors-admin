@@ -507,7 +507,7 @@ describe("applicant api pages", () => {
       .toHaveLength(5);
   });
 
-  test("polls a pending test applicant until analysis completes", async () => {
+  test("polls a pending test applicant and keeps review actions available", async () => {
     vi.useFakeTimers();
     const pendingTestApplicant = {
       ...pendingApplicantDetail,
@@ -539,8 +539,8 @@ describe("applicant api pages", () => {
       const panel = screen.getByRole("dialog", { name: "지원자 상세" });
       expect(within(panel).getByText("SNS 정량 지표 수집을 기다리고 있습니다."))
         .toBeInTheDocument();
-      expect(within(panel).queryByRole("button", { name: "승인" })).not.toBeInTheDocument();
-      expect(within(panel).queryByRole("button", { name: "반려" })).not.toBeInTheDocument();
+      expect(within(panel).getByRole("button", { name: "승인" })).toBeEnabled();
+      expect(within(panel).getByRole("button", { name: "반려" })).toBeEnabled();
 
       await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
 

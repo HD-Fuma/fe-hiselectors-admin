@@ -675,7 +675,6 @@ export function ApplicantDetailPage({
   const applicant = currentDetailState?.applicant ?? null;
   const currentInitialSummary = initialSummary?.id === numericApplicantId ? initialSummary : null;
   const summarySource = applicant ?? currentInitialSummary;
-  const testApplicant = summarySource ? isTestApplicant(summarySource) : false;
   const effectiveReviewStatus = summarySource ? reviewStatusFor(summarySource) : undefined;
   const audienceLabel = summarySource?.snsCode === "INSTAGRAM" ? "팔로워" : "구독자";
   const representativeContents = applicant ? uniqueContentsByPost(applicant.contents) : [];
@@ -796,7 +795,7 @@ export function ApplicantDetailPage({
     <>
       {embedded ? null : <ApplicantListPage />}
       <ProfileDetailShell
-        actionSection={summarySource?.status === "PENDING" && effectiveReviewStatus && !testApplicant ? (
+        actionSection={summarySource?.status === "PENDING" && effectiveReviewStatus ? (
           <section className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions">
             <div className="fuma-applicant-detail-actions__heading">
               <span>심사 처리</span>
