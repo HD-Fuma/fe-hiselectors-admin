@@ -26,7 +26,7 @@
 }
 
 .fuma-discovery-coverage {
-  display: grid;
+  display: none;
   gap: var(--hsas-space-12);
   padding: var(--hsas-space-16);
   border: 1px solid var(--hsas-border);

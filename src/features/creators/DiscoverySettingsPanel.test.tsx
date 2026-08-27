@@ -73,8 +73,9 @@ test("hides category creation and edits an existing category", async () => {
   expect(within(panel).getByRole("button", { name: /패션.*키워드 1개/ })).toBeInTheDocument();
   expect(within(panel).queryByText("FASHION")).not.toBeInTheDocument();
   expect(within(panel).getByText("데일리룩")).toBeInTheDocument();
-  expect(within(panel).getByRole("region", { name: "패션 발굴 포화도" })).toHaveTextContent("1 / 3개");
-  expect(within(panel).getByRole("region", { name: "패션 발굴 포화도" })).toHaveTextContent("관측 YouTube 계정8명");
+  const coverage = panel.querySelector('[aria-label="패션 발굴 포화도"]');
+  expect(coverage).toBeInTheDocument();
+  expect(coverage).not.toBeVisible();
   expect(within(panel).queryByRole("button", { name: "카테고리 추가" })).not.toBeInTheDocument();
   expect(within(panel).queryByText("활성")).not.toBeInTheDocument();
   expect(within(panel).getByText("비활성")).toBeInTheDocument();
