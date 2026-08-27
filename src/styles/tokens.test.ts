@@ -59,6 +59,28 @@ describe("CSS design tokens", () => {
 });
 
 describe("shared component visual contracts", () => {
+  test("renders the inspection session help as liquid glass", () => {
+    const sessionHelpRule = contentInspectionStyles.match(
+      /\.fuma-content-inspection-studio__session-help\s*\{([^}]*)\}/,
+    )?.[1];
+
+    expect(sessionHelpRule).toMatch(/overflow:\s*hidden;/);
+    expect(sessionHelpRule).toMatch(/border:\s*1px solid rgb\(255 255 255 \/ 78%\);/);
+    expect(sessionHelpRule).toMatch(/border-radius:\s*22px;/);
+    expect(sessionHelpRule).toMatch(/background:\s*rgb\(255 255 255 \/ 58%\);/);
+    expect(sessionHelpRule).toMatch(/backdrop-filter:\s*blur\(24px\) saturate\(1\.15\);/);
+    expect(sessionHelpRule).toMatch(/top:\s*50%;/);
+    expect(sessionHelpRule).toMatch(/bottom:\s*auto;/);
+    expect(sessionHelpRule).toMatch(/translate:\s*-50% -50%;/);
+    expect(sessionHelpRule).toMatch(/grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);/);
+  });
+
+  test("keeps selected content cards free of a selection outline", () => {
+    expect(contentInspectionStyles).not.toMatch(
+      /\.fuma-content-inspection-studio__version\[data-selected="true"\]\s*>\s*\.fuma-minimal-version-card\s*\{[^}]*outline/s,
+    );
+  });
+
   test("draws the dense table top edge with the same border as its grid cells", () => {
     const headerRule = adminStyles.match(/\.hsas-dense-table th\s*\{([^}]*)\}/)?.[1];
     const wrapperRule = adminStyles.match(/\.hsas-dense-table-wrap\s*\{([^}]*)\}/)?.[1];

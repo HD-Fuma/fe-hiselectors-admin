@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderRoute } from "../../test/renderRoute";
 
 function contentItem(overrides: Record<string, unknown> = {}) {
@@ -291,6 +291,14 @@ test("shows completion dialog after confirming the final content", async () => {
   const start = await screen.findByRole("button", { name: "검수 시작" }, { timeout: 3_000 });
   await waitFor(() => expect(start).toBeEnabled());
   fireEvent.click(start);
+  const help = await screen.findByRole("status", { name: "검수 조작 도움말" });
+  expect(help).toHaveTextContent("휠 이전 · 다음 콘텐츠");
+  expect(help).toHaveTextContent("1 반려 · 위반");
+  expect(help).toHaveTextContent("2 승인 · 위반 허용");
+  expect(help).not.toHaveTextContent("후보 판정:");
+  fireEvent.wheel(window, { deltaY: 20 });
+  await waitFor(() => expect(screen.queryByRole("status", { name: "검수 조작 도움말" }))
+    .not.toBeInTheDocument());
   const approve = await screen.findByRole("button", { name: /최종 승인/ }, { timeout: 3_000 });
   await waitFor(() => expect(approve).toBeEnabled());
   fireEvent.keyDown(window, { code: "Digit2", key: "2" });
@@ -301,6 +309,186 @@ test("shows completion dialog after confirming the final content", async () => {
   expect(completion).toHaveTextContent("검수 목록으로 돌아갑니다.");
   fireEvent.click(within(completion).getByRole("button", { name: "확인" }));
   await waitFor(() => expect(router.state.location.pathname).toBe("/content/inspections"));
+});
+
+test("switches studio version cards and keeps the latest judgment state", async () => {
+  const versions = [
+    {
+      contentVersionId: 9001,
+      creationReason: "INITIAL",
+      createdAt: "2026-08-17T09:00:00",
+      inspectedAt: "2026-08-17T09:10:00",
+      inspectionStatus: "COMPLETED",
+      versionNo: 1,
+    },
+    {
+      contentVersionId: 9010,
+      creationReason: "SOURCE_CHANGE",
+      createdAt: "2026-08-18T11:05:00",
+      inspectedAt: "2026-08-18T11:06:00",
+      inspectionStatus: "COMPLETED",
+      versionNo: 2,
+    },
+  ];
+  const latestViolation = {
+    evidence: {
+      confidence: 0.9,
+      locations: [{
+        bbox: null,
+        contentMediaId: 90999,
+        endIndex: null,
+        endTime: null,
+        excerpt: null,
+        mediaType: "IMAGE",
+        startIndex: null,
+        startTime: null,
+      }],
+      reason: "최신 버전의 비교 근거를 확인해야 합니다.",
+      source: "AI",
+    },
+    currentStatus: "PENDING",
+    detectedAt: "2026-08-18T11:06:00",
+    inspectionPolicyId: 9,
+    violationEvidenceHistoryId: 31,
+    violationItemId: 21,
+    violationType: "FALSE_EXAGGERATED_CLAIM",
+    violationTypeDescription: "허위·과장 표현",
+  };
+  const latestDetail = detailResponse({
+    selectedVersion: {
+      contentReport: {
+        contentReportId: 11,
+        flow: "최신 버전 전개",
+        overallAssessment: "최신 버전 평가",
+        purpose: "최신 버전 목적",
+        summary: "최신 버전 요약",
+      },
+      contentVersionId: 9010,
+      creationReason: "SOURCE_CHANGE",
+      createdAt: "2026-08-18T11:05:00",
+      inspectedAt: "2026-08-18T11:06:00",
+      inspectionStatus: "COMPLETED",
+      media: versionMedia(["최신 버전 본문"]),
+      violations: [latestViolation],
+      versionNo: 2,
+    },
+    versions,
+  });
+  mockContentApis([contentItem()], latestDetail, (contentVersionId) => {
+    expect(contentVersionId).toBe(9001);
+    return detailResponse({
+      selectedVersion: {
+        contentReport: {
+          contentReportId: 10,
+          flow: "과거 버전 전개",
+          overallAssessment: "과거 버전 평가",
+          purpose: "과거 버전 목적",
+          summary: "과거 버전 요약",
+        },
+        contentVersionId: 9001,
+        creationReason: "INITIAL",
+        createdAt: "2026-08-17T09:00:00",
+        inspectedAt: "2026-08-17T09:10:00",
+        inspectionStatus: "COMPLETED",
+        media: versionMedia(["과거 버전 본문"]),
+        violations: [latestViolation],
+        versionNo: 1,
+      },
+      versions,
+    });
+  });
+
+  renderRoute("/content/inspections");
+
+  const start = await screen.findByRole("button", { name: "검수 시작" }, { timeout: 3_000 });
+  await waitFor(() => expect(start).toBeEnabled());
+  fireEvent.click(start);
+  fireEvent.pointerDown(window);
+
+  const historicalSelection = await screen.findByRole("button", {
+    name: "v1 과거 콘텐츠 선택",
+  });
+  const historicalCard = historicalSelection.closest<HTMLElement>(
+    ".fuma-content-inspection-studio__version",
+  );
+  const latestCard = document.querySelector<HTMLElement>(
+    '.fuma-content-inspection-studio__version[data-latest="true"]',
+  );
+  const historicalVersionCard = historicalCard?.querySelector(
+    ".fuma-minimal-version-card",
+  );
+  const latestVersionCard = latestCard?.querySelector(".fuma-minimal-version-card");
+  expect(historicalVersionCard).toHaveClass("fuma-platform-content-card");
+  expect(historicalVersionCard).toHaveAttribute("data-platform-card", "instagram-feed");
+  expect(latestCard).toHaveAttribute("data-selected", "true");
+  expect(historicalVersionCard).toHaveAttribute("inert");
+  expect(latestVersionCard).not.toHaveAttribute("inert");
+  const report = screen.getByRole("complementary", { name: "AI 검수 리포트" });
+  expect(within(report).getByText("최신 버전 요약")).toBeInTheDocument();
+
+  const latestJudgment = await within(report).findByRole("group", { name: "허위·과장 표현 판정" });
+  fireEvent.click(within(latestJudgment).getByRole("button", { name: "위반 허용" }));
+  expect(within(report).getByText("위반 아님")).toBeInTheDocument();
+  const initialFinalInspection = screen.getByRole("group", { name: "최종 검수" });
+  await waitFor(() => expect(document.activeElement).toBe(initialFinalInspection));
+
+  fireEvent.click(historicalSelection);
+  await waitFor(() => expect(within(report).getByText("과거 버전 요약")).toBeInTheDocument());
+  expect(historicalCard).toHaveAttribute("data-selected", "true");
+  expect(historicalVersionCard).not.toHaveAttribute("inert");
+  expect(latestVersionCard).toHaveAttribute("inert");
+  expect(within(historicalCard as HTMLElement).getByLabelText("위반 1: 허위·과장 표현").tagName)
+    .toBe("SPAN");
+  expect(within(historicalCard as HTMLElement).queryByRole("button", {
+    name: "위반 1: 허위·과장 표현",
+  })).not.toBeInTheDocument();
+  expect(within(report).queryByRole("button", { name: "리포트 생성" })).not.toBeInTheDocument();
+  expect(within(report).queryByRole("group", { name: /판정/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole("group", { name: "최종 검수" })).not.toBeInTheDocument();
+  const latestSelection = within(latestCard as HTMLElement).getByRole("button", {
+    name: "v2 최신 콘텐츠 선택",
+  });
+  const historicalMenu = within(historicalCard as HTMLElement).getByRole("button", {
+    name: "게시물 메뉴",
+  });
+  historicalMenu.focus();
+  fireEvent.click(historicalMenu);
+  expect(historicalCard).toHaveAttribute("data-selected", "true");
+  expect(document.activeElement).toBe(historicalMenu);
+  expect(within(historicalCard as HTMLElement).getByRole("button", { name: "좋아요" }))
+    .toBeVisible();
+
+  fireEvent.click(latestSelection);
+  await waitFor(() => expect(within(report).getByText("최신 버전 요약")).toBeInTheDocument());
+  expect(latestCard).toHaveAttribute("data-selected", "true");
+  expect(await within(historicalCard as HTMLElement).findByRole("button", {
+    name: "v1 과거 콘텐츠 선택",
+  })).toBeInTheDocument();
+  expect(within(report).getByText("위반 아님")).toBeInTheDocument();
+  const finalInspection = screen.getByRole("group", { name: "최종 검수" });
+  await waitFor(() => expect(document.activeElement).toBe(finalInspection));
+  expect(within(latestCard as HTMLElement).queryByRole("button", {
+    name: "v2 최신 콘텐츠 선택",
+  })).not.toBeInTheDocument();
+  expect(within(latestCard as HTMLElement).getByText("v2 · 최신 콘텐츠").tagName)
+    .toBe("SPAN");
+
+  const historicalSelectionAgain = within(historicalCard as HTMLElement).getByRole("button", {
+    name: "v1 과거 콘텐츠 선택",
+  });
+  fireEvent.click(historicalSelectionAgain);
+  await waitFor(() => expect(within(report).getByText("과거 버전 요약")).toBeInTheDocument());
+  expect(within(historicalCard as HTMLElement).queryByRole("button", {
+    name: "v1 과거 콘텐츠 선택",
+  })).not.toBeInTheDocument();
+  expect(within(historicalCard as HTMLElement).getByText("v1 · 과거 콘텐츠").tagName)
+    .toBe("SPAN");
+  fireEvent.click(within(latestCard as HTMLElement).getByRole("button", {
+    name: "v2 최신 콘텐츠 선택",
+  }));
+  await waitFor(() => expect(within(report).getByText("최신 버전 요약")).toBeInTheDocument());
+  fireEvent.click(within(latestCard as HTMLElement).getByRole("button", { name: "게시물 메뉴" }));
+  expect(latestCard).toHaveAttribute("data-selected", "true");
 });
 
 test("loads violations and submits the final judgment in one request", async () => {
@@ -459,6 +647,105 @@ test("loads violations and submits the final judgment in one request", async () 
     decision: "REJECTED",
     violations: [{ status: "VIOLATION_CONFIRMED", violationItemId: 21 }],
   });
+});
+
+test("keeps the inspection viewport fixed when the media carousel moves", async () => {
+  const scrollIntoView = vi.fn();
+  const originalScrollIntoView = Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView = scrollIntoView;
+  const carouselMedia = [
+    {
+      contentMediaId: 90991,
+      mediaType: "IMAGE",
+      mediaUrl: "https://cdn.example.com/api-901-1.jpg",
+      sequenceNo: 0,
+      snsMediaId: "image-901-1",
+      text: null,
+    },
+    {
+      contentMediaId: 90992,
+      mediaType: "IMAGE",
+      mediaUrl: "https://cdn.example.com/api-901-2.jpg",
+      sequenceNo: 1,
+      snsMediaId: "image-901-2",
+      text: null,
+    },
+  ];
+  const selectedVersion = {
+    contentReport: {
+      contentReportId: 11,
+      flow: "이미지 순서대로 상품을 소개합니다.",
+      overallAssessment: "첫 이미지에 위반 후보가 있습니다.",
+      purpose: "상품 소개",
+      summary: "캐러셀 검수",
+    },
+    contentVersionId: 9010,
+    creationReason: "SOURCE_CHANGE",
+    createdAt: "2026-08-18T11:05:00",
+    inspectedAt: "2026-08-18T11:06:00",
+    inspectionStatus: "COMPLETED",
+    media: carouselMedia,
+    violations: [{
+      evidence: {
+        confidence: 0.9,
+        locations: [{
+          bbox: { height: 20, width: 20, x: 10, y: 10 },
+          contentMediaId: 90991,
+          endIndex: null,
+          endTime: null,
+          excerpt: null,
+          mediaType: "IMAGE",
+          startIndex: null,
+          startTime: null,
+        }],
+        reason: "첫 이미지 위반 후보",
+        source: "AI",
+      },
+      currentStatus: "PENDING",
+      detectedAt: "2026-08-18T11:06:00",
+      inspectionPolicyId: 9,
+      violationEvidenceHistoryId: 31,
+      violationItemId: 21,
+      violationType: "FALSE_EXAGGERATED_CLAIM",
+      violationTypeDescription: "허위·과장 표현",
+    }],
+    versionNo: 2,
+  };
+
+  try {
+    mockContentApis([contentItem()], detailResponse({ selectedVersion }));
+    renderRoute("/content/inspections/901");
+
+    const nextPhoto = await screen.findByRole("button", { name: "다음 사진" }, {
+      timeout: 3_000,
+    });
+    const carouselStage = document.querySelector(
+      ".fuma-platform-inspection-frame__carousel-track",
+    )?.closest<HTMLElement>(".fuma-platform-inspection-frame__asset-stage");
+    expect(carouselStage).toBeDefined();
+    expect(carouselStage?.style.aspectRatio).toBe("");
+    const report = screen.getByRole("region", { name: "AI 분석" });
+    fireEvent.click(within(report).getByRole("button", { name: /가이드 위반 후보 ①/ }));
+    await waitFor(() => expect(
+      document.querySelector('[data-violation-anchor="1"][data-focused="true"]'),
+    ).not.toBeNull());
+    await waitFor(() => expect(document.activeElement).toHaveAttribute(
+      "data-violation-anchor",
+      "1",
+    ));
+    scrollIntoView.mockClear();
+
+    fireEvent.click(nextPhoto);
+
+    await waitFor(() => expect(screen.getByText("2 / 2")).toBeInTheDocument());
+    await act(async () => new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+    }));
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  } finally {
+    Element.prototype.scrollIntoView = originalScrollIntoView;
+  }
 });
 
 test("shows an accessible fallback when a fetched detail has no profile image", async () => {
