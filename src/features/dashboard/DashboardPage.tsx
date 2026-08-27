@@ -439,7 +439,7 @@ export function DashboardPage() {
         <DashboardCard
           className="fuma-dashboard-card--inspection"
           eyebrow="AI ANALYSIS"
-          title="콘텐츠 검수"
+          title="위반 콘텐츠 검수"
         >
           <div className="fuma-dashboard-inspection__focus">
             <span>검수할 콘텐츠 수</span>
