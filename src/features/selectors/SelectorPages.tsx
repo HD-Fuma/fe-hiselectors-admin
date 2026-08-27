@@ -712,6 +712,23 @@ export function SelectorOverviewPage() {
             </FilterField>
           </SearchPanel>
         </div>
+        <ResultToolbar
+          actions={(
+            <ViewModeToggle
+              gridLabel="버블"
+              listLabel="목록"
+              onChange={(mode) => {
+                const nextView = mode === "grid" ? "pool" : "table";
+                setViewMode(nextView);
+                if (nextView === "pool") setSelectedStatus(null);
+                setPage(1);
+              }}
+              value={activeView === "pool" ? "grid" : "list"}
+            />
+          )}
+          className="fuma-simple-result-toolbar"
+          title={selectedStatus ? selectorListTitle : null}
+        />
         {activeView === "table" ? (
           <ChoiceTabs
             ariaLabel="활동 상태"
@@ -731,21 +748,6 @@ export function SelectorOverviewPage() {
             value={selectedStatus}
           />
         ) : null}
-        <ResultToolbar
-          actions={selectedStatus ? null : (
-            <ViewModeToggle
-              gridLabel="버블"
-              listLabel="목록"
-              onChange={(mode) => {
-                setViewMode(mode === "grid" ? "pool" : "table");
-                setPage(1);
-              }}
-              value={viewMode === "pool" ? "grid" : "list"}
-            />
-          )}
-          className="fuma-simple-result-toolbar"
-          title={selectedStatus ? selectorListTitle : null}
-        />
         {listError ? (
           <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
         ) : activeView === "pool" ? (
