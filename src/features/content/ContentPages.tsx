@@ -3181,6 +3181,10 @@ export function ContentInspectionDetailPage() {
             role="status"
             visible
           >
+            <span className="fuma-content-inspection-studio__session-help-title">
+              <small>QUICK GUIDE</small>
+              <strong>검수 단축키</strong>
+            </span>
             <span><kbd>휠</kbd> 이전 · 다음 콘텐츠</span>
             <span><kbd>1</kbd> 반려 · 위반</span>
             <span><kbd>2</kbd> 승인 · 위반 허용</span>

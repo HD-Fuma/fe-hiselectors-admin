@@ -66,13 +66,13 @@ describe("shared component visual contracts", () => {
 
     expect(sessionHelpRule).toMatch(/overflow:\s*hidden;/);
     expect(sessionHelpRule).toMatch(/border:\s*1px solid rgb\(255 255 255 \/ 78%\);/);
-    expect(sessionHelpRule).toMatch(/border-radius:\s*22px;/);
+    expect(sessionHelpRule).toMatch(/border-radius:\s*24px;/);
     expect(sessionHelpRule).toMatch(/background:\s*rgb\(255 255 255 \/ 58%\);/);
     expect(sessionHelpRule).toMatch(/backdrop-filter:\s*blur\(24px\) saturate\(1\.15\);/);
     expect(sessionHelpRule).toMatch(/top:\s*50%;/);
     expect(sessionHelpRule).toMatch(/bottom:\s*auto;/);
     expect(sessionHelpRule).toMatch(/translate:\s*-50% -50%;/);
-    expect(sessionHelpRule).toMatch(/grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);/);
+    expect(sessionHelpRule).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\);/);
   });
 
   test("separates red violation bubbles from highlighted body copy", () => {
