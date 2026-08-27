@@ -43,6 +43,11 @@ interface DailyRevenuePoint {
   settlementAmount: number;
 }
 
+const REVENUE_COLORS = {
+  sales: "#1e9d8b",
+  settlement: "#de76ce",
+} as const;
+
 const EMPTY_DASHBOARD: DashboardData = {
   activeCampaigns: null,
   applicationBreakdown: { instagram: null, youtube: null },
@@ -264,9 +269,9 @@ function RevenueTrend({ dailyTrend }: { dailyTrend: readonly DailyRevenuePoint[]
         type: "line",
         name: "매출",
         data: dailyTrend.map(({ salesAmount }) => salesAmount),
-        lineStyle: { color: "#111111", width: 3 },
+        lineStyle: { color: REVENUE_COLORS.sales, width: 3 },
         itemStyle: {
-          borderColor: "#111111",
+          borderColor: REVENUE_COLORS.sales,
           borderWidth: 2,
           color: "#ffffff",
         },
@@ -278,8 +283,8 @@ function RevenueTrend({ dailyTrend }: { dailyTrend: readonly DailyRevenuePoint[]
         type: "line",
         name: "정산액",
         data: dailyTrend.map(({ settlementAmount }) => settlementAmount),
-        itemStyle: { color: "#5f6368" },
-        lineStyle: { color: "#5f6368", type: "dashed", width: 2 },
+        itemStyle: { color: REVENUE_COLORS.settlement },
+        lineStyle: { color: REVENUE_COLORS.settlement, type: "dashed", width: 2 },
         showSymbol: false,
         smooth: 0.35,
         yAxisIndex: 1,

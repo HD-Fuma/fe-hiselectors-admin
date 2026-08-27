@@ -337,12 +337,12 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
 .fuma-dashboard-trend__latest i {
   grid-row: 1 / span 2;
   width: 18px;
-  border-top: 3px solid #111111;
+  border-top: 3px solid var(--hsas-teal);
   border-radius: 999px;
 }
 
 .fuma-dashboard-trend__latest .is-settlement i {
-  border-top-color: #5f6368;
+  border-top-color: var(--hsas-color-accent-pink);
   border-top-style: dashed;
   border-top-width: 2px;
 }
