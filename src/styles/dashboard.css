@@ -239,35 +239,6 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   font-size: var(--hsas-font-9);
 }
 
-.fuma-dashboard__platform-breakdown {
-  display: grid;
-  margin: 0 0 var(--hsas-space-14);
-  padding-top: var(--hsas-space-10);
-  border-top: 1px solid rgb(255 255 255 / 58%);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--hsas-space-12);
-}
-
-.fuma-dashboard__platform-breakdown > div {
-  min-width: 0;
-}
-
-.fuma-dashboard__platform-breakdown > div > strong {
-  display: block;
-  margin-bottom: var(--hsas-space-4);
-  overflow: hidden;
-  font-size: var(--hsas-font-10);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fuma-dashboard__platform-breakdown .fuma-dashboard__breakdown {
-  grid-template-columns: minmax(0, 1fr);
-  margin: 0;
-  padding: 0;
-  border-top: 0;
-}
-
 .fuma-dashboard-inspection__focus {
   display: flex;
   flex: 1;

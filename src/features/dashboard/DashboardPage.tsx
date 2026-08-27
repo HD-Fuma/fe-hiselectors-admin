@@ -22,8 +22,8 @@ interface DashboardData {
     youtube: number | null;
   };
   contentBreakdown: {
-    instagram: { editedCount: number; newCount: number; violationCount: number };
-    youtube: { editedCount: number; newCount: number; violationCount: number };
+    instagram: number;
+    youtube: number;
   } | null;
   currentGenerationContentCount: number | null;
   inspectionContents: ContentInspectionFixture[] | null;
@@ -187,35 +187,6 @@ function DashboardBreakdown({
         </div>
       ))}
     </dl>
-  );
-}
-
-function DashboardPlatformBreakdown({
-  items,
-}: {
-  items: readonly {
-    editedCount: number | null;
-    label: string;
-    newCount: number | null;
-    violationCount: number | null;
-  }[];
-}) {
-  return (
-    <div className="fuma-dashboard__platform-breakdown">
-      {items.map(({ editedCount, label, newCount, violationCount }) => (
-        <div key={label}>
-          <strong>{label}</strong>
-          <DashboardBreakdown
-            items={[
-              { label: "신규", value: newCount },
-              { label: "수정", value: editedCount },
-              { label: "위반", value: violationCount },
-            ]}
-            unit="건"
-          />
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -399,16 +370,13 @@ export function DashboardPage() {
       const pendingInspectionRows = inspectionRows?.filter(({ inspection }) => (
         inspection.inspectionStatus === "검수 대기"
       )) ?? null;
-      const contentBreakdown = inspectionRows?.reduce((breakdown, { content, inspection }) => {
+      const contentBreakdown = pendingInspectionRows?.reduce((breakdown, { content }) => {
         const platform = content.snsCode === "YOUTUBE" ? "youtube" : "instagram";
-        const platformCounts = breakdown[platform];
-        if (inspection.inspectionType === "NEW") platformCounts.newCount += 1;
-        else platformCounts.editedCount += 1;
-        if (inspection.inspectionStatus === "위반") platformCounts.violationCount += 1;
+        breakdown[platform] += 1;
         return breakdown;
       }, {
-        instagram: { editedCount: 0, newCount: 0, violationCount: 0 },
-        youtube: { editedCount: 0, newCount: 0, violationCount: 0 },
+        instagram: 0,
+        youtube: 0,
       }) ?? null;
       const todayContentBreakdown = contents.status === "fulfilled"
         ? contents.value.reduce((breakdown, content) => {
@@ -472,21 +440,12 @@ export function DashboardPage() {
             <span>검수할 콘텐츠 수</span>
             <strong>{count(data.pendingContents)}<small>건</small></strong>
           </div>
-          <DashboardPlatformBreakdown
+          <DashboardBreakdown
             items={[
-              {
-                editedCount: data.contentBreakdown?.instagram.editedCount ?? null,
-                label: "Instagram",
-                newCount: data.contentBreakdown?.instagram.newCount ?? null,
-                violationCount: data.contentBreakdown?.instagram.violationCount ?? null,
-              },
-              {
-                editedCount: data.contentBreakdown?.youtube.editedCount ?? null,
-                label: "YouTube",
-                newCount: data.contentBreakdown?.youtube.newCount ?? null,
-                violationCount: data.contentBreakdown?.youtube.violationCount ?? null,
-              },
+              { label: "Instagram", value: data.contentBreakdown?.instagram ?? null },
+              { label: "YouTube", value: data.contentBreakdown?.youtube ?? null },
             ]}
+            unit="건"
           />
           <Link
             className="fuma-dashboard__primary-action"
