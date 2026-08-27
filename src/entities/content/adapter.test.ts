@@ -385,6 +385,7 @@ test("maps approved and rejected decisions to separate inspection statuses", () 
     storedAt: "2026-08-18T10:00:00",
     texts: ["반려된 콘텐츠"],
   })).toMatchObject({
+    aiStatus: "ready",
     inspectionStatus: "위반",
     processingState: "처리 완료",
   });

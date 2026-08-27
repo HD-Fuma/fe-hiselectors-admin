@@ -158,15 +158,25 @@ html[data-theme='dark'] .fuma-selector-performance-report__metrics > div:nth-chi
   color: var(--fuma-selector-accent);
 }
 
-html[data-theme='dark'] .fuma-content-performance-detail :is(h3, dd) {
+html[data-theme='dark'] .fuma-content-performance-detail :is(h3, h4, dd) {
   color: var(--hsas-text);
 }
 
-html[data-theme='dark'] .fuma-content-performance-detail :is(dt, p, small) {
+html[data-theme='dark'] .fuma-content-performance-detail :is(
+  dt,
+  p,
+  small,
+  .fuma-content-performance-detail__text > span
+) {
   color: var(--hsas-text-muted);
 }
 
-html[data-theme='dark'] .fuma-content-performance-detail :is(dl, dl > div, .fuma-content-performance-detail__trend) {
+html[data-theme='dark'] .fuma-content-performance-detail :is(
+  dl,
+  dl > div,
+  .fuma-content-performance-detail__source,
+  .fuma-content-performance-detail__trend
+) {
   border-color: var(--hsas-border);
 }
 
@@ -936,11 +946,17 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(dl, dl > div, .fuma
 .fuma-content-performance-card .fuma-content-collection__media { border-radius: 3px; }
 
 .fuma-content-performance-detail h3 { margin: 0 0 var(--hsas-space-12); color: #25362f; font-size: var(--hsas-font-15); }
-.fuma-content-performance-detail__overview { display: grid; grid-template-columns: minmax(180px, 240px) minmax(0, 1fr); gap: var(--hsas-space-18); }
-.fuma-content-performance-detail__overview > img { width: 100%; aspect-ratio: 4 / 5; border-radius: 8px; object-fit: cover; background: var(--hsas-color-line-100); }
+.fuma-content-performance-detail__source-header h3 { margin: 0; }
+.fuma-content-performance-detail__overview { display: grid; grid-template-columns: minmax(180px, 240px) minmax(0, 1fr); align-items: start; gap: var(--hsas-space-18); }
+.fuma-content-performance-detail__media { display: grid; width: 100%; aspect-ratio: 4 / 5; place-items: center; overflow: hidden; border-radius: 8px; color: #d3dbd7; background: #111714; }
+.fuma-content-performance-detail__media > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.fuma-content-performance-detail__media > span { display: grid; place-items: center; gap: var(--hsas-space-6); color: #a9b4af; font-size: var(--hsas-font-11); }
+.fuma-content-performance-detail__copy { min-width: 0; }
 .fuma-content-performance-detail__badges { display: flex; flex-wrap: wrap; gap: var(--hsas-space-6); margin-bottom: var(--hsas-space-10); }
-.fuma-content-performance-detail__overview h3 { font-size: var(--hsas-font-18); }
-.fuma-content-performance-detail__overview p { margin: 0 0 var(--hsas-space-16); color: #68756f; font-size: var(--hsas-font-12); line-height: 1.6; }
+.fuma-content-performance-detail__text { display: grid; gap: var(--hsas-space-5); margin-bottom: var(--hsas-space-14); }
+.fuma-content-performance-detail__text > span { color: #7e8984; font-size: var(--hsas-font-10); }
+.fuma-content-performance-detail__text h4 { margin: 0; color: #25362f; font-size: var(--hsas-font-18); line-height: 1.4; }
+.fuma-content-performance-detail__text p { margin: 0; color: #68756f; font-size: var(--hsas-font-12); line-height: 1.65; white-space: pre-wrap; }
 .fuma-content-performance-detail__overview dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; border: 1px solid #e1e7e4; border-radius: 6px; }
 .fuma-content-performance-detail__overview dl > div { padding: var(--hsas-space-10); border-top: 1px solid #e1e7e4; }
 .fuma-content-performance-detail__overview dl > div:nth-child(-n + 2) { border-top: 0; }
@@ -1553,7 +1569,7 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(dl, dl > div, .fuma
   .fuma-selector-performance-report__contribution { grid-column: 1 / -1; }
 
   .fuma-content-performance-detail__overview { grid-template-columns: minmax(0, 1fr); }
-  .fuma-content-performance-detail__overview > img { max-height: 320px; aspect-ratio: 16 / 9; }
+  .fuma-content-performance-detail__media { max-height: 320px; aspect-ratio: 16 / 9; }
   .fuma-content-performance-detail__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .fuma-content-performance-detail__metrics > div:nth-child(odd) { border-left: 0; }
   .fuma-content-performance-detail__metrics > div:nth-child(n + 3) { border-top: 1px solid #e1e7e4; }

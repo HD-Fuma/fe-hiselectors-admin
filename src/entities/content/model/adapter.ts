@@ -52,6 +52,22 @@ const CLOSED_VIOLATION_STATUSES = new Set<ContentViolationItemStatus>([
   "RESOLVED",
 ]);
 
+const COMPLETED_ANALYSIS_STATUSES = new Set([
+  "APPROVED",
+  "COMPLETED",
+  "REJECTED",
+  "REVISION_REQUESTED",
+  "VIOLATION_CONFIRMED",
+  "수정 요청",
+  "승인",
+  "위반",
+  "위반 확정",
+]);
+
+function analysisStatus(status: string | null): "ready" | "pending" {
+  return status && COMPLETED_ANALYSIS_STATUSES.has(status) ? "ready" : "pending";
+}
+
 function inspectionStatus(status: string | null) {
   return status ? INSPECTION_STATUSES[status] ?? "검수 대기" : "검수 대기";
 }
@@ -256,6 +272,7 @@ export function adaptContentInspection(content: CollectedContent): ContentInspec
   const texts = trimmedTexts(content.texts);
   const media = [...(content.media ?? [])].sort((left, right) => left.sequenceNo - right.sequenceNo);
   const status = inspectionStatus(content.inspectionStatus);
+  const aiStatus = analysisStatus(content.inspectionStatus);
   const contentFormat = CONTENT_FORMATS[content.contentType];
   const youtubeVideoId = content.snsCode === "YOUTUBE"
     ? media.find(({ mediaType }) => mediaType === "VIDEO")?.snsMediaId ?? content.snsContentId
@@ -263,8 +280,8 @@ export function adaptContentInspection(content: CollectedContent): ContentInspec
 
   return {
     accountId: content.accountId,
-    aiStatus: "pending",
-    aiSummary: "분석 대기",
+    aiStatus,
+    aiSummary: aiStatus === "ready" ? "분석 완료" : "분석 대기",
     author: content.selectorsNickname?.trim() || content.accountId,
     availableActions: [],
     changeItems: [],

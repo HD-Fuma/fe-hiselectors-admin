@@ -241,6 +241,24 @@ test("locks the violation-only toggle on decided categories", async () => {
   expect(toggle).not.toBeChecked();
 });
 
+test("shows the analysis state from inspection status without the SNS account id", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(contentsResponse([
+    contentItem(1, "분석 전 콘텐츠"),
+    {
+      ...contentItem(2, "분석 완료 콘텐츠"),
+      inspectedAt: "2026-08-18T11:00:00",
+      inspectionStatus: "COMPLETED",
+    },
+  ])));
+
+  renderRoute("/content/inspections");
+
+  expect(await screen.findByText("분석 완료")).toBeInTheDocument();
+  expect(screen.getByText("분석 대기")).toBeInTheDocument();
+  expect(screen.queryByText("(account-1)")).not.toBeInTheDocument();
+  expect(screen.queryByText("(account-2)")).not.toBeInTheDocument();
+});
+
 test("uses an isolated action layout and a readable success text token", () => {
   expect(adminStyles).not.toContain(".fuma-content-collection-run-actions");
   expect(contentInspectionStyles).toMatch(/\.fuma-content-collection-run-actions\s*\{/);
