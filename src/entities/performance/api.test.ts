@@ -85,6 +85,19 @@ test("adapts API metrics, media, author and trend for the dashboard", () => {
   ]);
 });
 
+test("uses the YouTube media id when the API has no thumbnail URL", () => {
+  const content = adaptContentPerformance({
+    ...API_ITEM,
+    contentType: "LONG_FORM",
+    media: [{ mediaType: "VIDEO", mediaUrl: null, sequenceNo: 0, snsMediaId: "youtube-video-10" }],
+    snsCode: "YOUTUBE",
+    snsContentId: "youtube-content-10",
+  });
+
+  expect(content.thumbnailUrl)
+    .toBe("https://i.ytimg.com/vi/youtube-video-10/hqdefault.jpg");
+});
+
 test("loads upload and content format summary", async () => {
   const summary = {
     currentGenerationContentCount: 8,

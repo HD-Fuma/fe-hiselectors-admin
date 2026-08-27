@@ -306,7 +306,6 @@ function CollectionCard({
     ?? (snapshot.youtubeVideoId
       ? `https://i.ytimg.com/vi/${encodeURIComponent(snapshot.youtubeVideoId)}/hqdefault.jpg`
       : undefined);
-  const issueCount = content.report.signals.filter((signal) => signal.tone !== "pass").length;
   const hasVideo = snapshot.mediaKinds[0] === "동영상";
 
   return (
@@ -324,11 +323,9 @@ function CollectionCard({
         footerEnd={(
           <span
             className="fuma-content-collection__violation-count"
-            data-has-violation={issueCount > 0}
+            data-has-violation="false"
           >
-            {content.aiStatus === "pending"
-              ? "분석 대기"
-              : issueCount ? `위반 항목 ${issueCount}개` : "위반 항목 없음"}
+            {content.aiStatus === "ready" ? "분석 완료" : "분석 대기"}
           </span>
         )}
         footerStart={content.submittedAt.slice(0, 10)}
@@ -338,7 +335,6 @@ function CollectionCard({
         platform={contentPlatform(content.sourcePlatform)}
         profileImageUrl={content.profileImageUrl ?? ""}
         showPlay={hasVideo}
-        snsId={content.accountId}
         status={(
           <StatusPill
             className="fuma-content-collection__inspection-status"
