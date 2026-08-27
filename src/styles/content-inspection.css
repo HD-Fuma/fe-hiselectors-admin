@@ -220,13 +220,6 @@ button.fuma-content-inspection-studio__violation-bubble {
   line-height: 1.35;
 }
 
-.fuma-content-inspection-studio__violation-bubble > span {
-  color: rgb(32 34 36 / 74%);
-  font-size: var(--hsas-font-11);
-  font-weight: 650;
-  line-height: 1.45;
-}
-
 .fuma-content-inspection-studio__violation-bubble[data-focused="true"] {
   border-color: rgb(180 35 24 / 42%);
   background: linear-gradient(135deg, rgb(255 255 255 / 84%), rgb(255 235 232 / 66%));

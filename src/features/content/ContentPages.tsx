@@ -1015,7 +1015,6 @@ function StudioViolationBubbleCloud({
           <>
             <small>위반 {annotation.ordinal}</small>
             <strong>{annotation.title}</strong>
-            <span>{annotation.reason}</span>
           </>
         );
         const properties = {
