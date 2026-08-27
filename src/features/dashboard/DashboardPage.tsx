@@ -10,10 +10,7 @@ import {
   type ContentInspectionFixture,
 } from "../../entities/content";
 import { getContentPerformanceSummary } from "../../entities/performance";
-import {
-  getSettlementEstimateSummary,
-  type SettlementMonthlySummary,
-} from "../../entities/settlement";
+import { getSelectorPerformanceSummary } from "../../entities/selectors";
 import { getAdministratorSession } from "../../lib/adminAuthentication";
 import { formatCompactCount, formatNumber, formatWon } from "../../lib/formatters";
 import "../../styles/dashboard.css";
@@ -24,81 +21,78 @@ interface DashboardData {
     instagram: number | null;
     youtube: number | null;
   };
-  averageInspectionHours: number | null;
-  completedContents: number | null;
   contentBreakdown: {
     instagram: { editedCount: number; newCount: number; violationCount: number };
     youtube: { editedCount: number; newCount: number; violationCount: number };
   } | null;
   currentGenerationContentCount: number | null;
-  currentGenerationInspectionCount: number | null;
   inspectionContents: ContentInspectionFixture[] | null;
-  inspectionDurationSampleCount: number | null;
   pendingApplications: number | null;
   pendingContents: number | null;
-  previousGenerationContentCount: number | null;
-  processedApplications: number | null;
-  settlementTrend: SettlementMonthlySummary[] | null;
-  totalApplications: number | null;
+  revenueTrend: DailyRevenuePoint[] | null;
+  todayContentBreakdown: {
+    editedCount: number;
+    newCount: number;
+  } | null;
+  todaySales: number | null;
+}
+
+interface DailyRevenuePoint {
+  date: string;
+  salesAmount: number;
+  settlementAmount: number;
 }
 
 const EMPTY_DASHBOARD: DashboardData = {
   activeCampaigns: null,
   applicationBreakdown: { instagram: null, youtube: null },
-  averageInspectionHours: null,
-  completedContents: null,
   contentBreakdown: null,
   currentGenerationContentCount: null,
-  currentGenerationInspectionCount: null,
   inspectionContents: null,
-  inspectionDurationSampleCount: null,
   pendingApplications: null,
   pendingContents: null,
-  previousGenerationContentCount: null,
-  processedApplications: null,
-  settlementTrend: null,
-  totalApplications: null,
+  revenueTrend: null,
+  todayContentBreakdown: null,
+  todaySales: null,
 };
 
 function count(value: number | null) {
   return value == null ? "—" : formatNumber(value);
 }
 
-function rate(numerator: number | null, denominator: number | null) {
-  return numerator == null || denominator == null || denominator === 0
-    ? null
-    : (numerator / denominator) * 100;
+function localDateKey(date = new Date()) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 
-function decimal(value: number | null) {
-  return value == null
-    ? "—"
-    : value.toLocaleString("ko-KR", { maximumFractionDigits: 1 });
+function recentDateKeys(date = new Date()) {
+  return Array.from({ length: 7 }, (_, index) => (
+    localDateKey(new Date(date.getFullYear(), date.getMonth(), date.getDate() - 6 + index))
+  ));
 }
 
-function growth(value: number | null) {
-  if (value == null) return "—";
-  return `${value > 0 ? "+" : ""}${decimal(value)}`;
+function isLocalDate(value: string, dateKey: string) {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) && localDateKey(date) === dateKey;
 }
 
-function currentActivityMonth(date = new Date()) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+function dayLabel(dateKey: string) {
+  const [, month, day] = dateKey.split("-");
+  return `${Number(month)}.${Number(day)}`;
 }
 
-function monthLabel(activityMonth: string) {
-  const [, month] = activityMonth.split("-");
-  return `${Number(month)}월`;
-}
-
-interface SettlementTrendTooltipPoint {
+interface RevenueTrendTooltipPoint {
   axisValueLabel?: unknown;
   seriesName?: unknown;
   value?: unknown;
 }
 
-function settlementTrendTooltip(params: unknown) {
+function revenueTrendTooltip(params: unknown) {
   const points = (Array.isArray(params) ? params : [params]).filter(
-    (point): point is SettlementTrendTooltipPoint => typeof point === "object" && point !== null,
+    (point): point is RevenueTrendTooltipPoint => typeof point === "object" && point !== null,
   );
   const title = typeof points[0]?.axisValueLabel === "string"
     ? points[0].axisValueLabel
@@ -225,18 +219,20 @@ function DashboardPlatformBreakdown({
   );
 }
 
-function SettlementTrend({ monthlyTrend }: { monthlyTrend: readonly SettlementMonthlySummary[] | null }) {
-  if (monthlyTrend == null) {
+function RevenueTrend({ dailyTrend }: { dailyTrend: readonly DailyRevenuePoint[] | null }) {
+  if (dailyTrend == null) {
     return <p className="fuma-dashboard-trend__empty">매출·정산 추이를 불러오는 중입니다.</p>;
   }
 
-  if (monthlyTrend.length === 0) {
-    return <p className="fuma-dashboard-trend__empty">표시할 월별 매출·정산 데이터가 없습니다.</p>;
+  if (dailyTrend.length === 0) {
+    return <p className="fuma-dashboard-trend__empty">표시할 일별 매출·정산 데이터가 없습니다.</p>;
   }
 
-  const latest = monthlyTrend[monthlyTrend.length - 1];
+  const latest = dailyTrend[dailyTrend.length - 1];
   const option: EChartsOption = {
-    animation: false,
+    animation: true,
+    animationDuration: 700,
+    animationEasing: "cubicOut",
     grid: {
       bottom: 32,
       left: 56,
@@ -250,12 +246,12 @@ function SettlementTrend({ monthlyTrend }: { monthlyTrend: readonly SettlementMo
         type: "line",
       },
       confine: true,
-      formatter: settlementTrendTooltip,
+      formatter: revenueTrendTooltip,
       trigger: "axis",
     },
     xAxis: {
       type: "category",
-      data: monthlyTrend.map(({ activityMonth }) => monthLabel(activityMonth)),
+      data: dailyTrend.map(({ date }) => dayLabel(date)),
       axisLabel: {
         color: "rgb(32 34 36 / 48%)",
         fontSize: 10,
@@ -295,8 +291,8 @@ function SettlementTrend({ monthlyTrend }: { monthlyTrend: readonly SettlementMo
     series: [
       {
         type: "line",
-        name: "확정 매출",
-        data: monthlyTrend.map(({ confirmedSalesAmount }) => confirmedSalesAmount),
+        name: "매출",
+        data: dailyTrend.map(({ salesAmount }) => salesAmount),
         lineStyle: { color: "#111111", width: 3 },
         itemStyle: {
           borderColor: "#111111",
@@ -309,8 +305,8 @@ function SettlementTrend({ monthlyTrend }: { monthlyTrend: readonly SettlementMo
       },
       {
         type: "line",
-        name: "예상 정산액",
-        data: monthlyTrend.map(({ settlementAmount }) => settlementAmount),
+        name: "정산액",
+        data: dailyTrend.map(({ settlementAmount }) => settlementAmount),
         itemStyle: { color: "#5f6368" },
         lineStyle: { color: "#5f6368", type: "dashed", width: 2 },
         showSymbol: false,
@@ -319,26 +315,26 @@ function SettlementTrend({ monthlyTrend }: { monthlyTrend: readonly SettlementMo
       },
     ],
   };
-  const accessibleSummary = monthlyTrend.map((month) => (
-    `${month.activityMonth} 확정 매출 ${formatWon(month.confirmedSalesAmount)}, 예상 정산액 ${formatWon(month.settlementAmount)}`
+  const accessibleSummary = dailyTrend.map((day) => (
+    `${day.date} 매출 ${formatWon(day.salesAmount)}, 정산액 ${formatWon(day.settlementAmount)}`
   )).join(". ");
 
   return (
     <div className="fuma-dashboard-trend">
-      <ul aria-label="최근 월 매출 및 정산액" className="fuma-dashboard-trend__latest">
+      <ul aria-label="오늘 매출 및 정산액" className="fuma-dashboard-trend__latest">
         <li className="is-sales">
           <i />
-          <span>최근 확정 매출</span>
-          <strong>{formatWon(latest.confirmedSalesAmount)}</strong>
+          <span>오늘 매출</span>
+          <strong>{formatWon(latest.salesAmount)}</strong>
         </li>
         <li className="is-settlement">
           <i />
-          <span>최근 예상 정산액</span>
+          <span>오늘 정산액</span>
           <strong>{formatWon(latest.settlementAmount)}</strong>
         </li>
       </ul>
       <div
-        aria-label={`최근 ${monthlyTrend.length}개월 확정 매출 및 예상 정산액 추이. ${accessibleSummary}`}
+        aria-label={`최근 ${dailyTrend.length}일 매출 및 정산액 추이. ${accessibleSummary}`}
         className="fuma-dashboard-trend__plot"
         role="img"
       >
@@ -354,12 +350,22 @@ export function DashboardPage() {
 
   useEffect(() => {
     const controller = new AbortController();
+    const today = localDateKey();
+    const revenueDates = recentDateKeys();
+    const revenueTrend = Promise.all(revenueDates.map(async (date) => {
+      const summary = await getSelectorPerformanceSummary({
+        endDate: date,
+        startDate: date,
+      }, controller.signal);
+      return {
+        date,
+        salesAmount: summary.kpis.totalSales,
+        settlementAmount: summary.kpis.accruedCommissionAmount,
+      };
+    }));
 
     void Promise.allSettled([
       getCurrentGenerationContents(controller.signal),
-      getAdminApplications({ page: 0, size: 1 }, controller.signal),
-      getAdminApplications({ page: 0, size: 1, status: "APPROVED" }, controller.signal),
-      getAdminApplications({ page: 0, size: 1, status: "REJECTED" }, controller.signal),
       getAdminApplications({
         minimumCriteriaOnly: false,
         page: 0,
@@ -376,26 +382,20 @@ export function DashboardPage() {
       }, controller.signal),
       getCampaigns({ page: 0, size: 1, status: "ACTIVE" }, controller.signal),
       getContentPerformanceSummary(controller.signal),
-      getSettlementEstimateSummary({ activityMonth: currentActivityMonth() }, controller.signal),
+      revenueTrend,
     ]).then(([
       contents,
-      applications,
-      approvedApplications,
-      rejectedApplications,
       instagramApplications,
       youtubeApplications,
       activeCampaigns,
       summary,
-      settlementSummary,
+      dailyRevenue,
     ]) => {
       if (controller.signal.aborted) return;
 
       const inspectionRows = contents.status === "fulfilled"
         ? contents.value.map((content) => ({ content, inspection: adaptContentInspection(content) }))
         : null;
-      const completedContents = inspectionRows?.filter(({ inspection }) => (
-        inspection.inspectionStatus === "승인" || inspection.inspectionStatus === "위반"
-      )).length ?? null;
       const pendingInspectionRows = inspectionRows?.filter(({ inspection }) => (
         inspection.inspectionStatus === "검수 대기"
       )) ?? null;
@@ -410,17 +410,13 @@ export function DashboardPage() {
         instagram: { editedCount: 0, newCount: 0, violationCount: 0 },
         youtube: { editedCount: 0, newCount: 0, violationCount: 0 },
       }) ?? null;
-      const inspectionDurations = inspectionRows?.flatMap(({ content }) => {
-        if (!content.inspectedAt) return [];
-        const duration = Date.parse(content.inspectedAt) - Date.parse(content.storedAt);
-        return Number.isFinite(duration) && duration >= 0 ? [duration] : [];
-      }) ?? null;
-      const totalApplications = applications.status === "fulfilled"
-        ? applications.value.totalElements
-        : null;
-      const processedApplications = approvedApplications.status === "fulfilled"
-        && rejectedApplications.status === "fulfilled"
-        ? approvedApplications.value.totalElements + rejectedApplications.value.totalElements
+      const todayContentBreakdown = contents.status === "fulfilled"
+        ? contents.value.reduce((breakdown, content) => {
+          if (!isLocalDate(content.latestVersionStoredAt, today)) return breakdown;
+          if (content.latestVersionNo === 1) breakdown.newCount += 1;
+          else breakdown.editedCount += 1;
+          return breakdown;
+        }, { editedCount: 0, newCount: 0 })
         : null;
       const pendingApplicationsByPlatform = instagramApplications.status === "fulfilled"
         && youtubeApplications.status === "fulfilled"
@@ -439,53 +435,24 @@ export function DashboardPage() {
             ? youtubeApplications.value.totalElements
             : null,
         },
-        averageInspectionHours: inspectionDurations?.length
-          ? inspectionDurations.reduce((sum, duration) => sum + duration, 0)
-            / inspectionDurations.length / 3_600_000
-          : null,
-        completedContents,
         contentBreakdown,
         currentGenerationContentCount: summary.status === "fulfilled"
           ? summary.value.currentGenerationContentCount
           : null,
-        currentGenerationInspectionCount: inspectionRows?.length ?? null,
         inspectionContents: inspectionRows?.map(({ inspection }) => inspection) ?? null,
-        inspectionDurationSampleCount: inspectionDurations?.length ?? null,
-        pendingApplications: pendingApplicationsByPlatform ?? (
-          totalApplications != null && processedApplications != null
-            ? Math.max(0, totalApplications - processedApplications)
-            : null
-        ),
+        pendingApplications: pendingApplicationsByPlatform,
         pendingContents: pendingInspectionRows?.length ?? null,
-        previousGenerationContentCount: summary.status === "fulfilled"
-          ? summary.value.previousGenerationContentCount
+        revenueTrend: dailyRevenue.status === "fulfilled" ? dailyRevenue.value : null,
+        todayContentBreakdown,
+        todaySales: dailyRevenue.status === "fulfilled"
+          ? dailyRevenue.value[dailyRevenue.value.length - 1]?.salesAmount ?? null
           : null,
-        processedApplications,
-        settlementTrend: settlementSummary.status === "fulfilled"
-          ? [...settlementSummary.value.monthlyTrend]
-            .sort((left, right) => left.activityMonth.localeCompare(right.activityMonth))
-            .slice(-6)
-          : null,
-        totalApplications,
       });
     });
 
     return () => controller.abort();
   }, []);
 
-  const contentInspectionCompletionRate = rate(
-    data.completedContents,
-    data.currentGenerationInspectionCount,
-  );
-  const applicationProcessingRate = rate(data.processedApplications, data.totalApplications);
-  const contentGrowthRate = data.currentGenerationContentCount == null
-    || data.previousGenerationContentCount == null
-    || data.previousGenerationContentCount === 0
-    ? null
-    : ((data.currentGenerationContentCount - data.previousGenerationContentCount)
-      / data.previousGenerationContentCount) * 100;
-  const showAbsoluteContentGrowth = data.previousGenerationContentCount === 0
-    && data.currentGenerationContentCount != null;
   const inspectionStartContent = data.inspectionContents
     ?.filter((content) => content.inspectionStatus === "검수 대기")
     .slice()
@@ -598,60 +565,31 @@ export function DashboardPage() {
           eyebrow="REVENUE"
           title="매출·정산 추이"
         >
-          <SettlementTrend monthlyTrend={data.settlementTrend} />
+          <RevenueTrend dailyTrend={data.revenueTrend} />
         </DashboardCard>
 
         <DashboardCard
-          className="fuma-dashboard-card--kpi"
-          eyebrow="QUALITY"
-          title="검수 완료율"
+          className="fuma-dashboard-card--daily"
+          eyebrow="TODAY"
+          title="오늘 들어온 콘텐츠"
         >
-          <DashboardMetric
-            detail={`${count(data.completedContents)} / ${count(data.currentGenerationInspectionCount)}건`}
-            label="완료 콘텐츠 ÷ 전체 콘텐츠"
-            unit="%"
-            value={decimal(contentInspectionCompletionRate)}
+          <DashboardBreakdown
+            items={[
+              { label: "신규", value: data.todayContentBreakdown?.newCount ?? null },
+              { label: "수정", value: data.todayContentBreakdown?.editedCount ?? null },
+            ]}
+            unit="건"
           />
         </DashboardCard>
 
         <DashboardCard
-          className="fuma-dashboard-card--kpi"
-          eyebrow="SPEED"
-          title="평균 검수시간"
+          className="fuma-dashboard-card--daily"
+          eyebrow="TODAY"
+          title="오늘 발생한 매출"
         >
           <DashboardMetric
-            detail={`${count(data.inspectionDurationSampleCount)}건 기준`}
-            label="검수 완료 - 콘텐츠 저장"
-            unit="시간"
-            value={decimal(data.averageInspectionHours)}
-          />
-        </DashboardCard>
-
-        <DashboardCard
-          className="fuma-dashboard-card--kpi"
-          eyebrow="APPLICATION"
-          title="지원자 처리율"
-        >
-          <DashboardMetric
-            detail={`${count(data.processedApplications)} / ${count(data.totalApplications)}명`}
-            label="승인·거절 ÷ 전체 지원자"
-            unit="%"
-            value={decimal(applicationProcessingRate)}
-          />
-        </DashboardCard>
-
-        <DashboardCard
-          className="fuma-dashboard-card--kpi"
-          eyebrow="GROWTH"
-          title="콘텐츠 증감률"
-        >
-          <DashboardMetric
-            detail={`${count(data.previousGenerationContentCount)}건 → ${count(data.currentGenerationContentCount)}건`}
-            label="이전 기수 대비 현재 기수"
-            unit={showAbsoluteContentGrowth ? "건" : "%"}
-            value={showAbsoluteContentGrowth
-              ? `+${count(data.currentGenerationContentCount)}`
-              : growth(contentGrowthRate)}
+            label="오늘 00:00부터 현재까지"
+            value={data.todaySales == null ? "—" : formatWon(data.todaySales)}
           />
         </DashboardCard>
       </div>
