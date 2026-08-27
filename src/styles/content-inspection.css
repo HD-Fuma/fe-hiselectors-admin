@@ -1185,9 +1185,9 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio__session-help {
   position: absolute;
-  top: 50%;
-  bottom: auto;
-  left: 50%;
+  top: auto;
+  bottom: 28px;
+  left: var(--studio-edge);
   display: grid;
   width: min(300px, calc(100vw - 32px));
   padding: var(--hsas-space-14) var(--hsas-space-16) var(--hsas-space-12);
@@ -1201,7 +1201,7 @@ button.fuma-content-inspection-studio__violation-bubble {
     inset 0 1px 0 rgb(255 255 255 / 72%),
     0 18px 48px rgb(54 65 72 / 12%);
   pointer-events: none;
-  translate: -50% -50%;
+  translate: 0;
   backdrop-filter: blur(24px) saturate(1.15);
   animation: hsas-bubble-dialog-enter 160ms ease-out both;
 }
