@@ -318,7 +318,6 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
       tagGroups={[
         { label: "카테고리", values: aiReport?.category ? [categoryLabel(aiReport.category) ?? aiReport.category] : [] },
         { label: "키워드", values: excludeGenericUiTokens(aiReport?.keywords ?? []).slice(0, MAX_KEYWORDS) },
-        { label: "협업 이력", values: splitCsv(aiReport?.brandHistory) },
         { label: "콘텐츠 유형", values: formatSegments.map((format) => format.label) },
         {
           label: "톤앤매너",
