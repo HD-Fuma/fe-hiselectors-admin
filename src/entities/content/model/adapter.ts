@@ -122,6 +122,7 @@ function signalsFromViolations(
       title: violation.violationTypeDescription,
       tone: signalTone(violation.currentStatus),
       violationItemId: violation.violationItemId,
+      violationType: violation.violationType,
       violationStatus: violation.currentStatus,
       inspectionPolicyId: violation.inspectionPolicyId,
       violationEvidenceHistoryId: violation.violationEvidenceHistoryId,
@@ -155,7 +156,7 @@ function annotationsFromViolations(
           && location.startIndex < location.endIndex
           && mediaText.slice(location.startIndex, location.endIndex) === quote;
         const offset = textOffsets.get(sourceMedia.contentMediaId);
-        const useTextTarget = hasMatchingRange
+        const useTextTarget = sourceMedia.mediaType === "TEXT" && hasMatchingRange
           && offset !== undefined
           && location.startTime == null
           && location.bbox == null;
@@ -180,6 +181,11 @@ function annotationsFromViolations(
                 quote,
                 startIndex: offset + (location.startIndex ?? 0),
               }
+            : sourceMedia.mediaType === "TEXT"
+              ? {
+                  kind: "text-start" as const,
+                  quote,
+                }
             : {
                 ...(location.bbox ? { box: location.bbox, boxUnit: "pixel" as const } : {}),
                 kind: "media" as const,
@@ -279,6 +285,10 @@ export function adaptContentInspection(content: CollectedContent): ContentInspec
     },
     detectedIssues: [],
     id: String(content.contentId),
+    inspectionDecision: content.inspectionStatus === "APPROVED"
+      || content.inspectionStatus === "REJECTED"
+      ? content.inspectionStatus
+      : null,
     inspectionStatus: status,
     inspectionType: content.latestVersionNo > 1 ? "EDITED" : "NEW",
     latestVersionNo: content.latestVersionNo,
@@ -367,6 +377,7 @@ export function adaptContentInspectionDetail(
     },
     detectedIssues: activeViolations.map((violation) => violation.violationTypeDescription),
     id: String(detail.contentId),
+    inspectionDecision: selectedVersion.inspectionDecision ?? null,
     inspectionStatus: status,
     inspectionType: latestVersionNo > 1 ? "EDITED" : "NEW",
     latestVersionNo,

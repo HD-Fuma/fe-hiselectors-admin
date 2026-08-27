@@ -184,6 +184,15 @@ test("adapts latest-version detail into report, text, and active violations", ()
             mediaType: "TEXT",
             startIndex: "지금 가장 저렴한 가격".indexOf("가장 저렴한"),
             startTime: null,
+          }, {
+            bbox: null,
+            contentMediaId: 4202,
+            endIndex: 4,
+            endTime: null,
+            excerpt: "원문에 없는 문구",
+            mediaType: "TEXT",
+            startIndex: 0,
+            startTime: null,
           }],
           reason: "비교 근거 없이 최저가를 단정했습니다.",
           source: "AI",
@@ -263,6 +272,14 @@ test("adapts latest-version detail into report, text, and active violations", ()
       }),
       title: "허위·과장 표현",
     }),
+    expect.objectContaining({
+      state: "active",
+      target: {
+        kind: "text-start",
+        quote: "원문에 없는 문구",
+      },
+      title: "허위·과장 표현",
+    }),
   ]);
   expect(inspection.report).toMatchObject({
     flow: "본문 후 상품 링크를 안내합니다.",
@@ -275,6 +292,7 @@ test("adapts latest-version detail into report, text, and active violations", ()
       source: "게시물 본문(TEXT)",
       title: "허위·과장 표현",
       tone: "warning",
+      violationType: "FALSE_EXAGGERATED_CLAIM",
     }],
   });
   expect(inspection.report.history.map(({ label }) => label)).toEqual([
@@ -393,6 +411,7 @@ test("maps approved and rejected decisions to separate inspection statuses", () 
     storedAt: "2026-08-18T10:00:00",
     versions: [],
   })).toMatchObject({
+    inspectionDecision: "APPROVED",
     inspectionStatus: "승인",
     processingState: "처리 완료",
   });
