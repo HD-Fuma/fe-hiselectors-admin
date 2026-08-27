@@ -934,7 +934,14 @@ function ViolationHighlightedText({
             <span>{annotation.ordinal}</span>
             <strong>{annotation.title}</strong>
           </span>
-        ) : null}
+        ) : (
+          <span
+            aria-hidden="true"
+            className="fuma-inspection-text-violation__ordinal"
+          >
+            {annotation.ordinal}
+          </span>
+        )}
       </mark>,
     );
     cursor = end;
@@ -1008,6 +1015,7 @@ function StudioViolationBubbleCloud({
           <>
             <small>위반 {annotation.ordinal}</small>
             <strong>{annotation.title}</strong>
+            <span>{annotation.reason}</span>
           </>
         );
         const properties = {
