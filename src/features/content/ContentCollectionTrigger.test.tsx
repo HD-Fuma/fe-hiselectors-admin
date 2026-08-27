@@ -109,11 +109,12 @@ test("requests one content collection run with idempotency and hides the accepte
     { timeout: 3_000 },
   );
   const categoryTabs = await screen.findByRole("navigation", { name: "콘텐츠 처리 구분" });
-  expect(within(categoryTabs).getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
-  expect(within(categoryTabs).getByRole("button", { name: "신규 등록" })).toBeInTheDocument();
+  expect(within(categoryTabs).getByRole("button", { name: "신규 등록" })).toHaveAttribute("aria-pressed", "true");
   expect(within(categoryTabs).getByRole("button", { name: "수정 감지" })).toBeInTheDocument();
   expect(within(categoryTabs).getByRole("button", { name: "위반 확정" })).toBeInTheDocument();
-  expect(within(categoryTabs).getByRole("button", { name: "승인 완료" })).toBeInTheDocument();
+  expect(within(categoryTabs).queryByRole("button", { name: "전체" })).not.toBeInTheDocument();
+  expect(within(categoryTabs).queryByRole("button", { name: "승인 완료" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("checkbox", { name: "위반 항목만" })).not.toBeInTheDocument();
   const refreshButton = within(categoryTabs).getByRole("button", { name: "콘텐츠 새로고침" });
   expect(refreshButton.parentElement).toHaveClass("fuma-content-collection-run-actions");
   expect(refreshButton.parentElement?.tagName).toBe("SPAN");
@@ -215,31 +216,6 @@ test("reloads contents as soon as collection succeeds", async () => {
 
   expect(await screen.findAllByText("새 콘텐츠")).not.toHaveLength(0);
   expect(contentRequests).toBe(2);
-});
-
-test("locks the violation-only toggle on decided categories", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(contentsResponse([
-    contentItem(1, "기존 콘텐츠"),
-  ])));
-
-  renderRoute("/content/inspections");
-
-  const categoryTabs = await screen.findByRole("navigation", { name: "콘텐츠 처리 구분" });
-  const toggle = await screen.findByRole("checkbox", { name: "위반 항목만" });
-  expect(toggle).toBeEnabled();
-  expect(toggle).not.toBeChecked();
-
-  fireEvent.click(within(categoryTabs).getByRole("button", { name: "위반 확정" }));
-  expect(toggle).toBeDisabled();
-  expect(toggle).toBeChecked();
-
-  fireEvent.click(within(categoryTabs).getByRole("button", { name: "승인 완료" }));
-  expect(toggle).toBeDisabled();
-  expect(toggle).not.toBeChecked();
-
-  fireEvent.click(within(categoryTabs).getByRole("button", { name: "신규 등록" }));
-  expect(toggle).toBeEnabled();
-  expect(toggle).not.toBeChecked();
 });
 
 test("shows the analysis state from inspection status without the SNS account id", async () => {

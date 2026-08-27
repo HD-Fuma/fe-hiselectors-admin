@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import "../../styles/content-inspection.css";
 import { PageHeader } from "../../components/shell/PageHeader";
-import { Button, Select, Switch, TextInput } from "../../components/ui/Controls";
+import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { BubbleDialog } from "../../components/ui/BubbleDialog";
 import { ContentCollectionCard } from "../../components/ui/ContentCollectionCard";
 import { contentCollectionFormatKey } from "../../components/ui/contentCollectionFormat";
@@ -81,11 +81,9 @@ const STUDIO_CONTENT_SLIDE_EXIT_MS = 180;
 const STUDIO_CONTENT_SLIDE_ENTER_MS = 260;
 const STUDIO_HELP_DURATION_MS = 4_000;
 type ContentInspectionCategory =
-  | "전체"
   | "신규 등록"
   | "수정 감지"
-  | "위반 확정"
-  | "승인 완료";
+  | "위반 확정";
 
 function formatInspectionDate(value: string) {
   const zoned = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value.trim());
@@ -251,34 +249,21 @@ interface QueueFilterValues {
 }
 
 const CONTENT_INSPECTION_CATEGORIES: readonly ContentInspectionCategory[] = [
-  "전체",
   "신규 등록",
   "수정 감지",
   "위반 확정",
-  "승인 완료",
 ];
-const DEFAULT_CONTENT_INSPECTION_CATEGORY: ContentInspectionCategory = "전체";
+const DEFAULT_CONTENT_INSPECTION_CATEGORY: ContentInspectionCategory = "신규 등록";
 
-function contentInspectionCategory(content: ContentInspectionFixture): Exclude<
-  ContentInspectionCategory,
-  "전체"
-> {
-  if (content.inspectionStatus === "승인") return "승인 완료";
+function contentInspectionCategory(content: ContentInspectionFixture): ContentInspectionCategory {
   if (content.inspectionStatus === "위반") return "위반 확정";
   if (content.inspectionType !== "NEW") return "수정 감지";
   return "신규 등록";
 }
 
-function lockedViolationOnly(category: ContentInspectionCategory) {
-  if (category === "위반 확정") return true;
-  if (category === "승인 완료") return false;
-  return null;
-}
-
 function contentInspectionCategoryTone(
   category: ContentInspectionCategory,
 ): NonNullable<StatusPillProps["tone"]> {
-  if (category === "승인 완료") return "approved";
   if (category === "위반 확정") return "rejected";
   if (category === "수정 감지") return "pending";
   return "neutral";
@@ -409,33 +394,19 @@ function CollectionCard({
 function ContentInspectionCollection({
   contents,
   onChangeView,
-  onChangeViolationOnly,
   onSelect,
   totalCount,
-  violationOnly,
-  violationOnlyLocked,
   viewMode,
 }: {
   contents: readonly ContentInspectionFixture[];
   onChangeView: (viewMode: ViewMode) => void;
-  onChangeViolationOnly: (violationOnly: boolean) => void;
   onSelect: (content: ContentInspectionFixture) => void;
   totalCount: number;
-  violationOnly: boolean;
-  violationOnlyLocked: boolean;
   viewMode: ViewMode;
 }) {
   return (
     <section aria-label="수집 콘텐츠 목록" className="fuma-content-collection">
       <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-applicant-result-toolbar fuma-content-inspection-toolbar">
-        <div className="fuma-applicant-minimum-filter">
-          <Switch
-            checked={violationOnly}
-            disabled={violationOnlyLocked}
-            label="위반 항목만"
-            onChange={(event) => onChangeViolationOnly(event.target.checked)}
-          />
-        </div>
         <div className="fuma-settlement-result-meta">
           <span>총 {totalCount}건</span>
         </div>
@@ -647,9 +618,6 @@ export function ContentInspectionListPage() {
   const selectedCategory = CONTENT_INSPECTION_CATEGORIES.find(
     (category) => category === searchParams.get("category"),
   ) ?? DEFAULT_CONTENT_INSPECTION_CATEGORY;
-  const lockedViolationFilter = lockedViolationOnly(selectedCategory);
-  const violationOnlyLocked = lockedViolationFilter !== null;
-  const violationOnly = lockedViolationFilter ?? searchParams.get("issues") === "1";
   const viewMode = searchParams.get("view") === "list" ? "list" : "grid";
   const appliedFilters: QueueFilterValues = {
     keyword: searchParams.get("q") ?? "",
@@ -659,9 +627,8 @@ export function ContentInspectionListPage() {
   };
   const normalizedKeyword = appliedFilters.keyword.trim().toLocaleLowerCase("ko-KR");
   const filteredContents = contents.filter((content) => {
-    const matchesCategory = selectedCategory === "전체"
-      || contentInspectionCategory(content) === selectedCategory;
-    const hasViolation = content.report.signals.some((signal) => signal.tone !== "pass");
+    if (content.inspectionStatus === "승인") return false;
+    const matchesCategory = contentInspectionCategory(content) === selectedCategory;
     const matchesKeyword = !normalizedKeyword || [
       content.id,
       content.contentTitle,
@@ -670,7 +637,6 @@ export function ContentInspectionListPage() {
     const matchesPlatform = !appliedFilters.platform
       || contentPlatform(content.sourcePlatform) === appliedFilters.platform;
     return matchesCategory
-      && (violationOnlyLocked || !violationOnly || hasViolation)
       && matchesKeyword
       && matchesPlatform;
   });
@@ -683,7 +649,7 @@ export function ContentInspectionListPage() {
   const pendingContents = inspectionRequiredContents(contents);
 
   const updateListParam = (
-    key: "category" | "issues" | "page" | "view",
+    key: "category" | "page" | "view",
     value: string,
     defaultValue: string,
     resetPage = false,
@@ -779,15 +745,10 @@ export function ContentInspectionListPage() {
           <ContentInspectionCollection
             contents={pageContents}
             onChangeView={(nextViewMode) => updateListParam("view", nextViewMode, "grid")}
-            onChangeViolationOnly={(nextViolationOnly) => (
-              updateListParam("issues", nextViolationOnly ? "1" : "0", "0", true)
-            )}
             onSelect={(content) => navigate(`/content/inspections/${content.id}`, {
               state: { content, contents, from: `${location.pathname}${location.search}` },
             })}
             totalCount={filteredContents.length}
-            violationOnly={violationOnly}
-            violationOnlyLocked={violationOnlyLocked}
             viewMode={viewMode}
           />
         )}

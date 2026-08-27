@@ -4631,11 +4631,6 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
   line-height: 1.55;
 }
 
-.fuma-content-inspection-toolbar .hsas-switch:has(input:disabled) {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
 .fuma-content-collection {
   display: grid;
   min-width: 0;
