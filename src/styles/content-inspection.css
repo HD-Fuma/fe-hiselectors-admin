@@ -379,6 +379,10 @@ button.fuma-content-inspection-studio__violation-bubble {
   opacity: 1;
 }
 
+.fuma-content-inspection-studio__versions .fuma-content-inspection-studio__version:has(> .fuma-content-inspection-studio__violation-bubbles) {
+  z-index: 20;
+}
+
 .fuma-content-inspection-studio__profile,
 .fuma-content-inspection-studio__header,
 .fuma-content-inspection-studio__report {
