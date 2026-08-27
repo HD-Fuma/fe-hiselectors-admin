@@ -869,16 +869,20 @@ function ViolationHighlightedText({
   annotations,
   focusedOrdinal,
   onSelectViolation,
+  showBubbles = true,
   text,
   useStoredIndexes = false,
 }: {
   annotations: readonly IndexedContentAnnotation[];
   focusedOrdinal?: number;
   onSelectViolation?: (ordinal: number) => void;
+  showBubbles?: boolean;
   text: string;
   useStoredIndexes?: boolean;
 }) {
-  const startAnnotations = annotations.filter(({ target }) => target.kind === "text-start");
+  const startAnnotations = showBubbles
+    ? annotations.filter(({ target }) => target.kind === "text-start")
+    : [];
   const ranges = annotations.flatMap((annotation) => {
     const target = annotation.target;
     if (target.kind === "url" || target.kind === "text-start") return [];
@@ -921,14 +925,16 @@ function ViolationHighlightedText({
         <span className="fuma-inspection-text-violation__highlight">
           {text.slice(start, end)}
         </span>
-        <span
-          aria-hidden="true"
-          className="fuma-inspection-violation-bubble"
-          data-violation-bubble={annotation.ordinal}
-        >
-          <span>{annotation.ordinal}</span>
-          <strong>{annotation.title}</strong>
-        </span>
+        {showBubbles ? (
+          <span
+            aria-hidden="true"
+            className="fuma-inspection-violation-bubble"
+            data-violation-bubble={annotation.ordinal}
+          >
+            <span>{annotation.ordinal}</span>
+            <strong>{annotation.title}</strong>
+          </span>
+        ) : null}
       </mark>,
     );
     cursor = end;
@@ -975,6 +981,58 @@ function ViolationHighlightedText({
   );
 }
 
+function StudioViolationBubbleCloud({
+  annotations,
+  focusedOrdinal,
+  onSelectViolation,
+  side,
+}: {
+  annotations: readonly IndexedContentAnnotation[];
+  focusedOrdinal?: number;
+  onSelectViolation?: (ordinal: number) => void;
+  side: "start" | "end";
+}) {
+  const textAnnotations = annotations.filter(({ target }) => (
+    target.kind === "text" || target.kind === "text-start"
+  ));
+  if (textAnnotations.length === 0) return null;
+
+  return (
+    <aside
+      aria-label="본문 위반 내역"
+      className="fuma-content-inspection-studio__violation-bubbles"
+      data-side={side}
+    >
+      {textAnnotations.map((annotation) => {
+        const content = (
+          <>
+            <small>위반 {annotation.ordinal}</small>
+            <strong>{annotation.title}</strong>
+          </>
+        );
+        const properties = {
+          "aria-label": `위반 ${annotation.ordinal}: ${annotation.title}`,
+          className: "fuma-content-inspection-studio__violation-bubble",
+          "data-focused": focusedOrdinal === annotation.ordinal,
+        };
+
+        return onSelectViolation ? (
+          <button
+            {...properties}
+            key={annotation.id}
+            onClick={() => onSelectViolation(annotation.ordinal)}
+            type="button"
+          >
+            {content}
+          </button>
+        ) : (
+          <span {...properties} key={annotation.id}>{content}</span>
+        );
+      })}
+    </aside>
+  );
+}
+
 function scrollWithinSurface(
   surface: HTMLElement,
   target: HTMLElement,
@@ -1005,6 +1063,7 @@ function MinimalVersionCard({
   label,
   onSelectViolation,
   showAnnotations = true,
+  showTextBubbles = true,
   snapshot,
 }: {
   content: ContentInspectionFixture;
@@ -1013,6 +1072,7 @@ function MinimalVersionCard({
   label: string;
   onSelectViolation?: (ordinal: number) => void;
   showAnnotations?: boolean;
+  showTextBubbles?: boolean;
   snapshot: ContentSnapshot;
 }) {
   const cardRef = useRef<HTMLElement>(null);
@@ -1339,7 +1399,7 @@ function MinimalVersionCard({
               <button aria-label="저장" type="button"><Bookmark aria-hidden="true" size={23} /></button>
             </div>
             <div className="fuma-platform-inspection-frame__instagram-copy">
-              <p><b>{handle}</b>{" "}<ViolationHighlightedText annotations={annotations} focusedOrdinal={focusedViolation?.ordinal} onSelectViolation={onSelectViolation} text={snapshot.text} useStoredIndexes /></p>
+              <p><b>{handle}</b>{" "}<ViolationHighlightedText annotations={annotations} focusedOrdinal={focusedViolation?.ordinal} onSelectViolation={onSelectViolation} showBubbles={showTextBubbles} text={snapshot.text} useStoredIndexes /></p>
               <time>{postDate}</time>
             </div>
           </>
@@ -1392,6 +1452,7 @@ function MinimalVersionCard({
                   annotations={annotations}
                   focusedOrdinal={focusedViolation?.ordinal}
                   onSelectViolation={onSelectViolation}
+                  showBubbles={showTextBubbles}
                   text={snapshot.text}
                   useStoredIndexes
                 />
@@ -1430,7 +1491,7 @@ function MinimalVersionCard({
             </div>
             <div className="fuma-platform-inspection-frame__youtube-description">
               <strong>{postDate}</strong>
-              <p><ViolationHighlightedText annotations={annotations} focusedOrdinal={focusedViolation?.ordinal} onSelectViolation={onSelectViolation} text={snapshot.text} useStoredIndexes /></p>
+              <p><ViolationHighlightedText annotations={annotations} focusedOrdinal={focusedViolation?.ordinal} onSelectViolation={onSelectViolation} showBubbles={showTextBubbles} text={snapshot.text} useStoredIndexes /></p>
             </div>
           </div>
         )}
@@ -2923,8 +2984,18 @@ export function ContentInspectionDetailPage() {
                         content={historicalContent}
                         inert={selectedStudioVersionId !== historicalContent.contentVersionId}
                         label={`v${currentDisplayedVersionNo(historicalContent)} 과거 콘텐츠`}
+                        showTextBubbles={false}
                         snapshot={historicalContent.currentSnapshot}
                       />
+                      {selectedStudioVersionId === historicalContent.contentVersionId ? (
+                        <StudioViolationBubbleCloud
+                          annotations={indexedViolationAnnotations(
+                            historicalContent,
+                            historicalContent.currentSnapshot,
+                          )}
+                          side="end"
+                        />
+                      ) : null}
                     </div>
                   ))}
                 </div>
@@ -2951,8 +3022,17 @@ export function ContentInspectionDetailPage() {
                   inert={!studioSelectedIsLatest}
                   label="최신 콘텐츠"
                   onSelectViolation={selectStudioViolationFromContent}
+                  showTextBubbles={false}
                   snapshot={content.currentSnapshot}
                 />
+                {studioSelectedIsLatest ? (
+                  <StudioViolationBubbleCloud
+                    annotations={indexedViolationAnnotations(content, content.currentSnapshot)}
+                    focusedOrdinal={studioCardFocusedViolation?.ordinal}
+                    onSelectViolation={selectStudioViolationFromContent}
+                    side="start"
+                  />
+                ) : null}
               </div>
             </section>
           </>
