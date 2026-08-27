@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
@@ -9,7 +9,6 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
 import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
-import { Modal } from "../../components/ui/Modal";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
@@ -135,6 +134,7 @@ function validateGeneration(values: GenerationFormValues) {
 }
 
 export function CohortManagementPage() {
+  const createFormId = useId();
   const [cohorts, setCohorts] = useState<Generation[]>([]);
   const [keyword, setKeyword] = useState("");
   const [periodStart, setPeriodStart] = useState("");
@@ -210,7 +210,7 @@ export function CohortManagementPage() {
     setPage(1);
   };
 
-  const openCreateModal = () => {
+  const openCreatePanel = () => {
     overlayRevisionRef.current += 1;
     setNewCohort({
       activityEndDate: "",
@@ -223,7 +223,7 @@ export function CohortManagementPage() {
     setIsCreateOpen(true);
   };
 
-  const closeCreateModal = () => {
+  const closeCreatePanel = () => {
     overlayRevisionRef.current += 1;
     setIsCreateOpen(false);
     setFormError("");
@@ -367,7 +367,7 @@ export function CohortManagementPage() {
           </SearchPanel>
         </div>
         <ChoiceTabs
-          actions={<Button disabled={isCohortLoading || isSaving} onClick={openCreateModal} variant="primary">기수 생성</Button>}
+          actions={<Button disabled={isCohortLoading || isSaving} onClick={openCreatePanel} variant="primary">기수 생성</Button>}
           ariaLabel="기수 상태"
           className="fuma-list-action-toolbar"
           emptyOption={{
@@ -419,21 +419,49 @@ export function CohortManagementPage() {
           totalPages={totalPages}
         />
       </div>
-      <Modal
-        actions={<><Button disabled={isSaving} onClick={closeCreateModal}>취소</Button><Button disabled={isSaving} onClick={createCohort} variant="primary">생성</Button></>}
-        onClose={closeCreateModal}
-        open={isCreateOpen}
-        title="새 기수 생성"
-      >
-        <div className="fuma-cohort-create-form">
-          <FormRow label="기수명" required><TextInput aria-label="기수명" maxLength={30} onChange={(event) => setNewCohort((current) => ({ ...current, generationName: event.target.value }))} required value={newCohort.generationName} /></FormRow>
-          <FormRow label="모집 시작일" required><TextInput aria-label="모집 시작일" max={newCohort.endDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, startDate: event.target.value }))} required type="date" value={newCohort.startDate} /></FormRow>
-          <FormRow label="모집 종료일" required><TextInput aria-label="모집 종료일" min={newCohort.startDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, endDate: event.target.value }))} required type="date" value={newCohort.endDate} /></FormRow>
-          <FormRow label="활동 시작일" required><TextInput aria-label="활동 시작일" max={newCohort.activityEndDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, activityStartDate: event.target.value }))} required type="date" value={newCohort.activityStartDate} /></FormRow>
-          <FormRow label="활동 종료일" required><TextInput aria-label="활동 종료일" min={newCohort.activityStartDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, activityEndDate: event.target.value }))} required type="date" value={newCohort.activityEndDate} /></FormRow>
-        </div>
-        {formError ? <p role="alert">{formError}</p> : null}
-      </Modal>
+      {isCreateOpen ? (
+        <SidePanel
+          actions={(
+            <>
+              <Button disabled={isSaving} onClick={closeCreatePanel}>취소</Button>
+              <Button disabled={isSaving} form={createFormId} type="submit" variant="primary">
+                {isSaving ? "생성 중..." : "생성"}
+              </Button>
+            </>
+          )}
+          onClose={closeCreatePanel}
+          title="새 기수 생성"
+        >
+          <div className="fuma-detail-panel__content fuma-campaign-editor-panel">
+            {formError ? <p role="alert">{formError}</p> : null}
+            <form
+              className="fuma-campaign-editor"
+              id={createFormId}
+              onSubmit={(event) => {
+                event.preventDefault();
+                void createCohort();
+              }}
+            >
+              <header className="fuma-campaign-editor__intro">
+                <div>
+                  <strong>새 기수 정보</strong>
+                  <span>기수명, 모집 기간과 활동 기간을 설정합니다.</span>
+                </div>
+              </header>
+              <section className="fuma-campaign-form-section">
+                <header><h3>기본 정보</h3></header>
+                <div className="fuma-campaign-form">
+                  <FormRow label="기수명" required><TextInput aria-label="기수명" maxLength={30} onChange={(event) => setNewCohort((current) => ({ ...current, generationName: event.target.value }))} required value={newCohort.generationName} /></FormRow>
+                  <FormRow label="모집 시작일" required><TextInput aria-label="모집 시작일" max={newCohort.endDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, startDate: event.target.value }))} required type="date" value={newCohort.startDate} /></FormRow>
+                  <FormRow label="모집 종료일" required><TextInput aria-label="모집 종료일" min={newCohort.startDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, endDate: event.target.value }))} required type="date" value={newCohort.endDate} /></FormRow>
+                  <FormRow label="활동 시작일" required><TextInput aria-label="활동 시작일" max={newCohort.activityEndDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, activityStartDate: event.target.value }))} required type="date" value={newCohort.activityStartDate} /></FormRow>
+                  <FormRow label="활동 종료일" required><TextInput aria-label="활동 종료일" min={newCohort.activityStartDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, activityEndDate: event.target.value }))} required type="date" value={newCohort.activityEndDate} /></FormRow>
+                </div>
+              </section>
+            </form>
+          </div>
+        </SidePanel>
+      ) : null}
       {detailCohort ? (
         <SidePanel
           actions={editingCohort ? (
