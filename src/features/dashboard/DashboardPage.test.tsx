@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { DashboardPage } from "./DashboardPage";
 
@@ -19,4 +19,12 @@ test("오늘 지표를 표시하고 기존 하단 지표 카드를 제거한다"
   expect(screen.queryByText("지원자 처리율")).not.toBeInTheDocument();
   expect(screen.queryByText("콘텐츠 증감률")).not.toBeInTheDocument();
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
+
+  const inspectionCard = screen.getByText("콘텐츠 검수").closest(".fuma-dashboard-card");
+  expect(inspectionCard).not.toBeNull();
+  expect(within(inspectionCard as HTMLElement).getByText("Instagram")).toBeInTheDocument();
+  expect(within(inspectionCard as HTMLElement).getByText("YouTube")).toBeInTheDocument();
+  expect(within(inspectionCard as HTMLElement).queryByText("신규")).not.toBeInTheDocument();
+  expect(within(inspectionCard as HTMLElement).queryByText("수정")).not.toBeInTheDocument();
+  expect(within(inspectionCard as HTMLElement).queryByText("위반")).not.toBeInTheDocument();
 });
