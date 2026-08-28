@@ -854,7 +854,7 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         ))}
       </div>
       <aside
-        aria-label="현재 화면의 셀렉터스"
+        aria-label="현재 보이는 셀렉터스"
         className={`hsas-selector-pool__dock${dockOpen ? "" : " is-collapsed"}`}
         onBlurCapture={() => { dockHoverRef.current = false; }}
         onFocusCapture={() => { dockHoverRef.current = true; }}
@@ -867,7 +867,7 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
           onClick={() => setDockOpen((open) => !open)}
           type="button"
         >
-          <span>{dockOpen ? `화면 속 셀렉터스 ${visible.length}` : "셀렉터스 목록 보기"}</span>
+          <span>{dockOpen ? `현재 보이는 셀렉터스 ${visible.length}명` : "셀렉터스 목록 보기"}</span>
           <span aria-hidden="true">{dockOpen ? "˄" : "˅"}</span>
         </button>
         <div className="hsas-selector-pool__dock-viewport">
