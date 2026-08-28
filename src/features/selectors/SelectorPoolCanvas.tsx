@@ -223,6 +223,10 @@ function drawCurve(
   context.stroke();
 }
 
+function bubbleShellRadius(radius: number) {
+  return radius + Math.max(12, radius * 0.32);
+}
+
 function drawBubble(
   context: CanvasRenderingContext2D,
   x: number,
@@ -230,7 +234,7 @@ function drawBubble(
   radius: number,
   image: HTMLImageElement | undefined,
 ) {
-  const shellRadius = radius + Math.max(12, radius * 0.32);
+  const shellRadius = bubbleShellRadius(radius);
 
   // 프로필 바깥을 반투명한 흰색 유리 링으로 감싼다.
   context.save();
@@ -673,6 +677,39 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
 
         context.restore();
       });
+
+      // 가까워진 버블 사이를 같은 유리 재질로 이어 메타볼처럼 붙여 보이게 한다.
+      context.save();
+      context.lineCap = "round";
+      context.shadowColor = "rgb(78 102 108 / 10%)";
+      context.shadowBlur = 12;
+      for (let index = 0; index < nodes.length; index += 1) {
+        const node = nodes[index];
+        const from = floatOf(node, time);
+        const fromRadius = bubbleShellRadius(node.r);
+        for (let other = index + 1; other < nodes.length; other += 1) {
+          const peer = nodes[other];
+          if (peer.categoryIndex !== node.categoryIndex) continue;
+          const to = floatOf(peer, time);
+          const distance = Math.hypot(to.x - from.x, to.y - from.y);
+          const toRadius = bubbleShellRadius(peer.r);
+          const strength = Math.min(1, (fromRadius + toRadius + 18 - distance) / 30);
+          if (strength <= 0) continue;
+
+          const bridge = context.createLinearGradient(from.x, from.y, to.x, to.y);
+          bridge.addColorStop(0, "rgb(255 255 255 / 80%)");
+          bridge.addColorStop(0.5, "rgb(255 255 255 / 68%)");
+          bridge.addColorStop(1, "rgb(255 255 255 / 80%)");
+          context.globalAlpha = weightOf(node.categoryIndex);
+          context.strokeStyle = bridge;
+          context.lineWidth = Math.min(fromRadius, toRadius) * 0.72 * strength;
+          context.beginPath();
+          context.moveTo(from.x, from.y);
+          context.lineTo(to.x, to.y);
+          context.stroke();
+        }
+      }
+      context.restore();
 
       nodes.forEach((node) => {
         const position = floatOf(node, time);
