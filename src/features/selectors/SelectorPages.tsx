@@ -603,8 +603,13 @@ export function SelectorOverviewPage({ initialViewMode }: { initialViewMode?: Se
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(SELECTOR_PAGE_SIZE);
-  const [pageData, setPageData] = useState<SpringPage<SelectorSummary> | null>(null);
-  const [listError, setListError] = useState("");
+  const [pageDataByView, setPageDataByView] = useState<
+    Record<SelectorViewMode, SpringPage<SelectorSummary> | null>
+  >({ pool: null, table: null });
+  const [listErrorByView, setListErrorByView] = useState<Record<SelectorViewMode, string>>({
+    pool: "",
+    table: "",
+  });
   const [generations, setGenerations] = useState<SelectorFilterGeneration[]>([]);
   const selectorListTitle = selectedStatus === "ACTIVE"
     ? "활동 중인 셀렉터스 목록"
@@ -615,6 +620,8 @@ export function SelectorOverviewPage({ initialViewMode }: { initialViewMode?: Se
         : "셀렉터스 목록";
   // 버블 뷰는 상태 필터가 없는 전체 목록에서만 사용한다.
   const activeView: SelectorViewMode = selectedStatus ? "table" : viewMode;
+  const pageData = pageDataByView[activeView];
+  const listError = listErrorByView[activeView];
 
   useEffect(() => {
     const controller = new AbortController();
@@ -634,11 +641,14 @@ export function SelectorOverviewPage({ initialViewMode }: { initialViewMode?: Se
       page: page - 1,
       size: activeView === "pool" ? POOL_PAGE_SIZE : pageSize,
     }, controller.signal).then((result) => {
-      setPageData(result);
-      setListError("");
+      setPageDataByView((current) => ({ ...current, [activeView]: result }));
+      setListErrorByView((current) => ({ ...current, [activeView]: "" }));
     }).catch((reason: unknown) => {
       if (!controller.signal.aborted) {
-        setListError(reason instanceof Error ? reason.message : "셀렉터스 목록 조회에 실패했습니다.");
+        setListErrorByView((current) => ({
+          ...current,
+          [activeView]: reason instanceof Error ? reason.message : "셀렉터스 목록 조회에 실패했습니다.",
+        }));
       }
     });
     return () => controller.abort();
