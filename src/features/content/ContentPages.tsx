@@ -3311,10 +3311,11 @@ export function ContentInspectionDetailPage() {
                               <p>{signal.guidance}</p>
                             </aside>
                           ) : null}
-                          {studioSelectedIsLatest && !studioReviewReadOnly && focused ? (
+                          {studioSelectedIsLatest && !studioReviewReadOnly ? (
                             <div
                               aria-label={`${signal.title} 판정`}
                               className="fuma-content-inspection-studio__report-choices"
+                              onFocus={() => setFocusedStudioViolationIndex(index)}
                               role="group"
                             >
                               <button

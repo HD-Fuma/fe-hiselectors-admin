@@ -1095,50 +1095,48 @@ button.fuma-content-inspection-studio__violation-bubble {
   border-color: var(--hsas-status-rejected);
   color: var(--hsas-status-rejected);
   background: rgb(255 255 255 / 92%);
-  box-shadow:
-    0 0 0 1px rgb(161 61 61 / 8%),
-    0 0 14px rgb(161 61 61 / 24%);
 }
 
 .fuma-content-inspection-studio__report-choices button:last-child {
   border-color: var(--hsas-status-approved);
   color: var(--hsas-status-approved);
   background: rgb(255 255 255 / 92%);
-  box-shadow:
-    0 0 0 1px rgb(30 157 139 / 8%),
-    0 0 14px rgb(30 157 139 / 26%);
 }
 
 .fuma-content-inspection-studio__report-choices button:first-child:enabled:hover {
   background: var(--hsas-status-rejected-bg);
-  box-shadow:
-    0 0 0 1px rgb(161 61 61 / 14%),
-    0 0 20px rgb(161 61 61 / 34%);
 }
 
 .fuma-content-inspection-studio__report-choices button:last-child:enabled:hover {
   background: var(--hsas-status-approved-bg);
-  box-shadow:
-    0 0 0 1px rgb(30 157 139 / 14%),
-    0 0 20px rgb(30 157 139 / 36%);
 }
 
 .fuma-content-inspection-studio__report-choices button:first-child[aria-pressed="true"] {
   border-color: var(--hsas-status-rejected);
   color: #fff;
   background: var(--hsas-status-rejected);
-  box-shadow:
-    0 0 0 2px rgb(255 255 255 / 90%),
-    0 0 20px rgb(161 61 61 / 52%);
 }
 
 .fuma-content-inspection-studio__report-choices button:last-child[aria-pressed="true"] {
   border-color: var(--hsas-status-approved);
   color: #fff;
   background: var(--hsas-status-approved);
+}
+
+.fuma-content-inspection-studio__report-evidence li[data-focused="true"]
+  .fuma-content-inspection-studio__report-choices button:first-child:enabled,
+.fuma-content-inspection-studio__report-choices button:first-child:focus-visible {
   box-shadow:
-    0 0 0 2px rgb(255 255 255 / 90%),
-    0 0 22px rgb(30 157 139 / 56%);
+    0 0 0 1px rgb(161 61 61 / 14%),
+    0 0 20px rgb(161 61 61 / 34%);
+}
+
+.fuma-content-inspection-studio__report-evidence li[data-focused="true"]
+  .fuma-content-inspection-studio__report-choices button:last-child:enabled,
+.fuma-content-inspection-studio__report-choices button:last-child:focus-visible {
+  box-shadow:
+    0 0 0 1px rgb(30 157 139 / 14%),
+    0 0 20px rgb(30 157 139 / 36%);
 }
 
 .fuma-content-inspection-studio__report-choices button:disabled {
@@ -1336,7 +1334,6 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio__decision[data-active="true"] {
   opacity: 1;
-  filter: drop-shadow(0 10px 20px rgb(54 65 72 / 14%));
 }
 
 .fuma-content-inspection-studio__decision button {
@@ -1361,32 +1358,20 @@ button.fuma-content-inspection-studio__violation-bubble {
   border-color: var(--hsas-status-rejected);
   color: var(--hsas-status-rejected);
   background: rgb(255 255 255 / 92%);
-  box-shadow:
-    0 0 0 1px rgb(161 61 61 / 10%),
-    0 0 18px rgb(161 61 61 / 28%);
 }
 
 .fuma-content-inspection-studio__decision button.is-approve {
   border-color: var(--hsas-status-approved);
   color: var(--hsas-status-approved);
   background: rgb(255 255 255 / 92%);
-  box-shadow:
-    0 0 0 1px rgb(30 157 139 / 10%),
-    0 0 18px rgb(30 157 139 / 30%);
 }
 
 .fuma-content-inspection-studio__decision button.is-reject:enabled:hover {
   background: var(--hsas-status-rejected-bg);
-  box-shadow:
-    0 0 0 1px rgb(161 61 61 / 16%),
-    0 0 24px rgb(161 61 61 / 38%);
 }
 
 .fuma-content-inspection-studio__decision button.is-approve:enabled:hover {
   background: var(--hsas-status-approved-bg);
-  box-shadow:
-    0 0 0 1px rgb(30 157 139 / 16%),
-    0 0 24px rgb(30 157 139 / 40%);
 }
 
 .fuma-content-inspection-studio__decision button:disabled {
@@ -1409,18 +1394,26 @@ button.fuma-content-inspection-studio__violation-bubble {
   border-color: var(--hsas-status-rejected);
   color: #fff;
   background: var(--hsas-status-rejected);
-  box-shadow:
-    0 0 0 3px rgb(255 255 255 / 88%),
-    0 0 26px rgb(161 61 61 / 58%);
 }
 
 .fuma-content-inspection-studio__decision button.is-approve[aria-pressed="true"] {
   border-color: var(--hsas-status-approved);
   color: #fff;
   background: var(--hsas-status-approved);
+}
+
+.fuma-content-inspection-studio__decision[data-active="true"] button.is-reject:enabled,
+.fuma-content-inspection-studio__decision button.is-reject:focus-visible {
   box-shadow:
-    0 0 0 3px rgb(255 255 255 / 88%),
-    0 0 28px rgb(30 157 139 / 62%);
+    0 0 0 1px rgb(161 61 61 / 16%),
+    0 0 24px rgb(161 61 61 / 38%);
+}
+
+.fuma-content-inspection-studio__decision[data-active="true"] button.is-approve:enabled,
+.fuma-content-inspection-studio__decision button.is-approve:focus-visible {
+  box-shadow:
+    0 0 0 1px rgb(30 157 139 / 16%),
+    0 0 24px rgb(30 157 139 / 40%);
 }
 
 .fuma-content-inspection-studio__decision kbd {
