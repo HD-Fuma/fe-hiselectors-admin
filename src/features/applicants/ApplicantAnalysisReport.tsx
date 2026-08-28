@@ -276,12 +276,6 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
             ? `주 ${applicant.metrics.uploadCadence.weeklyAverage.toFixed(1)}회`
             : "-",
         },
-        {
-          label: "최장 게시 공백",
-          value: applicant.metrics.uploadCadence.maximumGapDays === null
-            ? "-"
-            : `${formatNumber(applicant.metrics.uploadCadence.maximumGapDays)}일`,
-        },
         { label: "마지막 게시일", value: dateTime(applicant.metrics.lastPublishedAt).slice(0, 10) },
       ]}
       engagementFunnel={engagementFunnel}

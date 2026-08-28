@@ -571,7 +571,6 @@ describe("applicant api pages", () => {
     expect(within(report).getByText("업로드 주기").parentElement)
       .toHaveTextContent("-");
     expect(report).not.toHaveTextContent("표본 0건");
-    expect(within(report).getByText("최장 게시 공백").parentElement).toHaveTextContent("-");
     const formats = within(report).getByRole("group", { name: "콘텐츠 형식 합계 미수집" });
     expect(within(formats).getByText("-")).toBeInTheDocument();
   });
