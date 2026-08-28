@@ -3233,7 +3233,6 @@ export function ContentInspectionDetailPage() {
           >
             <ArrowLeft aria-hidden="true" size={16} />
             나가기
-            <kbd>ESC</kbd>
           </button>
           <div className="fuma-content-inspection-studio__header-title">
             <span>CONTENT INSPECTION</span>
@@ -3748,6 +3747,13 @@ export function ContentInspectionDetailPage() {
               <span className="fuma-content-inspection-studio__session-help-copy">
                 <small>숫자 키</small>
                 <strong>승인</strong>
+              </span>
+            </span>
+            <span className="fuma-content-inspection-studio__session-help-item">
+              <kbd>ESC</kbd>
+              <span className="fuma-content-inspection-studio__session-help-copy">
+                <small>키보드</small>
+                <strong>나가기</strong>
               </span>
             </span>
           </Tooltip>

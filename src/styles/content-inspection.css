@@ -568,18 +568,6 @@ button.fuma-content-inspection-studio__violation-bubble {
   background: #2b2b2b;
 }
 
-.fuma-content-inspection-studio__exit-button kbd {
-  padding: var(--hsas-space-2) var(--hsas-space-5);
-  border: 1px solid rgb(255 255 255 / 36%);
-  border-radius: var(--hsas-space-5);
-  color: inherit;
-  background: rgb(255 255 255 / 14%);
-  font: inherit;
-  font-size: var(--hsas-font-10);
-  font-weight: 800;
-  line-height: 1;
-}
-
 .fuma-content-inspection-studio__exit-button:focus-visible {
   outline: 3px solid rgb(32 34 36 / 24%);
   outline-offset: 2px;
