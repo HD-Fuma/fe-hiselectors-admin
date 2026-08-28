@@ -23,6 +23,7 @@ import {
   Maximize,
   MessageCircle,
   MoreHorizontal,
+  Mouse,
   Play,
   Repeat2,
   RefreshCw,
@@ -3505,9 +3506,29 @@ export function ContentInspectionDetailPage() {
               <small>QUICK GUIDE</small>
               <strong>검수 단축키</strong>
             </span>
-            <span><kbd>휠</kbd> 이전 · 다음 콘텐츠</span>
-            <span><kbd>1</kbd> 반려 · 위반</span>
-            <span><kbd>2</kbd> 승인 · 위반 허용</span>
+            <span className="fuma-content-inspection-studio__session-help-item">
+              <span className="fuma-content-inspection-studio__session-help-mouse" aria-hidden="true">
+                <Mouse size={32} strokeWidth={1.8} />
+              </span>
+              <span className="fuma-content-inspection-studio__session-help-copy">
+                <small>마우스 휠</small>
+                <strong>이전 / 다음</strong>
+              </span>
+            </span>
+            <span className="fuma-content-inspection-studio__session-help-item">
+              <kbd>1</kbd>
+              <span className="fuma-content-inspection-studio__session-help-copy">
+                <small>숫자 키</small>
+                <strong>반려</strong>
+              </span>
+            </span>
+            <span className="fuma-content-inspection-studio__session-help-item">
+              <kbd>2</kbd>
+              <span className="fuma-content-inspection-studio__session-help-copy">
+                <small>숫자 키</small>
+                <strong>승인</strong>
+              </span>
+            </span>
           </Tooltip>
         </div>
         <BubbleDialog

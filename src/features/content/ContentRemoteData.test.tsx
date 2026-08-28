@@ -292,9 +292,9 @@ test("shows completion dialog after confirming the final content", async () => {
   await waitFor(() => expect(start).toBeEnabled());
   fireEvent.click(start);
   const help = await screen.findByRole("status", { name: "검수 조작 도움말" });
-  expect(help).toHaveTextContent("휠 이전 · 다음 콘텐츠");
-  expect(help).toHaveTextContent("1 반려 · 위반");
-  expect(help).toHaveTextContent("2 승인 · 위반 허용");
+  expect(help).toHaveTextContent(/마우스 휠\s*이전 \/ 다음/);
+  expect(help).toHaveTextContent(/1\s*숫자 키\s*반려/);
+  expect(help).toHaveTextContent(/2\s*숫자 키\s*승인/);
   expect(help).not.toHaveTextContent("후보 판정:");
   fireEvent.wheel(window, { deltaY: 20 });
   expect(screen.getByRole("status", { name: "검수 조작 도움말" })).toBeInTheDocument();

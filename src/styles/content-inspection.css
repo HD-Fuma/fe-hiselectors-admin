@@ -1266,11 +1266,11 @@ button.fuma-content-inspection-studio__violation-bubble {
   position: relative;
   z-index: 1;
   display: inline-flex;
-  min-height: 42px;
-  padding: 0 var(--hsas-space-6);
+  min-height: 64px;
+  padding: var(--hsas-space-6);
   align-items: center;
   justify-content: flex-start;
-  gap: var(--hsas-space-10);
+  gap: var(--hsas-space-14);
   color: rgb(32 34 36 / 82%);
   font-size: var(--hsas-font-12);
   font-weight: 700;
@@ -1310,18 +1310,47 @@ button.fuma-content-inspection-studio__violation-bubble {
   letter-spacing: -0.02em;
 }
 
+.fuma-content-inspection-studio__session-help-mouse,
 .fuma-content-inspection-studio__session-help kbd {
   display: inline-grid;
-  min-width: 36px;
-  height: 26px;
-  padding: 0 var(--hsas-space-7);
+  width: 52px;
+  height: 52px;
+  flex: none;
+  padding: 0;
   border: 1px solid rgb(32 34 36 / 10%);
-  border-radius: 8px;
+  border-radius: 15px;
+  place-items: center;
+}
+
+.fuma-content-inspection-studio__session-help-mouse {
+  color: #202224;
+  background: rgb(255 255 255 / 34%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 76%), 0 7px 16px rgb(54 65 72 / 10%);
+}
+
+.fuma-content-inspection-studio__session-help kbd {
   color: #fff;
   background: #202224;
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 20%), 0 4px 10px rgb(32 34 36 / 18%);
+  font-size: var(--hsas-font-18);
+}
+
+.fuma-content-inspection-studio__session-help-copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--hsas-space-3);
+}
+
+.fuma-content-inspection-studio__session-help-copy small {
+  color: rgb(32 34 36 / 48%);
   font-size: var(--hsas-font-10);
-  place-items: center;
+  font-weight: 800;
+}
+
+.fuma-content-inspection-studio__session-help-copy strong {
+  color: #202224;
+  font-size: var(--hsas-font-14);
+  font-weight: 800;
 }
 
 .fuma-content-inspection-studio__decision {
