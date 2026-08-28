@@ -1122,6 +1122,12 @@ function proposalHistoryColumns(
 }
 
 function ProposalDeliveryDetail({ proposal }: { proposal: ProposalHistoryEntry }) {
+  const subject = DEFAULT_PROPOSAL_SUBJECT.replaceAll("${creatorName}", proposal.creatorName);
+  const message = DEFAULT_PROPOSAL_MESSAGE.replaceAll("${creatorName}", proposal.creatorName).replaceAll(
+    "${proposalLink}",
+    PROPOSAL_APPLY_BASE_URL,
+  );
+
   return (
     <div className="fuma-detail-panel__content fuma-proposal-delivery-detail">
       <section aria-label="발송 내역" className="fuma-proposal-delivery-detail__section">
@@ -1151,6 +1157,13 @@ function ProposalDeliveryDetail({ proposal }: { proposal: ProposalHistoryEntry }
             <dd>{dateTime(proposal.createdAt)}</dd>
           </div>
         </dl>
+      </section>
+      <section aria-label="제안 내용" className="fuma-proposal-delivery-detail__section">
+        <header>
+          <span>제안 내용</span>
+          <h3>{subject}</h3>
+        </header>
+        <p className="fuma-proposal-delivery-detail__message">{message}</p>
       </section>
     </div>
   );
