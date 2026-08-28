@@ -295,7 +295,7 @@ test("shows completion dialog after confirming the final content", async () => {
   expect(help).toHaveTextContent(/마우스 휠\s*이전 \/ 다음/);
   expect(help).toHaveTextContent(/1\s*숫자 키\s*반려/);
   expect(help).toHaveTextContent(/2\s*숫자 키\s*승인/);
-  expect(help).not.toHaveTextContent("후보 판정:");
+  expect(help).not.toHaveTextContent("항목 판정:");
   fireEvent.wheel(window, { deltaY: 20 });
   expect(screen.getByRole("status", { name: "검수 조작 도움말" })).toBeInTheDocument();
   const approve = await screen.findByRole("button", { name: /최종 승인/ }, { timeout: 3_000 });
@@ -567,15 +567,15 @@ test("loads violations and submits the final judgment in one request", async () 
 
   const report = screen.getByRole("region", { name: "AI 분석" });
   expect(within(report).getByText("광고 표기는 확인됐고 최저가 단정 표현이 있습니다.")).toBeInTheDocument();
-  expect(within(report).getByRole("heading", { name: "검수 근거" })).toBeInTheDocument();
-  expect(within(report).getByText("가이드 위반 후보 ①")).toBeInTheDocument();
+  expect(within(report).getByRole("heading", { name: "위반 내역" })).toBeInTheDocument();
+  expect(within(report).getByText("위반 항목 ①")).toBeInTheDocument();
   expect(within(report).getByText("허위·과장 표현")).toBeInTheDocument();
   expect(within(report).queryByText("게시물 본문(TEXT)")).not.toBeInTheDocument();
   expect(within(report).getByText("광고 수수료 안내문구 표시")).toBeInTheDocument();
   expect(within(report).getByText("제휴링크 누락·불일치")).toBeInTheDocument();
   expect(within(report).getByText("욕설/비속어")).toBeInTheDocument();
   expect(within(report).queryByText("허위/과장 표현")).not.toBeInTheDocument();
-  expect(within(report).getByText("위반 후보 1 · 정상 9")).toBeInTheDocument();
+  expect(within(report).getByText("위반 항목 1 · 정상 9")).toBeInTheDocument();
   const compliantItemsLabel = within(report).getByText("가이드 준수 항목");
   const compliantItems = compliantItemsLabel.closest("details");
   expect(compliantItems).not.toHaveAttribute("open");
@@ -605,10 +605,10 @@ test("loads violations and submits the final judgment in one request", async () 
   expect(reject).toBeDisabled();
   expect(within(finalInspection).getByText("0 / 1")).toBeInTheDocument();
 
-  fireEvent.click(within(report).getByRole("button", { name: /가이드 위반 후보 ①/ }));
+  fireEvent.click(within(report).getByRole("button", { name: /위반 항목 ①/ }));
   expect(document.querySelector('[data-violation-anchor="1"][data-focused="true"]')).not.toBeNull();
 
-  fireEvent.click(within(report).getByRole("button", { name: /가이드 위반 후보 ①/ }));
+  fireEvent.click(within(report).getByRole("button", { name: /위반 항목 ①/ }));
   expect(document.querySelector('[data-violation-anchor="1"][data-focused="true"]')).toBeNull();
 
   fireEvent.click(markViolation);
@@ -639,7 +639,7 @@ test("loads violations and submits the final judgment in one request", async () 
   expect(within(finalInspection).queryByRole("button", { name: "승인" }))
     .not.toBeInTheDocument();
   expect(within(finalInspection).queryByText("① 허위·과장 표현")).not.toBeInTheDocument();
-  expect(within(report).getByText("가이드 위반 후보 ①")).toBeInTheDocument();
+  expect(within(report).getByText("위반 항목 ①")).toBeInTheDocument();
   const confirmationCall = fetchMock.mock.calls.find(([input]) => (
     requestPathname(input) === "/api/admin/contents/901/versions/9010/inspection"
   ));
@@ -726,7 +726,7 @@ test("keeps the inspection viewport fixed when the media carousel moves", async 
     expect(carouselStage).toBeDefined();
     expect(carouselStage?.style.aspectRatio).toBe("");
     const report = screen.getByRole("region", { name: "AI 분석" });
-    fireEvent.click(within(report).getByRole("button", { name: /가이드 위반 후보 ①/ }));
+    fireEvent.click(within(report).getByRole("button", { name: /위반 항목 ①/ }));
     await waitFor(() => expect(
       document.querySelector('[data-violation-anchor="1"][data-focused="true"]'),
     ).not.toBeNull());

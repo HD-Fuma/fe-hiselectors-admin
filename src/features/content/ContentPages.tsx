@@ -1888,10 +1888,10 @@ function MinimalAiAnalysis({
                 <p>요약 정보가 없습니다.</p>
               )}
             </section>
-            <section aria-label="검수 근거" className="fuma-content-inspection-evidence">
+            <section aria-label="위반 내역" className="fuma-content-inspection-evidence">
               <header>
-                <h4>검수 근거</h4>
-                <span>위반 후보 {issues.length} · 정상 {normalItemCount}</span>
+                <h4>위반 내역</h4>
+                <span>위반 항목 {issues.length} · 정상 {normalItemCount}</span>
               </header>
               {issues.length > 0 ? (
                 <ul>
@@ -1906,7 +1906,7 @@ function MinimalAiAnalysis({
                         type="button"
                       >
                         <span className="fuma-content-inspection-evidence__candidate-label">
-                          가이드 위반 후보 {issueOrdinalLabel(issue.ordinal)}
+                          위반 항목 {issueOrdinalLabel(issue.ordinal)}
                         </span>
                         <strong>{issue.title}</strong>
                         {showsInspectionGuideline(issue) ? (
@@ -2042,7 +2042,7 @@ function MinimalFinalInspection({
           <dd>{inspectionPolicyId != null ? `정책 #${inspectionPolicyId}` : "-"}</dd>
         </div>
         <div><dt>검수 상태</dt><dd>{displayedDecision ?? "검수 전"}</dd></div>
-        <div><dt>후보 판정</dt><dd>{judgedCount} / {candidates.length}</dd></div>
+        <div><dt>항목 판정</dt><dd>{judgedCount} / {candidates.length}</dd></div>
       </dl>
       <section className="fuma-minimal-final-inspection__candidates">
         <header><strong>위반 여부 판정</strong><span>{judgedCount}/{candidates.length}</span></header>
@@ -2065,7 +2065,7 @@ function MinimalFinalInspection({
                 type="button"
               >
                 <strong>{issueOrdinalLabel(candidate.ordinal)} {candidate.title}</strong>
-                <small>AI 판정 · 위반 후보</small>
+                <small>AI 판정 · 위반 항목</small>
                 <blockquote>“{candidate.evidence}”</blockquote>
                 <small>{candidate.detail || candidate.source}</small>
               </button>
@@ -2089,7 +2089,7 @@ function MinimalFinalInspection({
         }) : (
             <p><CheckCircle2 aria-hidden="true" size={15} /> {readOnly
               ? "과거 버전은 위반 이력 조회만 가능합니다."
-              : "판정할 위반 후보가 없습니다."}</p>
+              : "판정할 위반 항목이 없습니다."}</p>
         )}
       </section>
       {!readOnly ? (
@@ -3546,14 +3546,14 @@ export function ContentInspectionDetailPage() {
               )}
             </section>
             <section
-              aria-label="검수 근거"
+              aria-label="위반 내역"
               className="fuma-content-inspection-studio__report-evidence"
             >
               <div>
-                <span>검수 근거</span>
+                <span>위반 내역</span>
                 <small>
                   {studioSelectedReportReady && studioReportAnalysis
-                    ? `위반 후보 ${studioReportViolationSignals.length} · 정상 ${studioReportAnalysis.normalItemCount}`
+                    ? `위반 항목 ${studioReportViolationSignals.length} · 정상 ${studioReportAnalysis.normalItemCount}`
                     : "-"}
                 </small>
               </div>
@@ -3581,7 +3581,7 @@ export function ContentInspectionDetailPage() {
                       >
                         <button
                           aria-current={focused}
-                          aria-label={`가이드 위반 후보 ${issueOrdinalLabel(signal.ordinal)} ${signal.title} 위치로 이동`}
+                          aria-label={`위반 항목 ${issueOrdinalLabel(signal.ordinal)} ${signal.title} 위치로 이동`}
                           className="fuma-content-inspection-studio__report-evidence-item"
                           data-focused={focused}
                           onClick={() => focusStudioReportViolation(index, signal.ordinal)}
@@ -3589,7 +3589,7 @@ export function ContentInspectionDetailPage() {
                         >
                           <div>
                             <span className="fuma-content-inspection-evidence__candidate-label">
-                              가이드 위반 후보 {issueOrdinalLabel(signal.ordinal)}
+                              위반 항목 {issueOrdinalLabel(signal.ordinal)}
                             </span>
                             <small data-judgment={judgment ?? "pending"}>
                               {judgment === "violation"
