@@ -288,10 +288,14 @@ test("shows completion dialog after confirming the final content", async () => {
   mockContentApis([contentItem()], detailResponse(), undefined, undefined, confirmationResponse);
   const { router } = renderRoute("/content/inspections");
 
-  const start = await screen.findByRole("button", { name: "검수 시작" }, { timeout: 3_000 });
-  await waitFor(() => expect(start).toBeEnabled());
-  fireEvent.click(start);
+  const card = await screen.findByRole(
+    "button",
+    { name: /API 수정 콘텐츠 검수 시작/ },
+    { timeout: 3_000 },
+  );
+  fireEvent.click(card);
   const help = await screen.findByRole("status", { name: "검수 조작 도움말" });
+  expect(router.state.location.state).toEqual(expect.objectContaining({ inspectionSession: true }));
   expect(help).toHaveTextContent(/마우스 휠\s*이전 \/ 다음/);
   expect(help).toHaveTextContent(/1\s*숫자 키\s*반려/);
   expect(help).toHaveTextContent(/2\s*숫자 키\s*승인/);

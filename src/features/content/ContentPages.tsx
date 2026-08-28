@@ -358,7 +358,7 @@ function CollectionCard({
 
   return (
     <button
-      aria-label={`${content.author} ${content.contentTitle} 검수 상세 보기`}
+      aria-label={`${content.author} ${content.contentTitle} 검수 시작`}
       className="fuma-content-collection__card fuma-creator-card"
       data-content-format={contentCollectionFormatKey(content.contentFormat)}
       onClick={() => onSelect(content)}
@@ -751,7 +751,12 @@ export function ContentInspectionListPage() {
             contents={pageContents}
             onChangeView={(nextViewMode) => updateListParam("view", nextViewMode, "grid")}
             onSelect={(content) => navigate(`/content/inspections/${content.id}`, {
-              state: { content, contents, from: `${location.pathname}${location.search}` },
+              state: {
+                content,
+                contents,
+                from: `${location.pathname}${location.search}`,
+                inspectionSession: true,
+              },
             })}
             totalCount={filteredContents.length}
             viewMode={viewMode}
