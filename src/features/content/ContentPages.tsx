@@ -85,6 +85,7 @@ const CONTENT_INSPECTION_PAGE_SIZE = 20;
 const STUDIO_CONTENT_SLIDE_EXIT_MS = 180;
 const STUDIO_CONTENT_SLIDE_ENTER_MS = 260;
 const STUDIO_HELP_DURATION_MS = 5_000;
+const STUDIO_HISTORY_HINT_DURATION_MS = 3_000;
 type ContentInspectionCategory =
   | "신규 등록"
   | "수정 감지"
@@ -2346,6 +2347,7 @@ export function ContentInspectionDetailPage() {
   const [studioHelpVisible, setStudioHelpVisible] = useState(() => Boolean(
     (location.state as { inspectionSession?: boolean } | null)?.inspectionSession,
   ));
+  const [studioHistoryHintVisible, setStudioHistoryHintVisible] = useState(false);
   const [studioDecision, setStudioDecision] = useState<"approve" | "reject" | null>(null);
   const [studioSelector, setStudioSelector] = useState<SelectorDetail | null>(null);
   const [studioHistoricalContents, setStudioHistoricalContents] = useState<ContentInspectionFixture[]>([]);
@@ -2874,6 +2876,19 @@ export function ContentInspectionDetailPage() {
   }, [routeState?.inspectionSession, studioHelpVisible]);
 
   useEffect(() => {
+    if (!routeState?.inspectionSession || visibleStudioHistoricalContents.length === 0) {
+      setStudioHistoryHintVisible(false);
+      return undefined;
+    }
+    setStudioHistoryHintVisible(true);
+    const timeoutId = window.setTimeout(
+      () => setStudioHistoryHintVisible(false),
+      STUDIO_HISTORY_HINT_DURATION_MS,
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [contentId, routeState?.inspectionSession, visibleStudioHistoricalContents.length]);
+
+  useEffect(() => {
     if (!routeState?.inspectionSession) return undefined;
     const exitSession = (event: globalThis.KeyboardEvent) => {
       const decisionShortcut = event.code === "Digit1" || event.code === "Numpad1" || event.key === "1"
@@ -3248,6 +3263,14 @@ export function ContentInspectionDetailPage() {
                     <p role="alert">{studioHistoryError}</p>
                   ) : displayedStudioHistoricalContent ? (
                     <>
+                      <Tooltip
+                        aria-live="polite"
+                        className="fuma-content-inspection-studio__history-tooltip"
+                        role="status"
+                        visible={studioHistoryHintVisible}
+                      >
+                        카드를 눌러 과거 버전의 검수 리포트를 확인할 수 있습니다
+                      </Tooltip>
                       <div
                         aria-label="과거 콘텐츠 버전 선택"
                         className="fuma-content-inspection-studio__history-tabs"

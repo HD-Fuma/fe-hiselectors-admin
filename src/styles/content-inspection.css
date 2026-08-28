@@ -135,6 +135,25 @@ body:has(.fuma-content-inspection-studio) {
   scroll-snap-align: start;
 }
 
+.fuma-content-inspection-studio__history > .fuma-content-inspection-studio__history-tooltip {
+  --hsas-tooltip-arrow-right: calc(50% - 5px);
+  --hsas-tooltip-background: rgb(32 34 36 / 88%);
+
+  position: absolute;
+  top: calc(var(--hsas-space-24) + var(--hsas-space-18));
+  right: 0;
+  left: 0;
+  z-index: 30;
+  max-width: min(280px, calc(100% - 24px));
+  margin-inline: auto;
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgb(32 34 36 / 22%);
+  text-align: center;
+  white-space: normal;
+  backdrop-filter: blur(14px);
+}
+
 .fuma-content-inspection-studio__history-tabs {
   display: flex;
   width: 100%;
