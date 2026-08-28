@@ -2,9 +2,7 @@ import * as echarts from "echarts/core";
 import {
   BarChart,
   BoxplotChart,
-  EffectScatterChart,
   LineChart,
-  LinesChart,
   PieChart,
   ScatterChart,
 } from "echarts/charts";
@@ -18,9 +16,7 @@ import { CanvasRenderer } from "echarts/renderers";
 echarts.use([
   BarChart,
   BoxplotChart,
-  EffectScatterChart,
   LineChart,
-  LinesChart,
   PieChart,
   ScatterChart,
   DataZoomComponent,
