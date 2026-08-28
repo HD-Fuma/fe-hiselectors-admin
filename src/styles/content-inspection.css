@@ -1580,11 +1580,14 @@ button.fuma-content-inspection-studio__violation-bubble {
   right: var(--studio-edge);
   bottom: 28px;
   z-index: 2;
-  display: grid;
+  display: flex;
   width: min(var(--studio-right-rail), calc(100vw - 56px));
-  padding: 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
+  padding: 12px 15px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  column-gap: 18px;
+  row-gap: 10px;
   border-radius: 23px;
   opacity: 0.38;
   outline: none;
@@ -1597,14 +1600,14 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio__decision button {
   display: inline-flex;
-  width: 100%;
-  height: 58px;
-  padding: 0 14px;
+  width: 128px;
+  height: 46px;
+  padding: 0 12px;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 0;
-  border-radius: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
   font: inherit;
   font-size: 15px;
   font-weight: 700;
@@ -1614,20 +1617,23 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-content-inspection-studio__decision button.is-reject {
-  border-radius: 22px 0 0 22px;
-  color: #fff;
-  background: var(--hsas-status-rejected);
+  border-color: var(--hsas-status-rejected);
+  color: var(--hsas-status-rejected);
+  background: rgb(255 255 255 / 92%);
 }
 
 .fuma-content-inspection-studio__decision button.is-approve {
-  border-left: 1px solid rgb(255 255 255 / 34%);
-  border-radius: 0 22px 22px 0;
-  color: #fff;
-  background: var(--hsas-status-approved);
+  border-color: var(--hsas-status-approved);
+  color: var(--hsas-status-approved);
+  background: rgb(255 255 255 / 92%);
 }
 
-.fuma-content-inspection-studio__decision button:enabled:hover {
-  filter: brightness(0.94);
+.fuma-content-inspection-studio__decision button.is-reject:enabled:hover {
+  background: var(--hsas-status-rejected-bg);
+}
+
+.fuma-content-inspection-studio__decision button.is-approve:enabled:hover {
+  background: var(--hsas-status-approved-bg);
 }
 
 .fuma-content-inspection-studio__decision button:disabled {
@@ -1643,8 +1649,19 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-content-inspection-studio__decision button[aria-pressed="true"] {
-  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 52%);
   transform: none;
+}
+
+.fuma-content-inspection-studio__decision button.is-reject[aria-pressed="true"] {
+  border-color: var(--hsas-status-rejected);
+  color: #fff;
+  background: var(--hsas-status-rejected);
+}
+
+.fuma-content-inspection-studio__decision button.is-approve[aria-pressed="true"] {
+  border-color: var(--hsas-status-approved);
+  color: #fff;
+  background: var(--hsas-status-approved);
 }
 
 .fuma-content-inspection-studio__decision[data-active="true"] button.is-reject:enabled,
@@ -1676,9 +1693,14 @@ button.fuma-content-inspection-studio__violation-bubble {
   line-height: 1;
 }
 
-.fuma-content-inspection-studio__decision button:is(.is-reject, .is-approve) kbd {
-  color: #fff;
-  background: rgb(255 255 255 / 22%);
+.fuma-content-inspection-studio__decision button.is-reject kbd {
+  color: var(--hsas-status-rejected);
+  background: rgb(161 61 61 / 12%);
+}
+
+.fuma-content-inspection-studio__decision button.is-approve kbd {
+  color: var(--hsas-status-approved);
+  background: rgb(30 157 139 / 12%);
 }
 
 .fuma-content-inspection-studio__decision button[aria-pressed="true"] kbd {
