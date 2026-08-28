@@ -1475,7 +1475,6 @@ button.fuma-content-inspection-studio__violation-bubble {
   margin-top: 17px;
   border-color: rgb(30 157 139 / 24%);
   background: linear-gradient(135deg, rgb(255 255 255 / 50%), rgb(232 248 244 / 34%));
-  box-shadow: inset 3px 0 0 rgb(30 157 139 / 48%);
 }
 
 .fuma-content-inspection-studio__report
