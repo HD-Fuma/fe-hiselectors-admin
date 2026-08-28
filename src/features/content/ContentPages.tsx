@@ -1046,10 +1046,20 @@ function StudioViolationBubbleCloud({
     const cloud = cloudRef.current;
     const version = cloud?.closest<HTMLElement>(".fuma-content-inspection-studio__version");
     if (!cloud || !version) return undefined;
+    const profile = placement === "left"
+      ? version.closest<HTMLElement>(".fuma-content-inspection-studio")
+        ?.querySelector<HTMLElement>(".fuma-content-inspection-studio__profile")
+      : null;
     let frameId = 0;
     const positionBubbles = () => {
       cancelAnimationFrame(frameId);
       frameId = requestAnimationFrame(() => {
+        const versionRect = version.getBoundingClientRect();
+        const profileBottom = profile?.getBoundingClientRect().bottom;
+        const cloudTop = profileBottom == null
+          ? 0
+          : Math.max(0, profileBottom + 12 - versionRect.top);
+        cloud.style.top = `${Math.round(cloudTop)}px`;
         const cloudRect = cloud.getBoundingClientRect();
 
         const bubbles = Array.from(
@@ -1120,6 +1130,7 @@ function StudioViolationBubbleCloud({
       : new ResizeObserver(positionBubbles);
     resizeObserver?.observe(version);
     if (card) resizeObserver?.observe(card);
+    if (profile) resizeObserver?.observe(profile);
 
     const mutationObserver = typeof MutationObserver === "undefined" || !card
       ? null
@@ -1138,7 +1149,7 @@ function StudioViolationBubbleCloud({
       version.removeEventListener("scroll", positionBubbles, true);
       window.removeEventListener("resize", positionBubbles);
     };
-  }, [annotationKey]);
+  }, [annotationKey, placement]);
 
   if (bubbleAnnotations.length === 0) return null;
 
