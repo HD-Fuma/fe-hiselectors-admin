@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Select } from "./Controls";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100].map((size) => ({
@@ -34,7 +35,7 @@ export function Pagination({
         onClick={() => onPageChange?.(page - 1)}
         type="button"
       >
-        ‹
+        <ChevronLeft aria-hidden="true" size={19} strokeWidth={2.25} />
       </button>
       <span aria-current="page" className="hsas-pagination__summary">
         {page} / {totalPages} 페이지
@@ -58,7 +59,7 @@ export function Pagination({
         onClick={() => onPageChange?.(page + 1)}
         type="button"
       >
-        ›
+        <ChevronRight aria-hidden="true" size={19} strokeWidth={2.25} />
       </button>
     </nav>
   );

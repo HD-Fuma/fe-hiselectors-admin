@@ -108,6 +108,14 @@ function trendDateLabel(recordedAt: string | undefined) {
   return month && day ? `${month}.${day}` : recordedAt;
 }
 
+function dateInputValue(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
 function ContentTableTrendChart({ content }: { content: ContentInfluence }) {
   const dates = [...new Set([
     ...content.viewsTrend.map((point) => point.recordedAt),
@@ -263,9 +271,11 @@ function ContentOverview({
   uploadSummaryLoading?: boolean;
 }) {
   const [cohortChartMode, setCohortChartMode] = useState<CohortChartMode>("all");
-  const sortedContentDates = [...contents].map((content) => content.publishedAt).sort();
-  const defaultPeriodStart = sortedContentDates[0] ?? "";
-  const defaultPeriodEnd = sortedContentDates.at(-1) ?? "";
+  const defaultPeriodEndDate = new Date();
+  const defaultPeriodStartDate = new Date(defaultPeriodEndDate);
+  defaultPeriodStartDate.setDate(defaultPeriodStartDate.getDate() - 13);
+  const defaultPeriodStart = dateInputValue(defaultPeriodStartDate);
+  const defaultPeriodEnd = dateInputValue(defaultPeriodEndDate);
   const [periodStart, setPeriodStart] = useState(defaultPeriodStart);
   const [periodEnd, setPeriodEnd] = useState(defaultPeriodEnd);
   const [appliedPeriod, setAppliedPeriod] = useState({
@@ -888,7 +898,7 @@ function ContentPerformanceResults({
   onPageChange: (page: number) => void;
   page: number;
 }) {
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [sortBy, setSortBy] = useState<ContentPerformanceSort>("latest");
   const [selectedContent, setSelectedContent] = useState<ContentInfluence | null>(null);
   const [pageSize, setPageSize] = useState(CONTENT_PERFORMANCE_PAGE_SIZE);

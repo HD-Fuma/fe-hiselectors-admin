@@ -1,5 +1,11 @@
 import * as echarts from "echarts/core";
-import { BarChart, BoxplotChart, LineChart, PieChart, ScatterChart } from "echarts/charts";
+import {
+  BarChart,
+  BoxplotChart,
+  LineChart,
+  PieChart,
+  ScatterChart,
+} from "echarts/charts";
 import {
   DataZoomComponent,
   GridComponent,

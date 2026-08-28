@@ -90,23 +90,14 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   grid-column: 1;
 }
 
-.fuma-dashboard-card--active {
-  grid-column: 3;
-  grid-row: 1;
-}
-
-.fuma-dashboard-card--generation {
-  grid-column: 4;
-  grid-row: 1;
-}
-
-.fuma-dashboard-card--kpi {
+.fuma-dashboard-card--daily {
   grid-column: span 1;
+  align-self: stretch;
 }
 
 .fuma-dashboard-card--trend {
   grid-column: 3 / span 2;
-  grid-row: 2;
+  grid-row: 1;
 }
 
 .fuma-dashboard-card > header {
@@ -238,33 +229,18 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   font-size: var(--hsas-font-9);
 }
 
-.fuma-dashboard__platform-breakdown {
-  display: grid;
-  margin: 0 0 var(--hsas-space-14);
-  padding-top: var(--hsas-space-10);
-  border-top: 1px solid rgb(255 255 255 / 58%);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--hsas-space-12);
+.fuma-dashboard-card--daily .fuma-dashboard__breakdown dt {
+  font-size: var(--hsas-font-13);
 }
 
-.fuma-dashboard__platform-breakdown > div {
-  min-width: 0;
+.fuma-dashboard-card--daily .fuma-dashboard__breakdown dd {
+  font-size: var(--hsas-font-28);
+  font-weight: 700;
+  line-height: 1;
 }
 
-.fuma-dashboard__platform-breakdown > div > strong {
-  display: block;
-  margin-bottom: var(--hsas-space-4);
-  overflow: hidden;
-  font-size: var(--hsas-font-10);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fuma-dashboard__platform-breakdown .fuma-dashboard__breakdown {
-  grid-template-columns: minmax(0, 1fr);
-  margin: 0;
-  padding: 0;
-  border-top: 0;
+.fuma-dashboard-card--daily .fuma-dashboard__breakdown small {
+  font-size: var(--hsas-font-11);
 }
 
 .fuma-dashboard-inspection__focus {
@@ -335,6 +311,25 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   justify-content: flex-end;
 }
 
+.fuma-dashboard-card--daily > .fuma-dashboard__breakdown {
+  margin-top: var(--hsas-space-14);
+}
+
+.fuma-dashboard-card--daily > header strong {
+  display: block;
+  white-space: pre-line;
+}
+
+.fuma-dashboard-card--daily .fuma-dashboard__metric {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+}
+
+.fuma-dashboard-card--daily .fuma-dashboard__metric strong:only-child {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
 .fuma-dashboard-trend {
   display: grid;
   gap: var(--hsas-space-12);
@@ -361,12 +356,12 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
 .fuma-dashboard-trend__latest i {
   grid-row: 1 / span 2;
   width: 18px;
-  border-top: 3px solid #111111;
+  border-top: 3px solid var(--hsas-teal);
   border-radius: 999px;
 }
 
 .fuma-dashboard-trend__latest .is-settlement i {
-  border-top-color: #5f6368;
+  border-top-color: var(--hsas-color-accent-pink);
   border-top-style: dashed;
   border-top-width: 2px;
 }

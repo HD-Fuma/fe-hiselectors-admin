@@ -19,7 +19,7 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { SocialAccountCell } from "../../components/ui/SocialAccountCell";
 import { Tooltip } from "../../components/ui/Tooltip";
-import { formatCompactCount, formatNumber } from "../../lib/formatters";
+import { formatNumber } from "../../lib/formatters";
 import { CREATOR_POOL_RESET_EVENT } from "../../lib/creatorPoolEvents";
 import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
@@ -30,11 +30,9 @@ import {
   categoryLabel,
   CREATOR_CATEGORY_OPTIONS,
   getAdminProposals,
-  getCreator,
   getCreators,
   postAdminProposal,
   runCreatorDiscovery,
-  type CreatorDetail,
   type CreatorProfileFixture,
   type CreatorSummary,
   type ProposalHistoryEntry,
@@ -43,13 +41,15 @@ import {
 const PROPOSAL_PAGE_SIZE = 20;
 const PROPOSAL_LIST_FETCH_SIZE = 100;
 const CREATOR_LIST_PAGE_SIZE = 20;
-const DEFAULT_PROPOSAL_SUBJECT = "[셀렉터스] ${creatorName}님, 크리에이터 활동을 제안드립니다";
+const DEFAULT_PROPOSAL_SUBJECT = "[셀렉터스 지원 제안] ${creatorName}님께 지원을 제안드립니다";
 const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
-셀렉터스 운영팀입니다.
+더현대Hi 셀렉터스 운영팀입니다.
 
-\${creatorName}님의 콘텐츠를 관심 있게 보고, 셀렉터스 활동을 제안드리고자 연락드립니다.
+\${creatorName}님의 콘텐츠를 관심 있게 보고, 셀렉터스 지원을 제안드리고자 연락드립니다.
 
 셀렉터스는 크리에이터의 개성과 전문성을 바탕으로 다양한 상품과 브랜드를 소개하는 크리에이터 파트너 프로그램입니다.
+
+본 메일은 셀렉터스 활동 지원을 제안드리는 안내입니다.
 
 [제안 내용]
 - 주요 캠페인 및 콘텐츠 협업
@@ -60,7 +60,7 @@ const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
 \${proposalLink}
 
 감사합니다.
-셀렉터스 운영팀 드림`;
+더현대Hi 셀렉터스 운영팀 드림`;
 
 const CREATOR_PLATFORM_OPTIONS = [
   { label: "전체", value: "" },
@@ -160,10 +160,8 @@ function creatorHandle(creator: CreatorIdentity) {
 
 function CreatorAccountCell({
   creator,
-  onOpen,
 }: {
   creator: CreatorSummary;
-  onOpen: (creator: CreatorSummary) => void;
 }) {
   const accountName = creatorDisplayName(creator);
   const accountMeta = creator.snsCode === "YOUTUBE" ? creator.accountId : creatorHandle(creator);
@@ -174,7 +172,6 @@ function CreatorAccountCell({
     <SocialAccountCell
       displayName={accountName}
       handle={accountMeta}
-      onOpen={() => onOpen(creator)}
       platform={platform}
       profileImageUrl={creator.profileImageUrl ?? ""}
       profileUrl={href}
@@ -193,14 +190,13 @@ function PlatformLabel({ platform }: { platform: CreatorProfileFixture["platform
 
 function creatorColumns(
   categoryOptions: readonly { label: string; value: string }[],
-  onOpen: (creator: CreatorSummary) => void,
 ): DenseTableColumn<CreatorSummary>[] {
   return [
   {
     key: "creatorName",
     header: "계정",
     width: 220,
-    render: (creator) => <CreatorAccountCell creator={creator} onOpen={onOpen} />,
+    render: (creator) => <CreatorAccountCell creator={creator} />,
   },
   {
     id: "categories",
@@ -253,10 +249,6 @@ const PROPOSAL_VARIABLE_LABELS: Record<string, string> = {
 const PROPOSAL_APPLY_BASE_URL = "https://hiselectors.shop/apply";
 const PROPOSAL_VARIABLE_PATTERN = /\$\{(\w+)\}/g;
 
-function proposalLinkFor(creator: CreatorSummary) {
-  return `${PROPOSAL_APPLY_BASE_URL}?creatorId=${creator.id}`;
-}
-
 /** ${creatorName} 같은 코드 표기를 실제 값(대상 정보·로그인한 담당자 정보)이나 남은 항목은 안내 칩으로 바꿔 보여준다. */
 function renderProposalPreview(text: string, creator: CreatorSummary) {
   const adminName = getAdministratorSession()?.name ?? null;
@@ -277,7 +269,7 @@ function renderProposalPreview(text: string, creator: CreatorSummary) {
     } else if (variableName === "proposalLink") {
       nodes.push(
         <strong className="fuma-proposal-preview__value" key={key++}>
-          {proposalLinkFor(creator)}
+          {PROPOSAL_APPLY_BASE_URL}
         </strong>,
       );
     } else if (variableName === "adminName" && adminName) {
@@ -545,210 +537,13 @@ export function CreatorTestPage() {
   );
 }
 
-function shortDate(value: string | null | undefined) {
-  return value ? value.slice(0, 10).replaceAll("-", ".") : "-";
-}
-
-function instagramProfileUrl(handle: string | null) {
-  const username = handle?.replace(/^@/, "") ?? "";
-  return /^[A-Za-z0-9._]{1,30}$/.test(username)
-    ? `https://www.instagram.com/${encodeURIComponent(username)}`
-    : null;
-}
-
-function instagramConnectionLabel(confidence: number | null) {
-  if (confidence === null) return "발견되지 않음";
-  if (confidence >= 0.95) return "프로필 URL에서 발견";
-  if (confidence >= 0.75) return "채널 소개에서 발견 · 확인 필요";
-  return "채널 멘션에서 발견 · 확인 필요";
-}
-
-function CreatorProfilePanel({
-  categoryOptions,
-  creator,
-  onClose,
-  onProposalComplete,
-}: {
-  categoryOptions: readonly { label: string; value: string }[];
-  creator: CreatorSummary;
-  onClose: () => void;
-  onProposalComplete: () => void;
-}) {
-  const [proposalOpen, setProposalOpen] = useState(false);
-  const [proposalRequested, setProposalRequested] = useState(false);
-  const [result, setResult] = useState<{
-    creatorId: number;
-    detail: CreatorDetail | null;
-    error: string;
-  } | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    getCreator(creator.id, controller.signal).then((detail) => {
-      if (!controller.signal.aborted) setResult({ creatorId: creator.id, detail, error: "" });
-    }).catch((reason: unknown) => {
-      if (!controller.signal.aborted) {
-        setResult({
-          creatorId: creator.id,
-          detail: null,
-          error: reason instanceof Error ? reason.message : "크리에이터 정보를 불러오지 못했습니다.",
-        });
-      }
-    });
-    return () => controller.abort();
-  }, [creator.id]);
-
-  const currentResult = result?.creatorId === creator.id ? result : null;
-  const detail = currentResult?.detail ?? null;
-  const loading = currentResult === null;
-  const displayName = detail ? creatorDisplayName(detail) : creatorDisplayName(creator);
-  const profileUrl = detail ? creatorProfileUrl(detail) : creatorProfileUrl(creator);
-  const connectedInstagramUrl = detail?.snsCode === "YOUTUBE"
-    ? instagramProfileUrl(detail.igHandle)
-    : null;
-  const categoryName = visibleCategoryLabel(detail?.category ?? creator.category, categoryOptions);
-  const shares = detail?.categoryShares ?? [];
-  const shareTotal = shares.reduce((total, share) => total + Number(share.totalShare), 0);
-  const platform = detail ? platformFor(detail.snsCode) : platformFor(creator.snsCode);
-  const audienceLabel = platform === "Instagram" ? "팔로워" : "구독자";
-
-  if (proposalOpen && detail) {
-    return (
-      <>
-        <SidePanel
-          actions={<Button onClick={() => setProposalOpen(false)}>프로필로 돌아가기</Button>}
-          defaultWidth={1160}
-          onClose={onClose}
-          title="제안 발송"
-        >
-          <ProposalComposer creators={[creator]} onComplete={() => setProposalRequested(true)} />
-        </SidePanel>
-        <BubbleDialog
-          actions={<button autoFocus onClick={onProposalComplete} type="button">확인</button>}
-          description="제안 발송 요청을 완료했습니다."
-          open={proposalRequested}
-          title="발송 요청 완료"
-        />
-      </>
-    );
-  }
-
-  return (
-    <SidePanel onClose={onClose} title="크리에이터 상세">
-      <div className="fuma-detail-panel__content fuma-selector-detail-panel fuma-creator-pool-detail-panel">
-        {detail ? (
-          <>
-            <section
-              aria-label="크리에이터 프로필"
-              className="fuma-creator-detail-hero fuma-selector-detail-hero fuma-unified-detail-hero"
-            >
-              <div className="fuma-creator-detail-hero__portrait">
-                <CreatorProfilePhoto
-                  creatorName={displayName}
-                  src={detail.profileImageUrl ?? creator.profileImageUrl ?? ""}
-                />
-                <span className="fuma-creator-detail-hero__platform">
-                  <PlatformIcon platform={platform} />
-                </span>
-              </div>
-              <div className="fuma-creator-detail-hero__content">
-                <div className="fuma-creator-detail-hero__identity">
-                  <div className="fuma-creator-detail-hero__generation">크리에이터 풀</div>
-                  <div className="fuma-creator-detail-hero__title-row"><h2>{displayName}</h2></div>
-                  <div className="fuma-creator-detail-hero__channel">
-                    {profileUrl ? (
-                      <a href={profileUrl} rel="noreferrer" target="_blank">
-                        <strong>{creatorHandle(detail)}</strong> ↗
-                      </a>
-                    ) : <strong>{creatorHandle(detail)}</strong>}
-                  </div>
-                  <div className="fuma-creator-detail-hero__categories">
-                    <strong>{categoryName}</strong>
-                    <span aria-hidden="true">/</span>
-                    <span>{detail.accountId}</span>
-                  </div>
-                </div>
-                <p className="fuma-unified-detail-hero__summary">
-                  풀 등록 {shortDate(detail.registeredAt)} · 최근 업데이트 {shortDate(detail.updatedAt)}
-                </p>
-                <dl className="fuma-creator-detail-hero__metrics">
-                  <div><dt>{audienceLabel}</dt><dd>{detail.followerCount === null ? "-" : formatCompactCount(detail.followerCount)}</dd></div>
-                  <div><dt>90일 활동</dt><dd>{recentActivityLabel(creator.recent90DayContentCount)}</dd></div>
-                  <div><dt>참여율</dt><dd>{detail.engagementRate === null ? "-" : `${detail.engagementRate.toFixed(2)}%`}</dd></div>
-                  <div><dt>최근 콘텐츠</dt><dd>{shortDate(detail.lastContentAt)}</dd></div>
-                </dl>
-              </div>
-            </section>
-
-            <section aria-labelledby="creator-discovery-title" className="fuma-campaign-detail-list-section">
-              <ResultToolbar
-                className="fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar"
-                title="발굴 정보"
-                titleId="creator-discovery-title"
-              />
-              <dl className="fuma-key-value-grid">
-                <div className="fuma-key-value-grid__item"><dt>계정 유형</dt><dd>{detail.brandScore === null ? "판정 정보 없음" : detail.brandScore >= 2 ? "브랜드 계정 확인 필요" : "개인 크리에이터 후보"}</dd></div>
-                <div className="fuma-key-value-grid__item"><dt>최초 발굴</dt><dd>{shortDate(detail.firstDiscoveredAt)}</dd></div>
-                <div className="fuma-key-value-grid__item"><dt>확인 근거</dt><dd>{detail.brandHits || "-"}</dd></div>
-                <div className="fuma-key-value-grid__item"><dt>최근 업데이트</dt><dd>{shortDate(detail.updatedAt)}</dd></div>
-                {detail.snsCode === "YOUTUBE" ? (
-                  <div className="fuma-key-value-grid__item">
-                    <dt>추정 Instagram</dt>
-                    <dd className="fuma-creator-pool-profile__links">
-                      {connectedInstagramUrl ? <a href={connectedInstagramUrl} rel="noreferrer" target="_blank">@{detail.igHandle?.replace(/^@/, "")} ↗</a> : null}
-                      <small>{instagramConnectionLabel(detail.igConfidence)}</small>
-                    </dd>
-                  </div>
-                ) : null}
-              </dl>
-            </section>
-
-            {shares.length > 0 && shareTotal > 0 ? (
-              <section aria-labelledby="creator-category-share-title" className="fuma-campaign-detail-list-section">
-                <ResultToolbar
-                  className="fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar"
-                  meta={<span>총 {shares.length}개 카테고리</span>}
-                  title="카테고리 발굴 비중"
-                  titleId="creator-category-share-title"
-                />
-                <ul className="fuma-creator-pool-profile__shares">
-                  {shares.map((share) => {
-                    const percentage = Math.round((Number(share.totalShare) / shareTotal) * 100);
-                    return (
-                      <li key={share.categoryCode}>
-                        <div><strong>{visibleCategoryLabel(share.categoryCode, categoryOptions)}</strong><span>{percentage}%</span></div>
-                        <progress aria-label={`${visibleCategoryLabel(share.categoryCode, categoryOptions)} 발굴 비중`} max="100" value={percentage} />
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            ) : null}
-
-            <div className="fuma-creator-pool-detail-panel__actions">
-              <Button className="fuma-creator-proposal-action" onClick={() => setProposalOpen(true)} variant="primary">제안 작성</Button>
-            </div>
-          </>
-        ) : (
-          <div aria-live={loading ? "polite" : undefined} role={loading ? "status" : "alert"}>
-            <EmptyState
-              description={loading ? "크리에이터 프로필을 불러오는 중입니다." : currentResult?.error || "요청한 크리에이터 정보를 확인할 수 없습니다."}
-              title={loading ? "프로필을 불러오는 중입니다" : "크리에이터를 찾을 수 없습니다"}
-            />
-          </div>
-        )}
-      </div>
-    </SidePanel>
-  );
-}
-
 export function CreatorListPage() {
   const navigate = useNavigate();
   const buildPoolTooltipId = useId();
+  const discoverySettingsTooltipId = useId();
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [selectedCreators, setSelectedCreators] = useState<Map<number, CreatorSummary>>(new Map());
-  const [profileCreator, setProfileCreator] = useState<CreatorSummary | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(CREATOR_LIST_PAGE_SIZE);
   const [pageData, setPageData] = useState<Awaited<ReturnType<typeof getCreators>> | null>(null);
@@ -758,7 +553,7 @@ export function CreatorListPage() {
   const [discoverySettingsOpen, setDiscoverySettingsOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
   const [proposalRequestedCount, setProposalRequestedCount] = useState(0);
-  const [buildPoolTooltipInitial, setBuildPoolTooltipInitial] = useState(true);
+  const [discoverySettingsTooltipInitial, setDiscoverySettingsTooltipInitial] = useState(true);
   const [buildPoolTooltipHovered, setBuildPoolTooltipHovered] = useState(false);
   const [buildPoolTooltipFocused, setBuildPoolTooltipFocused] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<readonly { label: string; value: string }[]>(
@@ -775,7 +570,7 @@ export function CreatorListPage() {
   ), []);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => setBuildPoolTooltipInitial(false), 2000);
+    const timeoutId = window.setTimeout(() => setDiscoverySettingsTooltipInitial(false), 2000);
     return () => window.clearTimeout(timeoutId);
   }, []);
 
@@ -910,7 +705,7 @@ export function CreatorListPage() {
         />
       ),
     },
-    ...creatorColumns(categoryOptions, setProfileCreator),
+    ...creatorColumns(categoryOptions),
   ];
 
   return (
@@ -978,7 +773,7 @@ export function CreatorListPage() {
                 <Tooltip
                   id={buildPoolTooltipId}
                   placement="top"
-                  visible={buildPoolTooltipInitial || buildPoolTooltipHovered || buildPoolTooltipFocused}
+                  visible={buildPoolTooltipHovered || buildPoolTooltipFocused}
                 >
                   새로운 크리에이터 풀을 구축할 수 있습니다.
                 </Tooltip>
@@ -991,9 +786,22 @@ export function CreatorListPage() {
               >
                 선택 {selectedCreators.size}명 제안 발송
               </Button>
-              <Button aria-haspopup="dialog" onClick={() => setDiscoverySettingsOpen(true)}>
-                발굴 설정
-              </Button>
+              <span className="fuma-creator-pool-build-action">
+                <Button
+                  aria-describedby={discoverySettingsTooltipId}
+                  aria-haspopup="dialog"
+                  onClick={() => setDiscoverySettingsOpen(true)}
+                >
+                  발굴 설정
+                </Button>
+                <Tooltip
+                  id={discoverySettingsTooltipId}
+                  placement="top"
+                  visible={discoverySettingsTooltipInitial}
+                >
+                  크리에이터 발굴 키워드를 설정할 수 있습니다.
+                </Tooltip>
+              </span>
             </>
           )}
           className="fuma-simple-result-toolbar fuma-applicant-result-toolbar fuma-creator-pool-result-toolbar"
@@ -1017,7 +825,6 @@ export function CreatorListPage() {
             <DenseTable
               columns={columns}
               emptyMessage={pageData ? "검색 결과가 없습니다." : "크리에이터를 불러오는 중입니다."}
-              onRowClick={setProfileCreator}
               rowKey={(creator) => creator.id}
               rows={listedCreators}
               selectedRowKeys={[...selectedCreators.keys()]}
@@ -1036,14 +843,6 @@ export function CreatorListPage() {
         />
       </div>
     </section>
-    {profileCreator ? (
-      <CreatorProfilePanel
-        categoryOptions={categoryOptions}
-        creator={profileCreator}
-        onClose={() => setProfileCreator(null)}
-        onProposalComplete={() => navigate("/proposals")}
-      />
-    ) : null}
     {discoverySettingsOpen ? (
       <DiscoverySettingsPanel onClose={() => {
         setDiscoverySettingsOpen(false);
@@ -1110,6 +909,12 @@ function proposalHistoryColumns(
 }
 
 function ProposalDeliveryDetail({ proposal }: { proposal: ProposalHistoryEntry }) {
+  const subject = DEFAULT_PROPOSAL_SUBJECT.replaceAll("${creatorName}", proposal.creatorName);
+  const message = DEFAULT_PROPOSAL_MESSAGE.replaceAll("${creatorName}", proposal.creatorName).replaceAll(
+    "${proposalLink}",
+    PROPOSAL_APPLY_BASE_URL,
+  );
+
   return (
     <div className="fuma-detail-panel__content fuma-proposal-delivery-detail">
       <section aria-label="발송 내역" className="fuma-proposal-delivery-detail__section">
@@ -1127,6 +932,10 @@ function ProposalDeliveryDetail({ proposal }: { proposal: ProposalHistoryEntry }
             <dd>{proposal.email}</dd>
           </div>
           <div>
+            <dt>제안사</dt>
+            <dd>더현대</dd>
+          </div>
+          <div>
             <dt>발송자</dt>
             <dd>{proposal.adminName}</dd>
           </div>
@@ -1135,6 +944,13 @@ function ProposalDeliveryDetail({ proposal }: { proposal: ProposalHistoryEntry }
             <dd>{dateTime(proposal.createdAt)}</dd>
           </div>
         </dl>
+      </section>
+      <section aria-label="제안 내용" className="fuma-proposal-delivery-detail__section">
+        <header>
+          <span>제안 내용</span>
+          <h3>{subject}</h3>
+        </header>
+        <p className="fuma-proposal-delivery-detail__message">{message}</p>
       </section>
     </div>
   );

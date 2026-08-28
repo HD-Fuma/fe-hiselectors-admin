@@ -576,6 +576,7 @@ const GENERATION_COLUMNS: DenseTableColumn<SelectorGeneration>[] = [
   {
     id: "activityPeriod",
     header: "활동 기간",
+    width: 210,
     align: "center",
     render: (generation) => displayDateRange(generation.activityStartDate, generation.activityEndDate),
   },
@@ -679,49 +680,50 @@ function contentLinkLabel(content: SelectorContent) {
   return content.title?.trim() || content.contentUrl.replace(/^https?:\/\/(?:www\.)?/, "");
 }
 
+function contentTypeLabel(contentType: string | null) {
+  if (contentType === "FEED") return "피드";
+  if (contentType === "SHORT_FORM" || contentType === "REELS") return "릴스";
+  if (contentType === "SHORTS") return "숏츠";
+  if (contentType === "LONG_FORM") return "롱폼";
+  return contentType ? "기타" : "-";
+}
+
 const CONTENT_COLUMNS: DenseTableColumn<SelectorContent>[] = [
-  {
-    key: "snsCode",
-    header: "플랫폼",
-    width: 105,
-    align: "center",
-    render: (content) => {
-      const platform = apiPlatform(content.snsCode);
-      return platform ? (
-        <span className="fuma-platform-label">
-          <PlatformIcon platform={platform} />
-          <span aria-hidden="true">{platform}</span>
-        </span>
-      ) : "-";
-    },
-  },
   {
     key: "contentType",
     header: "유형",
     width: 90,
     align: "center",
     render: (content) => content.contentType
-      ? <StatusPill tone="neutral">{content.contentType}</StatusPill>
+      ? <StatusPill tone="neutral">{contentTypeLabel(content.contentType)}</StatusPill>
       : "-",
   },
   {
     key: "contentUrl",
     header: "콘텐츠",
-    align: "center",
-    render: (content) => content.contentUrl
-      ? (
-        <a
-          href={content.contentUrl}
-          rel="noreferrer"
-          target="_blank"
-          title={content.title?.trim() || content.contentUrl}
-        >
-          {contentLinkLabel(content)} ↗
-        </a>
-      )
-      : "-",
+    render: (content) => {
+      const displayName = contentLinkLabel(content);
+      return (
+        <div className="fuma-creator-account-cell">
+          <div className="fuma-creator-account-cell__profile is-static">
+            <span className="fuma-creator-account-cell__identity">
+              <strong>{displayName}</strong>
+            </span>
+          </div>
+          <a
+            aria-label={`${displayName} 원본 콘텐츠 열기 (새 창)`}
+            className="fuma-creator-account-cell__external"
+            href={content.contentUrl}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      );
+    },
   },
-  { key: "createdAt", header: "등록일", width: 135, align: "center", render: (content) => displayDateTime(content.createdAt) },
+  { key: "createdAt", header: "수집일", width: 135, align: "center", render: (content) => displayDateTime(content.createdAt) },
   { key: "viewCount", header: "조회", width: 78, align: "center", render: (content) => displayNumber(content.viewCount) },
   { key: "likeCount", header: "좋아요", width: 78, align: "center", render: (content) => displayNumber(content.likeCount) },
   { key: "commentCount", header: "댓글", width: 78, align: "center", render: (content) => displayNumber(content.commentCount) },
@@ -801,8 +803,10 @@ function SelectorApiDetailContent({
             <div className="fuma-creator-detail-hero__title-row">
               <h2>{detail.nickname}</h2>
             </div>
-            {handle || audienceLabel ? (
+            {platform || handle || audienceLabel ? (
               <div className="fuma-creator-detail-hero__channel">
+                {platform ? <strong>{platform}</strong> : null}
+                {platform && (handle || audienceLabel) ? <span aria-hidden="true">·</span> : null}
                 {handle && channelHref ? (
                   <a href={channelHref} rel="noreferrer" target="_blank">
                     <strong>{handle}</strong>
@@ -817,10 +821,6 @@ function SelectorApiDetailContent({
           </div>
           <dl className="fuma-creator-detail-hero__metrics">
             <div><dt>셀렉터스 코드</dt><dd>{displayText(detail.selectorsCode)}</dd></div>
-            <div>
-              <dt>셀렉터스명</dt>
-              <dd title={detail.nickname || undefined}>{displayText(detail.nickname)}</dd>
-            </div>
             {hideSettlement ? null : (
               <>
                 <div><dt>누적 구매수</dt><dd>{displayCount(settlementSummary?.cumulativePurchaseConversionCount)}</dd></div>

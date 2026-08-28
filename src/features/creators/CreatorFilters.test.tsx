@@ -296,11 +296,15 @@ describe("creator filters", () => {
     expect(within(target).getAllByRole("listitem")).toHaveLength(2);
     expect(within(target).getByText("김서연")).toBeInTheDocument();
     expect(within(target).getByText("Clevr TV")).toBeInTheDocument();
+    expect(within(panel).getByText("https://hiselectors.shop/apply")).toBeInTheDocument();
+    expect(panel).not.toHaveTextContent("?creatorId=");
+    expect(panel).toHaveTextContent("셀렉터스 활동 지원을 제안드리는 안내");
     await user.click(within(panel).getByRole("button", { name: "수정" }));
     const subject = within(panel).getByRole("textbox", { name: "제목" });
     const message = within(panel).getByRole("textbox", { name: "제안 메시지" });
     expect(subject).toHaveAttribute("maxlength", "200");
     expect(message).toHaveAttribute("maxlength", "10000");
+    expect((subject as HTMLInputElement).value).toContain("지원 제안");
     expect((subject as HTMLInputElement).value).toContain("${creatorName}");
     expect((message as HTMLTextAreaElement).value).toContain("${proposalLink}");
     await user.clear(subject);
@@ -588,6 +592,10 @@ describe("proposal history", () => {
     expect(within(table).getByText("김서연")).toBeInTheDocument();
     expect(within(table).getByText("Clevr TV")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await user.click(within(table).getByText("김서연"));
+    const detail = await screen.findByRole("dialog", { name: "발송 내역" });
+    expect(detail).toHaveTextContent("제안사더현대");
   });
 
   test("paginates loaded proposal history on the client", async () => {

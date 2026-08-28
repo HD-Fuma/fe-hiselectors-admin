@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useId, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
@@ -9,7 +9,6 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
 import { FormRow } from "../../components/ui/FormRow";
 import { Pagination } from "../../components/ui/Pagination";
-import { Modal } from "../../components/ui/Modal";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
 import { SearchActions } from "../../components/ui/SearchActions";
 import { SearchPanel } from "../../components/ui/SearchPanel";
@@ -52,7 +51,7 @@ const SELECTOR_SNS_OPTIONS = [
 ];
 const SELECTOR_STATUS_CATEGORIES = [
   { label: "활동중", value: "ACTIVE" },
-  { label: "활동정지", value: "INACTIVE" },
+  { label: "비활성", value: "INACTIVE" },
   { label: "블랙리스트", value: "BLACKLIST" },
 ];
 function cohortStatusTone(
@@ -135,6 +134,7 @@ function validateGeneration(values: GenerationFormValues) {
 }
 
 export function CohortManagementPage() {
+  const createFormId = useId();
   const [cohorts, setCohorts] = useState<Generation[]>([]);
   const [keyword, setKeyword] = useState("");
   const [periodStart, setPeriodStart] = useState("");
@@ -210,7 +210,7 @@ export function CohortManagementPage() {
     setPage(1);
   };
 
-  const openCreateModal = () => {
+  const openCreatePanel = () => {
     overlayRevisionRef.current += 1;
     setNewCohort({
       activityEndDate: "",
@@ -223,7 +223,7 @@ export function CohortManagementPage() {
     setIsCreateOpen(true);
   };
 
-  const closeCreateModal = () => {
+  const closeCreatePanel = () => {
     overlayRevisionRef.current += 1;
     setIsCreateOpen(false);
     setFormError("");
@@ -367,7 +367,7 @@ export function CohortManagementPage() {
           </SearchPanel>
         </div>
         <ChoiceTabs
-          actions={<Button disabled={isCohortLoading || isSaving} onClick={openCreateModal} variant="primary">기수 생성</Button>}
+          actions={<Button disabled={isCohortLoading || isSaving} onClick={openCreatePanel} variant="primary">기수 생성</Button>}
           ariaLabel="기수 상태"
           className="fuma-list-action-toolbar"
           emptyOption={{
@@ -419,21 +419,49 @@ export function CohortManagementPage() {
           totalPages={totalPages}
         />
       </div>
-      <Modal
-        actions={<><Button disabled={isSaving} onClick={closeCreateModal}>취소</Button><Button disabled={isSaving} onClick={createCohort} variant="primary">생성</Button></>}
-        onClose={closeCreateModal}
-        open={isCreateOpen}
-        title="새 기수 생성"
-      >
-        <div className="fuma-cohort-create-form">
-          <FormRow label="기수명" required><TextInput aria-label="기수명" maxLength={30} onChange={(event) => setNewCohort((current) => ({ ...current, generationName: event.target.value }))} required value={newCohort.generationName} /></FormRow>
-          <FormRow label="모집 시작일" required><TextInput aria-label="모집 시작일" max={newCohort.endDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, startDate: event.target.value }))} required type="date" value={newCohort.startDate} /></FormRow>
-          <FormRow label="모집 종료일" required><TextInput aria-label="모집 종료일" min={newCohort.startDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, endDate: event.target.value }))} required type="date" value={newCohort.endDate} /></FormRow>
-          <FormRow label="활동 시작일" required><TextInput aria-label="활동 시작일" max={newCohort.activityEndDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, activityStartDate: event.target.value }))} required type="date" value={newCohort.activityStartDate} /></FormRow>
-          <FormRow label="활동 종료일" required><TextInput aria-label="활동 종료일" min={newCohort.activityStartDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, activityEndDate: event.target.value }))} required type="date" value={newCohort.activityEndDate} /></FormRow>
-        </div>
-        {formError ? <p role="alert">{formError}</p> : null}
-      </Modal>
+      {isCreateOpen ? (
+        <SidePanel
+          actions={(
+            <>
+              <Button disabled={isSaving} onClick={closeCreatePanel}>취소</Button>
+              <Button disabled={isSaving} form={createFormId} type="submit" variant="primary">
+                {isSaving ? "생성 중..." : "생성"}
+              </Button>
+            </>
+          )}
+          onClose={closeCreatePanel}
+          title="새 기수 생성"
+        >
+          <div className="fuma-detail-panel__content fuma-campaign-editor-panel">
+            {formError ? <p role="alert">{formError}</p> : null}
+            <form
+              className="fuma-campaign-editor"
+              id={createFormId}
+              onSubmit={(event) => {
+                event.preventDefault();
+                void createCohort();
+              }}
+            >
+              <header className="fuma-campaign-editor__intro">
+                <div>
+                  <strong>새 기수 정보</strong>
+                  <span>기수명, 모집 기간과 활동 기간을 설정합니다.</span>
+                </div>
+              </header>
+              <section className="fuma-campaign-form-section">
+                <header><h3>기본 정보</h3></header>
+                <div className="fuma-campaign-form">
+                  <FormRow label="기수명" required><TextInput aria-label="기수명" maxLength={30} onChange={(event) => setNewCohort((current) => ({ ...current, generationName: event.target.value }))} required value={newCohort.generationName} /></FormRow>
+                  <FormRow label="모집 시작일" required><TextInput aria-label="모집 시작일" max={newCohort.endDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, startDate: event.target.value }))} required type="date" value={newCohort.startDate} /></FormRow>
+                  <FormRow label="모집 종료일" required><TextInput aria-label="모집 종료일" min={newCohort.startDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, endDate: event.target.value }))} required type="date" value={newCohort.endDate} /></FormRow>
+                  <FormRow label="활동 시작일" required><TextInput aria-label="활동 시작일" max={newCohort.activityEndDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, activityStartDate: event.target.value }))} required type="date" value={newCohort.activityStartDate} /></FormRow>
+                  <FormRow label="활동 종료일" required><TextInput aria-label="활동 종료일" min={newCohort.activityStartDate || undefined} onChange={(event) => setNewCohort((current) => ({ ...current, activityEndDate: event.target.value }))} required type="date" value={newCohort.activityEndDate} /></FormRow>
+                </div>
+              </section>
+            </form>
+          </div>
+        </SidePanel>
+      ) : null}
       {detailCohort ? (
         <SidePanel
           actions={editingCohort ? (
@@ -534,7 +562,7 @@ const SELECTOR_COLUMNS: DenseTableColumn<SelectorSummary>[] = [
     header: "활동 상태",
     width: 88,
     align: "center",
-    render: (selector) => <StatusPill tone={selectorListStatusTone(selector.roleId)}>{selector.roleName || selector.roleId}</StatusPill>,
+    render: (selector) => <StatusPill tone={selectorListStatusTone(selector.roleId)}>{selector.roleId === "INACTIVE" ? "비활성" : selector.roleName || selector.roleId}</StatusPill>,
   },
   { key: "createdAt", header: "등록일", width: 104, align: "center", render: (selector) => selector.createdAt?.slice(0, 10) || "-" },
 ];
@@ -554,9 +582,10 @@ function prefetchSelectorDetail(id: number) {
 }
 type SelectorViewMode = "pool" | "table";
 
-export function SelectorOverviewPage() {
+export function SelectorOverviewPage({ initialViewMode }: { initialViewMode?: SelectorViewMode } = {}) {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<SelectorViewMode>("pool");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewMode: SelectorViewMode = initialViewMode ?? (searchParams.get("view") === "table" ? "table" : "pool");
   // 버블에서 고른 셀렉터스는 화면 이동 없이 가운데 모달로 보여준다.
   const [poolDetail, setPoolDetail] = useState<{
     id: number;
@@ -574,18 +603,25 @@ export function SelectorOverviewPage() {
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(SELECTOR_PAGE_SIZE);
-  const [pageData, setPageData] = useState<SpringPage<SelectorSummary> | null>(null);
-  const [listError, setListError] = useState("");
+  const [pageDataByView, setPageDataByView] = useState<
+    Record<SelectorViewMode, SpringPage<SelectorSummary> | null>
+  >({ pool: null, table: null });
+  const [listErrorByView, setListErrorByView] = useState<Record<SelectorViewMode, string>>({
+    pool: "",
+    table: "",
+  });
   const [generations, setGenerations] = useState<SelectorFilterGeneration[]>([]);
   const selectorListTitle = selectedStatus === "ACTIVE"
     ? "활동 중인 셀렉터스 목록"
     : selectedStatus === "INACTIVE"
-      ? "활동 정지 셀렉터스 목록"
+      ? "비활성 셀렉터스 목록"
       : selectedStatus === "BLACKLIST"
         ? "블랙리스트 목록"
         : "셀렉터스 목록";
   // 버블 뷰는 상태 필터가 없는 전체 목록에서만 사용한다.
   const activeView: SelectorViewMode = selectedStatus ? "table" : viewMode;
+  const pageData = pageDataByView[activeView];
+  const listError = listErrorByView[activeView];
 
   useEffect(() => {
     const controller = new AbortController();
@@ -605,11 +641,14 @@ export function SelectorOverviewPage() {
       page: page - 1,
       size: activeView === "pool" ? POOL_PAGE_SIZE : pageSize,
     }, controller.signal).then((result) => {
-      setPageData(result);
-      setListError("");
+      setPageDataByView((current) => ({ ...current, [activeView]: result }));
+      setListErrorByView((current) => ({ ...current, [activeView]: "" }));
     }).catch((reason: unknown) => {
       if (!controller.signal.aborted) {
-        setListError(reason instanceof Error ? reason.message : "셀렉터스 목록 조회에 실패했습니다.");
+        setListErrorByView((current) => ({
+          ...current,
+          [activeView]: reason instanceof Error ? reason.message : "셀렉터스 목록 조회에 실패했습니다.",
+        }));
       }
     });
     return () => controller.abort();
@@ -684,39 +723,41 @@ export function SelectorOverviewPage() {
             </FilterField>
           </SearchPanel>
         </div>
-        {activeView === "table" ? (
-          <ChoiceTabs
-            ariaLabel="활동 상태"
-            className="fuma-selector-status-filter"
-            emptyOption={{
-              label: "전체",
-              onSelect: () => {
-                setSelectedStatus(null);
-                setPage(1);
-              },
-            }}
-            onChange={(status) => {
-              setSelectedStatus(status);
-              setPage(1);
-            }}
-            options={SELECTOR_STATUS_CATEGORIES}
-            value={selectedStatus}
-          />
-        ) : null}
-        <ResultToolbar
-          actions={selectedStatus ? null : (
+        <ChoiceTabs
+          actions={(
             <ViewModeToggle
               gridLabel="버블"
               listLabel="목록"
               onChange={(mode) => {
-                setViewMode(mode === "grid" ? "pool" : "table");
+                const nextView = mode === "grid" ? "pool" : "table";
+                const nextParams = new URLSearchParams(searchParams);
+                if (nextView === "pool") nextParams.delete("view");
+                else nextParams.set("view", "table");
+                setSearchParams(nextParams, { replace: true });
+                if (nextView === "pool") setSelectedStatus(null);
                 setPage(1);
               }}
-              value={viewMode === "pool" ? "grid" : "list"}
+              value={activeView === "pool" ? "grid" : "list"}
             />
           )}
-          className="fuma-simple-result-toolbar"
-          title={selectedStatus ? selectorListTitle : null}
+          ariaLabel="활동 상태"
+          className="fuma-selector-status-filter fuma-list-action-toolbar"
+          emptyOption={{
+            label: "전체",
+            onSelect: () => {
+              setSelectedStatus(null);
+              setPage(1);
+            },
+          }}
+          onChange={(status) => {
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.set("view", "table");
+            setSearchParams(nextParams, { replace: true });
+            setSelectedStatus(status);
+            setPage(1);
+          }}
+          options={SELECTOR_STATUS_CATEGORIES}
+          value={selectedStatus}
         />
         {listError ? (
           <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
@@ -735,7 +776,7 @@ export function SelectorOverviewPage() {
             <DenseTable
               columns={SELECTOR_COLUMNS}
               emptyMessage={pageData ? "셀렉터스가 없습니다." : "셀렉터스를 불러오는 중입니다."}
-              onRowClick={(selector) => navigate(`/selectors/${selector.id}`)}
+              onRowClick={(selector) => navigate(`/selectors/${selector.id}?view=table`)}
               rowKey={(selector) => selector.id}
               rows={pageData?.content ?? []}
             />
@@ -758,7 +799,6 @@ export function SelectorOverviewPage() {
         <SelectorDetailPanel
           hideSettlement
           onClose={() => setPoolDetail(null)}
-          presentation="modal"
           selectorDetail={poolDetail.detail}
           selectorDetailError={poolDetail.error}
           selectorDetailLoading={!poolDetail.detail && !poolDetail.error}
@@ -772,6 +812,7 @@ export function SelectorOverviewPage() {
 export function SelectorDetailPage() {
   const { selectorId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [detailState, setDetailState] = useState<{
     id: number;
     selector: SelectorDetail | null;
@@ -817,9 +858,9 @@ export function SelectorDetailPage() {
 
   return (
     <>
-      <SelectorOverviewPage />
+      <SelectorOverviewPage initialViewMode="table" />
       <SelectorDetailPanel
-        onClose={() => navigate("/selectors")}
+        onClose={() => navigate({ pathname: "/selectors", search: searchParams.toString() })}
         selectorDetail={currentDetailState?.selector}
         selectorDetailError={invalidSelectorId
           ? "요청한 셀렉터스 ID가 올바르지 않습니다."

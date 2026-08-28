@@ -142,6 +142,10 @@ function loadImages(nodes: PoolNode[]) {
   return images;
 }
 
+function bubbleShellRadius(radius: number) {
+  return radius + Math.max(12, radius * 0.32);
+}
+
 /** ponytail: O(n^2) 반발력. 노드가 수백 개를 넘어가면 공간 해싱으로 교체. */
 function step(nodes: PoolNode[], categories: PoolCategory[]) {
   for (let index = 0; index < nodes.length; index += 1) {
@@ -159,7 +163,7 @@ function step(nodes: PoolNode[], categories: PoolCategory[]) {
       const px = peer.x - node.x;
       const py = peer.y - node.y;
       const gap = Math.hypot(px, py) || 0.001;
-      const minimum = node.r + peer.r + 12;
+      const minimum = bubbleShellRadius(node.r) + bubbleShellRadius(peer.r) + 20;
       if (gap >= minimum) continue;
       const push = ((minimum - gap) / minimum) * 0.9;
       node.vx -= (px / gap) * push;
@@ -230,66 +234,33 @@ function drawBubble(
   radius: number,
   image: HTMLImageElement | undefined,
 ) {
-  const shellRadius = radius + 10;
+  const shellRadius = bubbleShellRadius(radius);
 
-  // 확인 팝업 재질은 유지하되 실루엣은 흐트러지지 않는 원형으로 잡는다.
+  // 프로필 바깥을 반투명한 흰색 유리 링으로 감싼다.
   context.save();
-  context.shadowColor = "rgb(54 65 72 / 12%)";
-  context.shadowBlur = 20;
-  context.shadowOffsetY = 7;
+  context.shadowColor = "rgb(78 102 108 / 14%)";
+  context.shadowBlur = 18;
+  context.shadowOffsetY = 3;
   const glass = context.createRadialGradient(
-    x - shellRadius * 0.38,
-    y - shellRadius * 0.42,
+    x - shellRadius * 0.3,
+    y - shellRadius * 0.34,
     shellRadius * 0.08,
     x,
     y,
-    shellRadius * 1.12,
+    shellRadius,
   );
-  glass.addColorStop(0, "rgb(255 255 255 / 76%)");
-  glass.addColorStop(0.48, "rgb(255 255 255 / 58%)");
-  glass.addColorStop(1, "rgb(255 255 255 / 34%)");
+  glass.addColorStop(0, "rgb(255 255 255 / 94%)");
+  glass.addColorStop(0.58, "rgb(255 255 255 / 80%)");
+  glass.addColorStop(1, "rgb(255 255 255 / 58%)");
   context.fillStyle = glass;
   context.beginPath();
   context.arc(x, y, shellRadius, 0, Math.PI * 2);
   context.fill();
-  context.restore();
-
-  context.save();
-  context.strokeStyle = "rgb(255 255 255 / 78%)";
-  context.lineWidth = 1.4;
+  context.shadowColor = "transparent";
+  context.strokeStyle = "rgb(255 255 255 / 92%)";
+  context.lineWidth = 2;
   context.beginPath();
-  context.arc(x, y, shellRadius - 0.7, 0, Math.PI * 2);
-  context.stroke();
-
-  // 팝업의 inset highlight를 물방울 윗면 반사광으로 옮긴다.
-  context.strokeStyle = "rgb(255 255 255 / 72%)";
-  context.lineCap = "round";
-  context.lineWidth = Math.max(1.5, radius * 0.08);
-  context.beginPath();
-  context.moveTo(x - shellRadius * 0.66, y - shellRadius * 0.12);
-  context.bezierCurveTo(
-    x - shellRadius * 0.62,
-    y - shellRadius * 0.42,
-    x - shellRadius * 0.4,
-    y - shellRadius * 0.7,
-    x - shellRadius * 0.04,
-    y - shellRadius * 0.78,
-  );
-  context.stroke();
-
-  // 밝은 바탕에서도 유리 두께가 보이도록 아래쪽 굴절면만 얇게 남긴다.
-  context.strokeStyle = "rgb(54 65 72 / 10%)";
-  context.lineWidth = 1;
-  context.beginPath();
-  context.moveTo(x + shellRadius * 0.67, y + shellRadius * 0.06);
-  context.bezierCurveTo(
-    x + shellRadius * 0.62,
-    y + shellRadius * 0.43,
-    x + shellRadius * 0.39,
-    y + shellRadius * 0.69,
-    x + shellRadius * 0.04,
-    y + shellRadius * 0.78,
-  );
+  context.arc(x, y, shellRadius - 1, 0, Math.PI * 2);
   context.stroke();
   context.restore();
 
@@ -320,6 +291,14 @@ function drawBubble(
     );
     context.stroke();
   }
+  context.restore();
+
+  context.save();
+  context.strokeStyle = "rgb(255 255 255 / 76%)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.arc(x, y, radius + 1, 0, Math.PI * 2);
+  context.stroke();
   context.restore();
 }
 
@@ -369,7 +348,7 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
     });
     return layoutCategories(counts);
   }, [selectors]);
-  const [dockOpen, setDockOpen] = useState(false);
+  const [dockOpen, setDockOpen] = useState(true);
 
   useEffect(() => {
     selectRef.current = onSelect;
@@ -471,6 +450,11 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         && Math.hypot(node.x - worldX, node.y - worldY) <= node.r + 4
       )) ?? null
     );
+    const hitTestCategory = (worldX: number, worldY: number) => (
+      categories.find((category) => (
+        Math.hypot(category.x - worldX, category.y - worldY) <= CATEGORY_RADIUS * 1.48
+      )) ?? null
+    );
 
     const onPointerDown = (event: PointerEvent) => {
       dragging = true;
@@ -495,13 +479,23 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
       const nextHovered = dragging ? null : hitTest(world.x, world.y);
       if (nextHovered && nextHovered !== hovered) prefetchRef.current?.(nextHovered.selector);
       hovered = nextHovered;
-      canvas.style.cursor = dragging ? "grabbing" : hovered ? "pointer" : "grab";
+      if (dragging) canvas.style.cursor = "grabbing";
+      else canvas.style.cursor = hovered || hitTestCategory(world.x, world.y) ? "pointer" : "grab";
     };
     const onPointerUp = (event: PointerEvent) => {
       if (dragging && moved < 5) {
         const world = toWorld(event.clientX, event.clientY);
         const picked = hitTest(world.x, world.y);
-        if (picked) selectRef.current(picked.selector);
+        if (picked) {
+          selectRef.current(picked.selector);
+        } else {
+          const category = hitTestCategory(world.x, world.y);
+          if (category) {
+            const nextFocus = focusRef.current === category.label ? null : category.label;
+            setFocus(nextFocus);
+            cameraRef.current?.(nextFocus);
+          }
+        }
       }
       dragging = false;
       canvas.releasePointerCapture(event.pointerId);
@@ -860,7 +854,7 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         ))}
       </div>
       <aside
-        aria-label="현재 화면의 셀렉터스"
+        aria-label="현재 보이는 셀렉터스"
         className={`hsas-selector-pool__dock${dockOpen ? "" : " is-collapsed"}`}
         onBlurCapture={() => { dockHoverRef.current = false; }}
         onFocusCapture={() => { dockHoverRef.current = true; }}
@@ -873,7 +867,7 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
           onClick={() => setDockOpen((open) => !open)}
           type="button"
         >
-          <span>{dockOpen ? `화면 속 셀렉터스 ${visible.length}` : "셀렉터스 목록 보기"}</span>
+          <span>{dockOpen ? `현재 보이는 셀렉터스 ${visible.length}명` : "셀렉터스 목록 보기"}</span>
           <span aria-hidden="true">{dockOpen ? "˄" : "˅"}</span>
         </button>
         <div className="hsas-selector-pool__dock-viewport">

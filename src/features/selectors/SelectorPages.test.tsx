@@ -181,7 +181,7 @@ describe("selector api pages", () => {
     const search = await screen.findByRole("search", { name: "검색 조건" }, { timeout: 3000 });
 
     expect(await screen.findByRole("img", { name: "셀렉터스 발견 풀" })).toBeInTheDocument();
-    expect(screen.queryByRole("navigation", { name: "활동 상태" })).not.toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "활동 상태" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("switch", { name: "보기 방식" }));
 
     expect(screen.getByRole("navigation", { name: "활동 상태" })).toBeInTheDocument();
@@ -362,6 +362,8 @@ describe("selector api pages", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "기수 생성" }));
     const modal = await screen.findByRole("dialog", { name: "새 기수 생성" });
+    expect(modal).toHaveAttribute("data-visual-contract", "detail-side-panel");
+    expect(screen.getByRole("region", { name: "기수 목록", hidden: true })).toBeInTheDocument();
     fireEvent.change(within(modal).getByRole("textbox", { name: "기수명" }), { target: { value: "4기" } });
     fireEvent.change(within(modal).getByRole("group", { name: /모집 시작일/ }).querySelector("input")!, { target: { value: "2026-09-01" } });
     fireEvent.change(within(modal).getByRole("group", { name: /모집 종료일/ }).querySelector("input")!, { target: { value: "2026-09-30" } });

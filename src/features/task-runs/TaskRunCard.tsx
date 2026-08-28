@@ -294,7 +294,7 @@ export function TaskRunCard({
 }: TaskRunCardProps) {
   const active = isActiveTaskRun(run);
   const { dismissFromKeyboard, trackProps, trackRef } = useTaskRunDismiss({
-    enabled: !active,
+    enabled: true,
     expanded,
     onDismissAccepted,
     onDismissComplete,
