@@ -898,7 +898,7 @@ function ContentPerformanceResults({
   onPageChange: (page: number) => void;
   page: number;
 }) {
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [sortBy, setSortBy] = useState<ContentPerformanceSort>("latest");
   const [selectedContent, setSelectedContent] = useState<ContentInfluence | null>(null);
   const [pageSize, setPageSize] = useState(CONTENT_PERFORMANCE_PAGE_SIZE);
