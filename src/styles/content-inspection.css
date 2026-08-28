@@ -2300,7 +2300,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-description p {
   color: #0f0f0f;
-  font-size: var(--hsas-font-16);
+  font-size: var(--hsas-font-15);
   line-height: 1.55;
 }
 
