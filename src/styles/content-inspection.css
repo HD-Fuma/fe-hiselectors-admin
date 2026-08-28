@@ -600,9 +600,32 @@ button.fuma-content-inspection-studio__violation-bubble {
   border-radius: 23px;
 }
 
+.fuma-content-inspection-studio__profile-detail-trigger {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.fuma-content-inspection-studio__profile:has(
+  .fuma-content-inspection-studio__profile-detail-trigger:hover
+) {
+  border-color: rgb(32 34 36 / 18%);
+  background: rgb(255 255 255 / 56%);
+}
+
+.fuma-content-inspection-studio__profile-detail-trigger:focus-visible {
+  outline: 3px solid rgb(32 34 36 / 24%);
+  outline-offset: 2px;
+}
+
 .fuma-content-inspection-studio__profile-identity {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 11px;
 }
 
@@ -637,11 +660,10 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-content-inspection-studio__profile-identity strong {
-  overflow: hidden;
   font-size: 18px;
   line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .fuma-content-inspection-studio__profile-meta {
@@ -661,6 +683,8 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-content-inspection-studio__profile-meta > a {
+  position: relative;
+  z-index: 2;
   text-decoration: none;
 }
 

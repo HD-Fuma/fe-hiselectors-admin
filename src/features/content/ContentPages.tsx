@@ -3186,6 +3186,7 @@ export function ContentInspectionDetailPage() {
 
   if (routeState?.inspectionSession) {
     const snsAccount = studioSelector?.snsAccount;
+    const selectorNickname = studioSelector?.nickname ?? content?.author ?? "-";
     const accountId = snsAccount?.accountId ?? content?.accountId;
     const snsId = accountId ?? content?.author ?? "-";
     const snsIdLabel = snsId.startsWith("http")
@@ -3292,25 +3293,33 @@ export function ContentInspectionDetailPage() {
         {content ? (
           <>
             <aside aria-label="셀렉터스 프로필" className="fuma-content-inspection-studio__profile">
+              {content.selectorsId ? (
+                <button
+                  aria-label={`${selectorNickname} 셀렉터스 상세 보기`}
+                  className="fuma-content-inspection-studio__profile-detail-trigger"
+                  onClick={() => navigate(`/selectors/${content.selectorsId}`)}
+                  type="button"
+                />
+              ) : null}
               <div className="fuma-content-inspection-studio__profile-identity">
                 <span className="fuma-content-inspection-studio__profile-avatar">
                   {(snsAccount?.profileImageUrl ?? content.profileImageUrl)
                     ? (
                         <CreatorProfilePhoto
-                          creatorName={studioSelector?.nickname ?? content.author}
+                          creatorName={selectorNickname}
                           src={snsAccount?.profileImageUrl ?? content.profileImageUrl ?? ""}
                         />
                       )
                     : (
                         <UserRound
-                          aria-label={`${studioSelector?.nickname ?? content.author} 프로필 이미지 없음`}
+                          aria-label={`${selectorNickname} 프로필 이미지 없음`}
                           role="img"
                           size={24}
                         />
                       )}
                 </span>
                 <div>
-                  <strong>{studioSelector?.nickname ?? content.author}</strong>
+                  <strong>{selectorNickname}</strong>
                   <span className="fuma-content-inspection-studio__profile-meta">
                     {profileUrl ? (
                       <a href={profileUrl} rel="noreferrer" target="_blank">
