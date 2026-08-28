@@ -297,8 +297,7 @@ test("shows completion dialog after confirming the final content", async () => {
   expect(help).toHaveTextContent("2 승인 · 위반 허용");
   expect(help).not.toHaveTextContent("후보 판정:");
   fireEvent.wheel(window, { deltaY: 20 });
-  await waitFor(() => expect(screen.queryByRole("status", { name: "검수 조작 도움말" }))
-    .not.toBeInTheDocument());
+  expect(screen.getByRole("status", { name: "검수 조작 도움말" })).toBeInTheDocument();
   const approve = await screen.findByRole("button", { name: /최종 승인/ }, { timeout: 3_000 });
   await waitFor(() => expect(approve).toBeEnabled());
   fireEvent.keyDown(window, { code: "Digit2", key: "2" });

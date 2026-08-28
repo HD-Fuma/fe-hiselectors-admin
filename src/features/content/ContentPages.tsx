@@ -13,6 +13,7 @@ import {
   Bookmark,
   Captions,
   CheckCircle2,
+  CircleHelp,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -79,7 +80,7 @@ import { YouTubeShortsCard } from "./YouTubeShortsCard";
 const CONTENT_INSPECTION_PAGE_SIZE = 20;
 const STUDIO_CONTENT_SLIDE_EXIT_MS = 180;
 const STUDIO_CONTENT_SLIDE_ENTER_MS = 260;
-const STUDIO_HELP_DURATION_MS = 4_000;
+const STUDIO_HELP_DURATION_MS = 5_000;
 type ContentInspectionCategory =
   | "신규 등록"
   | "수정 감지"
@@ -2611,18 +2612,11 @@ export function ContentInspectionDetailPage() {
 
   useEffect(() => {
     if (!routeState?.inspectionSession || !studioHelpVisible) return undefined;
-    const dismissHelp = () => setStudioHelpVisible(false);
-    const timeoutId = window.setTimeout(dismissHelp, STUDIO_HELP_DURATION_MS);
-
-    window.addEventListener("pointerdown", dismissHelp);
-    window.addEventListener("keydown", dismissHelp);
-    window.addEventListener("wheel", dismissHelp, { passive: true });
-    return () => {
-      window.clearTimeout(timeoutId);
-      window.removeEventListener("pointerdown", dismissHelp);
-      window.removeEventListener("keydown", dismissHelp);
-      window.removeEventListener("wheel", dismissHelp);
-    };
+    const timeoutId = window.setTimeout(
+      () => setStudioHelpVisible(false),
+      STUDIO_HELP_DURATION_MS,
+    );
+    return () => window.clearTimeout(timeoutId);
   }, [routeState?.inspectionSession, studioHelpVisible]);
 
   useEffect(() => {
@@ -3308,7 +3302,19 @@ export function ContentInspectionDetailPage() {
           </button>
           </div>
         ) : null}
-        {studioHelpVisible ? (
+        <div
+          className="fuma-content-inspection-studio__session-help-control"
+          data-expanded={studioHelpVisible}
+        >
+          <button
+            aria-expanded={studioHelpVisible}
+            aria-label="검수 도움말 보기"
+            className="fuma-content-inspection-studio__session-help-trigger"
+            onClick={() => setStudioHelpVisible(true)}
+            type="button"
+          >
+            <CircleHelp aria-hidden="true" size={22} />
+          </button>
           <Tooltip
             aria-label="검수 조작 도움말"
             className="fuma-content-inspection-studio__report-choice-tooltip fuma-content-inspection-studio__navigation-tooltip fuma-content-inspection-studio__session-help"
@@ -3324,7 +3330,7 @@ export function ContentInspectionDetailPage() {
             <span><kbd>1</kbd> 반려 · 위반</span>
             <span><kbd>2</kbd> 승인 · 위반 허용</span>
           </Tooltip>
-        ) : null}
+        </div>
         <BubbleDialog
           actions={(
             <button
