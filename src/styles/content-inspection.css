@@ -1126,7 +1126,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   cursor: pointer;
 }
 
-.fuma-content-inspection-studio__report-evidence li:has(
+.fuma-content-inspection-studio__report-evidence li[data-focused="false"][data-judgment="pending"]:has(
   > .fuma-content-inspection-studio__report-evidence-item:hover
 ) {
   border-color: rgb(32 34 36 / 22%);
@@ -1181,6 +1181,11 @@ button.fuma-content-inspection-studio__violation-bubble {
   min-width: 0;
   font-size: var(--hsas-font-15);
   line-height: 1.45;
+}
+
+.fuma-content-inspection-studio__report-evidence li[data-judgment="clear"]
+  .fuma-content-inspection-evidence__candidate-label {
+  color: var(--hsas-status-approved);
 }
 
 .fuma-content-inspection-studio__report-evidence li p,
