@@ -77,7 +77,6 @@ html[data-theme='dark'] .fuma-performance-page :is(
   .fuma-selector-performance-report__contribution span,
   .fuma-content-upload-status__formats > p,
   .fuma-selector-dashboard__note,
-  .fuma-selector-dashboard__footnote,
   .fuma-selector-dashboard__kpis dt,
   .fuma-selector-dashboard__kpis p,
   .fuma-selector-dashboard__kpis small,
@@ -1218,14 +1217,11 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(
   font-weight: 800;
 }
 
-.fuma-selector-dashboard__note,
-.fuma-selector-dashboard__footnote {
+.fuma-selector-dashboard__note {
   margin: var(--hsas-space-8) 0 0;
   color: #8b9691;
   font-size: var(--hsas-font-9);
 }
-
-.fuma-selector-dashboard__footnote { margin-top: 0; }
 
 .fuma-selector-dashboard__buckets {
   display: grid;
