@@ -490,7 +490,7 @@ export function DashboardPage() {
 
         <DashboardCard
           className="fuma-dashboard-card--daily"
-          eyebrow="TODAY"
+          eyebrow="CONTENT ACTIVITY"
           title={"오늘 접수된\n콘텐츠"}
         >
           <DashboardBreakdown
@@ -504,7 +504,7 @@ export function DashboardPage() {
 
         <DashboardCard
           className="fuma-dashboard-card--daily"
-          eyebrow="TODAY"
+          eyebrow="DAILY REVENUE"
           title="오늘 발생한 매출"
         >
           <DashboardMetric
