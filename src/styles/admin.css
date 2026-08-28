@@ -3484,6 +3484,10 @@
   background: transparent;
 }
 
+.fuma-creator-account-cell__profile.is-static {
+  cursor: default;
+}
+
 .fuma-creator-account-cell__profile:focus-visible {
   outline: 2px solid var(--hsas-sidebar-active);
   outline-offset: 1px;
