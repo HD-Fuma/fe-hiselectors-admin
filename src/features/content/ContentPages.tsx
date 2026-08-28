@@ -1053,7 +1053,12 @@ function StudioViolationBubbleCloud({
                 `[data-stt-transcript] [data-violation-anchor="${ordinal}"]`,
               )
             : null;
-          const anchor = transcriptAnchor ?? (ordinal
+          const descriptionAnchor = ordinal
+            ? version.querySelector<HTMLElement>(
+                `[data-description-transcript] [data-violation-anchor="${ordinal}"]`,
+              )
+            : null;
+          const anchor = transcriptAnchor ?? descriptionAnchor ?? (ordinal
             ? version.querySelector<HTMLElement>(`[data-violation-anchor="${ordinal}"]`)
             : null);
           const anchorRect = anchor?.getBoundingClientRect();
@@ -1359,10 +1364,12 @@ function MinimalVersionCard({
         return;
       }
       const target = cardRef.current?.querySelector<HTMLElement>(
+        `[data-description-transcript] [data-violation-anchor="${focusedViolation.ordinal}"]`,
+      ) ?? cardRef.current?.querySelector<HTMLElement>(
         `[data-violation-anchor="${focusedViolation.ordinal}"]`,
       );
       const scrollSurface = target?.closest<HTMLElement>(
-        ".fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p",
+        ".fuma-platform-inspection-frame__stt-transcript, .fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p",
       );
       if (target && scrollSurface) scrollWithinSurface(scrollSurface, target, "center");
       target?.focus({ preventScroll: true });
@@ -1370,28 +1377,27 @@ function MinimalVersionCard({
     });
 
     return () => window.cancelAnimationFrame(animationFrame);
-  }, [focusedAnnotation, focusedViolation, focusedViolationRequestKey, visibleIndex]);
+  }, [descriptionExpanded, focusedAnnotation, focusedViolation, focusedViolationRequestKey, visibleIndex]);
 
-  const descriptionToggle = descriptionOverflowing || descriptionExpanded ? (
+  const canToggleDescription = descriptionOverflowing || descriptionExpanded;
+  const descriptionToggle = (
     <button
       aria-controls={descriptionId}
       aria-expanded={descriptionExpanded}
+      aria-hidden={!canToggleDescription}
       className="fuma-platform-inspection-frame__description-toggle"
+      data-visible={canToggleDescription}
+      disabled={!canToggleDescription}
       onClick={(event) => {
         event.stopPropagation();
-        if (!descriptionExpanded && cardRef.current) {
-          cardRef.current.style.setProperty(
-            "--description-card-height",
-            `${cardRef.current.getBoundingClientRect().height}px`,
-          );
-        }
         setDescriptionExpanded((current) => !current);
       }}
+      tabIndex={canToggleDescription ? undefined : -1}
       type="button"
     >
       {descriptionExpanded ? "접기" : "더보기"}
     </button>
-  ) : null;
+  );
 
   return (
     <article
@@ -1428,7 +1434,7 @@ function MinimalVersionCard({
         ))}
         <time>{snapshot.capturedAt}</time>
       </header>
-      <div className="fuma-platform-inspection-frame" inert={sttExpanded}>
+      <div className="fuma-platform-inspection-frame" inert={descriptionExpanded || sttExpanded}>
         {isInstagram ? (
           <div className="fuma-platform-inspection-frame__instagram-header">
             <span className="fuma-platform-inspection-frame__avatar">
@@ -1632,7 +1638,7 @@ function MinimalVersionCard({
               <button aria-label="저장" type="button"><Bookmark aria-hidden="true" size={23} /></button>
             </div>
             <div className="fuma-platform-inspection-frame__instagram-copy">
-              <p id={descriptionId} ref={descriptionRef}>
+              <p ref={descriptionRef}>
                 <b>{handle}</b>{" "}
                 <ViolationHighlightedText
                   annotations={annotations}
@@ -1653,7 +1659,7 @@ function MinimalVersionCard({
             creatorName={content.author}
             handle={handle}
           >
-            <p id={descriptionId} ref={descriptionRef}>
+            <p ref={descriptionRef}>
               <ViolationHighlightedText
                 annotations={annotations}
                 focusedOrdinal={focusedViolation?.ordinal}
@@ -1697,7 +1703,7 @@ function MinimalVersionCard({
             </div>
             <div className="fuma-platform-inspection-frame__youtube-description">
               <strong>{postDate}</strong>
-              <p id={descriptionId} ref={descriptionRef}>
+              <p ref={descriptionRef}>
                 <ViolationHighlightedText
                   annotations={annotations}
                   focusedOrdinal={focusedViolation?.ordinal}
@@ -1712,6 +1718,45 @@ function MinimalVersionCard({
           </div>
         )}
       </div>
+      {descriptionExpanded ? (
+        <section
+          aria-label="콘텐츠 설명"
+          aria-modal="true"
+          className="fuma-platform-inspection-frame__stt-panel fuma-platform-inspection-frame__description-panel"
+          id={descriptionId}
+          role="dialog"
+        >
+          <header>
+            <span>
+              <small>CONTENT TEXT</small>
+              <strong>콘텐츠 설명</strong>
+            </span>
+            <button
+              aria-label="콘텐츠 설명 접기"
+              autoFocus
+              onClick={() => setDescriptionExpanded(false)}
+              type="button"
+            >
+              <X aria-hidden="true" size={18} />
+            </button>
+          </header>
+          <div
+            className="fuma-platform-inspection-frame__stt-transcript"
+            data-description-transcript
+          >
+            <p>
+              <ViolationHighlightedText
+                annotations={annotations}
+                focusedOrdinal={focusedViolation?.ordinal}
+                onSelectViolation={onSelectViolation}
+                showBubbles={showTextBubbles}
+                text={snapshot.text}
+                useStoredIndexes
+              />
+            </p>
+          </div>
+        </section>
+      ) : null}
       {sttExpanded ? (
         <section
           aria-label="STT 추출물"
@@ -2916,7 +2961,7 @@ export function ContentInspectionDetailPage() {
 
       const scrollSurface = event.target instanceof Element
           ? event.target.closest<HTMLElement>(
-            ".fuma-content-inspection-studio__report, .fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p, .fuma-platform-inspection-frame__shorts-overlay p",
+            ".fuma-content-inspection-studio__report, .fuma-platform-inspection-frame__stt-transcript, .fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p, .fuma-platform-inspection-frame__shorts-overlay p",
           )
         : null;
       if (scrollSurface) {
