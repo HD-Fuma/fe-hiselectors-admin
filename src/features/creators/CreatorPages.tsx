@@ -45,13 +45,13 @@ const PROPOSAL_LIST_FETCH_SIZE = 100;
 const CREATOR_LIST_PAGE_SIZE = 20;
 const DEFAULT_PROPOSAL_SUBJECT = "[셀렉터스 지원 제안] ${creatorName}님께 지원을 제안드립니다";
 const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
-셀렉터스 운영팀입니다.
+더현대Hi 셀렉터스 운영팀입니다.
 
 \${creatorName}님의 콘텐츠를 관심 있게 보고, 셀렉터스 지원을 제안드리고자 연락드립니다.
 
 셀렉터스는 크리에이터의 개성과 전문성을 바탕으로 다양한 상품과 브랜드를 소개하는 크리에이터 파트너 프로그램입니다.
 
-본 메일은 셀렉터스 활동 확정 안내가 아닌 지원 제안입니다.
+본 메일은 셀렉터스 활동 지원을 제안드리는 안내입니다.
 
 [제안 내용]
 - 주요 캠페인 및 콘텐츠 협업
@@ -62,7 +62,7 @@ const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
 \${proposalLink}
 
 감사합니다.
-셀렉터스 운영팀 드림`;
+더현대Hi 셀렉터스 운영팀 드림`;
 
 const CREATOR_PLATFORM_OPTIONS = [
   { label: "전체", value: "" },

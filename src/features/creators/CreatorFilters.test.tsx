@@ -298,7 +298,7 @@ describe("creator filters", () => {
     expect(within(target).getByText("Clevr TV")).toBeInTheDocument();
     expect(within(panel).getByText("https://hiselectors.shop/apply")).toBeInTheDocument();
     expect(panel).not.toHaveTextContent("?creatorId=");
-    expect(panel).toHaveTextContent("활동 확정 안내가 아닌 지원 제안");
+    expect(panel).toHaveTextContent("셀렉터스 활동 지원을 제안드리는 안내");
     await user.click(within(panel).getByRole("button", { name: "수정" }));
     const subject = within(panel).getByRole("textbox", { name: "제목" });
     const message = within(panel).getByRole("textbox", { name: "제안 메시지" });
