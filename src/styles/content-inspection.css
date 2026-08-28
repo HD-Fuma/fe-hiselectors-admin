@@ -1785,6 +1785,15 @@ button.fuma-content-inspection-studio__violation-bubble {
   backdrop-filter: blur(28px) saturate(1.18);
 }
 
+.fuma-platform-inspection-frame__stt-panel.fuma-platform-inspection-frame__description-panel {
+  border-color: rgb(255 255 255 / 78%);
+  background: rgb(255 255 255 / 42%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 72%),
+    0 18px 48px rgb(54 65 72 / 12%);
+  backdrop-filter: blur(24px) saturate(1.15);
+}
+
 .fuma-platform-inspection-frame__stt-panel > header {
   display: flex;
   min-height: 64px;
@@ -1793,6 +1802,10 @@ button.fuma-content-inspection-studio__violation-bubble {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid rgb(180 35 24 / 12%);
+}
+
+.fuma-platform-inspection-frame__description-panel > header {
+  border-bottom-color: rgb(32 34 36 / 9%);
 }
 
 .fuma-platform-inspection-frame__stt-panel > header > span {
@@ -1859,7 +1872,13 @@ button.fuma-content-inspection-studio__violation-bubble {
   color: rgb(32 34 36 / 86%);
   font-size: 14px;
   line-height: 1.8;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+.fuma-platform-inspection-frame__hashtag {
+  color: #246796;
+  font-weight: 750;
 }
 
 .fuma-platform-inspection-frame__description-panel
@@ -2493,6 +2512,10 @@ button.fuma-minimal-version-card__media-warning {
   white-space: pre-wrap;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 6;
+}
+
+.fuma-platform-inspection-frame__shorts-overlay .fuma-platform-inspection-frame__hashtag {
+  color: #c6e4ff;
 }
 
 .fuma-content-inspection-studio[data-exiting="true"] {
@@ -7819,6 +7842,7 @@ button.fuma-platform-inspection-frame__violation-box {
   display: -webkit-box;
   max-height: 6lh;
   overflow: hidden;
+  overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 6;
 }

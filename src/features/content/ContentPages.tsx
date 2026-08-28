@@ -888,6 +888,14 @@ function findQuoteRange(text: string, quote: string, occurrence = 1) {
   return { end: matchedIndex + quote.length, start: matchedIndex };
 }
 
+function renderContentHashtags(text: string, keyPrefix: string) {
+  return text.split(/(#[\p{L}\p{N}_]+)/gu).filter(Boolean).map((part, index) => (
+    part.startsWith("#")
+      ? <span className="fuma-platform-inspection-frame__hashtag" key={`${keyPrefix}-${index}`}>{part}</span>
+      : part
+  ));
+}
+
 function ViolationHighlightedText({
   annotations,
   focusedOrdinal,
@@ -930,7 +938,9 @@ function ViolationHighlightedText({
   let cursor = 0;
   ranges.forEach(({ annotation, end, start }) => {
     if (start < cursor) return;
-    if (start > cursor) nodes.push(text.slice(cursor, start));
+    if (start > cursor) {
+      nodes.push(...renderContentHashtags(text.slice(cursor, start), `text-${cursor}`));
+    }
     nodes.push(
       <mark
         aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
@@ -946,7 +956,7 @@ function ViolationHighlightedText({
         title={`${annotation.title}: ${annotation.reason}`}
       >
         <span className="fuma-inspection-text-violation__highlight">
-          {text.slice(start, end)}
+          {renderContentHashtags(text.slice(start, end), `violation-${annotation.id}-${start}`)}
         </span>
         {showBubbles ? (
           <span
@@ -969,7 +979,9 @@ function ViolationHighlightedText({
     );
     cursor = end;
   });
-  if (cursor < text.length) nodes.push(text.slice(cursor));
+  if (cursor < text.length) {
+    nodes.push(...renderContentHashtags(text.slice(cursor), `text-${cursor}`));
+  }
 
   return (
     <>
@@ -1748,7 +1760,7 @@ function MinimalVersionCard({
       </div>
       {descriptionExpanded ? (
         <section
-          aria-label="콘텐츠 설명"
+          aria-label="내용 더보기"
           aria-modal="true"
           className="fuma-platform-inspection-frame__stt-panel fuma-platform-inspection-frame__description-panel"
           id={descriptionId}
@@ -1756,11 +1768,10 @@ function MinimalVersionCard({
         >
           <header>
             <span>
-              <small>CONTENT TEXT</small>
-              <strong>콘텐츠 설명</strong>
+              <strong>내용 더보기</strong>
             </span>
             <button
-              aria-label="콘텐츠 설명 접기"
+              aria-label="내용 더보기 닫기"
               autoFocus
               onClick={() => setDescriptionExpanded(false)}
               type="button"
