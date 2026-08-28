@@ -1845,7 +1845,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio .fuma-platform-inspection-frame__instagram-copy p {
   min-height: 0;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   overflow: hidden;
   font-size: var(--hsas-font-15);
   line-height: 1.55;
