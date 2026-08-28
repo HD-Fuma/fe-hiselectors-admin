@@ -78,6 +78,7 @@ import {
 import { getSelector, snsAccountHref, type SelectorDetail } from "../../entities/selectors";
 import { getTaskRun } from "../../entities/task-run";
 import { formatCompactCount, formatNumber, formatWon } from "../../lib/formatters";
+import { InstagramReelsCard } from "./InstagramReelsCard";
 import { YouTubeShortsCard } from "./YouTubeShortsCard";
 
 const CONTENT_INSPECTION_PAGE_SIZE = 20;
@@ -1256,6 +1257,7 @@ function MinimalVersionCard({
   const activeMedia = mediaItems[visibleIndex];
   const platform = contentPlatform(content.sourcePlatform);
   const isInstagram = platform === "Instagram";
+  const isInstagramReels = content.contentFormat === "인스타 릴스";
   const isYouTubeShorts = content.contentFormat === "유튜브 쇼츠";
   const platformCardVariant = contentCollectionFormatKey(content.contentFormat);
   const platformCardLabel = isInstagram
@@ -1267,7 +1269,7 @@ function MinimalVersionCard({
   const embedUrl = isInstagram || (isYouTubeShorts && activeMedia?.url)
     ? null
     : youtubeEmbedUrl(snapshot.youtubeVideoId);
-  const isVerticalVideo = content.contentFormat === "인스타 릴스" || content.contentFormat === "유튜브 쇼츠";
+  const isVerticalVideo = isInstagramReels || isYouTubeShorts;
   const activeMediaAnnotations = annotations.filter((annotation) => (
     annotation.target.kind === "media" && annotation.target.mediaIndex === visibleIndex
   ));
@@ -1369,7 +1371,7 @@ function MinimalVersionCard({
         `[data-violation-anchor="${focusedViolation.ordinal}"]`,
       );
       const scrollSurface = target?.closest<HTMLElement>(
-        ".fuma-platform-inspection-frame__stt-transcript, .fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p",
+        ".fuma-platform-inspection-frame__stt-transcript, .fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p, .fuma-platform-inspection-frame__shorts-overlay p",
       );
       if (target && scrollSurface) scrollWithinSurface(scrollSurface, target, "center");
       target?.focus({ preventScroll: true });
@@ -1435,7 +1437,7 @@ function MinimalVersionCard({
         <time>{snapshot.capturedAt}</time>
       </header>
       <div className="fuma-platform-inspection-frame" inert={descriptionExpanded || sttExpanded}>
-        {isInstagram ? (
+        {isInstagram && !isInstagramReels ? (
           <div className="fuma-platform-inspection-frame__instagram-header">
             <span className="fuma-platform-inspection-frame__avatar">
               {avatarUrl
@@ -1457,7 +1459,7 @@ function MinimalVersionCard({
           <div
             className="fuma-platform-inspection-frame__asset-stage"
             data-fit={mediaStageFit}
-            style={isYouTubeShorts || useCarouselTrack || mediaStageFit === "fill"
+            style={isVerticalVideo || useCarouselTrack || mediaStageFit === "fill"
               ? undefined
               : { aspectRatio: String(mediaAspectRatio) }}
           >
@@ -1609,7 +1611,7 @@ function MinimalVersionCard({
           ) : null}
         </div>
 
-        {isInstagram && mediaItems.length > 1 ? (
+        {isInstagram && !isInstagramReels && mediaItems.length > 1 ? (
           <div aria-label="사진 목록" className="fuma-platform-inspection-frame__carousel-dots" role="group">
             {mediaItems.map((media, index) => (
               <button
@@ -1626,7 +1628,25 @@ function MinimalVersionCard({
           </div>
         ) : null}
 
-        {isInstagram ? (
+        {isInstagramReels ? (
+          <InstagramReelsCard
+            avatarUrl={avatarUrl}
+            creatorName={content.author}
+            handle={handle}
+          >
+            <p ref={descriptionRef}>
+              <ViolationHighlightedText
+                annotations={annotations}
+                focusedOrdinal={focusedViolation?.ordinal}
+                onSelectViolation={onSelectViolation}
+                showBubbles={showTextBubbles}
+                text={snapshot.text}
+                useStoredIndexes
+              />
+            </p>
+            {descriptionToggle}
+          </InstagramReelsCard>
+        ) : isInstagram ? (
           <>
             <div className="fuma-platform-inspection-frame__instagram-actions">
               <span>
