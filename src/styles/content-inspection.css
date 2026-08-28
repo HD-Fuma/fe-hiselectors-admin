@@ -1306,12 +1306,12 @@ button.fuma-content-inspection-studio__violation-bubble {
   background: rgb(255 255 255 / 92%);
 }
 
-.fuma-content-inspection-studio__report-choices button:first-child:enabled:hover {
-  background: var(--hsas-status-rejected-bg);
+.fuma-content-inspection-studio__report-choices button:first-child:enabled:not([aria-pressed="true"]):hover {
+  background: rgb(161 61 61 / 9%);
 }
 
-.fuma-content-inspection-studio__report-choices button:last-child:enabled:hover {
-  background: var(--hsas-status-approved-bg);
+.fuma-content-inspection-studio__report-choices button:last-child:enabled:not([aria-pressed="true"]):hover {
+  background: rgb(30 157 139 / 9%);
 }
 
 .fuma-content-inspection-studio__report-choices button:first-child[aria-pressed="true"] {
@@ -1326,20 +1326,9 @@ button.fuma-content-inspection-studio__violation-bubble {
   background: var(--hsas-status-approved);
 }
 
-.fuma-content-inspection-studio__report-evidence li[data-focused="true"]
-  .fuma-content-inspection-studio__report-choices button:first-child:enabled,
-.fuma-content-inspection-studio__report-choices button:first-child:focus-visible {
-  box-shadow:
-    0 0 0 1px rgb(161 61 61 / 14%),
-    0 0 20px rgb(161 61 61 / 34%);
-}
-
-.fuma-content-inspection-studio__report-evidence li[data-focused="true"]
-  .fuma-content-inspection-studio__report-choices button:last-child:enabled,
-.fuma-content-inspection-studio__report-choices button:last-child:focus-visible {
-  box-shadow:
-    0 0 0 1px rgb(30 157 139 / 14%),
-    0 0 20px rgb(30 157 139 / 36%);
+.fuma-content-inspection-studio__report-choices button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 .fuma-content-inspection-studio__report-choices button:disabled {
