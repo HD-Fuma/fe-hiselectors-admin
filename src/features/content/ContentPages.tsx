@@ -1720,12 +1720,12 @@ function MinimalVersionCard({
                   </strong>
                   <small>{handle}</small>
                 </span>
+              </div>
+              <div className="fuma-platform-inspection-frame__youtube-actions">
                 <span className="fuma-platform-inspection-frame__youtube-subscriptions">
                   <button className="is-membership" type="button">가입</button>
                   <button className="is-subscribe" type="button">구독</button>
                 </span>
-              </div>
-              <div className="fuma-platform-inspection-frame__youtube-actions">
                 <span className="fuma-platform-inspection-frame__youtube-rating">
                   <button type="button"><ThumbsUp aria-hidden="true" size={18} /> 좋아요</button>
                   <button aria-label="싫어요" type="button"><ThumbsDown aria-hidden="true" size={18} /></button>
