@@ -84,7 +84,17 @@ jobs:
               exit 1
             fi
             rm -f "$BACKUP_PATH"
-            systemctl reload nginx
+
+            NGINX_CONTAINER="$(docker ps --filter publish=443 --format '{{.ID}}' | head -n 1)"
+            if [ -z "$NGINX_CONTAINER" ]; then
+              NGINX_CONTAINER="$(docker ps --format '{{.ID}} {{.Image}}' | awk '$2 ~ /(^|\/)nginx(:|@)/ { print $1; exit }')"
+            fi
+            test -n "$NGINX_CONTAINER"
+            if ! docker exec "$NGINX_CONTAINER" test -f "$CONFIG_PATH"; then
+              docker cp "$CONFIG_PATH" "$NGINX_CONTAINER:$CONFIG_PATH"
+            fi
+            docker exec "$NGINX_CONTAINER" nginx -t
+            docker exec "$NGINX_CONTAINER" nginx -s reload
         run: |
           test -n "$EC2_INSTANCE_ID"
           PARAMETERS="$(jq -cn \
