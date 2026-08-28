@@ -3328,15 +3328,13 @@ export function ContentInspectionDetailPage() {
                           showTextBubbles={false}
                           snapshot={displayedStudioHistoricalContent.currentSnapshot}
                         />
-                        {displayedStudioHistoricalSelected ? (
-                          <StudioViolationBubbleCloud
-                            annotations={indexedViolationAnnotations(
-                              displayedStudioHistoricalContent,
-                              displayedStudioHistoricalContent.currentSnapshot,
-                            )}
-                            placement="left"
-                          />
-                        ) : null}
+                        <StudioViolationBubbleCloud
+                          annotations={indexedViolationAnnotations(
+                            displayedStudioHistoricalContent,
+                            displayedStudioHistoricalContent.currentSnapshot,
+                          )}
+                          placement="left"
+                        />
                       </div>
                     </>
                   ) : null}
