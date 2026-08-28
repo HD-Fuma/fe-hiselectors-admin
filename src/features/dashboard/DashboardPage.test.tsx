@@ -22,7 +22,7 @@ test("오늘 지표를 표시하고 기존 하단 지표 카드를 제거한다"
   expect(screen.queryByText("현재 기수 콘텐츠")).not.toBeInTheDocument();
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 
-  const inspectionCard = screen.getByText("위반 콘텐츠 검수").closest(".fuma-dashboard-card");
+  const inspectionCard = screen.getByText("검수가 필요한 콘텐츠").closest(".fuma-dashboard-card");
   expect(inspectionCard).not.toBeNull();
   expect(within(inspectionCard as HTMLElement).getByText("Instagram")).toBeInTheDocument();
   expect(within(inspectionCard as HTMLElement).getByText("YouTube")).toBeInTheDocument();
