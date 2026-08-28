@@ -2959,6 +2959,11 @@ export function ContentInspectionDetailPage() {
           ? "2"
           : null;
       if (studioExiting) return;
+      if (event.key === "Escape" && studioSingleInspection && !studioActionPending) {
+        event.preventDefault();
+        setStudioExiting(true);
+        return;
+      }
       if (completionOpen) {
         event.preventDefault();
         return;
@@ -3017,6 +3022,7 @@ export function ContentInspectionDetailPage() {
     studioReportRefreshVersionId,
     studioReviewReadOnly,
     studioSelectedIsLatest,
+    studioSingleInspection,
     studioViolationJudgments,
     studioViolationSignals.length,
     submitStudioDecision,
