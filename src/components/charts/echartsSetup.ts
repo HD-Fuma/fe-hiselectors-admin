@@ -4,6 +4,7 @@ import {
   BoxplotChart,
   EffectScatterChart,
   LineChart,
+  LinesChart,
   PieChart,
   ScatterChart,
 } from "echarts/charts";
@@ -19,6 +20,7 @@ echarts.use([
   BoxplotChart,
   EffectScatterChart,
   LineChart,
+  LinesChart,
   PieChart,
   ScatterChart,
   DataZoomComponent,
