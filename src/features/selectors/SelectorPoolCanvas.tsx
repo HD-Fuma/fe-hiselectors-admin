@@ -230,66 +230,33 @@ function drawBubble(
   radius: number,
   image: HTMLImageElement | undefined,
 ) {
-  const shellRadius = radius + 10;
+  const shellRadius = radius + Math.max(12, radius * 0.32);
 
-  // 확인 팝업 재질은 유지하되 실루엣은 흐트러지지 않는 원형으로 잡는다.
+  // 프로필 바깥을 반투명한 흰색 유리 링으로 감싼다.
   context.save();
-  context.shadowColor = "rgb(54 65 72 / 12%)";
-  context.shadowBlur = 20;
-  context.shadowOffsetY = 7;
+  context.shadowColor = "rgb(78 102 108 / 14%)";
+  context.shadowBlur = 18;
+  context.shadowOffsetY = 3;
   const glass = context.createRadialGradient(
-    x - shellRadius * 0.38,
-    y - shellRadius * 0.42,
+    x - shellRadius * 0.3,
+    y - shellRadius * 0.34,
     shellRadius * 0.08,
     x,
     y,
-    shellRadius * 1.12,
+    shellRadius,
   );
-  glass.addColorStop(0, "rgb(255 255 255 / 76%)");
-  glass.addColorStop(0.48, "rgb(255 255 255 / 58%)");
-  glass.addColorStop(1, "rgb(255 255 255 / 34%)");
+  glass.addColorStop(0, "rgb(255 255 255 / 94%)");
+  glass.addColorStop(0.58, "rgb(255 255 255 / 80%)");
+  glass.addColorStop(1, "rgb(255 255 255 / 58%)");
   context.fillStyle = glass;
   context.beginPath();
   context.arc(x, y, shellRadius, 0, Math.PI * 2);
   context.fill();
-  context.restore();
-
-  context.save();
-  context.strokeStyle = "rgb(255 255 255 / 78%)";
-  context.lineWidth = 1.4;
+  context.shadowColor = "transparent";
+  context.strokeStyle = "rgb(255 255 255 / 92%)";
+  context.lineWidth = 2;
   context.beginPath();
-  context.arc(x, y, shellRadius - 0.7, 0, Math.PI * 2);
-  context.stroke();
-
-  // 팝업의 inset highlight를 물방울 윗면 반사광으로 옮긴다.
-  context.strokeStyle = "rgb(255 255 255 / 72%)";
-  context.lineCap = "round";
-  context.lineWidth = Math.max(1.5, radius * 0.08);
-  context.beginPath();
-  context.moveTo(x - shellRadius * 0.66, y - shellRadius * 0.12);
-  context.bezierCurveTo(
-    x - shellRadius * 0.62,
-    y - shellRadius * 0.42,
-    x - shellRadius * 0.4,
-    y - shellRadius * 0.7,
-    x - shellRadius * 0.04,
-    y - shellRadius * 0.78,
-  );
-  context.stroke();
-
-  // 밝은 바탕에서도 유리 두께가 보이도록 아래쪽 굴절면만 얇게 남긴다.
-  context.strokeStyle = "rgb(54 65 72 / 10%)";
-  context.lineWidth = 1;
-  context.beginPath();
-  context.moveTo(x + shellRadius * 0.67, y + shellRadius * 0.06);
-  context.bezierCurveTo(
-    x + shellRadius * 0.62,
-    y + shellRadius * 0.43,
-    x + shellRadius * 0.39,
-    y + shellRadius * 0.69,
-    x + shellRadius * 0.04,
-    y + shellRadius * 0.78,
-  );
+  context.arc(x, y, shellRadius - 1, 0, Math.PI * 2);
   context.stroke();
   context.restore();
 
@@ -320,6 +287,14 @@ function drawBubble(
     );
     context.stroke();
   }
+  context.restore();
+
+  context.save();
+  context.strokeStyle = "rgb(255 255 255 / 76%)";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.arc(x, y, radius + 1, 0, Math.PI * 2);
+  context.stroke();
   context.restore();
 }
 
