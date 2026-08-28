@@ -1200,10 +1200,6 @@ button.fuma-content-inspection-studio__violation-bubble {
     0 12px 24px rgb(30 157 139 / 12%);
 }
 
-.fuma-content-inspection-studio__report-evidence li[data-judgment="violation"] strong {
-  color: #812f2f;
-}
-
 .fuma-content-inspection-studio__report-evidence-item > div {
   display: flex;
   align-items: baseline;
@@ -1211,18 +1207,11 @@ button.fuma-content-inspection-studio__violation-bubble {
   gap: 8px;
 }
 
-.fuma-content-inspection-studio__report-evidence li strong {
-  display: block;
-  min-width: 0;
-  margin-top: 5px;
-  font-size: var(--hsas-font-15);
-  font-weight: 800;
-  line-height: 1.5;
-}
-
 .fuma-content-inspection-studio__report-evidence
   .fuma-content-inspection-evidence__candidate-label {
-  font-size: var(--hsas-font-13);
+  min-width: 0;
+  font-size: var(--hsas-font-15);
+  line-height: 1.45;
 }
 
 .fuma-content-inspection-studio__report-evidence li small {
@@ -6112,21 +6101,16 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
   box-shadow: 0 0 0 1px var(--hsas-sidebar-active);
 }
 
-.fuma-content-inspection-evidence__item > strong,
 .fuma-content-inspection-evidence__item > p {
   margin: 0;
 }
 
 .fuma-content-inspection-evidence__candidate-label {
+  display: block;
   color: #a12e25;
-  font-size: var(--hsas-font-10);
-  font-weight: 800;
-}
-
-.fuma-content-inspection-evidence__item > strong {
-  margin-top: var(--hsas-space-6);
-  color: #683832;
   font-size: var(--hsas-font-12);
+  font-weight: 800;
+  line-height: 1.5;
 }
 
 .fuma-content-inspection-evidence__item > p {

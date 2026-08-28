@@ -1906,9 +1906,8 @@ function MinimalAiAnalysis({
                         type="button"
                       >
                         <span className="fuma-content-inspection-evidence__candidate-label">
-                          위반 항목 {issueOrdinalLabel(issue.ordinal)}
+                          {issueOrdinalLabel(issue.ordinal)} {issue.title}
                         </span>
-                        <strong>{issue.title}</strong>
                         {showsInspectionGuideline(issue) ? (
                           <aside>
                             <span>검수 기준</span>
@@ -3581,7 +3580,7 @@ export function ContentInspectionDetailPage() {
                       >
                         <button
                           aria-current={focused}
-                          aria-label={`위반 항목 ${issueOrdinalLabel(signal.ordinal)} ${signal.title} 위치로 이동`}
+                          aria-label={`${issueOrdinalLabel(signal.ordinal)} ${signal.title} 위치로 이동`}
                           className="fuma-content-inspection-studio__report-evidence-item"
                           data-focused={focused}
                           onClick={() => focusStudioReportViolation(index, signal.ordinal)}
@@ -3589,7 +3588,7 @@ export function ContentInspectionDetailPage() {
                         >
                           <div>
                             <span className="fuma-content-inspection-evidence__candidate-label">
-                              위반 항목 {issueOrdinalLabel(signal.ordinal)}
+                              {issueOrdinalLabel(signal.ordinal)} {signal.title}
                             </span>
                             <small data-judgment={judgment ?? "pending"}>
                               {judgment === "violation"
@@ -3597,7 +3596,6 @@ export function ContentInspectionDetailPage() {
                                 : judgment === "clear" ? "위반 아님" : signal.source}
                             </small>
                           </div>
-                          <strong>{signal.title}</strong>
                           {showsInspectionGuideline(signal) ? (
                             <aside className="fuma-content-inspection-studio__report-guideline">
                               <span>검수 기준</span>

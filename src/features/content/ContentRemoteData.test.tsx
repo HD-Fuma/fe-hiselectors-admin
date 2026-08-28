@@ -568,8 +568,7 @@ test("loads violations and submits the final judgment in one request", async () 
   const report = screen.getByRole("region", { name: "AI 분석" });
   expect(within(report).getByText("광고 표기는 확인됐고 최저가 단정 표현이 있습니다.")).toBeInTheDocument();
   expect(within(report).getByRole("heading", { name: "위반 내역" })).toBeInTheDocument();
-  expect(within(report).getByText("위반 항목 ①")).toBeInTheDocument();
-  expect(within(report).getByText("허위·과장 표현")).toBeInTheDocument();
+  expect(within(report).getByText("① 허위·과장 표현")).toBeInTheDocument();
   expect(within(report).queryByText("게시물 본문(TEXT)")).not.toBeInTheDocument();
   expect(within(report).getByText("광고 수수료 안내문구 표시")).toBeInTheDocument();
   expect(within(report).getByText("제휴링크 누락·불일치")).toBeInTheDocument();
@@ -605,10 +604,10 @@ test("loads violations and submits the final judgment in one request", async () 
   expect(reject).toBeDisabled();
   expect(within(finalInspection).getByText("0 / 1")).toBeInTheDocument();
 
-  fireEvent.click(within(report).getByRole("button", { name: /위반 항목 ①/ }));
+  fireEvent.click(within(report).getByRole("button", { name: /① 허위·과장 표현/ }));
   expect(document.querySelector('[data-violation-anchor="1"][data-focused="true"]')).not.toBeNull();
 
-  fireEvent.click(within(report).getByRole("button", { name: /위반 항목 ①/ }));
+  fireEvent.click(within(report).getByRole("button", { name: /① 허위·과장 표현/ }));
   expect(document.querySelector('[data-violation-anchor="1"][data-focused="true"]')).toBeNull();
 
   fireEvent.click(markViolation);
@@ -639,7 +638,7 @@ test("loads violations and submits the final judgment in one request", async () 
   expect(within(finalInspection).queryByRole("button", { name: "승인" }))
     .not.toBeInTheDocument();
   expect(within(finalInspection).queryByText("① 허위·과장 표현")).not.toBeInTheDocument();
-  expect(within(report).getByText("위반 항목 ①")).toBeInTheDocument();
+  expect(within(report).getByText("① 허위·과장 표현")).toBeInTheDocument();
   const confirmationCall = fetchMock.mock.calls.find(([input]) => (
     requestPathname(input) === "/api/admin/contents/901/versions/9010/inspection"
   ));
@@ -726,7 +725,7 @@ test("keeps the inspection viewport fixed when the media carousel moves", async 
     expect(carouselStage).toBeDefined();
     expect(carouselStage?.style.aspectRatio).toBe("");
     const report = screen.getByRole("region", { name: "AI 분석" });
-    fireEvent.click(within(report).getByRole("button", { name: /위반 항목 ①/ }));
+    fireEvent.click(within(report).getByRole("button", { name: /① 허위·과장 표현/ }));
     await waitFor(() => expect(
       document.querySelector('[data-violation-anchor="1"][data-focused="true"]'),
     ).not.toBeNull());
