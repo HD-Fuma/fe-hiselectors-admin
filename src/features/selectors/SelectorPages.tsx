@@ -51,7 +51,7 @@ const SELECTOR_SNS_OPTIONS = [
 ];
 const SELECTOR_STATUS_CATEGORIES = [
   { label: "활동중", value: "ACTIVE" },
-  { label: "활동정지", value: "INACTIVE" },
+  { label: "비활성", value: "INACTIVE" },
   { label: "블랙리스트", value: "BLACKLIST" },
 ];
 function cohortStatusTone(
@@ -562,7 +562,7 @@ const SELECTOR_COLUMNS: DenseTableColumn<SelectorSummary>[] = [
     header: "활동 상태",
     width: 88,
     align: "center",
-    render: (selector) => <StatusPill tone={selectorListStatusTone(selector.roleId)}>{selector.roleName || selector.roleId}</StatusPill>,
+    render: (selector) => <StatusPill tone={selectorListStatusTone(selector.roleId)}>{selector.roleId === "INACTIVE" ? "비활성" : selector.roleName || selector.roleId}</StatusPill>,
   },
   { key: "createdAt", header: "등록일", width: 104, align: "center", render: (selector) => selector.createdAt?.slice(0, 10) || "-" },
 ];
@@ -609,7 +609,7 @@ export function SelectorOverviewPage({ initialViewMode }: { initialViewMode?: Se
   const selectorListTitle = selectedStatus === "ACTIVE"
     ? "활동 중인 셀렉터스 목록"
     : selectedStatus === "INACTIVE"
-      ? "활동 정지 셀렉터스 목록"
+      ? "비활성 셀렉터스 목록"
       : selectedStatus === "BLACKLIST"
         ? "블랙리스트 목록"
         : "셀렉터스 목록";
@@ -750,7 +750,6 @@ export function SelectorOverviewPage({ initialViewMode }: { initialViewMode?: Se
             />
           )}
           className="fuma-simple-result-toolbar"
-          title={selectedStatus ? selectorListTitle : null}
         />
         {listError ? (
           <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
