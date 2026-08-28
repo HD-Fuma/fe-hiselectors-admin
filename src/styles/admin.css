@@ -4018,6 +4018,18 @@
   line-height: 1.5;
 }
 
+.fuma-applicant-decision-feedback {
+  font-weight: 700;
+}
+
+.fuma-applicant-decision-feedback--approved {
+  color: var(--hsas-status-approved);
+}
+
+.fuma-applicant-decision-feedback--rejected {
+  color: var(--hsas-status-rejected);
+}
+
 .hsas-bubble-dialog__actions {
   display: grid;
   margin-top: var(--hsas-space-16);
