@@ -7544,6 +7544,11 @@ button.fuma-platform-inspection-frame__violation-box {
 }
 
 :is(.fuma-content-inspection-detail, .fuma-content-inspection-studio)
+  .fuma-minimal-version-card[data-description-expanded="true"] {
+  height: var(--description-card-height, auto);
+}
+
+:is(.fuma-content-inspection-detail, .fuma-content-inspection-studio)
   .fuma-minimal-version-card[data-description-expanded="true"]
   :is(
     .fuma-platform-inspection-frame__instagram-copy,

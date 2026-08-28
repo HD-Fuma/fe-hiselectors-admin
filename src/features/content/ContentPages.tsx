@@ -1379,6 +1379,12 @@ function MinimalVersionCard({
       className="fuma-platform-inspection-frame__description-toggle"
       onClick={(event) => {
         event.stopPropagation();
+        if (!descriptionExpanded && cardRef.current) {
+          cardRef.current.style.setProperty(
+            "--description-card-height",
+            `${cardRef.current.getBoundingClientRect().height}px`,
+          );
+        }
         setDescriptionExpanded((current) => !current);
       }}
       type="button"
