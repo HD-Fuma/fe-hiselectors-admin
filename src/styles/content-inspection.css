@@ -315,11 +315,12 @@ button.fuma-content-inspection-studio__violation-bubble {
   isolation: isolate;
 }
 
-.fuma-content-inspection-studio__version > .fuma-platform-content-card:is(
-  [data-platform-card="instagram-reels"],
-  [data-platform-card="youtube-shorts"]
-) {
+.fuma-content-inspection-studio__version > .fuma-platform-content-card[data-platform-card="instagram-reels"] {
   border-color: rgb(255 255 255 / 28%);
+}
+
+.fuma-content-inspection-studio__version > .fuma-platform-content-card[data-platform-card="youtube-shorts"] {
+  border: 0;
 }
 
 .fuma-content-inspection-studio__history .fuma-platform-content-card[data-platform-card^="instagram-"] .fuma-platform-inspection-frame__instagram-header {
