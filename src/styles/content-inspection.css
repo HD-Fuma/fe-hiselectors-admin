@@ -1138,6 +1138,31 @@ button.fuma-content-inspection-studio__violation-bubble {
   transition: 140ms ease;
 }
 
+.fuma-content-inspection-studio__report-evidence-item {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fuma-content-inspection-studio__report-evidence li:has(
+  > .fuma-content-inspection-studio__report-evidence-item:hover
+) {
+  border-color: rgb(32 34 36 / 22%);
+  background: rgb(255 255 255 / 68%);
+}
+
+.fuma-content-inspection-studio__report-evidence-item:focus-visible {
+  border-radius: 8px;
+  outline: 3px solid rgb(161 61 61 / 18%);
+  outline-offset: 3px;
+}
+
 .fuma-content-inspection-studio__report-evidence li[data-focused="true"] {
   border-color: rgb(161 61 61 / 46%);
   background: linear-gradient(135deg, rgb(255 255 255 / 48%), rgb(255 235 232 / 34%));
@@ -1179,7 +1204,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   color: #812f2f;
 }
 
-.fuma-content-inspection-studio__report-evidence li > div > div {
+.fuma-content-inspection-studio__report-evidence-item > div {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -1257,7 +1282,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   font-weight: 800;
 }
 
-.fuma-content-inspection-studio__report-evidence li > div > p {
+.fuma-content-inspection-studio__report-evidence-item > p {
   margin-top: 10px;
   padding-top: 9px;
   border-top: 1px solid rgb(32 34 36 / 8%);
@@ -1269,6 +1294,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-content-inspection-studio__report-evidence .fuma-content-inspection-studio__report-choices {
+  display: flex;
   margin-top: 9px;
   flex-wrap: wrap;
   align-items: center;

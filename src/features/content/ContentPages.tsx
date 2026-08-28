@@ -2387,6 +2387,11 @@ export function ContentInspectionDetailPage() {
     Array<"violation" | "clear" | null>
   >([]);
   const [focusedStudioViolationIndex, setFocusedStudioViolationIndex] = useState(-1);
+  const [studioViolationLocation, setStudioViolationLocation] = useState<{
+    ordinal: number;
+    requestId: number;
+    snapshotCapturedAt: string;
+  } | null>(null);
   const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
   const [completionOpen, setCompletionOpen] = useState(false);
   const [studioExiting, setStudioExiting] = useState(false);
@@ -2480,15 +2485,35 @@ export function ContentInspectionDetailPage() {
   const studioFinalFocused = studioSelectedIsLatest
     && studioViolationReviewComplete
     && focusedStudioViolationIndex < 0;
-  const studioCardFocusedViolation = useMemo(() => {
-    if (!studioSelectedIsLatest) return null;
+  const studioSelectedCardFocusedViolation = useMemo(() => {
+    if (!studioReportContent) return null;
+    const requestedLocation = studioViolationLocation?.snapshotCapturedAt
+      === studioReportContent.currentSnapshot.capturedAt
+      ? studioViolationLocation
+      : null;
+    if (!studioSelectedIsLatest) {
+      return requestedLocation
+        ? { ordinal: requestedLocation.ordinal, requestId: requestedLocation.requestId }
+        : null;
+    }
     const focused = focusedStudioViolationIndex >= 0
       ? studioViolationSignals[focusedStudioViolationIndex]
       : undefined;
     return focused
-      ? { ordinal: focused.ordinal, requestId: focusedStudioViolationIndex }
+      ? {
+          ordinal: focused.ordinal,
+          requestId: requestedLocation?.ordinal === focused.ordinal
+            ? requestedLocation.requestId
+            : focusedStudioViolationIndex,
+        }
       : null;
-  }, [focusedStudioViolationIndex, studioSelectedIsLatest, studioViolationSignals]);
+  }, [
+    focusedStudioViolationIndex,
+    studioReportContent,
+    studioSelectedIsLatest,
+    studioViolationLocation,
+    studioViolationSignals,
+  ]);
   const hasStudioViolationJudgment = studioViolationJudgments.includes("violation");
   const visibleError = loadError !== null && loadError.id === contentId
     ? loadError.message
@@ -2543,6 +2568,7 @@ export function ContentInspectionDetailPage() {
       setSelectedStudioVersionId(null);
       setStudioViolationJudgments([]);
       setFocusedStudioViolationIndex(-1);
+      setStudioViolationLocation(null);
       navigate(`/content/inspections/${target.id}`, {
         state: { ...routeState, content: target, contents, inspectionSession: true },
       });
@@ -2576,6 +2602,7 @@ export function ContentInspectionDetailPage() {
     judgment: "violation" | "clear",
   ) => {
     judgeStudioViolation(index, judgment);
+    setStudioViolationLocation(null);
     setFocusedStudioViolationIndex(
       index + 1 < studioViolationSignals.length ? index + 1 : -1,
     );
@@ -2583,8 +2610,24 @@ export function ContentInspectionDetailPage() {
 
   const selectStudioViolationFromContent = useCallback((ordinal: number) => {
     const index = studioViolationSignals.findIndex((signal) => signal.ordinal === ordinal);
-    if (index >= 0) setFocusedStudioViolationIndex(index);
-  }, [studioViolationSignals]);
+    if (index < 0 || !content) return;
+    setFocusedStudioViolationIndex(index);
+    setStudioViolationLocation((current) => ({
+      ordinal,
+      requestId: (current?.requestId ?? 0) + 1,
+      snapshotCapturedAt: content.currentSnapshot.capturedAt,
+    }));
+  }, [content, studioViolationSignals]);
+
+  const focusStudioReportViolation = useCallback((index: number, ordinal: number) => {
+    if (!studioReportContent) return;
+    if (studioSelectedIsLatest) setFocusedStudioViolationIndex(index);
+    setStudioViolationLocation((current) => ({
+      ordinal,
+      requestId: (current?.requestId ?? 0) + 1,
+      snapshotCapturedAt: studioReportContent.currentSnapshot.capturedAt,
+    }));
+  }, [studioReportContent, studioSelectedIsLatest]);
 
   const generateStudioReport = useCallback(async () => {
     if (
@@ -2634,6 +2677,7 @@ export function ContentInspectionDetailPage() {
       setStudioReportRefreshVersionId(null);
       setStudioViolationJudgments(Array(refreshedSignals.length).fill(null));
       setFocusedStudioViolationIndex(refreshedSignals.length > 0 ? 0 : -1);
+      setStudioViolationLocation(null);
       setStudioDecision(null);
       setStudioActionFeedback(versionCreated === true
         ? `v${detail.selectedVersion.versionNo} 리포트를 생성했습니다.`
@@ -2853,6 +2897,7 @@ export function ContentInspectionDetailPage() {
       setFocusedStudioViolationIndex(
         !studioReviewReadOnly && studioViolationSignals.length > 0 ? 0 : -1,
       );
+      setStudioViolationLocation(null);
       setStudioDecision(null);
     });
 
@@ -3072,7 +3117,10 @@ export function ContentInspectionDetailPage() {
       if (focusedStudioViolationIndex >= 0) {
         const violationItem = studioReportRef.current
           ?.querySelector<HTMLElement>(`[data-violation-index="${focusedStudioViolationIndex}"]`);
-        violationItem?.focus({ preventScroll: true });
+        const focusTarget = violationItem?.querySelector<HTMLElement>(
+          ".fuma-content-inspection-studio__report-evidence-item",
+        ) ?? violationItem;
+        focusTarget?.focus({ preventScroll: true });
         if (studioReportRef.current && violationItem) {
           scrollWithinSurface(studioReportRef.current, violationItem, "nearest");
         }
@@ -3337,6 +3385,9 @@ export function ContentInspectionDetailPage() {
                         )}
                         <MinimalVersionCard
                           content={displayedStudioHistoricalContent}
+                          focusedViolation={displayedStudioHistoricalSelected
+                            ? studioSelectedCardFocusedViolation
+                            : null}
                           inert={!displayedStudioHistoricalSelected}
                           label={`v${currentDisplayedVersionNo(displayedStudioHistoricalContent)} 과거 콘텐츠`}
                           showTextBubbles={false}
@@ -3347,6 +3398,9 @@ export function ContentInspectionDetailPage() {
                             displayedStudioHistoricalContent,
                             displayedStudioHistoricalContent.currentSnapshot,
                           )}
+                          focusedOrdinal={displayedStudioHistoricalSelected
+                            ? studioSelectedCardFocusedViolation?.ordinal
+                            : undefined}
                           placement="left"
                         />
                       </div>
@@ -3372,7 +3426,9 @@ export function ContentInspectionDetailPage() {
                 )}
                 <MinimalVersionCard
                   content={content}
-                  focusedViolation={studioCardFocusedViolation}
+                  focusedViolation={studioSelectedIsLatest
+                    ? studioSelectedCardFocusedViolation
+                    : null}
                   inert={!studioSelectedIsLatest}
                   label="최신 콘텐츠"
                   onSelectViolation={selectStudioViolationFromContent}
@@ -3382,7 +3438,7 @@ export function ContentInspectionDetailPage() {
                 {studioSelectedIsLatest ? (
                   <StudioViolationBubbleCloud
                     annotations={indexedViolationAnnotations(content, content.currentSnapshot)}
-                    focusedOrdinal={studioCardFocusedViolation?.ordinal}
+                    focusedOrdinal={studioSelectedCardFocusedViolation?.ordinal}
                     onSelectViolation={selectStudioViolationFromContent}
                     placement="right"
                   />
@@ -3513,8 +3569,7 @@ export function ContentInspectionDetailPage() {
                       : signal.tone === "critical"
                         ? "violation"
                         : signal.tone === "pass" ? "clear" : null;
-                    const focused = studioSelectedIsLatest
-                      && focusedStudioViolationIndex === index;
+                    const focused = studioSelectedCardFocusedViolation?.ordinal === signal.ordinal;
 
                     return (
                       <li
@@ -3523,9 +3578,15 @@ export function ContentInspectionDetailPage() {
                         data-tone={signal.tone}
                         data-violation-index={index}
                         key={`${signal.title}-${signal.source}-${index}`}
-                        tabIndex={-1}
                       >
-                        <div>
+                        <button
+                          aria-current={focused}
+                          aria-label={`가이드 위반 후보 ${issueOrdinalLabel(signal.ordinal)} ${signal.title} 위치로 이동`}
+                          className="fuma-content-inspection-studio__report-evidence-item"
+                          data-focused={focused}
+                          onClick={() => focusStudioReportViolation(index, signal.ordinal)}
+                          type="button"
+                        >
                           <div>
                             <span className="fuma-content-inspection-evidence__candidate-label">
                               가이드 위반 후보 {issueOrdinalLabel(signal.ordinal)}
@@ -3544,40 +3605,43 @@ export function ContentInspectionDetailPage() {
                             </aside>
                           ) : null}
                           <p>{signal.detail || signal.evidence}</p>
-                          {studioSelectedIsLatest && !studioReviewReadOnly ? (
-                            <div
-                              aria-label={`${signal.title} 판정`}
-                              className="fuma-content-inspection-studio__report-choices"
-                              onFocus={() => setFocusedStudioViolationIndex(index)}
-                              role="group"
+                        </button>
+                        {studioSelectedIsLatest && !studioReviewReadOnly ? (
+                          <div
+                            aria-label={`${signal.title} 판정`}
+                            className="fuma-content-inspection-studio__report-choices"
+                            onFocus={() => {
+                              setStudioViolationLocation(null);
+                              setFocusedStudioViolationIndex(index);
+                            }}
+                            role="group"
+                          >
+                            <button
+                              aria-keyshortcuts="1"
+                              aria-pressed={judgment === "violation"}
+                              disabled={
+                                studioActionPending !== null
+                                || studioReportRefreshVersionId !== null
+                              }
+                              onClick={() => judgeStudioViolationAndAdvance(index, "violation")}
+                              type="button"
                             >
-                              <button
-                                aria-keyshortcuts="1"
-                                aria-pressed={judgment === "violation"}
-                                disabled={
-                                  studioActionPending !== null
-                                  || studioReportRefreshVersionId !== null
-                                }
-                                onClick={() => judgeStudioViolationAndAdvance(index, "violation")}
-                                type="button"
-                              >
-                                위반
-                              </button>
-                              <button
-                                aria-keyshortcuts="2"
-                                aria-pressed={judgment === "clear"}
-                                disabled={
-                                  studioActionPending !== null
-                                  || studioReportRefreshVersionId !== null
-                                }
-                                onClick={() => judgeStudioViolationAndAdvance(index, "clear")}
-                                type="button"
-                              >
-                                위반 허용
-                              </button>
-                            </div>
-                          ) : null}
-                        </div>
+                              위반
+                            </button>
+                            <button
+                              aria-keyshortcuts="2"
+                              aria-pressed={judgment === "clear"}
+                              disabled={
+                                studioActionPending !== null
+                                || studioReportRefreshVersionId !== null
+                              }
+                              onClick={() => judgeStudioViolationAndAdvance(index, "clear")}
+                              type="button"
+                            >
+                              위반 허용
+                            </button>
+                          </div>
+                        ) : null}
                       </li>
                     );
                   })}
