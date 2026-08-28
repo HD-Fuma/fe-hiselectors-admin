@@ -1830,7 +1830,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-content-inspection-studio__version > .fuma-minimal-version-card[data-content-format="youtube-shorts"] {
-  width: min(360px, calc(50dvh - 24px), calc(100vw - 48px));
+  width: var(--studio-version-width);
   aspect-ratio: 9 / 16;
   border-radius: 18px;
   background: var(--hsas-media-surface);
