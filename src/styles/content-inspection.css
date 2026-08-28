@@ -1683,10 +1683,19 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-platform-inspection-frame__description-panel
-  .fuma-platform-inspection-frame__stt-transcript p {
+  .fuma-platform-inspection-frame__stt-transcript > p {
   margin-top: 0;
   font-size: var(--hsas-font-15);
   line-height: 1.7;
+}
+
+.fuma-platform-inspection-frame__description-stt-title {
+  margin: var(--hsas-space-18) 0 var(--hsas-space-10);
+  padding-top: var(--hsas-space-16);
+  border-top: 1px solid rgb(32 34 36 / 12%);
+  color: rgb(32 34 36 / 72%);
+  font-size: var(--hsas-font-12);
+  font-weight: 850;
 }
 
 .fuma-content-inspection-studio .fuma-platform-inspection-frame__violation-box,

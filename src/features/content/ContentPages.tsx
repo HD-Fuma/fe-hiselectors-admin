@@ -1400,6 +1400,20 @@ function MinimalVersionCard({
       {descriptionExpanded ? "접기" : "더보기"}
     </button>
   );
+  const sttTranscript = sttExtracts.map((extract, index) => (
+    <section key={`${extract.location}-${index}`}>
+      <span>{extract.location}</span>
+      <p>
+        <ViolationHighlightedText
+          annotations={sttAnnotations}
+          focusedOrdinal={focusedViolation?.ordinal}
+          onSelectViolation={onSelectViolation}
+          showBubbles={false}
+          text={extract.text}
+        />
+      </p>
+    </section>
+  ));
 
   return (
     <article
@@ -1774,6 +1788,14 @@ function MinimalVersionCard({
                 useStoredIndexes
               />
             </p>
+            {sttTranscript.length > 0 ? (
+              <>
+                <h4 className="fuma-platform-inspection-frame__description-stt-title">
+                  STT 추출물
+                </h4>
+                {sttTranscript}
+              </>
+            ) : null}
           </div>
         </section>
       ) : null}
@@ -1800,20 +1822,7 @@ function MinimalVersionCard({
             </button>
           </header>
           <div className="fuma-platform-inspection-frame__stt-transcript" data-stt-transcript>
-            {sttExtracts.map((extract, index) => (
-              <section key={`${extract.location}-${index}`}>
-                <span>{extract.location}</span>
-                <p>
-                  <ViolationHighlightedText
-                    annotations={sttAnnotations}
-                    focusedOrdinal={focusedViolation?.ordinal}
-                    onSelectViolation={onSelectViolation}
-                    showBubbles={false}
-                    text={extract.text}
-                  />
-                </p>
-              </section>
-            ))}
+            {sttTranscript}
           </div>
         </section>
       ) : null}
