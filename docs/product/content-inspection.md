@@ -52,6 +52,7 @@
 - URL 위반은 `targetIndex`로 해당 link row와 연결합니다.
 - `state: "active"`인 annotation만 원본 표시와 안내 rail을 만듭니다. 다만 과거 버전을 선택하면 현재 해결·기각 상태와 별개로 당시 evidence 위치를 표시합니다.
 - 번호가 같은 원본 mark와 안내문을 연결하고, 색상 외에도 번호·아이콘·텍스트로 구분합니다.
+- 위반 안내 버블은 카드 오른쪽을 우선 사용하되 검수 리포트와 겹치지 않으며, 우측 공간이 부족하면 카드 왼쪽에 배치합니다.
 - quote나 index가 원본과 맞지 않으면 잘못된 위치를 추정하지 않습니다. 원본 강조는 생략하고 안내문은 해당 section에 유지합니다.
 - annotation은 `detectedIssues`나 분석 문장에서 UI가 추론하지 않고 typed fixture/API data로 받습니다.
 

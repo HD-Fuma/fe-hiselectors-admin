@@ -1030,14 +1030,18 @@ function StudioViolationBubbleCloud({
     const cloud = cloudRef.current;
     const version = cloud?.closest<HTMLElement>(".fuma-content-inspection-studio__version");
     if (!cloud || !version) return undefined;
+    const report = version
+      .closest<HTMLElement>(".fuma-content-inspection-studio")
+      ?.querySelector<HTMLElement>(".fuma-content-inspection-studio__report");
 
     let frameId = 0;
     const positionBubbles = () => {
       cancelAnimationFrame(frameId);
       frameId = requestAnimationFrame(() => {
         const versionRect = version.getBoundingClientRect();
-        const rightSpace = window.innerWidth - versionRect.right;
-        cloud.dataset.placement = rightSpace >= cloud.offsetWidth + 16 ? "right" : "left";
+        const rightBoundary = report?.getBoundingClientRect().left ?? window.innerWidth;
+        const rightSpace = rightBoundary - versionRect.right;
+        cloud.dataset.placement = rightSpace >= cloud.offsetWidth + 32 ? "right" : "left";
         const cloudRect = cloud.getBoundingClientRect();
 
         const bubbles = Array.from(
@@ -1103,6 +1107,7 @@ function StudioViolationBubbleCloud({
       : new ResizeObserver(positionBubbles);
     resizeObserver?.observe(version);
     if (card) resizeObserver?.observe(card);
+    if (report) resizeObserver?.observe(report);
 
     const mutationObserver = typeof MutationObserver === "undefined" || !card
       ? null
