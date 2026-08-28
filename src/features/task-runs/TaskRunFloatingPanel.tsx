@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { TaskRun } from "../../entities/task-run";
 import { TaskRunCard } from "./TaskRunCard";
 import { isActiveTaskRun, TASK_LABELS } from "./taskRunPresentation";
@@ -29,19 +29,11 @@ export function TaskRunFloatingPanel({
     cooldownUntil: 0,
     ownerRunId: null,
   });
-  const visibleRuns = runs.filter(
-    (run) => isActiveTaskRun(run) || !dismissedRunIds.has(run.runId),
-  );
+  const visibleRuns = runs.filter((run) => !dismissedRunIds.has(run.runId));
 
   const focusFallback = () => {
     document.getElementById(fallbackFocusId)?.focus();
   };
-
-  useEffect(() => {
-    for (const run of runs) {
-      if (isActiveTaskRun(run)) acceptedRunIdsRef.current.delete(run.runId);
-    }
-  }, [runs]);
 
   const availableCloseButton = (runId: string) => {
     if (acceptedRunIdsRef.current.has(runId)) return undefined;
@@ -164,7 +156,7 @@ export function TaskRunFloatingPanel({
                       else closeButtonRefs.current.delete(run.runId);
                     }}
                     expanded={expanded}
-                    key={`${run.runId}:${isActiveTaskRun(run) ? "active" : "terminal"}`}
+                    key={run.runId}
                     onDismissAccepted={(origin) => acceptDismiss(run, origin)}
                     onDismissComplete={() => completeDismiss(run.runId)}
                     run={run}
