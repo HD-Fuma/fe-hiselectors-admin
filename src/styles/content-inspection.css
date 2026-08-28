@@ -111,6 +111,10 @@ body:has(.fuma-content-inspection-studio) {
   display: none;
 }
 
+.fuma-content-inspection-studio__versions[data-revised="true"][data-content-format="youtube-long"] {
+  padding-left: 0;
+}
+
 .fuma-content-inspection-studio__history {
   position: relative;
   display: grid;
@@ -1991,6 +1995,8 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__media {
+  flex: 0 0 auto;
+  aspect-ratio: 16 / 9;
   border-radius: 12px 12px 0 0;
 }
 
