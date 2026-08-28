@@ -723,7 +723,7 @@ export function SelectorOverviewPage({ initialViewMode }: { initialViewMode?: Se
             </FilterField>
           </SearchPanel>
         </div>
-        <ResultToolbar
+        <ChoiceTabs
           actions={(
             <ViewModeToggle
               gridLabel="버블"
@@ -740,27 +740,25 @@ export function SelectorOverviewPage({ initialViewMode }: { initialViewMode?: Se
               value={activeView === "pool" ? "grid" : "list"}
             />
           )}
-          className="fuma-simple-result-toolbar"
-        />
-        {activeView === "table" ? (
-          <ChoiceTabs
-            ariaLabel="활동 상태"
-            className="fuma-selector-status-filter fuma-list-action-toolbar"
-            emptyOption={{
-              label: "전체",
-              onSelect: () => {
-                setSelectedStatus(null);
-                setPage(1);
-              },
-            }}
-            onChange={(status) => {
-              setSelectedStatus(status);
+          ariaLabel="활동 상태"
+          className="fuma-selector-status-filter fuma-list-action-toolbar"
+          emptyOption={{
+            label: "전체",
+            onSelect: () => {
+              setSelectedStatus(null);
               setPage(1);
-            }}
-            options={SELECTOR_STATUS_CATEGORIES}
-            value={selectedStatus}
-          />
-        ) : null}
+            },
+          }}
+          onChange={(status) => {
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.set("view", "table");
+            setSearchParams(nextParams, { replace: true });
+            setSelectedStatus(status);
+            setPage(1);
+          }}
+          options={SELECTOR_STATUS_CATEGORIES}
+          value={selectedStatus}
+        />
         {listError ? (
           <EmptyState description={listError} title="목록을 불러오지 못했습니다" />
         ) : activeView === "pool" ? (
