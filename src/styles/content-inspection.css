@@ -479,7 +479,8 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio__profile,
 .fuma-content-inspection-studio__header,
-.fuma-content-inspection-studio__report {
+.fuma-content-inspection-studio__report,
+.fuma-content-inspection-studio__decision {
   border: 1px solid rgb(255 255 255 / 78%);
   color: #202224;
   background: rgb(255 255 255 / 42%);
@@ -1485,12 +1486,14 @@ button.fuma-content-inspection-studio__violation-bubble {
   bottom: 28px;
   z-index: 2;
   display: flex;
-  width: 274px;
+  width: min(var(--studio-right-rail), calc(100vw - 56px));
+  padding: 12px 15px;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   column-gap: 18px;
   row-gap: 10px;
+  border-radius: 23px;
   opacity: 0.38;
   outline: none;
   transition: opacity 160ms ease, filter 160ms ease;
