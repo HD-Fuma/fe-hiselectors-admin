@@ -115,6 +115,13 @@ body:has(.fuma-content-inspection-studio) {
   padding-left: 0;
 }
 
+.fuma-content-inspection-studio__versions:has(
+  .fuma-content-inspection-studio__violation-bubbles,
+  .fuma-platform-inspection-frame__violation-box
+) {
+  z-index: 10;
+}
+
 .fuma-content-inspection-studio__history {
   position: relative;
   display: grid;
@@ -2171,12 +2178,6 @@ button.fuma-content-inspection-studio__violation-bubble {
   color: #0f0f0f;
   font-size: var(--hsas-font-16);
   line-height: 1.55;
-}
-
-.fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-description p {
-  max-height: none;
-  overflow: hidden;
-  overflow-wrap: anywhere;
 }
 
 .fuma-content-inspection-studio__version > .fuma-minimal-version-card[data-content-format="youtube-shorts"] {
@@ -7711,7 +7712,7 @@ button.fuma-platform-inspection-frame__violation-box {
     .fuma-platform-inspection-frame__shorts-overlay > p
   ) {
   display: -webkit-box;
-  max-height: none;
+  max-height: 6lh;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 6;
@@ -7728,49 +7729,8 @@ button.fuma-platform-inspection-frame__violation-box {
     .fuma-minimal-version-card[data-content-format="youtube-long"]
     .fuma-platform-inspection-frame__youtube-description > p {
     min-height: 4lh;
-    -webkit-line-clamp: 4;
-  }
-}
-
-.fuma-content-inspection-studio
-  .fuma-minimal-version-card
-  :is(
-    .fuma-platform-inspection-frame__instagram-copy > p,
-    .fuma-platform-inspection-frame__youtube-description > p,
-    .fuma-platform-inspection-frame__shorts-overlay > p
-  ) {
-  display: block;
-  max-height: 6lh;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  -webkit-line-clamp: unset;
-}
-
-.fuma-content-inspection-studio
-  .fuma-minimal-version-card:is(
-    [data-content-format="instagram-reels"],
-    [data-content-format="youtube-shorts"]
-  )
-  .fuma-platform-inspection-frame__shorts-overlay > p {
-  scrollbar-width: none;
-}
-
-.fuma-content-inspection-studio
-  .fuma-minimal-version-card:is(
-    [data-content-format="instagram-reels"],
-    [data-content-format="youtube-shorts"]
-  )
-  .fuma-platform-inspection-frame__shorts-overlay > p::-webkit-scrollbar {
-  display: none;
-}
-
-@media (max-height: 820px) {
-  .fuma-content-inspection-studio
-    .fuma-minimal-version-card[data-content-format="youtube-long"]
-    .fuma-platform-inspection-frame__youtube-description > p {
     max-height: 4lh;
+    -webkit-line-clamp: 4;
   }
 }
 
