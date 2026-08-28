@@ -1786,9 +1786,9 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-platform-inspection-frame__stt-panel.fuma-platform-inspection-frame__description-panel {
-  border-color: rgb(255 255 255 / 78%);
+  border-color: rgb(255 255 255 / 94%);
   color: #17191b;
-  background: linear-gradient(145deg, rgb(255 255 255 / 88%), rgb(246 248 249 / 78%));
+  background: linear-gradient(145deg, rgb(255 255 255 / 98%), rgb(250 251 252 / 94%));
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 96%),
     0 18px 48px rgb(54 65 72 / 14%);
@@ -1807,7 +1807,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-platform-inspection-frame__description-panel > header {
   border-bottom-color: rgb(32 34 36 / 9%);
-  background: rgb(255 255 255 / 24%);
+  background: rgb(255 255 255 / 58%);
 }
 
 .fuma-platform-inspection-frame__stt-panel > header > span {
@@ -1889,14 +1889,14 @@ button.fuma-content-inspection-studio__violation-bubble {
   padding: 14px;
   border: 1px solid rgb(255 255 255 / 88%);
   border-radius: 16px;
-  background: rgb(255 255 255 / 70%);
+  background: rgb(255 255 255 / 90%);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 90%),
     0 8px 24px rgb(54 65 72 / 7%);
 }
 
 .fuma-platform-inspection-frame__description-section.is-stt {
-  background: rgb(247 249 250 / 78%);
+  background: rgb(248 250 251 / 92%);
 }
 
 .fuma-platform-inspection-frame__description-section
