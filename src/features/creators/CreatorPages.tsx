@@ -743,6 +743,7 @@ function CreatorProfilePanel({
 export function CreatorListPage() {
   const navigate = useNavigate();
   const buildPoolTooltipId = useId();
+  const discoverySettingsTooltipId = useId();
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [selectedCreators, setSelectedCreators] = useState<Map<number, CreatorSummary>>(new Map());
@@ -756,7 +757,7 @@ export function CreatorListPage() {
   const [discoverySettingsOpen, setDiscoverySettingsOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
   const [proposalRequestedCount, setProposalRequestedCount] = useState(0);
-  const [buildPoolTooltipInitial, setBuildPoolTooltipInitial] = useState(true);
+  const [discoverySettingsTooltipInitial, setDiscoverySettingsTooltipInitial] = useState(true);
   const [buildPoolTooltipHovered, setBuildPoolTooltipHovered] = useState(false);
   const [buildPoolTooltipFocused, setBuildPoolTooltipFocused] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<readonly { label: string; value: string }[]>(
@@ -773,7 +774,7 @@ export function CreatorListPage() {
   ), []);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => setBuildPoolTooltipInitial(false), 2000);
+    const timeoutId = window.setTimeout(() => setDiscoverySettingsTooltipInitial(false), 2000);
     return () => window.clearTimeout(timeoutId);
   }, []);
 
@@ -976,7 +977,7 @@ export function CreatorListPage() {
                 <Tooltip
                   id={buildPoolTooltipId}
                   placement="top"
-                  visible={buildPoolTooltipInitial || buildPoolTooltipHovered || buildPoolTooltipFocused}
+                  visible={buildPoolTooltipHovered || buildPoolTooltipFocused}
                 >
                   새로운 크리에이터 풀을 구축할 수 있습니다.
                 </Tooltip>
@@ -989,9 +990,22 @@ export function CreatorListPage() {
               >
                 선택 {selectedCreators.size}명 제안 발송
               </Button>
-              <Button aria-haspopup="dialog" onClick={() => setDiscoverySettingsOpen(true)}>
-                발굴 설정
-              </Button>
+              <span className="fuma-creator-pool-build-action">
+                <Button
+                  aria-describedby={discoverySettingsTooltipId}
+                  aria-haspopup="dialog"
+                  onClick={() => setDiscoverySettingsOpen(true)}
+                >
+                  발굴 설정
+                </Button>
+                <Tooltip
+                  id={discoverySettingsTooltipId}
+                  placement="top"
+                  visible={discoverySettingsTooltipInitial}
+                >
+                  크리에이터 발굴 키워드를 설정할 수 있습니다.
+                </Tooltip>
+              </span>
             </>
           )}
           className="fuma-simple-result-toolbar fuma-applicant-result-toolbar fuma-creator-pool-result-toolbar"
