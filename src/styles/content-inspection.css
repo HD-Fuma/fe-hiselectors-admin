@@ -868,8 +868,8 @@ button.fuma-content-inspection-studio__violation-bubble {
   display: grid;
   margin-top: 14px;
   padding: 13px 0;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px 14px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 12px 10px;
   border-top: 1px solid rgb(255 255 255 / 58%);
   border-bottom: 1px solid rgb(255 255 255 / 58%);
 }
@@ -894,6 +894,10 @@ button.fuma-content-inspection-studio__violation-bubble {
   font-weight: 750;
   line-height: 1.4;
   overflow-wrap: anywhere;
+}
+
+.fuma-content-inspection-studio__content-meta time {
+  white-space: nowrap;
 }
 
 .fuma-content-inspection-studio__content-meta .hsas-select {
