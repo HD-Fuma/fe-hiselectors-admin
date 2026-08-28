@@ -426,8 +426,9 @@ test("switches studio version cards and keeps the latest judgment state", async 
   expect(within(report).getByText("최신 버전 요약")).toBeInTheDocument();
 
   const latestJudgment = await within(report).findByRole("group", { name: "허위·과장 표현 판정" });
-  fireEvent.click(within(latestJudgment).getByRole("button", { name: "위반 허용" }));
-  expect(within(report).getByText("위반 아님")).toBeInTheDocument();
+  const allowLatestViolation = within(latestJudgment).getByRole("button", { name: "위반 허용" });
+  fireEvent.click(allowLatestViolation);
+  expect(allowLatestViolation).toHaveAttribute("aria-pressed", "true");
   const initialFinalInspection = screen.getByRole("group", { name: "최종 검수" });
   await waitFor(() => expect(document.activeElement).toBe(initialFinalInspection));
 
@@ -463,7 +464,8 @@ test("switches studio version cards and keeps the latest judgment state", async 
   expect(await within(historicalCard as HTMLElement).findByRole("button", {
     name: "v1 과거 콘텐츠 선택",
   })).toBeInTheDocument();
-  expect(within(report).getByText("위반 아님")).toBeInTheDocument();
+  expect(within(report).getByRole("button", { name: "위반 허용" }))
+    .toHaveAttribute("aria-pressed", "true");
   const finalInspection = screen.getByRole("group", { name: "최종 검수" });
   await waitFor(() => expect(document.activeElement).toBe(finalInspection));
   expect(within(latestCard as HTMLElement).queryByRole("button", {
@@ -574,7 +576,6 @@ test("loads violations and submits the final judgment in one request", async () 
   expect(within(report).getByText("제휴링크 누락·불일치")).toBeInTheDocument();
   expect(within(report).getByText("욕설/비속어")).toBeInTheDocument();
   expect(within(report).queryByText("허위/과장 표현")).not.toBeInTheDocument();
-  expect(within(report).getByText("위반 항목 1 · 정상 9")).toBeInTheDocument();
   const compliantItemsLabel = within(report).getByText("가이드 준수 항목");
   const compliantItems = compliantItemsLabel.closest("details");
   expect(compliantItems).not.toHaveAttribute("open");

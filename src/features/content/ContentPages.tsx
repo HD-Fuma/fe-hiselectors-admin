@@ -1860,7 +1860,7 @@ function MinimalAiAnalysis({
 }) {
   const analysisPending = content.aiStatus === "pending";
   const analysis = inspectionAnalysisData(content);
-  const { issues, normalItemCount, summaryBullets } = analysis;
+  const { issues, summaryBullets } = analysis;
   const extracts = content.report.extracts;
   const versionNo = currentDisplayedVersionNo(content);
   const showChanges = versionNo > 1 && content.changeItems.length > 0;
@@ -1891,7 +1891,6 @@ function MinimalAiAnalysis({
             <section aria-label="위반 내역" className="fuma-content-inspection-evidence">
               <header>
                 <h4>위반 내역</h4>
-                <span>위반 항목 {issues.length} · 정상 {normalItemCount}</span>
               </header>
               {issues.length > 0 ? (
                 <ul>
@@ -3550,11 +3549,6 @@ export function ContentInspectionDetailPage() {
             >
               <div>
                 <span>위반 내역</span>
-                <small>
-                  {studioSelectedReportReady && studioReportAnalysis
-                    ? `위반 항목 ${studioReportViolationSignals.length} · 정상 ${studioReportAnalysis.normalItemCount}`
-                    : "-"}
-                </small>
               </div>
               {!studioSelectedReportReady ? (
                 <p className="fuma-content-inspection-studio__report-empty">
@@ -3586,16 +3580,9 @@ export function ContentInspectionDetailPage() {
                           onClick={() => focusStudioReportViolation(index, signal.ordinal)}
                           type="button"
                         >
-                          <div>
-                            <span className="fuma-content-inspection-evidence__candidate-label">
-                              {issueOrdinalLabel(signal.ordinal)} {signal.title}
-                            </span>
-                            <small data-judgment={judgment ?? "pending"}>
-                              {judgment === "violation"
-                                ? "위반"
-                                : judgment === "clear" ? "위반 아님" : signal.source}
-                            </small>
-                          </div>
+                          <span className="fuma-content-inspection-evidence__candidate-label">
+                            {issueOrdinalLabel(signal.ordinal)} {signal.title}
+                          </span>
                           {showsInspectionGuideline(signal) ? (
                             <aside className="fuma-content-inspection-studio__report-guideline">
                               <span>검수 기준</span>

@@ -1100,25 +1100,6 @@ button.fuma-content-inspection-studio__violation-bubble {
   margin-top: 17px;
 }
 
-.fuma-content-inspection-studio__report-evidence > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.fuma-content-inspection-studio__report-evidence > div > small {
-  display: grid;
-  min-width: 34px;
-  height: 20px;
-  padding: 0 6px;
-  place-items: center;
-  border-radius: 999px;
-  color: #fff;
-  background: rgb(32 34 36 / 82%);
-  font-size: 11px;
-  font-weight: 800;
-}
-
 .fuma-content-inspection-studio__report-evidence ul {
   margin: 8px 0 0;
   padding: 0;
@@ -1200,52 +1181,11 @@ button.fuma-content-inspection-studio__violation-bubble {
     0 12px 24px rgb(30 157 139 / 12%);
 }
 
-.fuma-content-inspection-studio__report-evidence-item > div {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-
 .fuma-content-inspection-studio__report-evidence
   .fuma-content-inspection-evidence__candidate-label {
   min-width: 0;
   font-size: var(--hsas-font-15);
   line-height: 1.45;
-}
-
-.fuma-content-inspection-studio__report-evidence li small {
-  flex: 0 0 auto;
-  color: rgb(32 34 36 / 42%);
-  font-size: var(--hsas-font-12);
-  white-space: nowrap;
-}
-
-.fuma-content-inspection-studio__report-evidence li small[data-judgment="pending"] {
-  max-width: none;
-  flex: 0 0 auto;
-  text-align: right;
-}
-
-.fuma-content-inspection-studio__report-evidence li small[data-judgment="violation"],
-.fuma-content-inspection-studio__report-evidence li small[data-judgment="clear"] {
-  padding: 3px 6px;
-  border: 1px solid;
-  border-radius: 999px;
-  font-weight: 750;
-}
-
-.fuma-content-inspection-studio__report-evidence li small[data-judgment="violation"] {
-  border-color: var(--hsas-status-rejected);
-  color: #fff;
-  background: var(--hsas-status-rejected);
-  box-shadow: 0 0 12px rgb(161 61 61 / 34%);
-}
-
-.fuma-content-inspection-studio__report-evidence li small[data-judgment="clear"] {
-  border-color: #171717;
-  color: #fff;
-  background: #171717;
 }
 
 .fuma-content-inspection-studio__report-evidence li p,
