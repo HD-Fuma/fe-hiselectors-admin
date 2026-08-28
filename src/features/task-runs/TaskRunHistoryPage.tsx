@@ -180,7 +180,7 @@ export function TaskRunHistoryPage() {
     <section className="fuma-page">
       <PageHeader title="모니터링" />
       <div className="fuma-page__body">
-        <div className="fuma-operations-search fuma-settlement-search">
+        <div className="fuma-operations-search fuma-settlement-search fuma-task-run-search">
           <SearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
             <FilterField htmlFor="task-run-keyword" label="검색어">
               <TextInput

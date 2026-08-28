@@ -3386,6 +3386,16 @@
   border-left: 1px solid var(--hsas-color-line-250);
 }
 
+.fuma-settlement-search.fuma-task-run-search .hsas-search-panel__fields {
+  grid-template-columns: minmax(300px, 1.5fr) minmax(180px, 0.8fr) minmax(160px, 0.7fr);
+  column-gap: var(--hsas-space-24);
+}
+
+.fuma-settlement-search.fuma-task-run-search .fuma-filter-field {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--hsas-space-6);
+}
+
 .fuma-cohort-search .hsas-search-panel__fields {
   grid-template-columns: minmax(220px, 0.7fr) minmax(420px, 1.3fr);
 }
@@ -6737,6 +6747,10 @@
   }
 
   .fuma-settlement-search .hsas-search-panel__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fuma-settlement-search.fuma-task-run-search .hsas-search-panel__fields {
     grid-template-columns: minmax(0, 1fr);
   }
 
