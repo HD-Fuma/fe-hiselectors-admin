@@ -1,5 +1,12 @@
 import * as echarts from "echarts/core";
-import { BarChart, BoxplotChart, LineChart, PieChart, ScatterChart } from "echarts/charts";
+import {
+  BarChart,
+  BoxplotChart,
+  EffectScatterChart,
+  LineChart,
+  PieChart,
+  ScatterChart,
+} from "echarts/charts";
 import {
   DataZoomComponent,
   GridComponent,
@@ -10,6 +17,7 @@ import { CanvasRenderer } from "echarts/renderers";
 echarts.use([
   BarChart,
   BoxplotChart,
+  EffectScatterChart,
   LineChart,
   PieChart,
   ScatterChart,
