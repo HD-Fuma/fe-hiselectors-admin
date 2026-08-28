@@ -55,7 +55,7 @@ export function InstagramReelsCard({
               <UserRound
                 aria-label={`${creatorName} 프로필 이미지 없음`}
                 role="img"
-                size={18}
+                size={19}
               />
             )}
           </span>

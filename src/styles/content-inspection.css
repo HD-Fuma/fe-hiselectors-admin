@@ -1843,14 +1843,24 @@ button.fuma-content-inspection-studio__violation-bubble {
   display: none;
 }
 
-.fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="instagram-feed"] .fuma-platform-inspection-frame__avatar {
+.fuma-content-inspection-studio .fuma-minimal-version-card:is(
+  [data-content-format="instagram-feed"],
+  [data-content-format="instagram-reels"]
+) .fuma-platform-inspection-frame__avatar {
+  width: 34px;
+  height: 34px;
   padding: 0;
+  flex: 0 0 34px;
+  aspect-ratio: 1;
   border: 1px solid #dedede;
   color: #8e8e8e;
   background: #f2f2f2;
 }
 
-.fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="instagram-feed"] .fuma-platform-inspection-frame__avatar img {
+.fuma-content-inspection-studio .fuma-minimal-version-card:is(
+  [data-content-format="instagram-feed"],
+  [data-content-format="instagram-reels"]
+) .fuma-platform-inspection-frame__avatar img {
   border: 0;
 }
 
