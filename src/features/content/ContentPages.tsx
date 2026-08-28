@@ -1239,9 +1239,8 @@ function MinimalVersionCard({
   const cardRef = useRef<HTMLElement>(null);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
   const handledFocusedViolationRef = useRef<string | null>(null);
-  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [textDataExpanded, setTextDataExpanded] = useState(false);
   const [descriptionOverflowing, setDescriptionOverflowing] = useState(false);
-  const [sttExpanded, setSttExpanded] = useState(false);
   const annotations = useMemo(
     () => showAnnotations ? indexedViolationAnnotations(content, snapshot) : [],
     [content, showAnnotations, snapshot],
@@ -1308,8 +1307,7 @@ function MinimalVersionCard({
   const focusedViolationRequestKey = focusedViolation && focusedAnnotation
     ? `${content.id}:${snapshot.capturedAt}:${focusedViolation.requestId}:${focusedAnnotation.id}:${JSON.stringify(focusedAnnotation.target)}`
     : null;
-  const descriptionId = `content-description-${content.id}-${snapshot.capturedAt.replace(/\W/g, "")}`;
-  const sttPanelId = `content-stt-${content.id}-${snapshot.capturedAt.replace(/\W/g, "")}`;
+  const textDataPanelId = `content-text-data-${content.id}-${snapshot.capturedAt.replace(/\W/g, "")}`;
 
   const moveMedia = (direction: -1 | 1) => {
     setActiveMediaIndex((current) => Math.min(
@@ -1332,13 +1330,12 @@ function MinimalVersionCard({
   };
 
   useEffect(() => {
-    setDescriptionExpanded(false);
+    setTextDataExpanded(false);
     setDescriptionOverflowing(false);
-    setSttExpanded(false);
   }, [content.id, snapshot.capturedAt]);
 
   useEffect(() => {
-    if (descriptionExpanded) return;
+    if (textDataExpanded) return;
     const description = descriptionRef.current;
     if (!description) return;
     const measureOverflow = () => {
@@ -1354,20 +1351,19 @@ function MinimalVersionCard({
       window.cancelAnimationFrame(animationFrame);
       resizeObserver?.disconnect();
     };
-  }, [descriptionExpanded, snapshot.text]);
+  }, [snapshot.text, textDataExpanded]);
 
   useEffect(() => {
-    if (!descriptionExpanded && !sttExpanded) return;
+    if (!textDataExpanded) return;
     const collapseOnEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      setDescriptionExpanded(false);
-      setSttExpanded(false);
+      setTextDataExpanded(false);
     };
     window.addEventListener("keydown", collapseOnEscape, true);
     return () => window.removeEventListener("keydown", collapseOnEscape, true);
-  }, [descriptionExpanded, sttExpanded]);
+  }, [textDataExpanded]);
 
   useEffect(() => {
     if (!focusedViolation || !focusedAnnotation || !focusedViolationRequestKey) {
@@ -1396,25 +1392,25 @@ function MinimalVersionCard({
     });
 
     return () => window.cancelAnimationFrame(animationFrame);
-  }, [descriptionExpanded, focusedAnnotation, focusedViolation, focusedViolationRequestKey, visibleIndex]);
+  }, [focusedAnnotation, focusedViolation, focusedViolationRequestKey, textDataExpanded, visibleIndex]);
 
-  const canToggleDescription = descriptionOverflowing || descriptionExpanded;
+  const canToggleDescription = descriptionOverflowing || textDataExpanded;
   const descriptionToggle = (
     <button
-      aria-controls={descriptionId}
-      aria-expanded={descriptionExpanded}
+      aria-controls={textDataPanelId}
+      aria-expanded={textDataExpanded}
       aria-hidden={!canToggleDescription}
       className="fuma-platform-inspection-frame__description-toggle"
       data-visible={canToggleDescription}
       disabled={!canToggleDescription}
       onClick={(event) => {
         event.stopPropagation();
-        setDescriptionExpanded((current) => !current);
+        setTextDataExpanded((current) => !current);
       }}
       tabIndex={canToggleDescription ? undefined : -1}
       type="button"
     >
-      {descriptionExpanded ? "접기" : "더보기"}
+      {textDataExpanded ? "접기" : "더보기"}
     </button>
   );
   const sttTranscript = sttExtracts.map((extract, index) => (
@@ -1437,10 +1433,10 @@ function MinimalVersionCard({
       aria-label={`${label} ${platformCardLabel}`}
       className="fuma-minimal-version-card fuma-platform-content-card"
       data-content-format={platformCardVariant}
-      data-description-expanded={descriptionExpanded}
+      data-description-expanded={textDataExpanded}
       data-platform-card={platformCardVariant}
       data-platform={platform.toLowerCase()}
-      data-stt-expanded={sttExpanded}
+      data-stt-expanded={textDataExpanded}
       inert={inert}
       ref={cardRef}
     >
@@ -1467,7 +1463,7 @@ function MinimalVersionCard({
         ))}
         <time>{snapshot.capturedAt}</time>
       </header>
-      <div className="fuma-platform-inspection-frame" inert={descriptionExpanded || sttExpanded}>
+      <div className="fuma-platform-inspection-frame" inert={textDataExpanded}>
         {isInstagram && !isInstagramReels ? (
           <div className="fuma-platform-inspection-frame__instagram-header">
             <span className="fuma-platform-inspection-frame__avatar">
@@ -1626,13 +1622,12 @@ function MinimalVersionCard({
           ) : null}
           {sttExtracts.length > 0 ? (
             <button
-              aria-controls={sttPanelId}
-              aria-expanded={sttExpanded}
+              aria-controls={textDataPanelId}
+              aria-expanded={textDataExpanded}
               className="fuma-platform-inspection-frame__stt-trigger"
               onClick={(event) => {
                 event.stopPropagation();
-                setDescriptionExpanded(false);
-                setSttExpanded(true);
+                setTextDataExpanded(true);
               }}
               type="button"
             >
@@ -1769,22 +1764,22 @@ function MinimalVersionCard({
           </div>
         )}
       </div>
-      {descriptionExpanded ? (
+      {textDataExpanded ? (
         <section
-          aria-label="내용 더보기"
+          aria-label="텍스트 데이터"
           aria-modal="true"
           className="fuma-platform-inspection-frame__stt-panel fuma-platform-inspection-frame__description-panel"
-          id={descriptionId}
+          id={textDataPanelId}
           role="dialog"
         >
           <header>
             <span>
-              <strong>내용 더보기</strong>
+              <strong>텍스트 데이터</strong>
             </span>
             <button
-              aria-label="내용 더보기 닫기"
+              aria-label="텍스트 데이터 닫기"
               autoFocus
-              onClick={() => setDescriptionExpanded(false)}
+              onClick={() => setTextDataExpanded(false)}
               type="button"
             >
               <X aria-hidden="true" size={18} />
@@ -1810,38 +1805,14 @@ function MinimalVersionCard({
             {sttTranscript.length > 0 ? (
               <section className="fuma-platform-inspection-frame__description-section is-stt">
                 <h4>STT 추출물</h4>
-                <div className="fuma-platform-inspection-frame__description-stt">
+                <div
+                  className="fuma-platform-inspection-frame__description-stt"
+                  data-stt-transcript
+                >
                   {sttTranscript}
                 </div>
               </section>
             ) : null}
-          </div>
-        </section>
-      ) : null}
-      {sttExpanded ? (
-        <section
-          aria-label="STT 추출물"
-          aria-modal="true"
-          className="fuma-platform-inspection-frame__stt-panel"
-          id={sttPanelId}
-          role="dialog"
-        >
-          <header>
-            <span>
-              <small>VIDEO TEXT</small>
-              <strong>STT 추출물</strong>
-            </span>
-            <button
-              aria-label="STT 추출물 닫기"
-              autoFocus
-              onClick={() => setSttExpanded(false)}
-              type="button"
-            >
-              <X aria-hidden="true" size={18} />
-            </button>
-          </header>
-          <div className="fuma-platform-inspection-frame__stt-transcript" data-stt-transcript>
-            {sttTranscript}
           </div>
         </section>
       ) : null}

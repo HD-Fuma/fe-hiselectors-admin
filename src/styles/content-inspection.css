@@ -1724,13 +1724,15 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-platform-inspection-frame__stt-panel.fuma-platform-inspection-frame__description-panel {
-  border-color: #fff;
-  color: #17191b;
-  background: #fff;
+  border-color: rgb(255 255 255 / 78%);
+  color: #202224;
+  background:
+    radial-gradient(ellipse 42% 18% at 50% 78%, rgb(255 255 255 / 18%), transparent 72%),
+    radial-gradient(circle at 50% 28%, rgb(255 255 255 / 22%) 0, rgb(248 249 249 / 18%) 32%, rgb(233 236 238 / 21%) 100%);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 96%),
-    0 18px 48px rgb(54 65 72 / 14%);
-  backdrop-filter: blur(28px) saturate(1.12);
+    inset 0 1px 0 rgb(255 255 255 / 72%),
+    0 18px 48px rgb(54 65 72 / 12%);
+  backdrop-filter: blur(30px) saturate(0.72);
 }
 
 .fuma-platform-inspection-frame__stt-panel > header {
@@ -1745,7 +1747,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-platform-inspection-frame__description-panel > header {
   border-bottom-color: rgb(32 34 36 / 9%);
-  background: #fff;
+  background: transparent;
 }
 
 .fuma-platform-inspection-frame__stt-panel > header > span {
@@ -1824,24 +1826,37 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-platform-inspection-frame__description-section {
+  position: relative;
+  overflow: hidden;
   padding: 14px;
-  border: 1px solid #e3e6e8;
-  border-radius: 16px;
-  background: #fff;
+  border: 1px solid rgb(255 255 255 / 78%);
+  border-radius: 22px;
+  color: #202224;
+  background: rgb(255 255 255 / 58%);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 90%),
-    0 8px 24px rgb(54 65 72 / 7%);
+    inset 0 1px 0 rgb(255 255 255 / 72%),
+    0 18px 48px rgb(54 65 72 / 12%);
+  backdrop-filter: blur(24px) saturate(1.15);
 }
 
-.fuma-platform-inspection-frame__description-section.is-stt {
-  background: #fff;
+.fuma-platform-inspection-frame__description-section::before {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 0%, rgb(255 255 255 / 74%), transparent 34%),
+    linear-gradient(135deg, rgb(255 255 255 / 24%), transparent 48%, rgb(255 255 255 / 10%));
+  content: "";
+  pointer-events: none;
+}
+
+.fuma-platform-inspection-frame__description-section > * {
+  position: relative;
+  z-index: 1;
 }
 
 .fuma-platform-inspection-frame__description-section
   + .fuma-platform-inspection-frame__description-section {
   margin-top: 12px;
-  padding-top: 14px;
-  border-top: 1px solid #e3e6e8;
 }
 
 .fuma-platform-inspection-frame__description-section > h4 {
