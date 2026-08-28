@@ -850,6 +850,29 @@ button.fuma-content-inspection-studio__violation-bubble {
   overflow-y: auto;
   overflow-wrap: anywhere;
   border-radius: 23px;
+  scrollbar-color: rgb(32 34 36 / 22%) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.fuma-content-inspection-studio__report::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fuma-content-inspection-studio__report::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fuma-content-inspection-studio__report::-webkit-scrollbar-thumb {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgb(32 34 36 / 22%);
+  background-clip: padding-box;
+}
+
+.fuma-content-inspection-studio__report::-webkit-scrollbar-thumb:hover {
+  background: rgb(32 34 36 / 36%);
+  background-clip: padding-box;
 }
 
 .fuma-content-inspection-studio__report > header,
