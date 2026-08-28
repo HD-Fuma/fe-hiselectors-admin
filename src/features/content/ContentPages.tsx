@@ -1783,23 +1783,26 @@ function MinimalVersionCard({
             className="fuma-platform-inspection-frame__stt-transcript"
             data-description-transcript
           >
-            <p>
-              <ViolationHighlightedText
-                annotations={annotations}
-                focusedOrdinal={focusedViolation?.ordinal}
-                onSelectViolation={onSelectViolation}
-                showBubbles={showTextBubbles}
-                text={snapshot.text}
-                useStoredIndexes
-              />
-            </p>
+            <section className="fuma-platform-inspection-frame__description-section">
+              <h4>본문</h4>
+              <p>
+                <ViolationHighlightedText
+                  annotations={annotations}
+                  focusedOrdinal={focusedViolation?.ordinal}
+                  onSelectViolation={onSelectViolation}
+                  showBubbles={showTextBubbles}
+                  text={snapshot.text}
+                  useStoredIndexes
+                />
+              </p>
+            </section>
             {sttTranscript.length > 0 ? (
-              <>
-                <h4 className="fuma-platform-inspection-frame__description-stt-title">
-                  STT 추출물
-                </h4>
-                {sttTranscript}
-              </>
+              <section className="fuma-platform-inspection-frame__description-section is-stt">
+                <h4>STT 추출물</h4>
+                <div className="fuma-platform-inspection-frame__description-stt">
+                  {sttTranscript}
+                </div>
+              </section>
             ) : null}
           </div>
         </section>
