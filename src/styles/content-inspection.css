@@ -371,10 +371,6 @@ button.fuma-content-inspection-studio__violation-bubble {
   border-color: rgb(255 255 255 / 28%);
 }
 
-.fuma-content-inspection-studio__version > .fuma-platform-content-card[data-platform-card="youtube-shorts"] {
-  border: 0;
-}
-
 .fuma-content-inspection-studio__history .fuma-platform-content-card[data-platform-card^="instagram-"] .fuma-platform-inspection-frame__instagram-header {
   display: grid;
 }
@@ -443,6 +439,11 @@ button.fuma-content-inspection-studio__violation-bubble {
     12px 12px 0 -1px rgb(54 65 72 / 6%),
     0 30px 70px rgb(35 45 48 / 20%);
   animation: none;
+}
+
+.fuma-content-inspection-studio__version > .fuma-platform-content-card[data-platform-card="youtube-shorts"] {
+  border: 0;
+  box-shadow: none;
 }
 
 .fuma-content-inspection-studio__versions .fuma-content-inspection-studio__version:has(> .fuma-content-inspection-studio__violation-bubbles) {
