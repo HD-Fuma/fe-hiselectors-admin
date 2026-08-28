@@ -491,7 +491,7 @@ export function DashboardPage() {
         <DashboardCard
           className="fuma-dashboard-card--daily"
           eyebrow="TODAY"
-          title="오늘 접수된 콘텐츠"
+          title={"오늘 접수된\n콘텐츠"}
         >
           <DashboardBreakdown
             items={[
