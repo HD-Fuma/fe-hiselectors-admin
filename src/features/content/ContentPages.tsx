@@ -3150,7 +3150,7 @@ export function ContentInspectionDetailPage() {
                   <dd>{generationSales == null ? "-" : formatWon(generationSales)}</dd>
                 </div>
                 <div>
-                  <dt>등록 콘텐츠 수 (현재 제외)</dt>
+                  <dt>등록 콘텐츠</dt>
                   <dd>{registeredContentCount == null ? "-" : `${formatNumber(registeredContentCount)}건`}</dd>
                 </div>
               </dl>
