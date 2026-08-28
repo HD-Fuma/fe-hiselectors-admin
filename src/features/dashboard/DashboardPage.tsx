@@ -201,10 +201,8 @@ function RevenueTrend({ dailyTrend }: { dailyTrend: readonly DailyRevenuePoint[]
   const latest = dailyTrend[dailyTrend.length - 1];
   const option: EChartsOption = {
     animation: true,
-    animationDuration: 1500,
-    animationDurationUpdate: 500,
-    animationEasing: "cubicInOut",
-    animationEasingUpdate: "cubicInOut",
+    animationDuration: 1000,
+    animationEasing: "cubicOut",
     grid: {
       bottom: 32,
       left: 56,
@@ -265,8 +263,6 @@ function RevenueTrend({ dailyTrend }: { dailyTrend: readonly DailyRevenuePoint[]
         type: "line",
         name: "매출",
         data: dailyTrend.map(({ salesAmount }) => salesAmount),
-        animationDelay: 120,
-        animationDuration: 1350,
         lineStyle: { color: REVENUE_COLORS.sales, width: 3 },
         itemStyle: {
           borderColor: REVENUE_COLORS.sales,
@@ -281,8 +277,6 @@ function RevenueTrend({ dailyTrend }: { dailyTrend: readonly DailyRevenuePoint[]
         type: "line",
         name: "정산액",
         data: dailyTrend.map(({ settlementAmount }) => settlementAmount),
-        animationDelay: 420,
-        animationDuration: 1450,
         itemStyle: { color: REVENUE_COLORS.settlement },
         lineStyle: { color: REVENUE_COLORS.settlement, type: "dashed", width: 2 },
         showSymbol: false,

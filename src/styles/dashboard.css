@@ -379,20 +379,6 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   border: 1px solid rgb(255 255 255 / 58%);
   border-radius: 15px;
   background: rgb(255 255 255 / 26%);
-  animation: fuma-dashboard-trend-enter 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  transform-origin: center bottom;
-}
-
-@keyframes fuma-dashboard-trend-enter {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.975);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 .fuma-dashboard-trend__empty {
