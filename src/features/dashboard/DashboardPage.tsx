@@ -157,13 +157,13 @@ function DashboardMetric({
   value,
 }: {
   detail?: string;
-  label: string;
+  label?: string;
   unit?: string;
   value: string;
 }) {
   return (
     <div className="fuma-dashboard__metric">
-      <span>{label}</span>
+      {label ? <span>{label}</span> : null}
       <strong>{value}{unit ? <small>{unit}</small> : null}</strong>
       {detail ? <small className="fuma-dashboard__metric-detail">{detail}</small> : null}
     </div>
@@ -309,6 +309,52 @@ function RevenueTrend({ dailyTrend }: { dailyTrend: readonly DailyRevenuePoint[]
         tooltip: { show: false },
         yAxisIndex: 1,
         z: 4,
+      },
+      {
+        type: "lines",
+        coordinateSystem: "cartesian2d",
+        data: [{
+          coords: dailyTrend.map(({ salesAmount }, index) => [index, salesAmount]),
+        }],
+        effect: {
+          color: REVENUE_COLORS.sales,
+          constantSpeed: 26,
+          loop: true,
+          roundTrip: true,
+          show: true,
+          symbol: "circle",
+          symbolSize: 5,
+          trailLength: 0.42,
+        },
+        lineStyle: { opacity: 0 },
+        polyline: true,
+        silent: true,
+        tooltip: { show: false },
+        z: 5,
+      },
+      {
+        type: "lines",
+        coordinateSystem: "cartesian2d",
+        data: [{
+          coords: dailyTrend.map(({ settlementAmount }, index) => [index, settlementAmount]),
+        }],
+        effect: {
+          color: REVENUE_COLORS.settlement,
+          constantSpeed: 22,
+          delay: 550,
+          loop: true,
+          roundTrip: true,
+          show: true,
+          symbol: "circle",
+          symbolSize: 4,
+          trailLength: 0.34,
+        },
+        lineStyle: { opacity: 0 },
+        polyline: true,
+        silent: true,
+        tooltip: { show: false },
+        yAxisIndex: 1,
+        z: 5,
       },
     ],
   };
@@ -535,7 +581,6 @@ export function DashboardPage() {
           title="오늘 발생한 매출"
         >
           <DashboardMetric
-            label="오늘 00:00부터 현재까지"
             value={data.todaySales == null ? "—" : formatWon(data.todaySales)}
           />
         </DashboardCard>
