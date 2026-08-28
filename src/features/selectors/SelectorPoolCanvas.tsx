@@ -681,8 +681,8 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
       // 가까워진 버블 사이를 같은 유리 재질로 이어 메타볼처럼 붙여 보이게 한다.
       context.save();
       context.lineCap = "round";
-      context.shadowColor = "rgb(78 102 108 / 10%)";
-      context.shadowBlur = 12;
+      context.shadowColor = "rgb(78 102 108 / 16%)";
+      context.shadowBlur = 16;
       for (let index = 0; index < nodes.length; index += 1) {
         const node = nodes[index];
         const from = floatOf(node, time);
@@ -693,16 +693,16 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
           const to = floatOf(peer, time);
           const distance = Math.hypot(to.x - from.x, to.y - from.y);
           const toRadius = bubbleShellRadius(peer.r);
-          const strength = Math.min(1, (fromRadius + toRadius + 18 - distance) / 30);
+          const strength = Math.min(1, (fromRadius + toRadius + 28 - distance) / 48);
           if (strength <= 0) continue;
 
           const bridge = context.createLinearGradient(from.x, from.y, to.x, to.y);
-          bridge.addColorStop(0, "rgb(255 255 255 / 80%)");
-          bridge.addColorStop(0.5, "rgb(255 255 255 / 68%)");
-          bridge.addColorStop(1, "rgb(255 255 255 / 80%)");
+          bridge.addColorStop(0, "rgb(255 255 255 / 94%)");
+          bridge.addColorStop(0.5, "rgb(255 255 255 / 86%)");
+          bridge.addColorStop(1, "rgb(255 255 255 / 94%)");
           context.globalAlpha = weightOf(node.categoryIndex);
           context.strokeStyle = bridge;
-          context.lineWidth = Math.min(fromRadius, toRadius) * 0.72 * strength;
+          context.lineWidth = Math.min(fromRadius, toRadius) * 1.35 * Math.sqrt(strength);
           context.beginPath();
           context.moveTo(from.x, from.y);
           context.lineTo(to.x, to.y);
