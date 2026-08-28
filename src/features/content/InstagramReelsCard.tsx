@@ -62,10 +62,6 @@ export function InstagramReelsCard({
           <strong>{handle}</strong>
         </div>
         {children}
-        <span className="fuma-platform-inspection-frame__reels-audio">
-          <Music2 aria-hidden="true" size={13} />
-          오리지널 오디오 · {handle}
-        </span>
       </div>
     </>
   );
