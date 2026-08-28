@@ -1,7 +1,3 @@
-body:has(.hsas-selector-pool) {
-  overflow-y: hidden;
-}
-
 .hsas-selector-pool {
   position: relative;
   overflow: hidden;
