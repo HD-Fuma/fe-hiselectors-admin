@@ -791,7 +791,6 @@ export function SelectorOverviewPage({ initialViewMode }: { initialViewMode?: Se
         <SelectorDetailPanel
           hideSettlement
           onClose={() => setPoolDetail(null)}
-          presentation="modal"
           selectorDetail={poolDetail.detail}
           selectorDetailError={poolDetail.error}
           selectorDetailLoading={!poolDetail.detail && !poolDetail.error}
