@@ -34,6 +34,7 @@ import {
   ThumbsUp,
   UserRound,
   Volume2,
+  X,
 } from "lucide-react";
 import "../../styles/content-inspection.css";
 import { PageHeader } from "../../components/shell/PageHeader";
@@ -1017,10 +1018,10 @@ function StudioViolationBubbleCloud({
   onSelectViolation?: (ordinal: number) => void;
 }) {
   const cloudRef = useRef<HTMLElement>(null);
-  const textAnnotations = annotations.filter(({ target }) => (
-    target.kind === "text" || target.kind === "text-start"
+  const bubbleAnnotations = annotations.filter(({ location, target }) => (
+    target.kind === "text" || target.kind === "text-start" || location.startsWith("STT")
   ));
-  const annotationKey = textAnnotations
+  const annotationKey = bubbleAnnotations
     .map(({ id, ordinal }) => `${id}:${ordinal}`)
     .join("|");
 
@@ -1040,11 +1041,16 @@ function StudioViolationBubbleCloud({
 
         const bubbles = Array.from(
           cloud.querySelectorAll<HTMLElement>("[data-violation-message]"),
-        ).map((bubble, index) => {
+        ).filter((bubble) => bubble.offsetHeight > 0).map((bubble, index) => {
           const ordinal = bubble.dataset.violationMessage;
-          const anchor = ordinal
-            ? version.querySelector<HTMLElement>(`[data-violation-anchor="${ordinal}"]`)
+          const transcriptAnchor = ordinal && bubble.dataset.violationSource === "stt"
+            ? version.querySelector<HTMLElement>(
+                `[data-stt-transcript] [data-violation-anchor="${ordinal}"]`,
+              )
             : null;
+          const anchor = transcriptAnchor ?? (ordinal
+            ? version.querySelector<HTMLElement>(`[data-violation-anchor="${ordinal}"]`)
+            : null);
           const anchorRect = anchor?.getBoundingClientRect();
 
           return {
@@ -1101,7 +1107,7 @@ function StudioViolationBubbleCloud({
       ? null
       : new MutationObserver(positionBubbles);
     mutationObserver?.observe(card, {
-      attributeFilter: ["data-description-expanded"],
+      attributeFilter: ["data-description-expanded", "data-stt-expanded"],
       attributes: true,
     });
     version.addEventListener("scroll", positionBubbles, true);
@@ -1116,16 +1122,16 @@ function StudioViolationBubbleCloud({
     };
   }, [annotationKey]);
 
-  if (textAnnotations.length === 0) return null;
+  if (bubbleAnnotations.length === 0) return null;
 
   return (
     <aside
-      aria-label="본문 위반 내역"
+      aria-label="콘텐츠 위반 내역"
       className="fuma-content-inspection-studio__violation-bubbles"
       data-placement="right"
       ref={cloudRef}
     >
-      {textAnnotations.map((annotation) => {
+      {bubbleAnnotations.map((annotation) => {
         const content = (
           <>
             <span className="fuma-content-inspection-studio__violation-bubble-number">
@@ -1139,6 +1145,7 @@ function StudioViolationBubbleCloud({
           className: "fuma-content-inspection-studio__violation-bubble",
           "data-focused": focusedOrdinal === annotation.ordinal,
           "data-violation-message": annotation.ordinal,
+          "data-violation-source": annotation.location.startsWith("STT") ? "stt" : "text",
         };
 
         return onSelectViolation ? (
@@ -1205,10 +1212,23 @@ function MinimalVersionCard({
   const handledFocusedViolationRef = useRef<string | null>(null);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionOverflowing, setDescriptionOverflowing] = useState(false);
+  const [sttExpanded, setSttExpanded] = useState(false);
   const annotations = useMemo(
     () => showAnnotations ? indexedViolationAnnotations(content, snapshot) : [],
     [content, showAnnotations, snapshot],
   );
+  const sttExtracts = content.report.extracts.filter(({ type }) => type === "STT");
+  const sttAnnotations: IndexedContentAnnotation[] = annotations.flatMap((annotation) => {
+    if (annotation.target.kind !== "media" || !annotation.location.startsWith("STT")) return [];
+    return [{
+      ...annotation,
+      target: {
+        kind: "text" as const,
+        occurrence: 1,
+        quote: annotation.target.quote,
+      },
+    }];
+  });
   const firstAnnotatedMediaIndex = annotations.find((annotation) => annotation.target.kind === "media")?.target;
   const [activeMediaIndex, setActiveMediaIndex] = useState(
     firstAnnotatedMediaIndex?.kind === "media" ? firstAnnotatedMediaIndex.mediaIndex ?? 0 : 0,
@@ -1259,6 +1279,7 @@ function MinimalVersionCard({
     ? `${content.id}:${snapshot.capturedAt}:${focusedViolation.requestId}:${focusedAnnotation.id}:${JSON.stringify(focusedAnnotation.target)}`
     : null;
   const descriptionId = `content-description-${content.id}-${snapshot.capturedAt.replace(/\W/g, "")}`;
+  const sttPanelId = `content-stt-${content.id}-${snapshot.capturedAt.replace(/\W/g, "")}`;
 
   const moveMedia = (direction: -1 | 1) => {
     setActiveMediaIndex((current) => Math.min(
@@ -1283,6 +1304,7 @@ function MinimalVersionCard({
   useEffect(() => {
     setDescriptionExpanded(false);
     setDescriptionOverflowing(false);
+    setSttExpanded(false);
   }, [content.id, snapshot.capturedAt]);
 
   useEffect(() => {
@@ -1305,16 +1327,17 @@ function MinimalVersionCard({
   }, [descriptionExpanded, snapshot.text]);
 
   useEffect(() => {
-    if (!descriptionExpanded) return;
+    if (!descriptionExpanded && !sttExpanded) return;
     const collapseOnEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
       event.stopImmediatePropagation();
       setDescriptionExpanded(false);
+      setSttExpanded(false);
     };
     window.addEventListener("keydown", collapseOnEscape, true);
     return () => window.removeEventListener("keydown", collapseOnEscape, true);
-  }, [descriptionExpanded]);
+  }, [descriptionExpanded, sttExpanded]);
 
   useEffect(() => {
     if (!focusedViolation || !focusedAnnotation || !focusedViolationRequestKey) {
@@ -1366,6 +1389,7 @@ function MinimalVersionCard({
       data-description-expanded={descriptionExpanded}
       data-platform-card={platformCardVariant}
       data-platform={platform.toLowerCase()}
+      data-stt-expanded={sttExpanded}
       inert={inert}
       ref={cardRef}
     >
@@ -1392,7 +1416,7 @@ function MinimalVersionCard({
         ))}
         <time>{snapshot.capturedAt}</time>
       </header>
-      <div className="fuma-platform-inspection-frame">
+      <div className="fuma-platform-inspection-frame" inert={sttExpanded}>
         {isInstagram ? (
           <div className="fuma-platform-inspection-frame__instagram-header">
             <span className="fuma-platform-inspection-frame__avatar">
@@ -1549,6 +1573,22 @@ function MinimalVersionCard({
               </div>
             </div>
           ) : null}
+          {sttExtracts.length > 0 ? (
+            <button
+              aria-controls={sttPanelId}
+              aria-expanded={sttExpanded}
+              className="fuma-platform-inspection-frame__stt-trigger"
+              onClick={(event) => {
+                event.stopPropagation();
+                setDescriptionExpanded(false);
+                setSttExpanded(true);
+              }}
+              type="button"
+            >
+              <Captions aria-hidden="true" size={15} />
+              STT
+            </button>
+          ) : null}
         </div>
 
         {isInstagram && mediaItems.length > 1 ? (
@@ -1660,6 +1700,46 @@ function MinimalVersionCard({
           </div>
         )}
       </div>
+      {sttExpanded ? (
+        <section
+          aria-label="STT 추출물"
+          aria-modal="true"
+          className="fuma-platform-inspection-frame__stt-panel"
+          id={sttPanelId}
+          role="dialog"
+        >
+          <header>
+            <span>
+              <small>VIDEO TEXT</small>
+              <strong>STT 추출물</strong>
+            </span>
+            <button
+              aria-label="STT 추출물 닫기"
+              autoFocus
+              onClick={() => setSttExpanded(false)}
+              type="button"
+            >
+              <X aria-hidden="true" size={18} />
+            </button>
+          </header>
+          <div className="fuma-platform-inspection-frame__stt-transcript" data-stt-transcript>
+            {sttExtracts.map((extract, index) => (
+              <section key={`${extract.location}-${index}`}>
+                <span>{extract.location}</span>
+                <p>
+                  <ViolationHighlightedText
+                    annotations={sttAnnotations}
+                    focusedOrdinal={focusedViolation?.ordinal}
+                    onSelectViolation={onSelectViolation}
+                    showBubbles={false}
+                    text={extract.text}
+                  />
+                </p>
+              </section>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </article>
   );
 }

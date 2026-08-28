@@ -171,6 +171,14 @@ test("adapts latest-version detail into report, text, and active violations", ()
           snsMediaId: "image-42",
           text: null,
         },
+        {
+          contentMediaId: 4204,
+          mediaType: "VIDEO",
+          mediaUrl: "https://cdn.example.com/video.mp4",
+          sequenceNo: 3,
+          snsMediaId: "video-42",
+          text: "영상에서 가장 저렴하다고 안내합니다.",
+        },
       ],
       violations: [{
         evidence: {
@@ -259,7 +267,7 @@ test("adapts latest-version detail into report, text, and active violations", ()
   });
   expect(inspection.currentSnapshot).toMatchObject({
     capturedAt: "2026-08-18T10:05:00",
-    mediaUrls: ["https://cdn.example.com/image.jpg"],
+    mediaUrls: ["https://cdn.example.com/image.jpg", "https://cdn.example.com/video.mp4"],
     text: "가을 패딩\n지금 가장 저렴한 가격",
   });
   expect(inspection.currentSnapshot.annotations).toEqual([
@@ -282,6 +290,11 @@ test("adapts latest-version detail into report, text, and active violations", ()
     }),
   ]);
   expect(inspection.report).toMatchObject({
+    extracts: [{
+      location: "동영상 2",
+      text: "영상에서 가장 저렴하다고 안내합니다.",
+      type: "STT",
+    }],
     flow: "본문 후 상품 링크를 안내합니다.",
     generatedAt: "2026-08-18T10:06:00",
     overallAssessment: "과장 표현 수정 후 재검수가 필요합니다.",
