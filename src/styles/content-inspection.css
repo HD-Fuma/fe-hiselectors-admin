@@ -7676,6 +7676,24 @@ button.fuma-platform-inspection-frame__violation-box {
   -webkit-line-clamp: unset;
 }
 
+.fuma-content-inspection-studio
+  .fuma-minimal-version-card:is(
+    [data-content-format="instagram-reels"],
+    [data-content-format="youtube-shorts"]
+  )
+  .fuma-platform-inspection-frame__shorts-overlay > p {
+  scrollbar-width: none;
+}
+
+.fuma-content-inspection-studio
+  .fuma-minimal-version-card:is(
+    [data-content-format="instagram-reels"],
+    [data-content-format="youtube-shorts"]
+  )
+  .fuma-platform-inspection-frame__shorts-overlay > p::-webkit-scrollbar {
+  display: none;
+}
+
 @media (max-height: 820px) {
   .fuma-content-inspection-studio
     .fuma-minimal-version-card[data-content-format="youtube-long"]
