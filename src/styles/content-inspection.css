@@ -498,8 +498,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio__profile,
 .fuma-content-inspection-studio__header,
-.fuma-content-inspection-studio__report,
-.fuma-content-inspection-studio__decision {
+.fuma-content-inspection-studio__report {
   border: 1px solid rgb(255 255 255 / 78%);
   color: #202224;
   background: rgb(255 255 255 / 42%);
