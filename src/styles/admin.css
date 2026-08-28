@@ -4909,6 +4909,15 @@
   overflow-wrap: anywhere;
 }
 
+.fuma-proposal-delivery-detail__message {
+  margin: 0;
+  padding: var(--hsas-space-18);
+  color: var(--hsas-text);
+  font-size: var(--hsas-font-13);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
 .fuma-selector-profile-summary {
   display: flex;
   align-items: center;
