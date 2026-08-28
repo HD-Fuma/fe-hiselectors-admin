@@ -1,4 +1,4 @@
-import { Camera, Heart, MessageCircle, MoreHorizontal, Music2, Send, UserRound } from "lucide-react";
+import { Heart, MessageCircle, MoreHorizontal, Music2, Send, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { CreatorProfilePhoto } from "../../components/ui/CreatorProfilePhoto";
 
@@ -17,12 +17,6 @@ export function InstagramReelsCard({
 }: InstagramReelsCardProps) {
   return (
     <>
-      <div className="fuma-platform-inspection-frame__reels-topbar">
-        <strong>Reels</strong>
-        <button aria-label="카메라" type="button">
-          <Camera aria-hidden="true" size={24} />
-        </button>
-      </div>
       <div
         aria-label="릴스 반응"
         className="fuma-platform-inspection-frame__shorts-actions fuma-platform-inspection-frame__reels-actions"

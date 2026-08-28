@@ -2145,38 +2145,6 @@ button.fuma-content-inspection-studio__violation-bubble {
   font-weight: 800;
 }
 
-.fuma-platform-inspection-frame__reels-topbar {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: 6;
-  display: flex;
-  padding: var(--hsas-space-14);
-  align-items: center;
-  justify-content: space-between;
-  color: #fff;
-  background: linear-gradient(rgb(0 0 0 / 54%), transparent);
-  filter: drop-shadow(0 2px 5px rgb(0 0 0 / 38%));
-}
-
-.fuma-platform-inspection-frame__reels-topbar strong {
-  font-size: var(--hsas-font-17);
-  font-weight: 800;
-}
-
-.fuma-platform-inspection-frame__reels-topbar button {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  place-items: center;
-  border: 0;
-  color: inherit;
-  background: transparent;
-  cursor: pointer;
-}
-
 .fuma-platform-inspection-frame__shorts-actions {
   position: absolute;
   right: 10px;
@@ -7807,13 +7775,6 @@ button.fuma-platform-inspection-frame__violation-box {
   .fuma-minimal-version-card[data-content-format="instagram-reels"]
   .fuma-platform-inspection-frame__duration {
   display: none;
-}
-
-:is(.fuma-content-inspection-detail, .fuma-content-inspection-studio)
-  .fuma-minimal-version-card[data-content-format="instagram-reels"]
-  .fuma-platform-inspection-frame__media
-  > button.fuma-platform-inspection-frame__stt-trigger {
-  top: 58px;
 }
 
 html[data-theme="dark"] :is(
