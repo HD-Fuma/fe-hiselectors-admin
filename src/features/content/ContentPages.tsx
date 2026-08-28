@@ -3259,17 +3259,6 @@ export function ContentInspectionDetailPage() {
                 </div>
               </dl>
             </aside>
-            {studioHasHistoricalVersion && displayedStudioHistoricalContent ? (
-              <Tooltip
-                aria-live="polite"
-                className="fuma-content-inspection-studio__history-tooltip"
-                placement="none"
-                role="status"
-                visible={studioHistoryHintVisible}
-              >
-                카드를 눌러 과거 버전의 검수 리포트를 확인할 수 있습니다
-              </Tooltip>
-            ) : null}
             <section
               aria-label="콘텐츠 버전 비교"
               className="fuma-content-inspection-studio__versions"
@@ -3285,6 +3274,14 @@ export function ContentInspectionDetailPage() {
                     <p role="alert">{studioHistoryError}</p>
                   ) : displayedStudioHistoricalContent ? (
                     <>
+                      <Tooltip
+                        aria-live="polite"
+                        className="fuma-content-inspection-studio__history-tooltip"
+                        role="status"
+                        visible={studioHistoryHintVisible}
+                      >
+                        카드를 눌러 과거 버전의 검수 리포트를 확인할 수 있습니다
+                      </Tooltip>
                       <div
                         aria-label="과거 콘텐츠 버전 선택"
                         className="fuma-content-inspection-studio__history-tabs"

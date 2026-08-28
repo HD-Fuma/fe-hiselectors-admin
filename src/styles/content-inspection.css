@@ -135,15 +135,17 @@ body:has(.fuma-content-inspection-studio) {
   scroll-snap-align: start;
 }
 
-.fuma-content-inspection-studio > .fuma-content-inspection-studio__history-tooltip {
+.fuma-content-inspection-studio__history > .fuma-content-inspection-studio__history-tooltip {
+  --hsas-tooltip-arrow-right: calc(50% - 5px);
   --hsas-tooltip-background: rgb(32 34 36 / 88%);
 
   position: absolute;
-  top: 260px;
-  left: var(--studio-edge);
+  right: 0;
+  bottom: calc(100% + var(--hsas-space-8));
+  left: 0;
   z-index: 30;
-  width: min(var(--studio-left-rail), calc(100vw - 56px));
-  max-width: none;
+  max-width: min(280px, calc(100% - 24px));
+  margin-inline: auto;
   border: 1px solid rgb(255 255 255 / 24%);
   border-radius: 12px;
   box-shadow: 0 12px 28px rgb(32 34 36 / 22%);
