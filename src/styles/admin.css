@@ -386,7 +386,7 @@
 }
 
 .hsas-pagination__button {
-  display: grid;
+  display: inline-flex;
   width: var(--hsas-control-height);
   height: var(--hsas-control-height);
   padding: 0;
@@ -394,14 +394,32 @@
   border-radius: var(--hsas-radius);
   background: var(--hsas-surface);
   box-shadow: none;
-  color: #777f84;
-  font-size: var(--hsas-font-20);
-  line-height: 1;
-  place-items: center;
+  color: var(--hsas-text);
+  align-items: center;
+  justify-content: center;
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.hsas-pagination__button > svg {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.hsas-pagination__button:disabled {
+  background: var(--hsas-surface-muted);
+  color: var(--hsas-text-muted);
+  cursor: default;
+  opacity: 1;
 }
 
 .hsas-pagination__button--interactive {
   cursor: pointer;
+}
+
+.hsas-pagination__button--interactive:hover {
+  border-color: var(--hsas-text);
+  background: var(--hsas-text);
+  color: var(--hsas-surface);
 }
 
 .hsas-pagination__summary {
@@ -10369,7 +10387,7 @@
 }
 
 :root[data-theme="dark"] .hsas-text-input::placeholder,
-:root[data-theme="dark"] .hsas-pagination__button,
+:root[data-theme="dark"] .hsas-pagination__button:disabled,
 :root[data-theme="dark"] .hsas-empty-state__title,
 :root[data-theme="dark"] .hsas-form-row__label {
   color: var(--hsas-text-muted);
