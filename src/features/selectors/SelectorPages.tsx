@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { Button, Select, TextInput } from "../../components/ui/Controls";
@@ -584,7 +584,8 @@ type SelectorViewMode = "pool" | "table";
 
 export function SelectorOverviewPage() {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<SelectorViewMode>("pool");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewMode: SelectorViewMode = searchParams.get("view") === "table" ? "table" : "pool";
   // 버블에서 고른 셀렉터스는 화면 이동 없이 가운데 모달로 보여준다.
   const [poolDetail, setPoolDetail] = useState<{
     id: number;
@@ -738,7 +739,10 @@ export function SelectorOverviewPage() {
               listLabel="목록"
               onChange={(mode) => {
                 const nextView = mode === "grid" ? "pool" : "table";
-                setViewMode(nextView);
+                const nextParams = new URLSearchParams(searchParams);
+                if (nextView === "pool") nextParams.delete("view");
+                else nextParams.set("view", "table");
+                setSearchParams(nextParams, { replace: true });
                 if (nextView === "pool") setSelectedStatus(null);
                 setPage(1);
               }}
@@ -765,7 +769,7 @@ export function SelectorOverviewPage() {
             <DenseTable
               columns={SELECTOR_COLUMNS}
               emptyMessage={pageData ? "셀렉터스가 없습니다." : "셀렉터스를 불러오는 중입니다."}
-              onRowClick={(selector) => navigate(`/selectors/${selector.id}`)}
+              onRowClick={(selector) => navigate(`/selectors/${selector.id}?view=table`)}
               rowKey={(selector) => selector.id}
               rows={pageData?.content ?? []}
             />
@@ -802,6 +806,7 @@ export function SelectorOverviewPage() {
 export function SelectorDetailPage() {
   const { selectorId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [detailState, setDetailState] = useState<{
     id: number;
     selector: SelectorDetail | null;
@@ -849,7 +854,7 @@ export function SelectorDetailPage() {
     <>
       <SelectorOverviewPage />
       <SelectorDetailPanel
-        onClose={() => navigate("/selectors")}
+        onClose={() => navigate({ pathname: "/selectors", search: searchParams.toString() })}
         selectorDetail={currentDetailState?.selector}
         selectorDetailError={invalidSelectorId
           ? "요청한 셀렉터스 ID가 올바르지 않습니다."
