@@ -1161,19 +1161,19 @@ button.fuma-content-inspection-studio__violation-bubble {
   display: block;
   min-width: 0;
   margin-top: 5px;
-  font-size: var(--hsas-font-14);
+  font-size: var(--hsas-font-15);
   line-height: 1.5;
 }
 
 .fuma-content-inspection-studio__report-evidence
   .fuma-content-inspection-evidence__candidate-label {
-  font-size: var(--hsas-font-12);
+  font-size: var(--hsas-font-13);
 }
 
 .fuma-content-inspection-studio__report-evidence li small {
   flex: 0 0 auto;
   color: rgb(32 34 36 / 42%);
-  font-size: var(--hsas-font-11);
+  font-size: var(--hsas-font-12);
   white-space: nowrap;
 }
 
@@ -1208,7 +1208,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 .fuma-content-inspection-studio__report-empty {
   margin: 4px 0 0;
   color: rgb(32 34 36 / 60%);
-  font-size: var(--hsas-font-14);
+  font-size: var(--hsas-font-15);
   line-height: 1.55;
 }
 
@@ -1221,7 +1221,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio__report-guideline > span {
   color: rgb(32 34 36 / 54%);
-  font-size: var(--hsas-font-11);
+  font-size: var(--hsas-font-12);
   font-weight: 800;
 }
 
@@ -1440,19 +1440,27 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio__report
   > .fuma-content-inspection-evidence__normal-group summary > strong {
-  font-size: var(--hsas-font-14);
+  font-size: var(--hsas-font-15);
 }
 
 .fuma-content-inspection-studio__report
-  > .fuma-content-inspection-evidence__normal-group summary > span,
+  > .fuma-content-inspection-evidence__normal-group summary > span {
+  font-size: var(--hsas-font-13);
+}
+
 .fuma-content-inspection-studio__report
   > .fuma-content-inspection-evidence__normal-group li {
+  font-size: var(--hsas-font-15);
+}
+
+.fuma-content-inspection-studio__report
+  > .fuma-content-inspection-evidence__normal-group li > strong {
   font-size: var(--hsas-font-13);
 }
 
 .fuma-content-inspection-studio__report
   > .fuma-content-inspection-evidence__normal-group .fuma-content-inspection-evidence__normal-copy > small {
-  font-size: var(--hsas-font-12);
+  font-size: var(--hsas-font-13);
 }
 
 .fuma-content-inspection-studio__session-help > span + span {
