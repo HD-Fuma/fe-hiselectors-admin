@@ -3457,36 +3457,24 @@ export function ContentInspectionDetailPage() {
                 <span>AI ANALYSIS</span>
                 <strong>검수 리포트</strong>
               </div>
-              <div className="fuma-content-inspection-studio__report-tools">
-                <em
-                  data-clear={studioSelectedReportReady && studioReportViolationSignals.length === 0}
-                  data-loading={!studioSelectedReportReady}
+              {studioSelectedIsLatest ? (
+                <button
+                  className="fuma-content-inspection-studio__report-generate"
+                  data-pending={studioActionPending === "report"}
+                  disabled={
+                    studioActionPending !== null
+                    || studioReviewReadOnly
+                    || !studioLatestVersion?.contentVersionId
+                  }
+                  onClick={() => void generateStudioReport()}
+                  type="button"
                 >
-                  {!studioSelectedReportReady
-                    ? "불러오는 중"
-                    : studioReportViolationSignals.length > 0
-                      ? `${studioReportViolationSignals.length}건 감지`
-                      : "이상 없음"}
-                </em>
-                {studioSelectedIsLatest ? (
-                  <button
-                    className="fuma-content-inspection-studio__report-generate"
-                    data-pending={studioActionPending === "report"}
-                    disabled={
-                      studioActionPending !== null
-                      || studioReviewReadOnly
-                      || !studioLatestVersion?.contentVersionId
-                    }
-                    onClick={() => void generateStudioReport()}
-                    type="button"
-                  >
-                    <RefreshCw aria-hidden="true" size={12} />
-                    {studioActionPending === "report"
-                      ? studioReportRefreshVersionId == null ? "생성 중" : "불러오는 중"
-                      : studioReportRefreshVersionId == null ? "리포트 생성" : "리포트 불러오기"}
-                  </button>
-                ) : null}
-              </div>
+                  <RefreshCw aria-hidden="true" size={12} />
+                  {studioActionPending === "report"
+                    ? studioReportRefreshVersionId == null ? "생성 중" : "불러오는 중"
+                    : studioReportRefreshVersionId == null ? "리포트 생성" : "리포트 불러오기"}
+                </button>
+              ) : null}
             </header>
             {(studioSelectedIsLatest ? studioActionError : null) || visibleError ? (
               <p
