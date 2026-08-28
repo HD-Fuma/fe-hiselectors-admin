@@ -582,10 +582,10 @@ function prefetchSelectorDetail(id: number) {
 }
 type SelectorViewMode = "pool" | "table";
 
-export function SelectorOverviewPage() {
+export function SelectorOverviewPage({ initialViewMode }: { initialViewMode?: SelectorViewMode } = {}) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const viewMode: SelectorViewMode = searchParams.get("view") === "table" ? "table" : "pool";
+  const viewMode: SelectorViewMode = initialViewMode ?? (searchParams.get("view") === "table" ? "table" : "pool");
   // 버블에서 고른 셀렉터스는 화면 이동 없이 가운데 모달로 보여준다.
   const [poolDetail, setPoolDetail] = useState<{
     id: number;
@@ -852,7 +852,7 @@ export function SelectorDetailPage() {
 
   return (
     <>
-      <SelectorOverviewPage />
+      <SelectorOverviewPage initialViewMode="table" />
       <SelectorDetailPanel
         onClose={() => navigate({ pathname: "/selectors", search: searchParams.toString() })}
         selectorDetail={currentDetailState?.selector}
