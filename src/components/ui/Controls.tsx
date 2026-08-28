@@ -1,6 +1,8 @@
 import type {
   ButtonHTMLAttributes,
   InputHTMLAttributes,
+  KeyboardEventHandler,
+  MouseEventHandler,
   ReactNode,
   SelectHTMLAttributes,
 } from "react";
@@ -39,10 +41,92 @@ export function Button({ className, type = "button", variant = "secondary", ...p
 
 export type TextInputProps = InputHTMLAttributes<HTMLInputElement>;
 
-export function TextInput({ className, type = "text", ...props }: TextInputProps) {
+const DATE_EDIT_KEYS = new Set([
+  "Backspace",
+  "Delete",
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "Home",
+  "End",
+  "PageUp",
+  "PageDown",
+  "Insert",
+]);
+const VALUE_CHANGING_SHORTCUT_KEYS = new Set(["v", "x", "z"]);
+
+function showInputPicker(input: HTMLInputElement) {
+  if (input.disabled || input.readOnly || typeof input.showPicker !== "function") {
+    return false;
+  }
+
+  try {
+    input.showPicker();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function TextInput({
+  className,
+  onClick,
+  onKeyDown,
+  type = "text",
+  ...props
+}: TextInputProps) {
+  const usesPicker = type === "date" || type === "month";
+  const handleClick: MouseEventHandler<HTMLInputElement> = (event) => {
+    onClick?.(event);
+    if (!event.defaultPrevented && usesPicker) {
+      showInputPicker(event.currentTarget);
+    }
+  };
+  const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (event) => {
+    onKeyDown?.(event);
+    if (event.defaultPrevented || !usesPicker) {
+      return;
+    }
+
+    if (event.altKey) {
+      return;
+    }
+
+    if (event.ctrlKey || event.metaKey) {
+      const shortcutKey = event.key.toLowerCase();
+      if (
+        VALUE_CHANGING_SHORTCUT_KEYS.has(shortcutKey)
+        || (event.ctrlKey && shortcutKey === "y")
+      ) {
+        event.preventDefault();
+      }
+      return;
+    }
+
+    if (event.key === " " || event.key === "Spacebar") {
+      if (showInputPicker(event.currentTarget)) {
+        event.preventDefault();
+      }
+      return;
+    }
+
+    if (
+      event.key !== "Tab"
+      && event.key !== "Escape"
+      && event.key !== "Enter"
+      && !/^F\d+$/.test(event.key)
+      && (event.key.length === 1 || DATE_EDIT_KEYS.has(event.key))
+    ) {
+      event.preventDefault();
+    }
+  };
+
   return (
     <input
       className={classes("hsas-control", "hsas-text-input", "ui-input", className)}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
       type={type}
       {...props}
     />

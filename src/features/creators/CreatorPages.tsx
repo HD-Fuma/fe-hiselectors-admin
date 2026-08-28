@@ -11,7 +11,6 @@ import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTabl
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
 import { FormRow } from "../../components/ui/FormRow";
-import { Modal } from "../../components/ui/Modal";
 import { Pagination } from "../../components/ui/Pagination";
 import { CreatorProfilePhoto } from "../../components/ui/CreatorProfilePhoto";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
@@ -21,6 +20,7 @@ import { SidePanel } from "../../components/ui/SidePanel";
 import { SocialAccountCell } from "../../components/ui/SocialAccountCell";
 import { Tooltip } from "../../components/ui/Tooltip";
 import { formatCompactCount, formatNumber } from "../../lib/formatters";
+import { CREATOR_POOL_RESET_EVENT } from "../../lib/creatorPoolEvents";
 import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { DiscoverySettingsPanel } from "./DiscoverySettingsPanel";
@@ -33,7 +33,6 @@ import {
   getCreator,
   getCreators,
   postAdminProposal,
-  resetCreatorPool,
   runCreatorDiscovery,
   type CreatorDetail,
   type CreatorProfileFixture,
@@ -44,7 +43,6 @@ import {
 const PROPOSAL_PAGE_SIZE = 20;
 const PROPOSAL_LIST_FETCH_SIZE = 100;
 const CREATOR_LIST_PAGE_SIZE = 20;
-const CREATOR_POOL_RESET_CONFIRMATION = "초기화";
 const DEFAULT_PROPOSAL_SUBJECT = "[셀렉터스] ${creatorName}님, 크리에이터 활동을 제안드립니다";
 const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
 셀렉터스 운영팀입니다.
@@ -747,20 +745,16 @@ function CreatorProfilePanel({
 export function CreatorListPage() {
   const navigate = useNavigate();
   const buildPoolTooltipId = useId();
-  const resetDescriptionId = useId();
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_CREATOR_FILTERS);
   const [selectedCreators, setSelectedCreators] = useState<Map<number, CreatorSummary>>(new Map());
   const [profileCreator, setProfileCreator] = useState<CreatorSummary | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(CREATOR_LIST_PAGE_SIZE);
   const [pageData, setPageData] = useState<Awaited<ReturnType<typeof getCreators>> | null>(null);
   const [error, setError] = useState("");
   const [discoveryRunning, setDiscoveryRunning] = useState(false);
   const [discoveryStatus, setDiscoveryStatus] = useState("");
-  const [resetOpen, setResetOpen] = useState(false);
-  const [resetConfirmation, setResetConfirmation] = useState("");
-  const [resetRunning, setResetRunning] = useState(false);
-  const [resetError, setResetError] = useState("");
   const [discoverySettingsOpen, setDiscoverySettingsOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
   const [proposalRequestedCount, setProposalRequestedCount] = useState(0);
@@ -795,7 +789,7 @@ export function CreatorListPage() {
       maxFollower: numericFilter(appliedFilters.maxFollower),
       maxBrandScore: appliedFilters.excludeBrands ? 1 : undefined,
       page: page - 1,
-      size: CREATOR_LIST_PAGE_SIZE,
+      size: pageSize,
     }, controller.signal).then((result) => {
       setPageData(result);
       setError("");
@@ -805,13 +799,24 @@ export function CreatorListPage() {
       }
     });
     return () => controller.abort();
-  }, [appliedFilters, page]);
+  }, [appliedFilters, page, pageSize]);
 
   useEffect(() => {
     const controller = new AbortController();
     refreshCategoryOptions(controller.signal).catch(() => undefined);
     return () => controller.abort();
   }, [refreshCategoryOptions]);
+
+  useEffect(() => {
+    const refreshCreatorPool = () => {
+      setPageData(null);
+      setSelectedCreators(new Map());
+      setPage(1);
+      setAppliedFilters((current) => ({ ...current }));
+    };
+    window.addEventListener(CREATOR_POOL_RESET_EVENT, refreshCreatorPool);
+    return () => window.removeEventListener(CREATOR_POOL_RESET_EVENT, refreshCreatorPool);
+  }, []);
 
   const applySearch = () => {
     const minFollower = numericFilter(filters.minFollower);
@@ -852,30 +857,6 @@ export function CreatorListPage() {
       );
     } finally {
       setDiscoveryRunning(false);
-    }
-  };
-  const closeReset = () => {
-    setResetOpen(false);
-    setResetConfirmation("");
-    setResetError("");
-  };
-  const resetPool = async () => {
-    setResetRunning(true);
-    setResetError("");
-    try {
-      const result = await resetCreatorPool();
-      closeReset();
-      setDiscoveryStatus(`기존 크리에이터 풀 ${result.softDeletedCount}건을 초기화했습니다.`);
-      setPageData(null);
-      setSelectedCreators(new Map());
-      setPage(1);
-      setAppliedFilters((current) => ({ ...current }));
-    } catch (reason: unknown) {
-      setResetError(reason instanceof Error
-        ? reason.message
-        : "크리에이터 풀 초기화에 실패했습니다.");
-    } finally {
-      setResetRunning(false);
     }
   };
   const selectCategory = (categoryCode: string) => {
@@ -985,7 +966,7 @@ export function CreatorListPage() {
                   aria-describedby={buildPoolTooltipId}
                   aria-label={discoveryRunning ? "크리에이터 풀 구축 중" : "크리에이터 풀 구축"}
                   className="fuma-content-inspection-refresh-button"
-                  disabled={discoveryRunning || resetRunning}
+                  disabled={discoveryRunning}
                   onClick={() => void buildCreatorPool()}
                 >
                   <RefreshCw
@@ -1012,14 +993,6 @@ export function CreatorListPage() {
               </Button>
               <Button aria-haspopup="dialog" onClick={() => setDiscoverySettingsOpen(true)}>
                 발굴 설정
-              </Button>
-              <Button
-                aria-haspopup="dialog"
-                disabled={discoveryRunning || resetRunning}
-                onClick={() => setResetOpen(true)}
-                variant="danger"
-              >
-                기존 풀 초기화
               </Button>
             </>
           )}
@@ -1053,8 +1026,12 @@ export function CreatorListPage() {
         </div>
         <Pagination
           onPageChange={setPage}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          }}
           page={page}
-          pageSize={CREATOR_LIST_PAGE_SIZE}
+          pageSize={pageSize}
           totalPages={Math.max(1, pageData?.totalPages ?? 1)}
         />
       </div>
@@ -1100,40 +1077,6 @@ export function CreatorListPage() {
       open={proposalRequestedCount > 0}
       title="발송 요청 완료"
     />
-    <Modal
-      actions={(
-        <>
-          <Button disabled={resetRunning} onClick={closeReset}>취소</Button>
-          <Button
-            disabled={resetRunning || resetConfirmation !== CREATOR_POOL_RESET_CONFIRMATION}
-            onClick={() => void resetPool()}
-            variant="danger"
-          >
-            {resetRunning ? "초기화 중..." : "초기화"}
-          </Button>
-        </>
-      )}
-      ariaDescribedBy={resetDescriptionId}
-      onClose={resetRunning ? undefined : closeReset}
-      open={resetOpen}
-      role="alertdialog"
-      title="기존 크리에이터 풀 초기화"
-    >
-      <div id={resetDescriptionId}>
-        <p>현재 YouTube·Instagram 크리에이터가 목록과 후보에서 모두 숨겨집니다.</p>
-        <p>제안·리포트 이력은 보존되며, 다음 풀 구축에서 조건을 통과한 계정만 복원됩니다.</p>
-      </div>
-      <FormRow label={`계속하려면 “${CREATOR_POOL_RESET_CONFIRMATION}”를 입력하세요.`} required>
-        <TextInput
-          aria-label="초기화 확인 문구"
-          autoComplete="off"
-          disabled={resetRunning}
-          onChange={(event) => setResetConfirmation(event.target.value)}
-          value={resetConfirmation}
-        />
-      </FormRow>
-      {resetError ? <p role="alert">{resetError}</p> : null}
-    </Modal>
     </>
   );
 }
@@ -1216,6 +1159,7 @@ const EMPTY_PROPOSAL_PERIOD = { from: "", to: "" };
 
 export function ProposalHistoryPage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PROPOSAL_PAGE_SIZE);
   const [items, setItems] = useState<ProposalHistoryEntry[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -1247,13 +1191,13 @@ export function ProposalHistoryPage() {
     }),
     [appliedPeriod.from, appliedPeriod.to, items, platform],
   );
-  const pageSlice = paginate(visibleItems, page, PROPOSAL_PAGE_SIZE);
+  const pageSlice = paginate(visibleItems, page, pageSize);
   const ordinalById = useMemo(() => {
-    const start = (pageSlice.currentPage - 1) * PROPOSAL_PAGE_SIZE;
+    const start = (pageSlice.currentPage - 1) * pageSize;
     return new Map(
       pageSlice.pagedItems.map((item, index) => [item.proposalHistoryId, start + index + 1]),
     );
-  }, [pageSlice.currentPage, pageSlice.pagedItems]);
+  }, [pageSize, pageSlice.currentPage, pageSlice.pagedItems]);
 
   const changePlatform = (nextPlatform: ProposalHistoryEntry["snsCode"] | null) => {
     setPlatform(nextPlatform);
@@ -1336,8 +1280,12 @@ export function ProposalHistoryPage() {
         </div>
         <Pagination
           onPageChange={setPage}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          }}
           page={pageSlice.currentPage}
-          pageSize={PROPOSAL_PAGE_SIZE}
+          pageSize={pageSize}
           totalPages={pageSlice.totalPages}
         />
       </div>

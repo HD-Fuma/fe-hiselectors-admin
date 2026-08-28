@@ -17,13 +17,13 @@ import {
   triggerLabel,
 } from "./taskRunPresentation";
 
-const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 20;
 
-function emptyPage(): SpringPage<TaskRun> {
+function emptyPage(pageSize = DEFAULT_PAGE_SIZE): SpringPage<TaskRun> {
   return {
     content: [],
     number: 0,
-    size: PAGE_SIZE,
+    size: pageSize,
     totalElements: 0,
     totalPages: 0,
   };
@@ -82,6 +82,7 @@ const columns: DenseTableColumn<TaskRun>[] = [
 
 export function TaskRunHistoryPage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [historyPage, setHistoryPage] = useState<SpringPage<TaskRun>>(emptyPage);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -91,7 +92,7 @@ export function TaskRunHistoryPage() {
 
     async function load() {
       try {
-        const result = await getRecentTaskRuns(page, controller.signal);
+        const result = await getRecentTaskRuns(page, pageSize, controller.signal);
         if (!controller.signal.aborted) setHistoryPage(result);
       } catch (error: unknown) {
         if (
@@ -110,13 +111,21 @@ export function TaskRunHistoryPage() {
     void load();
 
     return () => controller.abort();
-  }, [page]);
+  }, [page, pageSize]);
 
   const changePage = (nextPage: number) => {
-    setHistoryPage(emptyPage());
+    setHistoryPage(emptyPage(pageSize));
     setIsLoading(true);
     setHasError(false);
     setPage(nextPage);
+  };
+
+  const changePageSize = (nextPageSize: number) => {
+    setHistoryPage(emptyPage(nextPageSize));
+    setIsLoading(true);
+    setHasError(false);
+    setPage(1);
+    setPageSize(nextPageSize);
   };
 
   const emptyMessage = isLoading ? (
@@ -127,14 +136,14 @@ export function TaskRunHistoryPage() {
 
   return (
     <section className="fuma-page">
-      <PageHeader title="작업 실행 이력" />
+      <PageHeader title="모니터링" />
       <div className="fuma-page__body">
         <ResultToolbar
           className="fuma-simple-result-toolbar"
           meta={<span>총 {historyPage.totalElements.toLocaleString("ko-KR")}건</span>}
-          title="작업 실행 이력"
+          title="모니터링"
         />
-        <section aria-label="작업 실행 이력">
+        <section aria-label="모니터링">
           <DenseTable
             columns={columns}
             emptyMessage={emptyMessage}
@@ -145,8 +154,9 @@ export function TaskRunHistoryPage() {
         {!isLoading && !hasError && historyPage.totalPages > 0 ? (
           <Pagination
             onPageChange={changePage}
+            onPageSizeChange={changePageSize}
             page={historyPage.number + 1}
-            pageSize={historyPage.size}
+            pageSize={pageSize}
             totalPages={historyPage.totalPages}
           />
         ) : null}

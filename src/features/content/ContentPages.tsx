@@ -4,7 +4,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type KeyboardEvent,
   type ReactNode,
 } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -256,13 +255,6 @@ function QueueFilters({
     setPlatform("");
     onReset();
   };
-  const applyOnEnter = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      applyFilters();
-    }
-  };
-
   return (
     <ListSearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
       <FilterField htmlFor="content-inspection-keyword" label="콘텐츠/작성자">
@@ -270,7 +262,6 @@ function QueueFilters({
           aria-label="콘텐츠/작성자"
           id="content-inspection-keyword"
           onChange={(event) => setKeyword(event.target.value)}
-          onKeyDown={applyOnEnter}
           placeholder="콘텐츠 ID 또는 작성자"
           value={keyword}
         />
@@ -560,6 +551,7 @@ export function ContentInspectionListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [contents, setContents] = useState<ContentInspectionFixture[]>([]);
+  const [pageSize, setPageSize] = useState(CONTENT_INSPECTION_PAGE_SIZE);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const fetchContents = useCallback(async (signal?: AbortSignal) => (
@@ -621,7 +613,7 @@ export function ContentInspectionListPage() {
   const { currentPage, pagedItems: pageContents, totalPages } = paginate(
     filteredContents,
     requestedPage,
-    CONTENT_INSPECTION_PAGE_SIZE,
+    pageSize,
   );
   const pendingContents = inspectionRequiredContents(contents);
 
@@ -737,8 +729,12 @@ export function ContentInspectionListPage() {
         {!isLoading && !loadError && filteredContents.length > 0 ? (
           <Pagination
             onPageChange={(page) => updateListParam("page", String(page), "1")}
+            onPageSizeChange={(nextPageSize) => {
+              setPageSize(nextPageSize);
+              updateListParam("page", "1", "1");
+            }}
             page={currentPage}
-            pageSize={CONTENT_INSPECTION_PAGE_SIZE}
+            pageSize={pageSize}
             totalPages={totalPages}
           />
         ) : null}

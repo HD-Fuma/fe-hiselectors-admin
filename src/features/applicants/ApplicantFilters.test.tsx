@@ -463,6 +463,8 @@ describe("applicant api pages", () => {
     expect(within(representativeContent).queryByText("뷰티")).not.toBeInTheDocument();
     expect(within(analysisReport).getByText("AI 리포트 산정 완료 2026.08.05 10:30"))
       .toBeInTheDocument();
+    expect(within(analysisReport).queryByText("협업 이력")).not.toBeInTheDocument();
+    expect(within(analysisReport).queryByText("브랜드 A")).not.toBeInTheDocument();
     expect(within(analysisReport).queryByText(/원본에서 확인하기/)).not.toBeInTheDocument();
     expect(within(analysisReport).queryByText(/수집 시각/)).not.toBeInTheDocument();
   });
@@ -629,11 +631,37 @@ describe("applicant api pages", () => {
     renderApplicantPage("/applicants?detail=1");
     const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
     const approve = await within(panel).findByRole("button", { name: "승인" });
+    const reject = within(panel).getByRole("button", { name: "반려" });
 
     await user.click(approve);
 
-    expect(within(panel).getByRole("button", { name: "승인 처리 중..." })).toBeDisabled();
-    expect(within(panel).getByRole("button", { name: "반려" })).toBeDisabled();
+    let decisionDialog = screen.getByRole("alertdialog", { name: "승인하시겠습니까?" });
+    expect(within(decisionDialog).getByText("승인하면 김민지님께 승인 알림톡이 발송됩니다."))
+      .toBeInTheDocument();
+    const cancelDecision = within(decisionDialog).getByRole("button", { name: "취소" });
+    const confirmDecision = within(decisionDialog).getByRole("button", { name: "확인" });
+    expect(cancelDecision).toHaveFocus();
+    await user.tab();
+    expect(confirmDecision).toHaveFocus();
+    await user.tab();
+    expect(cancelDecision).toHaveFocus();
+    expect(vi.mocked(fetch).mock.calls.filter(([input, init]) => (
+      new URL(String(input)).pathname.endsWith("/api/admin/applications/1/status")
+      && init?.method === "PATCH"
+    ))).toHaveLength(0);
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("alertdialog", { name: "승인하시겠습니까?" })).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "지원자 상세" })).toBeInTheDocument();
+
+    await user.click(approve);
+    decisionDialog = screen.getByRole("alertdialog", { name: "승인하시겠습니까?" });
+    await user.click(within(decisionDialog).getByRole("button", { name: "확인" }));
+
+    expect(approve).toHaveTextContent("승인 처리 중...");
+    expect(approve).toBeDisabled();
+    expect(reject).toBeDisabled();
+    expect(within(decisionDialog).getByRole("button", { name: "승인 처리 중..." }))
+      .toBeDisabled();
     serverStatus = "APPROVED";
     await act(async () => statusResponse.resolve(await json({ id: 1, status: "APPROVED" })));
 
@@ -641,6 +669,7 @@ describe("applicant api pages", () => {
       expect(screen.queryByRole("dialog", { name: "지원자 상세" })).not.toBeInTheDocument();
     });
     const modal = await screen.findByRole("alertdialog", { name: "심사 처리 완료" });
+    expect(modal).toHaveClass("hsas-bubble-dialog");
     expect(within(modal).getByText("김민지")).toBeInTheDocument();
     expect(within(modal).getByText(/승인 처리했습니다/)).toBeInTheDocument();
 
@@ -682,6 +711,8 @@ describe("applicant api pages", () => {
     await user.click(await screen.findByText("김민지"));
     const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
     await user.click(await within(panel).findByRole("button", { name: "승인" }));
+    await user.click(within(screen.getByRole("alertdialog", { name: "승인하시겠습니까?" }))
+      .getByRole("button", { name: "확인" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "지원자 상세" })).not.toBeInTheDocument());
     await waitFor(() => expect(listPages.at(-1)).toBe(0));
@@ -719,6 +750,8 @@ describe("applicant api pages", () => {
     await user.click(await screen.findByText("김민지"));
     const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
     await user.click(await within(panel).findByRole("button", { name: "승인" }));
+    await user.click(within(screen.getByRole("alertdialog", { name: "승인하시겠습니까?" }))
+      .getByRole("button", { name: "확인" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "지원자 상세" })).not.toBeInTheDocument());
     const modal = await screen.findByRole("alertdialog", { name: "심사 처리 완료" });
@@ -746,9 +779,14 @@ describe("applicant api pages", () => {
 
     await user.click(await within(panel).findByRole("button", { name: "반려" }));
 
+    const decisionDialog = screen.getByRole("alertdialog", { name: "반려하시겠습니까?" });
+    expect(within(decisionDialog).getByText("반려하면 김민지님께 반려 알림톡이 발송됩니다."))
+      .toBeInTheDocument();
+    await user.click(within(decisionDialog).getByRole("button", { name: "확인" }));
+
     await waitFor(() => expect(alert).toHaveBeenCalledWith("조회에 실패했습니다."));
-    expect(within(panel).getByRole("button", { name: "승인" })).toBeEnabled();
-    expect(within(panel).getByRole("button", { name: "반려" })).toBeEnabled();
+    expect(within(decisionDialog).getByRole("button", { name: "취소" })).toBeEnabled();
+    expect(within(decisionDialog).getByRole("button", { name: "확인" })).toBeEnabled();
     alert.mockRestore();
   });
 

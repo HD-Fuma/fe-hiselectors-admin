@@ -29,6 +29,10 @@ describe("settlement payment status", () => {
     expect(settlementStatusLabel("PAYMENT_HOLD_INFO")).toBe("정산 보류");
   });
 
+  test("presents calculating payments as 집계 예정", () => {
+    expect(settlementStatusLabel("CALCULATING")).toBe("집계 예정");
+  });
+
   test("presents and filters carried-over payments", () => {
     expect(settlementStatusLabel("PAYMENT_CARRYOVER")).toBe("지급 이월");
     expect(settlementStatusTone("PAYMENT_CARRYOVER")).toBe("pending");

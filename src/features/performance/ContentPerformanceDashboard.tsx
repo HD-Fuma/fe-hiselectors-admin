@@ -891,12 +891,13 @@ function ContentPerformanceResults({
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortBy, setSortBy] = useState<ContentPerformanceSort>("latest");
   const [selectedContent, setSelectedContent] = useState<ContentInfluence | null>(null);
+  const [pageSize, setPageSize] = useState(CONTENT_PERFORMANCE_PAGE_SIZE);
   const sortedContents = sortContentPerformance(contents, sortBy);
   const {
     currentPage,
     pagedItems: pagedContents,
     totalPages,
-  } = paginate(sortedContents, page, CONTENT_PERFORMANCE_PAGE_SIZE);
+  } = paginate(sortedContents, page, pageSize);
   const changeView = (nextView: ViewMode) => {
     setViewMode(nextView);
     onPageChange(1);
@@ -968,8 +969,12 @@ function ContentPerformanceResults({
       )}
       <Pagination
         onPageChange={onPageChange}
+        onPageSizeChange={(nextPageSize) => {
+          setPageSize(nextPageSize);
+          onPageChange(1);
+        }}
         page={currentPage}
-        pageSize={CONTENT_PERFORMANCE_PAGE_SIZE}
+        pageSize={pageSize}
         totalPages={totalPages}
       />
       {selectedContent ? (

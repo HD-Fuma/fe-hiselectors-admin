@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type KeyboardEvent,
 } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import "../../styles/content-inspection.css";
@@ -195,6 +194,7 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
   const [periodEnd, setPeriodEnd] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({ keyword: "", startDate: "", endDate: "" });
   const [selectedStatus, setSelectedStatus] = useState<CampaignStatusCode | null>(null);
+  const [pageSize, setPageSize] = useState(CAMPAIGN_PAGE_SIZE);
   const [pageData, setPageData] = useState<SpringPage<Campaign> | null>(null);
   const [listError, setListError] = useState("");
   const currentPage = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
@@ -209,12 +209,12 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
       endDate: appliedFilters.endDate || undefined,
       status: selectedStatus || undefined,
       page: currentPage - 1,
-      size: CAMPAIGN_PAGE_SIZE,
+      size: pageSize,
     }, controller.signal).then(setPageData).catch((reason: unknown) => {
       if (!controller.signal.aborted) setListError(reason instanceof Error ? reason.message : "캠페인 목록 조회에 실패했습니다.");
     });
     return () => controller.abort();
-  }, [appliedFilters, currentPage, refreshRevision, selectedStatus]);
+  }, [appliedFilters, currentPage, pageSize, refreshRevision, selectedStatus]);
 
   const resetPage = () => {
     if (!searchParams.has("page")) return;
@@ -226,13 +226,6 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
   const applySearch = () => {
     setAppliedFilters({ keyword: keyword.trim(), startDate: periodStart, endDate: periodEnd });
     resetPage();
-  };
-
-  const applySearchOnEnter = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      applySearch();
-    }
   };
 
   const resetSearch = () => {
@@ -280,7 +273,6 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
                 aria-label="검색어"
                 id="campaign-keyword"
                 onChange={(event) => setKeyword(event.target.value)}
-                onKeyDown={applySearchOnEnter}
                 placeholder="캠페인명 또는 ID 검색"
                 value={keyword}
               />
@@ -359,8 +351,12 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
             else nextParams.set("page", String(page));
             setSearchParams(nextParams, { replace: true });
           }}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            resetPage();
+          }}
           page={currentPage}
-          pageSize={CAMPAIGN_PAGE_SIZE}
+          pageSize={pageSize}
           totalPages={Math.max(1, pageData?.totalPages ?? 1)}
         />
       </div>
@@ -1008,16 +1004,17 @@ function ProductSearchModal({
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(CAMPAIGN_PAGE_SIZE);
   const [pageData, setPageData] = useState<SpringPage<CampaignProduct> | null>(null);
   const [error, setError] = useState("");
   const [draftProducts, setDraftProducts] = useState(() => new Map(currentProducts.map((product) => [product.id, product])));
   useEffect(() => {
     const controller = new AbortController();
-    getProducts({ keyword: appliedQuery || undefined, page: page - 1, size: CAMPAIGN_PAGE_SIZE }, controller.signal).then(setPageData).catch((reason: unknown) => {
+    getProducts({ keyword: appliedQuery || undefined, page: page - 1, size: pageSize }, controller.signal).then(setPageData).catch((reason: unknown) => {
       if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "상품 조회에 실패했습니다.");
     });
     return () => controller.abort();
-  }, [appliedQuery, page]);
+  }, [appliedQuery, page, pageSize]);
   const products = useMemo(() => pageData?.content ?? [], [pageData]);
   const columns: DenseTableColumn<CampaignProduct>[] = [
     {
@@ -1109,7 +1106,16 @@ function ProductSearchModal({
             rows={products}
           />
         </div>
-        <Pagination onPageChange={setPage} page={page} pageSize={CAMPAIGN_PAGE_SIZE} totalPages={Math.max(1, pageData?.totalPages ?? 1)} />
+        <Pagination
+          onPageChange={setPage}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          }}
+          page={page}
+          pageSize={pageSize}
+          totalPages={Math.max(1, pageData?.totalPages ?? 1)}
+        />
       </div>
     </Modal>
   );

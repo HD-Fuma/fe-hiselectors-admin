@@ -396,14 +396,24 @@
   color: #777f84;
 }
 
+.hsas-pagination__button--interactive {
+  cursor: pointer;
+}
+
 .hsas-pagination__summary {
   color: var(--hsas-text);
   font-weight: 700;
 }
 
 .hsas-pagination__size {
+  display: flex;
+  align-items: center;
   padding-left: var(--hsas-space-8);
   border-left: 1px solid var(--hsas-border);
+}
+
+.hsas-pagination__size-select {
+  min-width: 92px;
 }
 
 .hsas-modal-backdrop {
@@ -884,6 +894,10 @@
 .hsas-admin-sidebar__group-toggle > span {
   min-width: 0;
   flex: 1;
+}
+
+.hsas-admin-sidebar__direct-link {
+  text-decoration: none;
 }
 
 .hsas-admin-sidebar__chevron {

@@ -14,10 +14,12 @@ import {
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Link, matchPath, useNavigate } from "react-router-dom";
+import { CREATOR_POOL_RESET_EVENT } from "../../lib/creatorPoolEvents";
 import { applyTheme, getTheme, saveTheme } from "../../lib/theme";
 import { resetContentInspections } from "../../entities/content";
+import { resetCreatorPool } from "../../entities/creator";
 import {
   clearAdministratorSession,
   getAdministratorSession,
@@ -28,7 +30,9 @@ import type {
   NavGroupMeta,
 } from "./navigationModel";
 import { BubbleDialog } from "../ui/BubbleDialog";
-import { Button } from "../ui/Controls";
+import { Button, TextInput } from "../ui/Controls";
+import { FormRow } from "../ui/FormRow";
+import { Modal } from "../ui/Modal";
 import "../../styles/sidebar-account.css";
 import "../../styles/sidebar-brand.css";
 
@@ -46,6 +50,7 @@ const THEME_OPTIONS = [
 ] as const;
 
 const THEME_SETTINGS_ID = "hsas-theme-settings";
+const CREATOR_POOL_RESET_CONFIRMATION = "초기화";
 
 interface AdminSidebarProps {
   activeRoute: AdminRouteMeta;
@@ -86,7 +91,12 @@ export function AdminSidebar({
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
   const [isResetting, setResetting] = useState(false);
   const [resetFeedback, setResetFeedback] = useState<string | null>(null);
+  const [isCreatorResetDialogOpen, setCreatorResetDialogOpen] = useState(false);
+  const [isCreatorResetting, setCreatorResetting] = useState(false);
+  const [creatorResetConfirmation, setCreatorResetConfirmation] = useState("");
+  const [creatorResetError, setCreatorResetError] = useState("");
   const [theme, setTheme] = useState(getTheme);
+  const creatorResetDescriptionId = useId();
   const settingsRef = useRef<HTMLDivElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<NavGroup>>(
@@ -99,12 +109,14 @@ export function AdminSidebar({
     if (!isSettingsOpen) return undefined;
 
     const closeOnPointerDown = (event: PointerEvent) => {
+      if (isCreatorResetDialogOpen) return;
       if (event.target instanceof Node && !settingsRef.current?.contains(event.target)) {
         setSettingsOpen(false);
         setThemeMenuOpen(false);
       }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
+      if (isCreatorResetDialogOpen) return;
       if (event.key !== "Escape") return;
       setSettingsOpen(false);
       setThemeMenuOpen(false);
@@ -117,7 +129,7 @@ export function AdminSidebar({
       document.removeEventListener("pointerdown", closeOnPointerDown);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [isSettingsOpen]);
+  }, [isCreatorResetDialogOpen, isSettingsOpen]);
 
   const toggleGroup = (groupId: NavGroup) => {
     setExpandedGroups((current) => {
@@ -149,6 +161,29 @@ export function AdminSidebar({
     }
   };
 
+  const closeCreatorReset = () => {
+    setCreatorResetDialogOpen(false);
+    setCreatorResetConfirmation("");
+    setCreatorResetError("");
+  };
+
+  const resetPool = async () => {
+    setCreatorResetting(true);
+    setCreatorResetError("");
+    try {
+      const result = await resetCreatorPool();
+      closeCreatorReset();
+      setResetFeedback(`크리에이터 풀 ${result.softDeletedCount}건을 초기화했습니다.`);
+      window.dispatchEvent(new Event(CREATOR_POOL_RESET_EVENT));
+    } catch (error) {
+      setCreatorResetError(
+        error instanceof Error ? error.message : "크리에이터 풀 초기화에 실패했습니다.",
+      );
+    } finally {
+      setCreatorResetting(false);
+    }
+  };
+
   return (
     <aside className="hsas-admin-sidebar" data-shell-part="sidebar">
       <div className="hsas-admin-sidebar__brand">
@@ -167,10 +202,40 @@ export function AdminSidebar({
       >
         {groups.map((group) => {
           const Icon = GROUP_ICONS[group.id];
+          const menuItems = getGroupMenuItems(routes, group.id);
+          const directItem = group.id === "dashboard" ? menuItems[0] : undefined;
+          const isGroupSelected = group.id === activeRoute.group;
+
+          if (directItem) {
+            const isRouteExact = matchPath({ path: directItem.path, end: true }, currentPath) != null;
+
+            return (
+              <section
+                key={group.id}
+                className="hsas-admin-sidebar__group"
+                data-selected-group={isGroupSelected ? "true" : undefined}
+              >
+                <Link
+                  aria-current={isGroupSelected && isRouteExact ? "page" : undefined}
+                  className={
+                    isGroupSelected
+                      ? "hsas-admin-sidebar__group-toggle hsas-admin-sidebar__direct-link hsas-admin-sidebar__link--active"
+                      : "hsas-admin-sidebar__group-toggle hsas-admin-sidebar__direct-link"
+                  }
+                  data-section-selected={isGroupSelected ? "true" : undefined}
+                  data-route-exact={isRouteExact ? "true" : undefined}
+                  to={directItem.path}
+                >
+                  <Icon aria-hidden="true" />
+                  <span>{directItem.menuLabel}</span>
+                </Link>
+              </section>
+            );
+          }
+
           const headingId = `hsas-admin-sidebar-group-${group.id}`;
           const listId = `${headingId}-items`;
           const isExpanded = expandedGroups.has(group.id);
-          const isGroupSelected = group.id === activeRoute.group;
 
           return (
             <section
@@ -205,7 +270,7 @@ export function AdminSidebar({
                 className="hsas-admin-sidebar__list"
                 hidden={!isExpanded}
               >
-                {getGroupMenuItems(routes, group.id).map((item) => {
+                {menuItems.map((item) => {
                   const isSectionSelected =
                     item.group === activeRoute.group &&
                     item.menuLabel === activeRoute.menuLabel;
@@ -327,6 +392,18 @@ export function AdminSidebar({
                     className="hsas-theme-settings__item hsas-theme-settings__item--danger"
                     onClick={() => {
                       setResetFeedback(null);
+                      setCreatorResetDialogOpen(true);
+                      setThemeMenuOpen(false);
+                    }}
+                    type="button"
+                  >
+                    <RotateCcw aria-hidden="true" />
+                    <span>크리에이터 풀 초기화</span>
+                  </button>
+                  <button
+                    className="hsas-theme-settings__item hsas-theme-settings__item--danger"
+                    onClick={() => {
+                      setResetFeedback(null);
                       setResetDialogOpen(true);
                     }}
                     type="button"
@@ -367,6 +444,44 @@ export function AdminSidebar({
               open={isResetDialogOpen}
               title="검수 상태를 초기화할까요?"
             />
+            <Modal
+              actions={(
+                <>
+                  <Button disabled={isCreatorResetting} onClick={closeCreatorReset}>취소</Button>
+                  <Button
+                    disabled={isCreatorResetting
+                      || creatorResetConfirmation !== CREATOR_POOL_RESET_CONFIRMATION}
+                    onClick={() => void resetPool()}
+                    variant="danger"
+                  >
+                    {isCreatorResetting ? "초기화 중..." : "초기화"}
+                  </Button>
+                </>
+              )}
+              ariaDescribedBy={creatorResetDescriptionId}
+              onClose={isCreatorResetting ? undefined : closeCreatorReset}
+              open={isCreatorResetDialogOpen}
+              role="alertdialog"
+              title="크리에이터 풀 초기화"
+            >
+              <div id={creatorResetDescriptionId}>
+                <p>현재 YouTube·Instagram 크리에이터가 목록과 후보에서 모두 숨겨집니다.</p>
+                <p>제안·리포트 이력은 보존되며, 다음 풀 구축에서 조건을 통과한 계정만 복원됩니다.</p>
+              </div>
+              <FormRow
+                label={`계속하려면 “${CREATOR_POOL_RESET_CONFIRMATION}”를 입력하세요.`}
+                required
+              >
+                <TextInput
+                  aria-label="초기화 확인 문구"
+                  autoComplete="off"
+                  disabled={isCreatorResetting}
+                  onChange={(event) => setCreatorResetConfirmation(event.target.value)}
+                  value={creatorResetConfirmation}
+                />
+              </FormRow>
+              {creatorResetError ? <p role="alert">{creatorResetError}</p> : null}
+            </Modal>
           </div>
           <button
             type="button"

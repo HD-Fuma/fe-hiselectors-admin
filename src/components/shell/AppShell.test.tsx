@@ -15,7 +15,10 @@ function resetTheme() {
 }
 
 beforeEach(resetTheme);
-afterEach(resetTheme);
+afterEach(() => {
+  resetTheme();
+  vi.unstubAllGlobals();
+});
 
 const expectedSidebarLinks = [
   ["대시보드", "/dashboard"],
@@ -26,11 +29,11 @@ const expectedSidebarLinks = [
   ["셀렉터스 목록", "/selectors"],
   ["캠페인 관리", "/campaigns"],
   ["콘텐츠 검수", "/content/inspections"],
-  ["실행 이력", "/task-runs"],
   ["셀렉터스 성과", "/performance/selectors"],
   ["콘텐츠 성과", "/performance/contents"],
   ["정산 관리", "/settlements"],
   ["발송 내역", "/notifications"],
+  ["모니터링", "/task-runs"],
 ] as const;
 
 test("renderRoute renders the administrator login route", () => {
@@ -52,7 +55,7 @@ test("renders the complete administrator navigation in one sidebar", () => {
   expect(sidebarQueries.getByRole("link", { name: "더현대Hi" })).toHaveAttribute("href", "/");
   expect(screen.getAllByRole("navigation", { name: "관리자 메뉴" })).toHaveLength(1);
   const sidebarLinks = within(navigation).getAllByRole("link");
-  expect(sidebarLinks).toHaveLength(14);
+  expect(sidebarLinks).toHaveLength(expectedSidebarLinks.length);
   expect(sidebarLinks.map((link) => [link.textContent, link.getAttribute("href")])).toEqual(
     expectedSidebarLinks,
   );
@@ -65,16 +68,19 @@ test("renders the complete administrator navigation in one sidebar", () => {
   expect(within(navigation).queryByRole("link", { name: "위반 관리" })).not.toBeInTheDocument();
 
   for (const groupLabel of [
-    "대시보드",
     "모집·선발",
     "운영",
     "성과·정산",
-    "알림·메시지",
+    "시스템 관리",
   ]) {
     expect(
       within(navigation).getByRole("heading", { name: groupLabel }),
     ).toBeInTheDocument();
   }
+  expect(within(navigation).queryByRole("heading", { name: "대시보드" }))
+    .not.toBeInTheDocument();
+  expect(within(navigation).queryByRole("button", { name: "대시보드" }))
+    .not.toBeInTheDocument();
 
   const workTabs = screen.getByRole("navigation", { name: "작업 탭" });
   expect(within(workTabs).getByRole("link", { name: "크리에이터 풀" })).toHaveAttribute(
@@ -243,6 +249,7 @@ test("opens and closes environment settings only when the icon is clicked", () =
   expect(themeMenuTrigger).toHaveAttribute("aria-expanded", "false");
   expect(within(settings).queryByRole("button", { name: "라이트 모드" })).not.toBeInTheDocument();
   expect(within(settings).getByRole("button", { name: "검수 상태 초기화" })).toBeEnabled();
+  expect(within(settings).getByRole("button", { name: "크리에이터 풀 초기화" })).toBeEnabled();
 
   fireEvent.click(themeMenuTrigger);
 
@@ -262,6 +269,100 @@ test("opens and closes environment settings only when the icon is clicked", () =
   fireEvent.click(trigger);
   expect(screen.queryByRole("group", { name: "환경설정" })).not.toBeInTheDocument();
   expect(trigger).toHaveAttribute("aria-expanded", "false");
+});
+
+test("resets the creator pool from environment settings after typed confirmation", async () => {
+  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.includes("confirmation=DELETE_CREATOR_POOL") && init?.method === "DELETE") {
+      return Promise.resolve(new Response(JSON.stringify({
+        success: true,
+        data: { softDeletedCount: 598 },
+      })));
+    }
+    if (url.endsWith("/api/admin/categories")) {
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: [] })));
+    }
+    if (url.includes("/api/admin/creators?")) {
+      return Promise.resolve(new Response(JSON.stringify({
+        success: true,
+        data: {
+          content: [{
+            id: 113,
+            snsCode: "INSTAGRAM",
+            accountId: "seo.yeon",
+            creatorName: "김서연",
+            profileImageUrl: null,
+            followerCount: 82400,
+            engagementRate: 4.25,
+            lastContentAt: "2026-08-12T20:00:00",
+            category: "BEAUTY",
+            recent90DayContentCount: 14,
+          }],
+          totalElements: 1,
+          totalPages: 1,
+          number: 0,
+          size: 20,
+        },
+      })));
+    }
+    return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} })));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  renderRoute("/creators");
+
+  fireEvent.click(await screen.findByRole("checkbox", { name: "김서연 선택" }));
+  expect(screen.getByRole("button", { name: "선택 1명 제안 발송" })).toBeEnabled();
+
+  fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
+  const settings = screen.getByRole("group", { name: "환경설정" });
+  fireEvent.click(within(settings).getByRole("button", { name: "크리에이터 풀 초기화" }));
+
+  const dialog = screen.getByRole("alertdialog", { name: "크리에이터 풀 초기화" });
+  const confirm = within(dialog).getByRole("button", { name: "초기화" });
+  expect(confirm).toBeDisabled();
+
+  fireEvent.change(within(dialog).getByRole("textbox", { name: "초기화 확인 문구" }), {
+    target: { value: "초기화" },
+  });
+  expect(confirm).toBeEnabled();
+  fireEvent.click(confirm);
+
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+    expect.stringContaining("/api/admin/creators?confirmation=DELETE_CREATOR_POOL"),
+    expect.objectContaining({ method: "DELETE" }),
+  ));
+  await waitFor(() => expect(screen.queryByRole("alertdialog", {
+    name: "크리에이터 풀 초기화",
+  })).not.toBeInTheDocument());
+  expect(within(settings).getByRole("status"))
+    .toHaveTextContent("크리에이터 풀 598건을 초기화했습니다.");
+  expect(screen.getByRole("button", { name: "선택 0명 제안 발송" })).toBeDisabled();
+  await waitFor(() => expect(fetchMock.mock.calls.filter(([input, requestInit]) => (
+    String(input).includes("/api/admin/creators?") && requestInit?.method !== "DELETE"
+  ))).toHaveLength(2));
+});
+
+test("keeps settings focus behind the creator reset dialog while a request is running", async () => {
+  vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => undefined)));
+  renderRoute("/dashboard");
+
+  const settingsTrigger = screen.getByRole("button", { name: "환경설정" });
+  fireEvent.click(settingsTrigger);
+  const settings = screen.getByRole("group", { name: "환경설정" });
+  fireEvent.click(within(settings).getByRole("button", { name: "크리에이터 풀 초기화" }));
+  const dialog = screen.getByRole("alertdialog", { name: "크리에이터 풀 초기화" });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: "초기화 확인 문구" }), {
+    target: { value: "초기화" },
+  });
+  fireEvent.click(within(dialog).getByRole("button", { name: "초기화" }));
+  await within(dialog).findByRole("button", { name: "초기화 중..." });
+
+  fireEvent.keyDown(document, { key: "Escape" });
+
+  expect(settings).toBeInTheDocument();
+  expect(dialog).toBeInTheDocument();
+  expect(settingsTrigger).not.toHaveFocus();
 });
 
 test("switches and persists the selected theme immediately", () => {
@@ -500,9 +601,9 @@ const routeCases = [
   },
   {
     path: "/task-runs",
-    group: "operations",
-    menuLabel: "실행 이력",
-    title: "작업 실행 이력",
+    group: "notifications",
+    menuLabel: "모니터링",
+    title: "모니터링",
     screenCode: "TR101",
     routeIsExact: true,
   },
