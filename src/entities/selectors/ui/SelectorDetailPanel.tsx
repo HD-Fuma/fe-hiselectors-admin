@@ -722,7 +722,7 @@ const CONTENT_COLUMNS: DenseTableColumn<SelectorContent>[] = [
       )
       : "-",
   },
-  { key: "createdAt", header: "등록일", width: 135, align: "center", render: (content) => displayDateTime(content.createdAt) },
+  { key: "createdAt", header: "수집일", width: 135, align: "center", render: (content) => displayDateTime(content.createdAt) },
   { key: "viewCount", header: "조회", width: 78, align: "center", render: (content) => displayNumber(content.viewCount) },
   { key: "likeCount", header: "좋아요", width: 78, align: "center", render: (content) => displayNumber(content.likeCount) },
   { key: "commentCount", header: "댓글", width: 78, align: "center", render: (content) => displayNumber(content.commentCount) },
