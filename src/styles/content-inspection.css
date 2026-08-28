@@ -2161,7 +2161,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   width: var(--studio-version-width);
   aspect-ratio: 9 / 16;
   border-radius: 18px;
-  background: var(--hsas-media-surface);
+  background: transparent;
 }
 
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-shorts"] .fuma-platform-inspection-frame {
@@ -2170,7 +2170,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   padding: 0;
   overflow: hidden;
   color: var(--hsas-color-white);
-  background: var(--hsas-media-surface);
+  background: transparent;
 }
 
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-shorts"] .fuma-platform-inspection-frame__media {
@@ -2179,6 +2179,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   max-height: none;
   aspect-ratio: auto;
   border-radius: 0;
+  background: transparent;
 }
 
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-shorts"] .fuma-platform-inspection-frame__asset-stage {
