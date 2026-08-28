@@ -97,9 +97,9 @@ body:has(.fuma-content-inspection-studio) {
   overflow: visible;
   align-content: center;
   align-items: center;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, var(--studio-version-width)));
   justify-content: center;
-  gap: var(--studio-gap);
+  gap: var(--hsas-space-16);
 }
 
 .fuma-content-inspection-studio__versions[data-revised="true"]::-webkit-scrollbar {
@@ -167,6 +167,12 @@ body:has(.fuma-content-inspection-studio) {
 .fuma-content-inspection-studio__violation-bubbles[data-placement="left"] {
   left: auto;
   right: calc(100% + 16px);
+}
+
+.fuma-content-inspection-studio__violation-bubbles[data-placement="left"]
+  .fuma-content-inspection-studio__violation-bubble {
+  right: 0;
+  left: auto;
 }
 
 .fuma-content-inspection-studio__violation-bubble {
