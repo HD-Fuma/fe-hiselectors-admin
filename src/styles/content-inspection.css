@@ -1158,7 +1158,9 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-content-inspection-studio__report-evidence li strong {
+  display: block;
   min-width: 0;
+  margin-top: 5px;
   font-size: var(--hsas-font-14);
   line-height: 1.5;
 }
@@ -1172,11 +1174,12 @@ button.fuma-content-inspection-studio__violation-bubble {
   flex: 0 0 auto;
   color: rgb(32 34 36 / 42%);
   font-size: var(--hsas-font-11);
+  white-space: nowrap;
 }
 
 .fuma-content-inspection-studio__report-evidence li small[data-judgment="pending"] {
-  max-width: 44%;
-  flex: 0 1 auto;
+  max-width: none;
+  flex: 0 0 auto;
   text-align: right;
 }
 

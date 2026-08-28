@@ -3503,17 +3503,17 @@ export function ContentInspectionDetailPage() {
                         tabIndex={-1}
                       >
                         <div>
-                          <span className="fuma-content-inspection-evidence__candidate-label">
-                            가이드 위반 후보 {issueOrdinalLabel(signal.ordinal)}
-                          </span>
                           <div>
-                            <strong>{signal.title}</strong>
+                            <span className="fuma-content-inspection-evidence__candidate-label">
+                              가이드 위반 후보 {issueOrdinalLabel(signal.ordinal)}
+                            </span>
                             <small data-judgment={judgment ?? "pending"}>
                               {judgment === "violation"
                                 ? "위반"
                                 : judgment === "clear" ? "위반 아님" : signal.source}
                             </small>
                           </div>
+                          <strong>{signal.title}</strong>
                           {showsInspectionGuideline(signal) ? (
                             <aside className="fuma-content-inspection-studio__report-guideline">
                               <span>검수 기준</span>
