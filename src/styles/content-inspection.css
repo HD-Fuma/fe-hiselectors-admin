@@ -1667,17 +1667,18 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio__version > .fuma-minimal-version-card[data-content-format="instagram-feed"] {
   width: 375px;
-  height: 576px;
+  aspect-ratio: 375 / 576;
 }
 
 .fuma-content-inspection-studio__version > .fuma-minimal-version-card[data-content-format="instagram-image"] {
   width: 375px;
-  height: 576px;
+  aspect-ratio: 375 / 576;
 }
 
 .fuma-content-inspection-studio__version > .fuma-minimal-version-card[data-content-format="instagram-reels"] {
   width: var(--studio-version-width);
   max-height: calc(100dvh - 162px);
+  align-self: start;
 }
 
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="instagram-reels"] .fuma-platform-inspection-frame {
