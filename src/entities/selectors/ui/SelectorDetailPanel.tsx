@@ -795,8 +795,10 @@ function SelectorApiDetailContent({
             <div className="fuma-creator-detail-hero__title-row">
               <h2>{detail.nickname}</h2>
             </div>
-            {handle || audienceLabel ? (
+            {platform || handle || audienceLabel ? (
               <div className="fuma-creator-detail-hero__channel">
+                {platform ? <strong>{platform}</strong> : null}
+                {platform && (handle || audienceLabel) ? <span aria-hidden="true">·</span> : null}
                 {handle && channelHref ? (
                   <a href={channelHref} rel="noreferrer" target="_blank">
                     <strong>{handle}</strong>
@@ -811,10 +813,6 @@ function SelectorApiDetailContent({
           </div>
           <dl className="fuma-creator-detail-hero__metrics">
             <div><dt>셀렉터스 코드</dt><dd>{displayText(detail.selectorsCode)}</dd></div>
-            <div>
-              <dt>셀렉터스명</dt>
-              <dd title={detail.nickname || undefined}>{displayText(detail.nickname)}</dd>
-            </div>
             {hideSettlement ? null : (
               <>
                 <div><dt>누적 구매수</dt><dd>{displayCount(settlementSummary?.cumulativePurchaseConversionCount)}</dd></div>
