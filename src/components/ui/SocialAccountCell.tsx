@@ -3,6 +3,7 @@ import { CreatorProfilePhoto } from "./CreatorProfilePhoto";
 
 export function SocialAccountCell({
   displayName,
+  externalLabel,
   handle,
   onOpen,
   platform,
@@ -10,6 +11,7 @@ export function SocialAccountCell({
   profileUrl,
 }: {
   displayName: string;
+  externalLabel?: string;
   handle: string;
   onOpen?: () => void;
   platform: SocialPlatform;
@@ -45,7 +47,7 @@ export function SocialAccountCell({
       )}
       {profileUrl ? (
         <a
-          aria-label={`${displayName} SNS 계정 열기 (새 창)`}
+          aria-label={externalLabel ?? `${displayName} SNS 계정 열기 (새 창)`}
           className="fuma-creator-account-cell__external"
           href={profileUrl}
           rel="noreferrer"

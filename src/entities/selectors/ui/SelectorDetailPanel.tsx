@@ -5,6 +5,7 @@ import { DenseTable, type DenseTableColumn } from "../../../components/ui/DenseT
 import { Modal } from "../../../components/ui/Modal";
 import { ResultToolbar } from "../../../components/ui/ResultToolbar";
 import { SidePanel } from "../../../components/ui/SidePanel";
+import { SocialAccountCell } from "../../../components/ui/SocialAccountCell";
 import { StatusPill, type StatusPillProps } from "../../../components/ui/StatusPill";
 import { formatCompactCount, formatNumber, formatWon } from "../../../lib/formatters";
 import {
@@ -701,19 +702,21 @@ const CONTENT_COLUMNS: DenseTableColumn<SelectorContent>[] = [
   {
     key: "contentUrl",
     header: "콘텐츠",
-    align: "center",
-    render: (content) => content.contentUrl
-      ? (
-        <a
-          href={content.contentUrl}
-          rel="noreferrer"
-          target="_blank"
-          title={content.title?.trim() || content.contentUrl}
-        >
-          {contentLinkLabel(content)} ↗
-        </a>
-      )
-      : "-",
+    render: (content) => {
+      const displayName = contentLinkLabel(content);
+      const platform = apiPlatform(content.snsCode)
+        ?? (/(?:youtube\.com|youtu\.be)/.test(content.contentUrl) ? "YouTube" : "Instagram");
+      return (
+        <SocialAccountCell
+          displayName={displayName}
+          externalLabel={`${displayName} 원본 콘텐츠 열기 (새 창)`}
+          handle={`${platform} 콘텐츠`}
+          platform={platform}
+          profileImageUrl={contentThumbnail(content) ?? ""}
+          profileUrl={content.contentUrl}
+        />
+      );
+    },
   },
   { key: "createdAt", header: "수집일", width: 135, align: "center", render: (content) => displayDateTime(content.createdAt) },
   { key: "viewCount", header: "조회", width: 78, align: "center", render: (content) => displayNumber(content.viewCount) },
