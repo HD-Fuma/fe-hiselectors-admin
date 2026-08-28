@@ -1883,13 +1883,13 @@ function MinimalAiAnalysis({
                           가이드 위반 후보 {issueOrdinalLabel(issue.ordinal)}
                         </span>
                         <strong>{issue.title}</strong>
-                        <p>{issue.detail}</p>
                         {showsInspectionGuideline(issue) ? (
                           <aside>
                             <span>검수 기준</span>
                             <p>{issue.guidance}</p>
                           </aside>
                         ) : null}
+                        <p>{issue.detail}</p>
                       </button>
                     </li>
                   ))}
@@ -3464,13 +3464,13 @@ export function ContentInspectionDetailPage() {
                                 : judgment === "clear" ? "위반 아님" : signal.source}
                             </small>
                           </div>
-                          <p>{signal.detail || signal.evidence}</p>
                           {showsInspectionGuideline(signal) ? (
                             <aside className="fuma-content-inspection-studio__report-guideline">
                               <span>검수 기준</span>
                               <p>{signal.guidance}</p>
                             </aside>
                           ) : null}
+                          <p>{signal.detail || signal.evidence}</p>
                           {studioSelectedIsLatest && !studioReviewReadOnly ? (
                             <div
                               aria-label={`${signal.title} 판정`}
