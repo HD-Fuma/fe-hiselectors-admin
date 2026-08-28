@@ -1136,10 +1136,12 @@ function StudioViolationBubbleCloud({
     const mutationObserver = typeof MutationObserver === "undefined" || !card
       ? null
       : new MutationObserver(positionBubbles);
-    mutationObserver?.observe(card, {
-      attributeFilter: ["data-description-expanded", "data-stt-expanded"],
-      attributes: true,
-    });
+    if (card) {
+      mutationObserver?.observe(card, {
+        attributeFilter: ["data-description-expanded", "data-stt-expanded"],
+        attributes: true,
+      });
+    }
     version.addEventListener("scroll", positionBubbles, true);
     window.addEventListener("resize", positionBubbles);
 
