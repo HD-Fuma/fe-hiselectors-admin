@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -1010,28 +1011,126 @@ function StudioViolationBubbleCloud({
   annotations,
   focusedOrdinal,
   onSelectViolation,
-  side,
 }: {
   annotations: readonly IndexedContentAnnotation[];
   focusedOrdinal?: number;
   onSelectViolation?: (ordinal: number) => void;
-  side: "start" | "end";
 }) {
+  const cloudRef = useRef<HTMLElement>(null);
   const textAnnotations = annotations.filter(({ target }) => (
     target.kind === "text" || target.kind === "text-start"
   ));
+  const annotationKey = textAnnotations
+    .map(({ id, ordinal }) => `${id}:${ordinal}`)
+    .join("|");
+
+  useLayoutEffect(() => {
+    const cloud = cloudRef.current;
+    const version = cloud?.closest<HTMLElement>(".fuma-content-inspection-studio__version");
+    if (!cloud || !version) return undefined;
+
+    let frameId = 0;
+    const positionBubbles = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => {
+        const versionRect = version.getBoundingClientRect();
+        const rightSpace = window.innerWidth - versionRect.right;
+        cloud.dataset.placement = rightSpace >= cloud.offsetWidth + 16 ? "right" : "left";
+        const cloudRect = cloud.getBoundingClientRect();
+
+        const bubbles = Array.from(
+          cloud.querySelectorAll<HTMLElement>("[data-violation-message]"),
+        ).map((bubble, index) => {
+          const ordinal = bubble.dataset.violationMessage;
+          const anchor = ordinal
+            ? version.querySelector<HTMLElement>(`[data-violation-anchor="${ordinal}"]`)
+            : null;
+          const anchorRect = anchor?.getBoundingClientRect();
+
+          return {
+            bubble,
+            height: bubble.offsetHeight,
+            top: anchorRect
+              ? anchorRect.top - cloudRect.top + anchorRect.height / 2
+              : cloudRect.height * 0.62 + index * 8,
+          };
+        }).sort((left, right) => left.top - right.top);
+
+        const gap = 8;
+        const requiredHeight = bubbles.reduce((height, bubble) => height + bubble.height, 0)
+          + Math.max(0, bubbles.length - 1) * gap;
+
+        if (requiredHeight <= cloudRect.height) {
+          let previousBottom = 0;
+          bubbles.forEach((bubble) => {
+            bubble.top = Math.max(bubble.top, previousBottom + bubble.height / 2);
+            previousBottom = bubble.top + bubble.height / 2 + gap;
+          });
+
+          let nextTop = cloudRect.height;
+          for (let index = bubbles.length - 1; index >= 0; index -= 1) {
+            const bubble = bubbles[index];
+            bubble.top = Math.min(bubble.top, nextTop - bubble.height / 2);
+            nextTop = bubble.top - bubble.height / 2 - gap;
+          }
+        } else {
+          bubbles.forEach((bubble, index) => {
+            bubble.top = cloudRect.height * ((index + 1) / (bubbles.length + 1));
+          });
+        }
+
+        bubbles.forEach(({ bubble, height, top }) => {
+          const clampedTop = Math.min(
+            Math.max(top, height / 2),
+            Math.max(height / 2, cloudRect.height - height / 2),
+          );
+          bubble.style.setProperty("--violation-bubble-top", `${Math.round(clampedTop)}px`);
+        });
+      });
+    };
+
+    positionBubbles();
+    const card = version.querySelector<HTMLElement>(".fuma-minimal-version-card");
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(positionBubbles);
+    resizeObserver?.observe(version);
+    if (card) resizeObserver?.observe(card);
+
+    const mutationObserver = typeof MutationObserver === "undefined" || !card
+      ? null
+      : new MutationObserver(positionBubbles);
+    mutationObserver?.observe(card, {
+      attributeFilter: ["data-description-expanded"],
+      attributes: true,
+    });
+    version.addEventListener("scroll", positionBubbles, true);
+    window.addEventListener("resize", positionBubbles);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
+      version.removeEventListener("scroll", positionBubbles, true);
+      window.removeEventListener("resize", positionBubbles);
+    };
+  }, [annotationKey]);
+
   if (textAnnotations.length === 0) return null;
 
   return (
     <aside
       aria-label="본문 위반 내역"
       className="fuma-content-inspection-studio__violation-bubbles"
-      data-side={side}
+      data-placement="right"
+      ref={cloudRef}
     >
       {textAnnotations.map((annotation) => {
         const content = (
           <>
-            <small>위반 {annotation.ordinal}</small>
+            <span className="fuma-content-inspection-studio__violation-bubble-number">
+              {annotation.ordinal}
+            </span>
             <strong>{annotation.title}</strong>
           </>
         );
@@ -1039,6 +1138,7 @@ function StudioViolationBubbleCloud({
           "aria-label": `위반 ${annotation.ordinal}: ${annotation.title}`,
           className: "fuma-content-inspection-studio__violation-bubble",
           "data-focused": focusedOrdinal === annotation.ordinal,
+          "data-violation-message": annotation.ordinal,
         };
 
         return onSelectViolation ? (
@@ -3016,7 +3116,6 @@ export function ContentInspectionDetailPage() {
                             historicalContent,
                             historicalContent.currentSnapshot,
                           )}
-                          side="end"
                         />
                       ) : null}
                     </div>
@@ -3053,7 +3152,6 @@ export function ContentInspectionDetailPage() {
                     annotations={indexedViolationAnnotations(content, content.currentSnapshot)}
                     focusedOrdinal={studioCardFocusedViolation?.ordinal}
                     onSelectViolation={selectStudioViolationFromContent}
-                    side="start"
                   />
                 ) : null}
               </div>

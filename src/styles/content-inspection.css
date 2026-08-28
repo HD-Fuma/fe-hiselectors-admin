@@ -152,29 +152,31 @@ body:has(.fuma-content-inspection-studio) {
 
 .fuma-content-inspection-studio__violation-bubbles {
   position: absolute;
-  top: 38%;
+  top: 0;
+  bottom: 0;
+  left: calc(100% + 16px);
   z-index: 6;
-  display: grid;
   width: 276px;
-  gap: var(--hsas-space-10);
-  translate: 0 -50%;
+  pointer-events: none;
 }
 
-.fuma-content-inspection-studio__violation-bubbles[data-side="start"] {
-  right: calc(100% + 56px);
-}
-
-.fuma-content-inspection-studio__violation-bubbles[data-side="end"] {
-  left: calc(100% + 56px);
+.fuma-content-inspection-studio__violation-bubbles[data-placement="left"] {
+  left: auto;
+  right: calc(100% + 16px);
 }
 
 .fuma-content-inspection-studio__violation-bubble {
+  position: absolute;
+  top: var(--violation-bubble-top, 50%);
+  left: 0;
   display: grid;
   width: fit-content;
   min-width: 176px;
   max-width: 240px;
   padding: var(--hsas-space-11) var(--hsas-space-14);
-  gap: var(--hsas-space-4);
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--hsas-space-8);
   border: 1px solid rgb(255 255 255 / 74%);
   border-radius: 20px;
   color: #202224;
@@ -185,33 +187,27 @@ body:has(.fuma-content-inspection-studio) {
     0 0 24px rgb(180 35 24 / 10%);
   font: inherit;
   overflow-wrap: anywhere;
+  pointer-events: auto;
   text-align: left;
   backdrop-filter: blur(22px) saturate(1.2);
+  translate: 0 -50%;
 }
 
 button.fuma-content-inspection-studio__violation-bubble {
   cursor: pointer;
 }
 
-.fuma-content-inspection-studio__violation-bubbles[data-side="start"]
-  .fuma-content-inspection-studio__violation-bubble:nth-child(odd),
-.fuma-content-inspection-studio__violation-bubbles[data-side="end"]
-  .fuma-content-inspection-studio__violation-bubble:nth-child(even) {
-  justify-self: end;
-}
-
-.fuma-content-inspection-studio__violation-bubbles[data-side="start"]
-  .fuma-content-inspection-studio__violation-bubble:nth-child(even),
-.fuma-content-inspection-studio__violation-bubbles[data-side="end"]
-  .fuma-content-inspection-studio__violation-bubble:nth-child(odd) {
-  justify-self: start;
-}
-
-.fuma-content-inspection-studio__violation-bubble small {
-  color: var(--hsas-color-danger);
-  font-size: var(--hsas-font-9);
+.fuma-content-inspection-studio__violation-bubble-number {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  place-items: center;
+  color: #fff;
+  background: var(--hsas-color-danger);
+  box-shadow: 0 5px 14px rgb(180 35 24 / 24%);
+  font-size: var(--hsas-font-10);
   font-weight: 850;
-  letter-spacing: 0.08em;
 }
 
 .fuma-content-inspection-studio__violation-bubble strong {
