@@ -1014,10 +1014,12 @@ function StudioViolationBubbleCloud({
   annotations,
   focusedOrdinal,
   onSelectViolation,
+  placement,
 }: {
   annotations: readonly IndexedContentAnnotation[];
   focusedOrdinal?: number;
   onSelectViolation?: (ordinal: number) => void;
+  placement: "left" | "right";
 }) {
   const cloudRef = useRef<HTMLElement>(null);
   const bubbleAnnotations = annotations.filter(({ location, target }) => (
@@ -1031,18 +1033,10 @@ function StudioViolationBubbleCloud({
     const cloud = cloudRef.current;
     const version = cloud?.closest<HTMLElement>(".fuma-content-inspection-studio__version");
     if (!cloud || !version) return undefined;
-    const report = version
-      .closest<HTMLElement>(".fuma-content-inspection-studio")
-      ?.querySelector<HTMLElement>(".fuma-content-inspection-studio__report");
-
     let frameId = 0;
     const positionBubbles = () => {
       cancelAnimationFrame(frameId);
       frameId = requestAnimationFrame(() => {
-        const versionRect = version.getBoundingClientRect();
-        const rightBoundary = report?.getBoundingClientRect().left ?? window.innerWidth;
-        const rightSpace = rightBoundary - versionRect.right;
-        cloud.dataset.placement = rightSpace >= cloud.offsetWidth + 32 ? "right" : "left";
         const cloudRect = cloud.getBoundingClientRect();
 
         const bubbles = Array.from(
@@ -1113,7 +1107,6 @@ function StudioViolationBubbleCloud({
       : new ResizeObserver(positionBubbles);
     resizeObserver?.observe(version);
     if (card) resizeObserver?.observe(card);
-    if (report) resizeObserver?.observe(report);
 
     const mutationObserver = typeof MutationObserver === "undefined" || !card
       ? null
@@ -1140,7 +1133,7 @@ function StudioViolationBubbleCloud({
     <aside
       aria-label="콘텐츠 위반 내역"
       className="fuma-content-inspection-studio__violation-bubbles"
-      data-placement="right"
+      data-placement={placement}
       ref={cloudRef}
     >
       {bubbleAnnotations.map((annotation) => {
@@ -3281,6 +3274,7 @@ export function ContentInspectionDetailPage() {
                             historicalContent,
                             historicalContent.currentSnapshot,
                           )}
+                          placement="left"
                         />
                       ) : null}
                     </div>
@@ -3317,6 +3311,7 @@ export function ContentInspectionDetailPage() {
                     annotations={indexedViolationAnnotations(content, content.currentSnapshot)}
                     focusedOrdinal={studioCardFocusedViolation?.ordinal}
                     onSelectViolation={selectStudioViolationFromContent}
+                    placement="right"
                   />
                 ) : null}
               </div>
