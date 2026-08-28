@@ -87,9 +87,9 @@ const STUDIO_CONTENT_SLIDE_ENTER_MS = 260;
 const STUDIO_HELP_DURATION_MS = 5_000;
 const STUDIO_HISTORY_HINT_DURATION_MS = 3_000;
 type ContentInspectionCategory =
-  | "신규 등록"
-  | "수정 감지"
-  | "위반 확정";
+  | "신규"
+  | "수정"
+  | "검수완료";
 
 function formatInspectionDate(value: string) {
   const zoned = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value.trim());
@@ -255,23 +255,23 @@ interface QueueFilterValues {
 }
 
 const CONTENT_INSPECTION_CATEGORIES: readonly ContentInspectionCategory[] = [
-  "신규 등록",
-  "수정 감지",
-  "위반 확정",
+  "신규",
+  "수정",
+  "검수완료",
 ];
-const DEFAULT_CONTENT_INSPECTION_CATEGORY: ContentInspectionCategory = "신규 등록";
+const DEFAULT_CONTENT_INSPECTION_CATEGORY: ContentInspectionCategory = "신규";
 
 function contentInspectionCategory(content: ContentInspectionFixture): ContentInspectionCategory {
-  if (content.inspectionStatus === "위반") return "위반 확정";
-  if (content.inspectionType !== "NEW") return "수정 감지";
-  return "신규 등록";
+  if (content.inspectionStatus !== "검수 대기") return "검수완료";
+  if (content.inspectionType !== "NEW") return "수정";
+  return "신규";
 }
 
 function contentInspectionCategoryTone(
   category: ContentInspectionCategory,
 ): NonNullable<StatusPillProps["tone"]> {
-  if (category === "위반 확정") return "rejected";
-  if (category === "수정 감지") return "pending";
+  if (category === "검수완료") return "approved";
+  if (category === "수정") return "pending";
   return "neutral";
 }
 
@@ -633,7 +633,6 @@ export function ContentInspectionListPage() {
   };
   const normalizedKeyword = appliedFilters.keyword.trim().toLocaleLowerCase("ko-KR");
   const filteredContents = contents.filter((content) => {
-    if (content.inspectionStatus === "승인") return false;
     const matchesCategory = contentInspectionCategory(content) === selectedCategory;
     const matchesKeyword = !normalizedKeyword || [
       content.id,
