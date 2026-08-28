@@ -84,7 +84,7 @@ jobs:
               exit 1
             fi
             rm -f "$BACKUP_PATH"
-            nginx -s reload
+            systemctl reload nginx
         run: |
           test -n "$EC2_INSTANCE_ID"
           PARAMETERS="$(jq -cn \
