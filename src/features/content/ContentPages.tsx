@@ -2414,6 +2414,11 @@ export function ContentInspectionDetailPage() {
     : visibleStudioHistoricalContents.find(
         ({ contentVersionId }) => contentVersionId === selectedStudioVersionId,
       ) ?? null;
+  const displayedStudioHistoricalContent = selectedStudioHistoricalContent
+    ?? visibleStudioHistoricalContents[visibleStudioHistoricalContents.length - 1]
+    ?? null;
+  const displayedStudioHistoricalSelected = selectedStudioVersionId != null
+    && selectedStudioVersionId === displayedStudioHistoricalContent?.contentVersionId;
   const studioSelectedIsLatest = selectedStudioVersionId === null;
   const studioReportContent = studioSelectedIsLatest ? content : selectedStudioHistoricalContent;
   const studioReportAnalysis = useMemo(
@@ -3241,44 +3246,66 @@ export function ContentInspectionDetailPage() {
                     <p>과거 콘텐츠를 불러오는 중입니다.</p>
                   ) : studioHistoryError ? (
                     <p role="alert">{studioHistoryError}</p>
-                  ) : visibleStudioHistoricalContents.map((historicalContent) => (
-                    <div
-                      className="fuma-content-inspection-studio__version"
-                      data-latest="false"
-                      data-selected={selectedStudioVersionId === historicalContent.contentVersionId}
-                      key={historicalContent.contentVersionId}
-                    >
-                      <span className="fuma-content-inspection-studio__version-tag">
-                        v{currentDisplayedVersionNo(historicalContent)} · 과거 콘텐츠
-                      </span>
-                      {selectedStudioVersionId === historicalContent.contentVersionId ? null : (
-                        <button
-                          aria-label={`v${currentDisplayedVersionNo(historicalContent)} 과거 콘텐츠 선택`}
-                          className="fuma-content-inspection-studio__version-select"
-                          onClick={() => setSelectedStudioVersionId(
-                            historicalContent.contentVersionId ?? null,
-                          )}
-                          type="button"
+                  ) : displayedStudioHistoricalContent ? (
+                    <>
+                      <div
+                        aria-label="과거 콘텐츠 버전 선택"
+                        className="fuma-content-inspection-studio__history-tabs"
+                        role="group"
+                      >
+                        {visibleStudioHistoricalContents.map((historicalContent) => (
+                          <button
+                            aria-label={`v${currentDisplayedVersionNo(historicalContent)} 과거 콘텐츠 선택`}
+                            aria-pressed={selectedStudioVersionId != null
+                              && selectedStudioVersionId === historicalContent.contentVersionId}
+                            data-preview={displayedStudioHistoricalContent === historicalContent}
+                            key={historicalContent.contentVersionId
+                              ?? currentDisplayedVersionNo(historicalContent)}
+                            onClick={() => setSelectedStudioVersionId(
+                              historicalContent.contentVersionId ?? null,
+                            )}
+                            type="button"
+                          >
+                            v{currentDisplayedVersionNo(historicalContent)}
+                          </button>
+                        ))}
+                      </div>
+                      <div
+                        className="fuma-content-inspection-studio__version"
+                        data-latest="false"
+                        data-selected={displayedStudioHistoricalSelected}
+                        key={displayedStudioHistoricalContent.contentVersionId
+                          ?? currentDisplayedVersionNo(displayedStudioHistoricalContent)}
+                      >
+                        {displayedStudioHistoricalSelected ? null : (
+                          <button
+                            aria-label={`v${currentDisplayedVersionNo(displayedStudioHistoricalContent)} 과거 콘텐츠 선택`}
+                            className="fuma-content-inspection-studio__version-select"
+                            onClick={() => setSelectedStudioVersionId(
+                              displayedStudioHistoricalContent.contentVersionId ?? null,
+                            )}
+                            type="button"
+                          />
+                        )}
+                        <MinimalVersionCard
+                          content={displayedStudioHistoricalContent}
+                          inert={!displayedStudioHistoricalSelected}
+                          label={`v${currentDisplayedVersionNo(displayedStudioHistoricalContent)} 과거 콘텐츠`}
+                          showTextBubbles={false}
+                          snapshot={displayedStudioHistoricalContent.currentSnapshot}
                         />
-                      )}
-                      <MinimalVersionCard
-                        content={historicalContent}
-                        inert={selectedStudioVersionId !== historicalContent.contentVersionId}
-                        label={`v${currentDisplayedVersionNo(historicalContent)} 과거 콘텐츠`}
-                        showTextBubbles={false}
-                        snapshot={historicalContent.currentSnapshot}
-                      />
-                      {selectedStudioVersionId === historicalContent.contentVersionId ? (
-                        <StudioViolationBubbleCloud
-                          annotations={indexedViolationAnnotations(
-                            historicalContent,
-                            historicalContent.currentSnapshot,
-                          )}
-                          placement="left"
-                        />
-                      ) : null}
-                    </div>
-                  ))}
+                        {displayedStudioHistoricalSelected ? (
+                          <StudioViolationBubbleCloud
+                            annotations={indexedViolationAnnotations(
+                              displayedStudioHistoricalContent,
+                              displayedStudioHistoricalContent.currentSnapshot,
+                            )}
+                            placement="left"
+                          />
+                        ) : null}
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               ) : null}
               <div

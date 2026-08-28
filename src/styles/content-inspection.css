@@ -107,19 +107,71 @@ body:has(.fuma-content-inspection-studio) {
 }
 
 .fuma-content-inspection-studio__history {
-  display: flex;
+  position: relative;
+  display: grid;
   width: min(var(--studio-version-width), 100%);
   margin: 0;
-  flex: 0 0 auto;
+  align-content: center;
   align-items: center;
-  justify-content: flex-end;
+  gap: var(--hsas-space-10);
   justify-self: center;
   isolation: isolate;
   scroll-snap-align: start;
 }
 
-.fuma-content-inspection-studio__history > .fuma-content-inspection-studio__version:not(:last-child) {
-  margin-right: calc(var(--hsas-space-48) - 100%);
+.fuma-content-inspection-studio__history-tabs {
+  display: flex;
+  width: 100%;
+  height: var(--hsas-space-24);
+  align-items: center;
+  justify-content: center;
+  gap: var(--hsas-space-6);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.fuma-content-inspection-studio__history-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.fuma-content-inspection-studio__history-tabs button {
+  display: inline-flex;
+  min-width: var(--hsas-space-35);
+  height: var(--hsas-space-24);
+  padding: 0 var(--hsas-space-9);
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(255 255 255 / 82%);
+  border-radius: 999px;
+  color: rgb(32 34 36 / 58%);
+  background: rgb(255 255 255 / 48%);
+  box-shadow: 0 7px 18px rgb(54 65 72 / 8%);
+  font: inherit;
+  font-size: var(--hsas-font-11);
+  font-weight: 750;
+  cursor: pointer;
+  backdrop-filter: blur(16px);
+  transition: 140ms ease;
+  transition-property: color, background-color, border-color, box-shadow;
+}
+
+.fuma-content-inspection-studio__history-tabs button:is(:hover, [data-preview="true"]) {
+  border-color: rgb(32 34 36 / 24%);
+  color: rgb(32 34 36 / 78%);
+  background: rgb(255 255 255 / 68%);
+}
+
+.fuma-content-inspection-studio__history-tabs button[aria-pressed="true"] {
+  border-color: rgb(32 34 36 / 88%);
+  color: #fff;
+  background: rgb(32 34 36 / 88%);
+  box-shadow: 0 8px 20px rgb(32 34 36 / 18%);
+}
+
+.fuma-content-inspection-studio__history-tabs button:focus-visible {
+  outline: 3px solid rgb(32 34 36 / 24%);
+  outline-offset: var(--hsas-space-2);
 }
 
 .fuma-content-inspection-studio__versions[data-revised="true"] > .fuma-content-inspection-studio__version:last-child {
@@ -132,7 +184,6 @@ body:has(.fuma-content-inspection-studio) {
   width: 100%;
   margin: 0;
   padding: 18px;
-  flex: 0 0 100%;
   border: 1px solid rgb(255 255 255 / 70%);
   border-radius: 18px;
   color: rgb(32 34 36 / 58%);
@@ -363,36 +414,35 @@ button.fuma-content-inspection-studio__violation-bubble {
   width: 100%;
   height: auto;
   min-height: 0;
-  flex: 0 0 100%;
   z-index: 0;
-  opacity: 0.52;
-  scroll-snap-align: none;
-  transition: opacity 160ms ease;
-}
-
-.fuma-content-inspection-studio__history .fuma-content-inspection-studio__version:nth-last-child(3) {
-  z-index: 1;
-  opacity: 0.64;
-}
-
-.fuma-content-inspection-studio__history .fuma-content-inspection-studio__version:nth-last-child(2) {
-  z-index: 2;
+  grid-template-rows: auto;
+  gap: 0;
   opacity: 0.76;
-}
-
-.fuma-content-inspection-studio__history .fuma-content-inspection-studio__version:last-child {
-  z-index: 3;
-  opacity: 0.94;
+  scroll-snap-align: none;
+  animation: fuma-content-inspection-history-version-enter 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: opacity 160ms ease;
 }
 
 .fuma-content-inspection-studio__history .fuma-content-inspection-studio__version:is(:hover, :focus-within) {
   z-index: 10;
-  opacity: 1;
+  opacity: 0.92;
 }
 
 .fuma-content-inspection-studio__history .fuma-content-inspection-studio__version[data-selected="true"] {
   z-index: 11;
   opacity: 1;
+}
+
+.fuma-content-inspection-studio__history
+  .fuma-content-inspection-studio__version
+  > .fuma-minimal-version-card {
+  box-shadow:
+    5px 5px 0 -1px rgb(255 255 255 / 58%),
+    6px 6px 0 rgb(54 65 72 / 8%),
+    11px 11px 0 -2px rgb(255 255 255 / 38%),
+    12px 12px 0 -1px rgb(54 65 72 / 6%),
+    0 30px 70px rgb(35 45 48 / 20%);
+  animation: none;
 }
 
 .fuma-content-inspection-studio__versions .fuma-content-inspection-studio__version:has(> .fuma-content-inspection-studio__violation-bubbles) {
@@ -2391,6 +2441,13 @@ button.fuma-minimal-version-card__media-warning {
   from {
     opacity: 0;
     transform: translateY(3px) scale(0.995);
+  }
+}
+
+@keyframes fuma-content-inspection-history-version-enter {
+  from {
+    opacity: 0;
+    transform: translateX(var(--hsas-space-10)) scale(0.995);
   }
 }
 
