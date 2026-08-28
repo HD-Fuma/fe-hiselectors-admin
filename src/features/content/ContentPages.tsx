@@ -1430,7 +1430,7 @@ function MinimalVersionCard({
                     />
                   )}
             </span>
-            <div><strong>{handle}</strong><small>현대홈쇼핑 셀렉터스 · {content.cohort}</small></div>
+            <div><strong>{handle}</strong></div>
             <button aria-label="게시물 메뉴" type="button"><MoreHorizontal aria-hidden="true" size={20} /></button>
           </div>
         ) : null}
