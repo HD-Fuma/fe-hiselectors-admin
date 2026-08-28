@@ -680,29 +680,22 @@ function contentLinkLabel(content: SelectorContent) {
   return content.title?.trim() || content.contentUrl.replace(/^https?:\/\/(?:www\.)?/, "");
 }
 
+function contentTypeLabel(contentType: string | null) {
+  if (contentType === "FEED") return "피드";
+  if (contentType === "SHORT_FORM" || contentType === "REELS") return "릴스";
+  if (contentType === "SHORTS") return "숏츠";
+  if (contentType === "LONG_FORM") return "롱폼";
+  return contentType ? "기타" : "-";
+}
+
 const CONTENT_COLUMNS: DenseTableColumn<SelectorContent>[] = [
-  {
-    key: "snsCode",
-    header: "플랫폼",
-    width: 105,
-    align: "center",
-    render: (content) => {
-      const platform = apiPlatform(content.snsCode);
-      return platform ? (
-        <span className="fuma-platform-label">
-          <PlatformIcon platform={platform} />
-          <span aria-hidden="true">{platform}</span>
-        </span>
-      ) : "-";
-    },
-  },
   {
     key: "contentType",
     header: "유형",
     width: 90,
     align: "center",
     render: (content) => content.contentType
-      ? <StatusPill tone="neutral">{content.contentType}</StatusPill>
+      ? <StatusPill tone="neutral">{contentTypeLabel(content.contentType)}</StatusPill>
       : "-",
   },
   {
