@@ -2344,7 +2344,6 @@ export function ContentInspectionDetailPage() {
   const [studioContentTransition, setStudioContentTransition] = useState<StudioContentTransition>("idle");
   const studioReportRef = useRef<HTMLElement>(null);
   const studioDecisionRef = useRef<HTMLDivElement>(null);
-  const studioVersionsRef = useRef<HTMLElement>(null);
   const studioHistoryRequestRef = useRef<AbortController | null>(null);
   const studioActionRequestRef = useRef<AbortController | null>(null);
   const studioDetailRequestRef = useRef<AbortController | null>(null);
@@ -2380,6 +2379,8 @@ export function ContentInspectionDetailPage() {
         .filter(({ contentVersionId }) => contentVersionId !== studioLatestVersion.contentVersionId)
         .sort((left, right) => left.versionNo - right.versionNo)
     : [];
+  const studioHasHistoricalVersion = (baseContent?.latestVersionNo ?? 1) > 1
+    || studioHistoricalVersionSummaries.length > 0;
   const studioHistoryVersionKey = studioHistoricalVersionSummaries
     .map(({ contentVersionId }) => contentVersionId)
     .join(",");
@@ -2791,17 +2792,6 @@ export function ContentInspectionDetailPage() {
   }, [baseContent, routeState?.inspectionSession, studioHistoryVersionKey]);
 
   useEffect(() => {
-    if (studioHistoryPending || visibleStudioHistoricalContents.length === 0) return undefined;
-    const animationFrame = window.requestAnimationFrame(() => {
-      const versions = studioVersionsRef.current;
-      if (versions && typeof versions.scrollTo === "function") {
-        versions.scrollTo({ behavior: "auto", left: versions.scrollWidth });
-      }
-    });
-    return () => window.cancelAnimationFrame(animationFrame);
-  }, [contentId, studioHistoryPending, visibleStudioHistoricalContents.length]);
-
-  useEffect(() => {
     if (!routeState?.inspectionSession) return undefined;
     const resetFrame = window.requestAnimationFrame(() => {
       setSelectedStudioVersionId(null);
@@ -3211,10 +3201,9 @@ export function ContentInspectionDetailPage() {
               className="fuma-content-inspection-studio__versions"
               data-content-format={contentCollectionFormatKey(content.contentFormat)}
               data-content-transition={studioContentTransition}
-              data-revised={studioHistoricalVersionSummaries.length > 0}
-              ref={studioVersionsRef}
+              data-revised={studioHasHistoricalVersion}
             >
-              {studioHistoricalVersionSummaries.length > 0 ? (
+              {studioHasHistoricalVersion ? (
                 <div className="fuma-content-inspection-studio__history">
                   {studioHistoryPending || (!studioHistoryError && visibleStudioHistoricalContents.length === 0) ? (
                     <p>과거 콘텐츠를 불러오는 중입니다.</p>
