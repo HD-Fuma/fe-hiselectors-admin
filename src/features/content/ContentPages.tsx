@@ -2951,7 +2951,7 @@ export function ContentInspectionDetailPage() {
     };
 
     const navigateOnWheel = (event: globalThis.WheelEvent) => {
-      if (event.ctrlKey || Math.abs(event.deltaY) < 4) return;
+      if (event.ctrlKey) return;
       if (
         studioExiting
         || completionOpen
@@ -2963,22 +2963,32 @@ export function ContentInspectionDetailPage() {
         return;
       }
 
+      const eventTarget = event.target instanceof Element ? event.target : null;
+      const nativeScrollSurface = eventTarget?.closest<HTMLElement>(
+        ".fuma-content-inspection-studio__report, .fuma-platform-inspection-frame__stt-transcript, .fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p, .fuma-platform-inspection-frame__shorts-overlay p",
+      );
+      if (nativeScrollSurface) return;
+
+      const forwardedScrollSurface = eventTarget
+        ?.closest<HTMLElement>(".fuma-platform-inspection-frame__stt-panel")
+        ?.querySelector<HTMLElement>(".fuma-platform-inspection-frame__stt-transcript")
+        ?? eventTarget
+          ?.closest<HTMLElement>(".fuma-minimal-version-card")
+          ?.querySelector<HTMLElement>(
+            ".fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p, .fuma-platform-inspection-frame__shorts-overlay p",
+          );
+      if (forwardedScrollSurface) {
+        event.preventDefault();
+        forwardedScrollSurface.scrollTop += event.deltaY;
+        return;
+      }
+
+      if (Math.abs(event.deltaY) < 4) return;
+
       if (studioWheelLockedRef.current) {
         event.preventDefault();
         releaseWheelAfterIdle();
         return;
-      }
-
-      const scrollSurface = event.target instanceof Element
-          ? event.target.closest<HTMLElement>(
-            ".fuma-content-inspection-studio__report, .fuma-platform-inspection-frame__stt-transcript, .fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p, .fuma-platform-inspection-frame__shorts-overlay p",
-          )
-        : null;
-      if (scrollSurface) {
-        const canScroll = event.deltaY > 0
-          ? scrollSurface.scrollTop + scrollSurface.clientHeight < scrollSurface.scrollHeight - 1
-          : scrollSurface.scrollTop > 1;
-        if (canScroll) return;
       }
 
       const direction: StudioContentDirection = event.deltaY > 0 ? "next" : "previous";
