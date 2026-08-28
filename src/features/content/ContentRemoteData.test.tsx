@@ -432,16 +432,22 @@ test("switches studio version cards and keeps the latest judgment state", async 
   const initialFinalInspection = screen.getByRole("group", { name: "최종 검수" });
   await waitFor(() => expect(document.activeElement).toBe(initialFinalInspection));
 
-  fireEvent.click(historicalSelection);
+  const historicalViolationBubble = within(historicalCard as HTMLElement).getByRole("button", {
+    name: "위반 1: 허위·과장 표현",
+  });
+  fireEvent.click(historicalViolationBubble);
   await waitFor(() => expect(within(report).getByText("과거 버전 요약")).toBeInTheDocument());
   expect(historicalCard).toHaveAttribute("data-selected", "true");
   expect(historicalVersionCard).not.toHaveAttribute("inert");
   expect(latestVersionCard).toHaveAttribute("inert");
-  expect(within(historicalCard as HTMLElement).getByLabelText("위반 1: 허위·과장 표현").tagName)
-    .toBe("SPAN");
-  expect(within(historicalCard as HTMLElement).queryByRole("button", {
-    name: "위반 1: 허위·과장 표현",
-  })).not.toBeInTheDocument();
+  const historicalReportViolation = within(report).getByRole("button", {
+    name: "① 허위·과장 표현 위치로 이동",
+  });
+  await waitFor(() => expect(document.activeElement).toBe(historicalReportViolation));
+  expect(historicalViolationBubble).toHaveAttribute("data-focused", "true");
+  expect(historicalReportViolation).toHaveAttribute("aria-current", "true");
+  fireEvent.click(historicalReportViolation);
+  expect(historicalViolationBubble).toHaveAttribute("data-focused", "true");
   expect(within(report).queryByRole("button", { name: "리포트 생성" })).not.toBeInTheDocument();
   expect(within(report).queryByRole("group", { name: /판정/ })).not.toBeInTheDocument();
   expect(screen.queryByRole("group", { name: "최종 검수" })).not.toBeInTheDocument();

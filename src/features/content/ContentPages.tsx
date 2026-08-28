@@ -2360,6 +2360,7 @@ export function ContentInspectionDetailPage() {
     ordinal: number;
     requestId: number;
     snapshotCapturedAt: string;
+    source: "content" | "report";
   } | null>(null);
   const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
   const [completionOpen, setCompletionOpen] = useState(false);
@@ -2585,8 +2586,20 @@ export function ContentInspectionDetailPage() {
       ordinal,
       requestId: (current?.requestId ?? 0) + 1,
       snapshotCapturedAt: content.currentSnapshot.capturedAt,
+      source: "content",
     }));
   }, [content, studioViolationSignals]);
+
+  const selectStudioHistoricalViolationFromContent = useCallback((ordinal: number) => {
+    if (displayedStudioHistoricalContent?.contentVersionId == null) return;
+    setSelectedStudioVersionId(displayedStudioHistoricalContent.contentVersionId);
+    setStudioViolationLocation((current) => ({
+      ordinal,
+      requestId: (current?.requestId ?? 0) + 1,
+      snapshotCapturedAt: displayedStudioHistoricalContent.currentSnapshot.capturedAt,
+      source: "content",
+    }));
+  }, [displayedStudioHistoricalContent]);
 
   const focusStudioReportViolation = useCallback((index: number, ordinal: number) => {
     if (!studioReportContent) return;
@@ -2595,6 +2608,7 @@ export function ContentInspectionDetailPage() {
       ordinal,
       requestId: (current?.requestId ?? 0) + 1,
       snapshotCapturedAt: studioReportContent.currentSnapshot.capturedAt,
+      source: "report",
     }));
   }, [studioReportContent, studioSelectedIsLatest]);
 
@@ -3111,6 +3125,42 @@ export function ContentInspectionDetailPage() {
   ]);
 
   useEffect(() => {
+    if (
+      !routeState?.inspectionSession
+      || studioViolationLocation?.source !== "content"
+      || studioViolationLocation.snapshotCapturedAt
+        !== studioReportContent?.currentSnapshot.capturedAt
+      || exitConfirmationOpen
+      || completionOpen
+    ) return undefined;
+    const violationIndex = studioReportViolationSignals.findIndex(
+      ({ ordinal }) => ordinal === studioViolationLocation.ordinal,
+    );
+    if (violationIndex < 0) return undefined;
+
+    const focusFrame = window.requestAnimationFrame(() => {
+      const violationItem = studioReportRef.current
+        ?.querySelector<HTMLElement>(`[data-violation-index="${violationIndex}"]`);
+      const focusTarget = violationItem?.querySelector<HTMLElement>(
+        ".fuma-content-inspection-studio__report-evidence-item",
+      ) ?? violationItem;
+      focusTarget?.focus({ preventScroll: true });
+      if (studioReportRef.current && violationItem) {
+        scrollWithinSurface(studioReportRef.current, violationItem, "nearest");
+      }
+    });
+
+    return () => window.cancelAnimationFrame(focusFrame);
+  }, [
+    completionOpen,
+    exitConfirmationOpen,
+    routeState?.inspectionSession,
+    studioReportContent,
+    studioReportViolationSignals,
+    studioViolationLocation,
+  ]);
+
+  useEffect(() => {
     if (!routeState?.inspectionSession || !studioExiting) return undefined;
     const exitTimer = window.setTimeout(() => {
       navigate(typeof returnPath === "string" ? returnPath : "/content/inspections", {
@@ -3359,6 +3409,7 @@ export function ContentInspectionDetailPage() {
                             : null}
                           inert={!displayedStudioHistoricalSelected}
                           label={`v${currentDisplayedVersionNo(displayedStudioHistoricalContent)} 과거 콘텐츠`}
+                          onSelectViolation={selectStudioHistoricalViolationFromContent}
                           showTextBubbles={false}
                           snapshot={displayedStudioHistoricalContent.currentSnapshot}
                         />
@@ -3370,6 +3421,7 @@ export function ContentInspectionDetailPage() {
                           focusedOrdinal={displayedStudioHistoricalSelected
                             ? studioSelectedCardFocusedViolation?.ordinal
                             : undefined}
+                          onSelectViolation={selectStudioHistoricalViolationFromContent}
                           placement="left"
                         />
                       </div>
