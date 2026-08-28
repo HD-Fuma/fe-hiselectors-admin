@@ -591,8 +591,9 @@ export function ApplicantListPage() {
           <>
             <strong>{decisionModal.name}</strong>님을{" "}
             <span className={`fuma-applicant-decision-feedback fuma-applicant-decision-feedback--${decisionModal.status === "APPROVED" ? "approved" : "rejected"}`}>
-              {decisionModal.status === "APPROVED" ? "승인" : "반려"} 처리했습니다.
-            </span>
+              {decisionModal.status === "APPROVED" ? "승인" : "반려"}
+            </span>{" "}
+            처리했습니다.
           </>
         ) : ""}
         onClose={() => setDecisionModal(null)}
