@@ -756,6 +756,7 @@ export function ContentInspectionListPage() {
                 contents,
                 from: `${location.pathname}${location.search}`,
                 inspectionSession: true,
+                singleInspection: true,
               },
             })}
             totalCount={filteredContents.length}
@@ -2387,7 +2388,9 @@ export function ContentInspectionDetailPage() {
     contents?: ContentInspectionFixture[];
     from?: unknown;
     inspectionSession?: boolean;
+    singleInspection?: boolean;
   } | null;
+  const studioSingleInspection = routeState?.singleInspection === true;
   const initialRouteContents = routeState?.contents
     ?? (routeState?.content ? [routeState.content] : []);
   const [detailContents, setDetailContents] = useState<ContentInspectionFixture[]>(
@@ -2495,12 +2498,14 @@ export function ContentInspectionDetailPage() {
   const returnPath = routeState?.from;
   const pendingContents = inspectionRequiredContents(detailContents);
   const currentPendingIndex = pendingContents.findIndex((item) => item.id === contentId);
-  const previousContent = currentPendingIndex > 0
+  const previousContent = !studioSingleInspection && currentPendingIndex > 0
     ? pendingContents[currentPendingIndex - 1]
     : undefined;
-  const nextContent = currentPendingIndex >= 0
-    ? pendingContents[currentPendingIndex + 1]
-    : pendingContents[0];
+  const nextContent = studioSingleInspection
+    ? undefined
+    : currentPendingIndex >= 0
+      ? pendingContents[currentPendingIndex + 1]
+      : pendingContents[0];
   const studioInspectionComplete = studioReviewReadOnly
     && currentPendingIndex < 0
     && !nextContent;
@@ -3242,56 +3247,58 @@ export function ContentInspectionDetailPage() {
             <span>CONTENT INSPECTION</span>
             <strong>콘텐츠 검수</strong>
           </div>
-          <nav aria-label="검수 콘텐츠 이동" className="fuma-content-inspection-studio__queue">
-            <div className="fuma-content-inspection-studio__queue-progress">
-              <span>검수 진행</span>
-              <strong>
-                {studioInspectionComplete ? (
-                  <b>완료</b>
-                ) : (
-                  <>
-                    <b>{currentPendingIndex >= 0 ? currentPendingIndex + 1 : 0}</b>
-                    <small> / {pendingContents.length}</small>
-                  </>
-                )}
-              </strong>
-              <span aria-hidden="true" className="fuma-content-inspection-studio__queue-track">
-                <i style={{ width: `${inspectionProgress}%` }} />
+          {!studioSingleInspection ? (
+            <nav aria-label="검수 콘텐츠 이동" className="fuma-content-inspection-studio__queue">
+              <div className="fuma-content-inspection-studio__queue-progress">
+                <span>검수 진행</span>
+                <strong>
+                  {studioInspectionComplete ? (
+                    <b>완료</b>
+                  ) : (
+                    <>
+                      <b>{currentPendingIndex >= 0 ? currentPendingIndex + 1 : 0}</b>
+                      <small> / {pendingContents.length}</small>
+                    </>
+                  )}
+                </strong>
+                <span aria-hidden="true" className="fuma-content-inspection-studio__queue-track">
+                  <i style={{ width: `${inspectionProgress}%` }} />
+                </span>
+              </div>
+              <span className="fuma-content-inspection-studio__queue-actions">
+                <button
+                  aria-label="이전 콘텐츠"
+                  disabled={
+                    !previousContent
+                    || studioActionPending !== null
+                    || studioContentTransition !== "idle"
+                  }
+                  onClick={() => navigateStudioContent(previousContent, "previous")}
+                  type="button"
+                >
+                  <ChevronLeft aria-hidden="true" size={20} />
+                  <span>이전</span>
+                </button>
+                <button
+                  aria-label={studioShowFinish ? "검수 마침" : "다음 콘텐츠"}
+                  disabled={
+                    studioActionPending !== null
+                    || studioContentTransition !== "idle"
+                    || (!studioInspectionComplete && !nextContent)
+                  }
+                  onClick={() => studioInspectionComplete
+                    ? setCompletionOpen(true)
+                    : navigateStudioContent(nextContent, "next")}
+                  type="button"
+                >
+                  <span>{studioShowFinish ? "마침" : "다음"}</span>
+                  {studioShowFinish
+                    ? <CheckCircle2 aria-hidden="true" size={19} />
+                    : <ChevronRight aria-hidden="true" size={20} />}
+                </button>
               </span>
-            </div>
-            <span className="fuma-content-inspection-studio__queue-actions">
-              <button
-                aria-label="이전 콘텐츠"
-                disabled={
-                  !previousContent
-                  || studioActionPending !== null
-                  || studioContentTransition !== "idle"
-                }
-                onClick={() => navigateStudioContent(previousContent, "previous")}
-                type="button"
-              >
-                <ChevronLeft aria-hidden="true" size={20} />
-                <span>이전</span>
-              </button>
-              <button
-                aria-label={studioShowFinish ? "검수 마침" : "다음 콘텐츠"}
-                disabled={
-                  studioActionPending !== null
-                  || studioContentTransition !== "idle"
-                  || (!studioInspectionComplete && !nextContent)
-                }
-                onClick={() => studioInspectionComplete
-                  ? setCompletionOpen(true)
-                  : navigateStudioContent(nextContent, "next")}
-                type="button"
-              >
-                <span>{studioShowFinish ? "마침" : "다음"}</span>
-                {studioShowFinish
-                  ? <CheckCircle2 aria-hidden="true" size={19} />
-                  : <ChevronRight aria-hidden="true" size={20} />}
-              </button>
-            </span>
-          </nav>
+            </nav>
+          ) : null}
         </header>
         {content ? (
           <>
@@ -3730,15 +3737,17 @@ export function ContentInspectionDetailPage() {
               <small>QUICK GUIDE</small>
               <strong>검수 단축키</strong>
             </span>
-            <span className="fuma-content-inspection-studio__session-help-item">
-              <span className="fuma-content-inspection-studio__session-help-mouse" aria-hidden="true">
-                <Mouse size={32} strokeWidth={1.8} />
+            {!studioSingleInspection ? (
+              <span className="fuma-content-inspection-studio__session-help-item">
+                <span className="fuma-content-inspection-studio__session-help-mouse" aria-hidden="true">
+                  <Mouse size={32} strokeWidth={1.8} />
+                </span>
+                <span className="fuma-content-inspection-studio__session-help-copy">
+                  <small>마우스 휠</small>
+                  <strong>이전 / 다음</strong>
+                </span>
               </span>
-              <span className="fuma-content-inspection-studio__session-help-copy">
-                <small>마우스 휠</small>
-                <strong>이전 / 다음</strong>
-              </span>
-            </span>
+            ) : null}
             <span className="fuma-content-inspection-studio__session-help-item">
               <kbd>1</kbd>
               <span className="fuma-content-inspection-studio__session-help-copy">

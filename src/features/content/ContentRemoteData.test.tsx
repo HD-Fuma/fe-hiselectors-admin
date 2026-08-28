@@ -285,8 +285,18 @@ test("shows completion dialog after confirming the final content", async () => {
     message: null,
     success: true,
   }), { headers: { "Content-Type": "application/json" }, status: 200 });
-  mockContentApis([contentItem()], detailResponse(), undefined, undefined, confirmationResponse);
-  const { router } = renderRoute("/content/inspections");
+  mockContentApis([
+    contentItem({
+      contentId: 902,
+      latestVersionId: 9020,
+      selectorsId: 91,
+      snsContentId: "api-902",
+      storedAt: "2026-08-18T03:00:00.847815Z",
+      texts: ["다른 수정 콘텐츠"],
+    }),
+    contentItem(),
+  ], detailResponse(), undefined, undefined, confirmationResponse);
+  const { router } = renderRoute("/content/inspections?category=수정");
 
   const card = await screen.findByRole(
     "button",
@@ -295,12 +305,17 @@ test("shows completion dialog after confirming the final content", async () => {
   );
   fireEvent.click(card);
   const help = await screen.findByRole("status", { name: "검수 조작 도움말" });
-  expect(router.state.location.state).toEqual(expect.objectContaining({ inspectionSession: true }));
-  expect(help).toHaveTextContent(/마우스 휠\s*이전 \/ 다음/);
+  expect(router.state.location.state).toEqual(expect.objectContaining({
+    inspectionSession: true,
+    singleInspection: true,
+  }));
+  expect(screen.queryByRole("navigation", { name: "검수 콘텐츠 이동" })).not.toBeInTheDocument();
+  expect(help).not.toHaveTextContent("마우스 휠");
   expect(help).toHaveTextContent(/1\s*숫자 키\s*반려/);
   expect(help).toHaveTextContent(/2\s*숫자 키\s*승인/);
   expect(help).not.toHaveTextContent("항목 판정:");
   fireEvent.wheel(window, { deltaY: 20 });
+  expect(router.state.location.pathname).toBe("/content/inspections/901");
   expect(screen.getByRole("status", { name: "검수 조작 도움말" })).toBeInTheDocument();
   const approve = await screen.findByRole("button", { name: /최종 승인/ }, { timeout: 3_000 });
   await waitFor(() => expect(approve).toBeEnabled());
