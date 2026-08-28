@@ -142,6 +142,10 @@ function loadImages(nodes: PoolNode[]) {
   return images;
 }
 
+function bubbleShellRadius(radius: number) {
+  return radius + Math.max(12, radius * 0.32);
+}
+
 /** ponytail: O(n^2) 반발력. 노드가 수백 개를 넘어가면 공간 해싱으로 교체. */
 function step(nodes: PoolNode[], categories: PoolCategory[]) {
   for (let index = 0; index < nodes.length; index += 1) {
@@ -159,7 +163,7 @@ function step(nodes: PoolNode[], categories: PoolCategory[]) {
       const px = peer.x - node.x;
       const py = peer.y - node.y;
       const gap = Math.hypot(px, py) || 0.001;
-      const minimum = node.r + peer.r + 12;
+      const minimum = bubbleShellRadius(node.r) + bubbleShellRadius(peer.r) + 20;
       if (gap >= minimum) continue;
       const push = ((minimum - gap) / minimum) * 0.9;
       node.vx -= (px / gap) * push;
@@ -221,10 +225,6 @@ function drawCurve(
     toY,
   );
   context.stroke();
-}
-
-function bubbleShellRadius(radius: number) {
-  return radius + Math.max(12, radius * 0.32);
 }
 
 function drawBubble(
@@ -677,39 +677,6 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
 
         context.restore();
       });
-
-      // 가까워진 버블 사이를 같은 유리 재질로 이어 메타볼처럼 붙여 보이게 한다.
-      context.save();
-      context.lineCap = "round";
-      context.shadowColor = "rgb(78 102 108 / 16%)";
-      context.shadowBlur = 16;
-      for (let index = 0; index < nodes.length; index += 1) {
-        const node = nodes[index];
-        const from = floatOf(node, time);
-        const fromRadius = bubbleShellRadius(node.r);
-        for (let other = index + 1; other < nodes.length; other += 1) {
-          const peer = nodes[other];
-          if (peer.categoryIndex !== node.categoryIndex) continue;
-          const to = floatOf(peer, time);
-          const distance = Math.hypot(to.x - from.x, to.y - from.y);
-          const toRadius = bubbleShellRadius(peer.r);
-          const strength = Math.min(1, (fromRadius + toRadius + 28 - distance) / 48);
-          if (strength <= 0) continue;
-
-          const bridge = context.createLinearGradient(from.x, from.y, to.x, to.y);
-          bridge.addColorStop(0, "rgb(255 255 255 / 94%)");
-          bridge.addColorStop(0.5, "rgb(255 255 255 / 86%)");
-          bridge.addColorStop(1, "rgb(255 255 255 / 94%)");
-          context.globalAlpha = weightOf(node.categoryIndex);
-          context.strokeStyle = bridge;
-          context.lineWidth = Math.min(fromRadius, toRadius) * 1.35 * Math.sqrt(strength);
-          context.beginPath();
-          context.moveTo(from.x, from.y);
-          context.lineTo(to.x, to.y);
-          context.stroke();
-        }
-      }
-      context.restore();
 
       nodes.forEach((node) => {
         const position = floatOf(node, time);
