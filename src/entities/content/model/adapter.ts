@@ -12,6 +12,7 @@ import type {
 import type {
   ContentAnnotation,
   ContentFormat,
+  ContentInspectionExtract,
   ContentInspectionFixture,
   ContentInspectionHistoryItem,
   ContentInspectionSignal,
@@ -228,12 +229,27 @@ function mediaTextLayout(media: readonly ContentVersionMedia[]) {
   media.forEach((item) => {
     const value = item.text?.trim();
     if (!value) return;
+    textById.set(item.contentMediaId, value);
+    if (item.mediaType !== "TEXT") return;
     if (text) text += "\n";
     offsets.set(item.contentMediaId, text.length);
-    textById.set(item.contentMediaId, value);
     text += value;
   });
   return { offsets, text, textById };
+}
+
+function extractsFromMedia(media: readonly ContentVersionMedia[]): ContentInspectionExtract[] {
+  return media
+    .filter((item) => item.mediaType !== "TEXT")
+    .flatMap((item, index) => {
+      const text = item.text?.trim();
+      if (!text) return [];
+      return [{
+        location: `${item.mediaType === "VIDEO" ? "동영상" : "이미지"} ${index + 1}`,
+        text,
+        type: item.mediaType === "VIDEO" ? "STT" as const : "OCR" as const,
+      }];
+    });
 }
 
 function historyFromVersions(
@@ -402,7 +418,7 @@ export function adaptContentInspectionDetail(
     processingState: processingState(status),
     profileImageUrl: base?.profileImageUrl,
     report: {
-      extracts: [],
+      extracts: extractsFromMedia(media),
       flow: contentReport?.flow ?? null,
       generatedAt: selectedVersion.inspectedAt,
       history: historyFromVersions(detail.storedAt, detail.versions ?? []),
