@@ -2076,15 +2076,19 @@ button.fuma-content-inspection-studio__violation-bubble {
   gap: 6px;
 }
 
+.fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-subscriptions {
+  gap: 4px;
+}
+
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-subscriptions > button {
-  min-height: 36px;
-  padding: 0 16px;
+  min-height: 32px;
+  padding: 0 12px;
   border: 0;
-  border-radius: 18px;
+  border-radius: 16px;
   color: #0f0f0f;
   background: rgb(0 0 0 / 5%);
   font: inherit;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
 }
@@ -2101,7 +2105,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   overflow-x: auto;
   flex-wrap: nowrap;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 5px;
   margin-left: 0;
   scrollbar-width: none;
 }
@@ -2115,13 +2119,25 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-actions button {
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: 18px;
+  min-height: 32px;
+  padding: 0 10px;
+  gap: 4px;
+  border-radius: 16px;
   color: #0f0f0f;
   background: rgb(0 0 0 / 5%);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
+}
+
+.fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-actions svg {
+  width: 16px;
+  height: 16px;
+}
+
+.fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-actions > button:last-child {
+  width: 32px;
+  padding: 0;
+  justify-content: center;
 }
 
 .fuma-platform-inspection-frame__youtube-rating {
@@ -2133,22 +2149,26 @@ button.fuma-content-inspection-studio__violation-bubble {
   background: #f2f2f2;
 }
 
+.fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-rating {
+  height: 32px;
+}
+
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-rating > button {
   position: relative;
-  height: 36px;
-  padding: 0 14px;
+  height: 32px;
+  padding: 0 10px;
   border-radius: 0;
   background: transparent;
 }
 
 .fuma-content-inspection-studio .fuma-platform-inspection-frame__youtube-rating > button:first-child {
-  border-radius: 18px 0 0 18px;
+  border-radius: 16px 0 0 16px;
 }
 
 .fuma-content-inspection-studio .fuma-platform-inspection-frame__youtube-rating > button:last-child {
-  padding-left: 16px;
+  padding-left: 11px;
   border-left: 0;
-  border-radius: 0 18px 18px 0;
+  border-radius: 0 16px 16px 0;
 }
 
 .fuma-content-inspection-studio .fuma-platform-inspection-frame__youtube-rating > button:last-child::before {
