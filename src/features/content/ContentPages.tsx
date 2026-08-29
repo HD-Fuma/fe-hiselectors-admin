@@ -3451,7 +3451,14 @@ export function ContentInspectionDetailPage() {
               <header>
                 <div>
                   <span>AI ANALYSIS</span>
-                  <strong>검수 리포트</strong>
+                  <strong>
+                    검수 리포트
+                    {studioSelectedIsLatest ? null : (
+                      <em className="fuma-content-inspection-studio__report-badge">
+                        과거 콘텐츠
+                      </em>
+                    )}
+                  </strong>
                 </div>
                 {studioSelectedIsLatest ? (
                   <button
