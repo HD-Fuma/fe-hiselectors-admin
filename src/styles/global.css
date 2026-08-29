@@ -19,14 +19,23 @@ body {
   min-height: 100vh;
   margin: 0;
   background: var(--hsas-background);
+  font-family: var(--hsas-font-family);
 }
 
 button,
 input,
 select,
-textarea {
+textarea,
+option {
   color: inherit;
   font: inherit;
+  font-family: var(--hsas-font-family);
+}
+
+/* Canvas/SVG chart labels do not always inherit from body. */
+svg text,
+svg tspan {
+  font-family: var(--hsas-font-family);
 }
 
 button,

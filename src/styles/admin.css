@@ -145,6 +145,13 @@
   display: inline-flex;
 }
 
+.hsas-view-mode-toggle-wrap {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
 .hsas-view-mode-toggle {
   position: relative;
   isolation: isolate;
@@ -181,7 +188,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  min-height: 27px;
+  min-height: 28px;
   place-items: center;
   padding: 0 var(--hsas-space-6);
   color: #777;
@@ -204,14 +211,15 @@
 .hsas-tooltip {
   z-index: 20;
   width: max-content;
-  max-width: 210px;
+  max-width: none;
   padding: var(--hsas-space-8) var(--hsas-space-10);
   border-radius: 7px;
   background: var(--hsas-tooltip-background);
   color: #fff;
-  font-size: var(--hsas-font-10);
+  font-size: var(--hsas-font-12);
   font-weight: 700;
   line-height: 1.35;
+  white-space: nowrap;
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
@@ -255,8 +263,20 @@
 
 .hsas-view-mode-toggle-wrap > .hsas-tooltip {
   position: absolute;
-  top: calc(100% + 8px);
   right: 0;
+  left: auto;
+  z-index: 30;
+  color: #fff;
+}
+
+.hsas-view-mode-toggle-wrap > .hsas-tooltip--top {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+.hsas-view-mode-toggle-wrap > .hsas-tooltip--bottom {
+  top: calc(100% + 8px);
+  bottom: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -546,13 +566,14 @@
 
 .hsas-dense-table th,
 .hsas-dense-table td {
-  height: 29px;
+  height: 31px;
   padding: var(--hsas-space-4) var(--hsas-space-7);
   overflow: hidden;
   border-right: 1px solid #d9dde0;
   border-bottom: 1px solid #d9dde0;
   color: var(--hsas-text);
-  line-height: 18px;
+  font-size: var(--hsas-font-13);
+  line-height: 20px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -563,7 +584,7 @@
 }
 
 .hsas-dense-table th {
-  height: 30px;
+  height: 32px;
   border-top: 1px solid #d9dde0;
   background: #e8ecee;
   color: var(--hsas-color-neutral-800);
@@ -1198,7 +1219,7 @@
   gap: var(--hsas-space-2);
 }
 
-.fuma-result-toolbar span {
+.fuma-result-toolbar span:not(.hsas-tooltip) {
   color: var(--hsas-text-muted);
 }
 
@@ -1469,7 +1490,7 @@
 
 .fuma-detail-toolbar {
   display: flex;
-  min-height: 27px;
+  min-height: 28px;
   align-items: center;
   justify-content: flex-end;
   gap: var(--hsas-space-4);
@@ -1839,7 +1860,7 @@
 
 .fuma-campaign-list-table .hsas-dense-table tbody td {
   height: 74px;
-  font-size: var(--hsas-font-12);
+  font-size: var(--hsas-font-13);
 }
 
 .fuma-campaign-list-identity {
@@ -3347,7 +3368,7 @@
 }
 
 .fuma-performance-results .hsas-pagination {
-  min-height: 27px;
+  min-height: 28px;
 }
 
 .fuma-performance-campaign-table .hsas-dense-table {
@@ -3734,7 +3755,6 @@
   position: absolute;
   right: 0;
   bottom: calc(100% + 8px);
-  max-width: 320px;
 }
 
 .fuma-applicant-minimum-tooltip:hover > .hsas-tooltip,
@@ -3795,14 +3815,22 @@
 }
 
 .fuma-campaign-search .hsas-search-panel__fields {
-  grid-template-columns: 300px minmax(440px, 1fr);
+  grid-template-columns: minmax(320px, 0.9fr) minmax(480px, 1.4fr);
   column-gap: var(--hsas-space-20);
+  row-gap: var(--hsas-space-10);
+}
+
+.fuma-campaign-search .fuma-filter-field,
+.fuma-campaign-search .fuma-filter-field:nth-child(2),
+.fuma-campaign-search .fuma-campaign-period-filter .fuma-filter-field {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--hsas-space-8);
 }
 
 .fuma-campaign-search .fuma-campaign-period-filter {
   min-width: 0;
   grid-column: auto;
-  gap: var(--hsas-space-20);
+  gap: var(--hsas-space-16);
 }
 
 .fuma-notification-search .hsas-search-panel__fields {
@@ -4180,7 +4208,7 @@
 }
 
 .fuma-settlement-table .hsas-dense-table td {
-  height: 29px;
+  height: 31px;
   padding-top: var(--hsas-space-2);
   padding-bottom: var(--hsas-space-2);
 }
@@ -4246,7 +4274,7 @@
 }
 
 .fuma-creator-toolbar__view {
-  height: 27px;
+  height: 28px;
   padding: 0 var(--hsas-space-8);
   border: 1px solid var(--hsas-border-dark);
   background: var(--hsas-surface);
@@ -4277,7 +4305,7 @@
 
 .fuma-creator-toolbar .hsas-segmented-control__item {
   min-width: 52px;
-  height: 27px;
+  height: 28px;
   padding: 0 var(--hsas-space-11);
   color: #68736e;
   font-size: var(--hsas-font-11);

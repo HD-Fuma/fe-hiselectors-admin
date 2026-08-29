@@ -267,7 +267,7 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
   align-items: baseline;
   justify-content: flex-end;
   gap: var(--hsas-space-6);
-  font-size: 48px;
+  font-size: 49px;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -307,7 +307,7 @@ body:has(.fuma-dashboard) .hsas-admin-shell__content {
 }
 
 .fuma-dashboard-card--applications .fuma-dashboard__metric strong {
-  font-size: 48px;
+  font-size: 49px;
   justify-content: flex-end;
 }
 

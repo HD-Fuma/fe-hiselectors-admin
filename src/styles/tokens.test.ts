@@ -60,19 +60,16 @@ describe("CSS design tokens", () => {
 
 describe("shared component visual contracts", () => {
   test("renders the inspection session help as liquid glass", () => {
-    const sessionHelpRule = contentInspectionStyles.match(
-      /\.fuma-content-inspection-studio__session-help\s*\{([^}]*)\}/,
+    const helpTriggerRule = contentInspectionStyles.match(
+      /\.fuma-content-inspection-studio__session-help-trigger\s*\{([^}]*)\}/,
+    )?.[1];
+    const tourSpotlightRule = contentInspectionStyles.match(
+      /\.fuma-content-inspection-studio__tour-spotlight\s*\{([^}]*)\}/,
     )?.[1];
 
-    expect(sessionHelpRule).toMatch(/overflow:\s*hidden;/);
-    expect(sessionHelpRule).toMatch(/border:\s*1px solid rgb\(255 255 255 \/ 78%\);/);
-    expect(sessionHelpRule).toMatch(/border-radius:\s*24px;/);
-    expect(sessionHelpRule).toMatch(/background:\s*rgb\(255 255 255 \/ 58%\);/);
-    expect(sessionHelpRule).toMatch(/backdrop-filter:\s*blur\(24px\) saturate\(1\.15\);/);
-    expect(sessionHelpRule).toMatch(/top:\s*50%;/);
-    expect(sessionHelpRule).toMatch(/bottom:\s*auto;/);
-    expect(sessionHelpRule).toMatch(/translate:\s*-50% -50%;/);
-    expect(sessionHelpRule).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\);/);
+    expect(helpTriggerRule).toMatch(/background:\s*transparent;/);
+    expect(helpTriggerRule).toMatch(/border:\s*0;/);
+    expect(tourSpotlightRule).toMatch(/box-shadow:\s*0 0 0 9999px rgb\(18 22 24 \/ 58%\);/);
   });
 
   test("separates red violation bubbles from highlighted body copy", () => {

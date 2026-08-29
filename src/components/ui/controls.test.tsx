@@ -59,6 +59,19 @@ describe("HSAS controls", () => {
     expect(adminStyles).toMatch(
       /\.hsas-view-mode-toggle-wrap:hover > \.hsas-tooltip\s*\{[^}]*opacity:\s*1;/,
     );
+    expect(adminStyles).toMatch(
+      /\.hsas-view-mode-toggle-wrap\s*\{[^}]*position:\s*relative;/,
+    );
+    expect(adminStyles).toMatch(
+      /\.hsas-view-mode-toggle-wrap > \.hsas-tooltip--top\s*\{[^}]*bottom:\s*calc\(100% \+ 8px\);/,
+    );
+    expect(adminStyles).toMatch(
+      /\.hsas-view-mode-toggle-wrap > \.hsas-tooltip--bottom\s*\{[^}]*top:\s*calc\(100% \+ 8px\);/,
+    );
+    expect(adminStyles).toMatch(
+      /\.hsas-tooltip\s*\{[^}]*white-space:\s*nowrap;/,
+    );
+    expect(screen.getByRole("tooltip")).toHaveClass("hsas-tooltip--top");
 
     await userEvent.click(toggle);
     expect(onChange).toHaveBeenCalledWith("list");
@@ -79,6 +92,21 @@ describe("HSAS controls", () => {
     act(() => vi.advanceTimersByTime(2000));
     expect(screen.getByRole("tooltip")).not.toHaveClass("is-visible");
     vi.useRealTimers();
+  });
+
+  test("keeps content inspection guidance hover-only below the toggle", () => {
+    render(
+      <ViewModeToggle
+        autoShowTooltip={false}
+        onChange={vi.fn()}
+        tooltipPlacement="bottom"
+        value="grid"
+      />,
+    );
+
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip).toHaveClass("hsas-tooltip--bottom");
+    expect(tooltip).not.toHaveClass("is-visible");
   });
 
   test("shares the button class contract with non-button elements", () => {

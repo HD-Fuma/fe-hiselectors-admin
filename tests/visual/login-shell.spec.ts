@@ -214,7 +214,7 @@ test("renders a restrained document work tab rail", async ({ page }) => {
   await expect(campaignTab).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await expect(campaignTab).toHaveCSS("color", "rgb(37, 42, 39)");
   await expect(campaignLink).toHaveAttribute("aria-current", "page");
-  await expect(campaignLink).toHaveCSS("font-size", "12px");
+  await expect(campaignLink).toHaveCSS("font-size", "13px");
   await expect(creatorTab).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(creatorTab).toHaveCSS("color", "rgb(107, 112, 109)");
   await expect(creatorTab).toHaveCSS("border-top-width", "0px");

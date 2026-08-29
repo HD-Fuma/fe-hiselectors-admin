@@ -304,19 +304,14 @@ test("shows completion dialog after confirming the final content", async () => {
     { timeout: 3_000 },
   );
   fireEvent.click(card);
-  const help = await screen.findByRole("status", { name: "검수 조작 도움말" });
   expect(router.state.location.state).toEqual(expect.objectContaining({
     inspectionSession: true,
     singleInspection: true,
   }));
   expect(screen.queryByRole("navigation", { name: "검수 콘텐츠 이동" })).not.toBeInTheDocument();
-  expect(help).not.toHaveTextContent("마우스 휠");
-  expect(help).toHaveTextContent(/1\s*숫자 키\s*반려/);
-  expect(help).toHaveTextContent(/2\s*숫자 키\s*승인/);
-  expect(help).not.toHaveTextContent("항목 판정:");
+  expect(screen.queryByRole("button", { name: "검수 도움말 보기" })).not.toBeInTheDocument();
   fireEvent.wheel(window, { deltaY: 20 });
   expect(router.state.location.pathname).toBe("/content/inspections/901");
-  expect(screen.getByRole("status", { name: "검수 조작 도움말" })).toBeInTheDocument();
   const approve = await screen.findByRole("button", { name: /최종 승인/ }, { timeout: 3_000 });
   await waitFor(() => expect(approve).toBeEnabled());
   fireEvent.keyDown(window, { code: "Digit2", key: "2" });
@@ -603,10 +598,8 @@ test("loads violations and submits the final judgment in one request", async () 
   expect(within(report).queryByText("허위/과장 표현")).not.toBeInTheDocument();
   const compliantItemsLabel = within(report).getByText("가이드 준수 항목");
   const compliantItems = compliantItemsLabel.closest("details");
-  expect(compliantItems).not.toHaveAttribute("open");
-  expect(within(report).getAllByText("정상")).toHaveLength(9);
-  fireEvent.click(compliantItemsLabel);
   expect(compliantItems).toHaveAttribute("open");
+  expect(within(report).getAllByText("정상")).toHaveLength(9);
   expect(within(report).queryByText("분석 대기")).not.toBeInTheDocument();
   expect(within(report).queryByText("2026-08-18T11:06:00")).not.toBeInTheDocument();
 

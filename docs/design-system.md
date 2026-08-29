@@ -6,7 +6,8 @@
 
 - 1280px 이상 데스크톱 shell을 기준으로 한 조밀한 정보 밀도
 - 기본 라이트 모드의 흰 sidebar·surface와 teal accent, 설정에서 다크 모드 선택 가능
-- 기본 본문 12px, control 높이 27px, 작은 radius 중심
+- 기본 본문 13px, 보조/캡션 최소 12px, 표·성과 14px, 차트 라벨 12px, 툴팁 13px, control 높이 28px, 작은 radius 중심
+- 화면 글꼴은 Pretendard Variable 단일 패밀리(DOM/SVG/ECharts/캔버스 포함)
 - 장식보다 표, 필터, 상태, 근거 정보의 판독성을 우선
 - 상태는 색만으로 구분하지 않고 텍스트를 함께 표시
 
