@@ -224,7 +224,7 @@ function RevenueTrend({ dailyTrend }: { dailyTrend: readonly DailyRevenuePoint[]
       data: dailyTrend.map(({ date }) => dayLabel(date)),
       axisLabel: {
         color: "rgb(32 34 36 / 48%)",
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 700,
         margin: 12,
       },
@@ -238,7 +238,7 @@ function RevenueTrend({ dailyTrend }: { dailyTrend: readonly DailyRevenuePoint[]
         min: 0,
         axisLabel: {
           color: "rgb(32 34 36 / 42%)",
-          fontSize: 9,
+          fontSize: 12,
           formatter: (value: number) => formatCompactCount(value),
         },
         axisLine: { show: false },
@@ -250,7 +250,7 @@ function RevenueTrend({ dailyTrend }: { dailyTrend: readonly DailyRevenuePoint[]
         min: 0,
         axisLabel: {
           color: "rgb(32 34 36 / 34%)",
-          fontSize: 9,
+          fontSize: 12,
           formatter: (value: number) => formatCompactCount(value),
         },
         axisLine: { show: false },

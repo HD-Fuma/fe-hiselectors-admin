@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { UserRound } from "lucide-react";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
+import { ECHARTS_FONT_FAMILY } from "../../components/charts/chartColors";
 import { categoryLabel } from "../../entities/creator";
 import type { SelectorSummary } from "../../entities/selectors";
 import { assetUrl } from "../../lib/assetUrl";
@@ -14,7 +15,9 @@ const DAMPING = 0.86;
 const GOLDEN_ANGLE = 2.39996;
 const INK = "17 24 39";
 const WHITE = "255 255 255";
-const CANVAS_FONT = '"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Arial, sans-serif';
+const CANVAS_FONT = ECHARTS_FONT_FAMILY;
+/** Match ECharts axis/legend label size. */
+const CANVAS_LABEL_SIZE = 12;
 
 interface PoolNode {
   x: number;
@@ -726,10 +729,10 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         context.textAlign = "center";
         context.textBaseline = "middle";
         context.fillStyle = `rgb(${INK})`;
-        context.font = `600 ${14 * labelScale}px ${CANVAS_FONT}`;
+        context.font = `600 ${CANVAS_LABEL_SIZE * labelScale}px ${CANVAS_FONT}`;
         context.fillText(category.label, category.x, category.y - 6 * labelScale);
 
-        context.font = `500 ${11 * labelScale}px ${CANVAS_FONT}`;
+        context.font = `500 ${CANVAS_LABEL_SIZE * labelScale}px ${CANVAS_FONT}`;
         const chipWidth = context.measureText(countLabel).width + 16 * labelScale;
         context.fillStyle = `rgb(${category.rgb} / 16%)`;
         context.beginPath();
@@ -737,7 +740,7 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
           category.x - chipWidth / 2,
           category.y + 6 * labelScale,
           chipWidth,
-          17 * labelScale,
+          18 * labelScale,
           9 * labelScale,
         );
         context.fill();
@@ -758,9 +761,9 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
 
         const mark = platformMark(lit.selector.snsCode);
 
-        context.font = `700 12px ${CANVAS_FONT}`;
+        context.font = `700 ${CANVAS_LABEL_SIZE}px ${CANVAS_FONT}`;
         const nameWidth = context.measureText(name).width;
-        context.font = `500 11px ${CANVAS_FONT}`;
+        context.font = `500 ${CANVAS_LABEL_SIZE}px ${CANVAS_FONT}`;
         const accountWidth = context.measureText(account).width + 18; // 로고 자리
         const metaWidth = Math.max(
           accountWidth,
@@ -784,10 +787,10 @@ export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: Selector
         context.textAlign = "center";
         context.textBaseline = "middle";
         context.fillStyle = "#fff";
-        context.font = `700 12px ${CANVAS_FONT}`;
+        context.font = `700 ${CANVAS_LABEL_SIZE}px ${CANVAS_FONT}`;
         context.fillText(name, position.x, cardY + 17);
 
-        context.font = `500 11px ${CANVAS_FONT}`;
+        context.font = `500 ${CANVAS_LABEL_SIZE}px ${CANVAS_FONT}`;
         const accountTextWidth = context.measureText(account).width;
         const accountLeft = position.x - accountTextWidth / 2;
         context.save();

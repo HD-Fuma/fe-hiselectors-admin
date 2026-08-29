@@ -223,7 +223,7 @@ body:has(.fuma-content-inspection-studio) {
   border-radius: 18px;
   color: rgb(32 34 36 / 58%);
   background: rgb(255 255 255 / 34%);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
   backdrop-filter: blur(18px);
 }
@@ -275,7 +275,7 @@ body:has(.fuma-content-inspection-studio) {
   min-width: 176px;
   max-width: 240px;
   padding: var(--hsas-space-11) var(--hsas-space-14);
-  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-columns: 24px minmax(0, 1fr);
   align-items: start;
   gap: var(--hsas-space-8);
   border: 1px solid rgb(255 255 255 / 74%);
@@ -315,20 +315,20 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio__violation-bubble-number {
   display: inline-grid;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   place-items: center;
   color: #fff;
   background: var(--hsas-color-danger);
   box-shadow: 0 5px 14px rgb(180 35 24 / 24%);
-  font-size: var(--hsas-font-10);
+  font-size: var(--hsas-font-12);
   font-weight: 850;
 }
 
 .fuma-content-inspection-studio__violation-bubble strong {
   color: #202224;
-  font-size: var(--hsas-font-12);
+  font-size: var(--hsas-font-13);
   font-weight: 800;
   line-height: 1.35;
 }
@@ -364,7 +364,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   color: rgb(32 34 36 / 62%);
   background: rgb(255 255 255 / 56%);
   box-shadow: 0 8px 24px rgb(54 65 72 / 10%);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
   white-space: nowrap;
   backdrop-filter: blur(18px);
@@ -556,7 +556,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   color: var(--hsas-color-white);
   background: var(--hsas-color-black);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 750;
   user-select: none;
   cursor: pointer;
@@ -648,7 +648,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 }
 
 .fuma-content-inspection-studio__profile-identity strong {
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1.35;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -665,7 +665,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 .fuma-content-inspection-studio__profile-meta > a {
   overflow: hidden;
   color: rgb(32 34 36 / 58%);
-  font-size: 13px;
+  font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -707,13 +707,13 @@ button.fuma-content-inspection-studio__violation-bubble {
 .fuma-content-inspection-studio__profile-id small,
 .fuma-content-inspection-studio__profile dl dt {
   color: rgb(32 34 36 / 48%);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
 }
 
 .fuma-content-inspection-studio__profile-id b {
   margin-top: 2px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .fuma-content-inspection-studio__profile dl {
@@ -749,7 +749,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 .fuma-content-inspection-studio__profile dl dd {
   margin-top: 4px;
   overflow: hidden;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 750;
   letter-spacing: -0.02em;
   text-overflow: ellipsis;
@@ -845,7 +845,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   background: rgb(255 255 255 / 88%);
   box-shadow: 0 7px 18px rgb(54 65 72 / 11%);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 750;
   line-height: 1;
   cursor: pointer;
@@ -930,14 +930,14 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio__report > header > div > strong {
   margin-top: 3px;
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1.3;
 }
 
 .fuma-content-inspection-studio__report-generate {
   display: flex;
   width: fit-content;
-  height: 27px;
+  height: 28px;
   padding: 0 9px;
   align-items: center;
   justify-content: center;
@@ -947,7 +947,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   color: rgb(32 34 36 / 62%);
   background: rgb(255 255 255 / 34%);
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
   cursor: pointer;
   transition: 140ms ease;
@@ -972,7 +972,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 .fuma-content-inspection-studio__report-feedback {
   margin: 8px 2px 0;
   color: rgb(32 34 36 / 62%);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
   text-align: center;
 }
@@ -1028,7 +1028,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   color: rgb(32 34 36 / 76%);
   background-color: rgb(255 255 255 / 56%);
   box-shadow: none;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -1036,7 +1036,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   margin: -4px 0 0;
   grid-column: 1 / -1;
   color: rgb(32 34 36 / 64%);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .fuma-content-inspection-studio__report-summary {
@@ -1242,7 +1242,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   border: 1px solid transparent;
   border-radius: 999px;
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 750;
   cursor: pointer;
   transition: 140ms ease;
@@ -1551,7 +1551,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   border: 1px solid transparent;
   border-radius: 999px;
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
@@ -1630,7 +1630,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   border-radius: 50%;
   background: rgb(0 0 0 / 7%);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1;
 }
@@ -1709,7 +1709,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   background: rgb(20 22 24 / 58%);
   box-shadow: 0 8px 22px rgb(0 0 0 / 18%);
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   backdrop-filter: blur(14px) saturate(1.16);
   cursor: pointer;
@@ -1775,13 +1775,13 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-platform-inspection-frame__stt-panel > header small {
   color: rgb(180 35 24 / 68%);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: 0.12em;
 }
 
 .fuma-platform-inspection-frame__stt-panel > header strong {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 850;
 }
 
@@ -1825,14 +1825,14 @@ button.fuma-content-inspection-studio__violation-bubble {
   border-radius: 999px;
   color: #8b312b;
   background: rgb(180 35 24 / 9%);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .fuma-platform-inspection-frame__stt-transcript p {
   margin: 9px 0 0;
   color: rgb(32 34 36 / 86%);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.8;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
@@ -1924,7 +1924,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   color: rgb(32 34 36 / 72%);
   background: rgb(255 255 255 / 78%);
   box-shadow: 0 7px 18px rgb(54 65 72 / 14%);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
   backdrop-filter: blur(14px);
   transform: translateX(-50%);
@@ -2052,13 +2052,13 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio .fuma-platform-inspection-frame__instagram-header strong {
   overflow: hidden;
-  font-size: 14px;
+  font-size: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .fuma-content-inspection-studio .fuma-platform-inspection-frame__instagram-header small {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .fuma-content-inspection-studio .fuma-platform-inspection-frame__instagram-copy p {
@@ -2083,7 +2083,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 
 .fuma-content-inspection-studio .fuma-platform-inspection-frame__instagram-copy time,
 .fuma-content-inspection-studio .fuma-platform-inspection-frame__player-controls small {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .fuma-content-inspection-studio__version > .fuma-minimal-version-card[data-content-format="youtube-long"] {
@@ -2123,7 +2123,7 @@ button.fuma-content-inspection-studio__violation-bubble {
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-copy h4 {
   display: -webkit-box;
   overflow: hidden;
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 600;
   line-height: 28px;
   overflow-wrap: anywhere;
@@ -2164,14 +2164,14 @@ button.fuma-content-inspection-studio__violation-bubble {
   align-items: center;
   gap: 4px;
   color: #0f0f0f;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 500;
   line-height: 22px;
 }
 
 .fuma-content-inspection-studio .fuma-minimal-version-card[data-content-format="youtube-long"] .fuma-platform-inspection-frame__youtube-channel small {
   color: #606060;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 18px;
 }
 
@@ -2192,7 +2192,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   color: #0f0f0f;
   background: rgb(0 0 0 / 5%);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
 }
@@ -2229,7 +2229,7 @@ button.fuma-content-inspection-studio__violation-bubble {
   border-radius: 16px;
   color: #0f0f0f;
   background: rgb(0 0 0 / 5%);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -2827,7 +2827,7 @@ html[data-theme="dark"] .fuma-content-inspection-detail {
 .fuma-inspection-changes li::before {
   margin-right: var(--hsas-space-6);
   color: var(--inspection-warning);
-  content: "•";
+  content: "??;
 }
 
 .fuma-content-comparison {
@@ -3138,7 +3138,7 @@ html[data-theme="dark"] .fuma-content-inspection-detail {
   background: var(--hsas-color-danger);
   box-shadow: 0 6px 18px rgb(180 35 24 / 28%);
   font: inherit;
-  font-size: var(--hsas-font-10);
+  font-size: var(--hsas-font-13);
   font-weight: 750;
   line-height: 1.2;
   overflow-wrap: anywhere;
@@ -3165,7 +3165,7 @@ html[data-theme="dark"] .fuma-content-inspection-detail {
   border-radius: 50%;
   color: var(--hsas-color-white);
   background: rgb(255 255 255 / 20%);
-  font-size: var(--hsas-font-9);
+  font-size: var(--hsas-font-12);
   font-weight: 800;
   place-items: center;
 }
@@ -4194,7 +4194,7 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
   object-fit: cover;
 }
 
-.fuma-social-snapshot__thumbs button[data-kind="동영상"] img {
+.fuma-social-snapshot__thumbs button[data-kind="?�영??] img {
   filter: brightness(.7);
 }
 
@@ -7433,19 +7433,19 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
   color: var(--hsas-sidebar-active);
 }
 
-.fuma-minimal-final-inspection__candidates > article[data-judgment="위반"] .fuma-minimal-final-inspection__candidate-actions .hsas-button[aria-pressed="true"] {
+.fuma-minimal-final-inspection__candidates > article[data-judgment="?�반"] .fuma-minimal-final-inspection__candidate-actions .hsas-button[aria-pressed="true"] {
   border-color: var(--inspection-danger);
   color: var(--hsas-color-white);
   background: var(--inspection-danger);
 }
 
-.fuma-minimal-final-inspection__candidates > article[data-judgment="정상"] {
+.fuma-minimal-final-inspection__candidates > article[data-judgment="?�상"] {
   border-color: #e7ebe9;
   background: var(--hsas-surface);
 }
 
-.fuma-minimal-final-inspection__candidates > article[data-judgment="정상"] .fuma-minimal-final-inspection__candidate-jump > strong,
-.fuma-minimal-final-inspection__candidates > article[data-judgment="정상"] blockquote {
+.fuma-minimal-final-inspection__candidates > article[data-judgment="?�상"] .fuma-minimal-final-inspection__candidate-jump > strong,
+.fuma-minimal-final-inspection__candidates > article[data-judgment="?�상"] blockquote {
   color: #5d6f68;
 }
 
@@ -7799,7 +7799,7 @@ button.fuma-platform-inspection-frame__violation-box {
 .fuma-content-inspection-detail .fuma-content-inspection-history-report .hsas-dense-table th,
 .fuma-content-inspection-detail .fuma-content-inspection-history-report .hsas-dense-table td {
   height: 34px;
-  font-size: var(--hsas-font-12);
+  font-size: var(--hsas-font-13);
 }
 
 .fuma-content-inspection-detail .fuma-minimal-final-inspection__candidates > header strong,
@@ -8128,8 +8128,8 @@ html[data-theme="dark"] :is(
   .fuma-minimal-inspection-section__header time,
   .fuma-minimal-extract-grid span,
   .fuma-minimal-final-inspection__candidate-actions > span,
-  .fuma-minimal-final-inspection__candidates > article[data-judgment="정상"] .fuma-minimal-final-inspection__candidate-jump > strong,
-  .fuma-minimal-final-inspection__candidates > article[data-judgment="정상"] blockquote,
+  .fuma-minimal-final-inspection__candidates > article[data-judgment="?�상"] .fuma-minimal-final-inspection__candidate-jump > strong,
+  .fuma-minimal-final-inspection__candidates > article[data-judgment="?�상"] blockquote,
   .fuma-platform-inspection-frame__instagram-header small,
   .fuma-platform-inspection-frame__instagram-copy > button,
   .fuma-platform-inspection-frame__instagram-copy time,

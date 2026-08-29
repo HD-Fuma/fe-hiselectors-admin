@@ -1,7 +1,59 @@
 import { useEffect, useRef } from "react";
 import type { EChartsType } from "echarts/core";
+import { ECHARTS_FONT_FAMILY } from "./chartColors";
 import { echarts } from "./echartsSetup";
 import type { HsEChartsProps } from "./HsEChartsProps";
+
+const TEXT_STYLE_KEYS = new Set([
+  "axisLabel",
+  "label",
+  "nameTextStyle",
+  "subtextStyle",
+  "textStyle",
+]);
+
+function injectPretendard(value: unknown, parentKey?: string): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => injectPretendard(entry));
+  }
+
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const source = value as Record<string, unknown>;
+  const next: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(source)) {
+    next[key] = injectPretendard(child, key);
+  }
+
+  const shouldSetFamily =
+    (parentKey !== undefined && TEXT_STYLE_KEYS.has(parentKey))
+    || "fontSize" in source
+    || "fontWeight" in source;
+
+  if (shouldSetFamily && typeof next.fontFamily !== "string") {
+    next.fontFamily = ECHARTS_FONT_FAMILY;
+  }
+
+  return next;
+}
+
+function withChartFont(option: HsEChartsProps["option"]): HsEChartsProps["option"] {
+  const injected = injectPretendard(option) as HsEChartsProps["option"];
+  const existingTextStyle =
+    injected.textStyle && typeof injected.textStyle === "object"
+      ? injected.textStyle
+      : {};
+
+  return {
+    ...injected,
+    textStyle: {
+      fontFamily: ECHARTS_FONT_FAMILY,
+      ...existingTextStyle,
+    },
+  };
+}
 
 export function HsEChartsRuntime({
   className,
@@ -19,13 +71,13 @@ export function HsEChartsRuntime({
       return;
     }
 
-    const chart = echarts.init(container, undefined, {
+    const chart = echarts.init(container, "hsas", {
       height: height ?? "auto",
       renderer: "canvas",
       width: width ?? "auto",
     });
     chartRef.current = chart;
-    chart.setOption(option, { lazyUpdate: true, notMerge: true });
+    chart.setOption(withChartFont(option), { lazyUpdate: true, notMerge: true });
 
     const observer = typeof ResizeObserver === "undefined"
       ? null
@@ -44,7 +96,7 @@ export function HsEChartsRuntime({
   }, []);
 
   useEffect(() => {
-    chartRef.current?.setOption(option, { lazyUpdate: true, notMerge: true });
+    chartRef.current?.setOption(withChartFont(option), { lazyUpdate: true, notMerge: true });
   }, [option]);
 
   useEffect(() => {

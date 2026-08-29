@@ -73,7 +73,7 @@ body:has(.hsas-selector-pool) {
 
 .hsas-selector-pool__chip em {
   color: inherit;
-  font-size: var(--hsas-font-10);
+  font-size: var(--hsas-font-11);
   font-style: normal;
   opacity: 0.65;
 }
