@@ -254,6 +254,13 @@ test("shows the analysis state from inspection status without the SNS account id
 test("uses an isolated action layout and a readable success text token", () => {
   expect(adminStyles).not.toContain(".fuma-content-collection-run-actions");
   expect(contentInspectionStyles).toMatch(/\.fuma-content-collection-run-actions\s*\{/);
+  const startTooltipRule = contentInspectionStyles.match(
+    /\.fuma-content-inspection-start-tooltip > \.hsas-tooltip\s*\{([^}]*)\}/,
+  )?.[1];
+  expect(startTooltipRule).toMatch(/position:\s*absolute;/);
+  expect(startTooltipRule).toMatch(/bottom:\s*calc\(100% \+ var\(--hsas-space-8\)\);/);
+  expect(startTooltipRule).toMatch(/max-width:\s*210px;/);
+  expect(startTooltipRule).toMatch(/white-space:\s*normal;/);
   const feedbackRule = contentInspectionStyles.match(
     /\.fuma-content-inspection-collection-feedback\s*\{([^}]*)\}/,
   )?.[1];

@@ -9,6 +9,8 @@ export interface ViewModeToggleProps {
   gridLabel?: string;
   listLabel?: string;
   tooltip?: string;
+  tooltipPlacement?: "bottom" | "top";
+  autoShowTooltip?: boolean;
 }
 
 export function ViewModeToggle({
@@ -17,15 +19,21 @@ export function ViewModeToggle({
   gridLabel = "카드",
   listLabel = "목록",
   tooltip = "보기를 변경할 수 있습니다",
+  tooltipPlacement = "top",
+  autoShowTooltip = true,
 }: ViewModeToggleProps) {
   const tooltipId = useId();
-  const [showTooltip, setShowTooltip] = useState(true);
+  const [showTooltip, setShowTooltip] = useState(autoShowTooltip);
   const toggleView = () => onChange(value === "grid" ? "list" : "grid");
 
   useEffect(() => {
+    if (!autoShowTooltip) {
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => setShowTooltip(false), 2000);
     return () => window.clearTimeout(timeoutId);
-  }, []);
+  }, [autoShowTooltip]);
 
   return (
     <div className="hsas-view-mode-toggle-wrap">
@@ -48,7 +56,7 @@ export function ViewModeToggle({
       </button>
       <Tooltip
         id={tooltipId}
-        placement="bottom"
+        placement={tooltipPlacement}
         visible={showTooltip}
       >
         {tooltip}

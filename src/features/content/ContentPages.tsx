@@ -410,7 +410,9 @@ function ContentInspectionCollection({
         <div className="fuma-creator-toolbar fuma-creator-toolbar__controls">
           <span aria-hidden="true" className="fuma-creator-toolbar__divider" />
           <ViewModeToggle
+            autoShowTooltip={false}
             onChange={onChangeView}
+            tooltipPlacement="bottom"
             value={viewMode}
           />
         </div>

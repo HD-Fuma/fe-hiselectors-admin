@@ -263,8 +263,20 @@
 
 .hsas-view-mode-toggle-wrap > .hsas-tooltip {
   position: absolute;
-  top: calc(100% + 8px);
   right: 0;
+  left: auto;
+  z-index: 30;
+  color: #fff;
+}
+
+.hsas-view-mode-toggle-wrap > .hsas-tooltip--top {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+.hsas-view-mode-toggle-wrap > .hsas-tooltip--bottom {
+  top: calc(100% + 8px);
+  bottom: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1207,7 +1219,7 @@
   gap: var(--hsas-space-2);
 }
 
-.fuma-result-toolbar span {
+.fuma-result-toolbar span:not(.hsas-tooltip) {
   color: var(--hsas-text-muted);
 }
 
@@ -3803,14 +3815,22 @@
 }
 
 .fuma-campaign-search .hsas-search-panel__fields {
-  grid-template-columns: 300px minmax(440px, 1fr);
+  grid-template-columns: minmax(320px, 0.9fr) minmax(480px, 1.4fr);
   column-gap: var(--hsas-space-20);
+  row-gap: var(--hsas-space-10);
+}
+
+.fuma-campaign-search .fuma-filter-field,
+.fuma-campaign-search .fuma-filter-field:nth-child(2),
+.fuma-campaign-search .fuma-campaign-period-filter .fuma-filter-field {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--hsas-space-8);
 }
 
 .fuma-campaign-search .fuma-campaign-period-filter {
   min-width: 0;
   grid-column: auto;
-  gap: var(--hsas-space-20);
+  gap: var(--hsas-space-16);
 }
 
 .fuma-notification-search .hsas-search-panel__fields {

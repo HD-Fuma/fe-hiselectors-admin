@@ -892,6 +892,9 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(
 .fuma-content-performance-results__sort > span { color: var(--hsas-color-neutral-600); font-size: var(--hsas-font-13); font-weight: 600; }
 .fuma-content-performance-results__sort .hsas-control { width: 136px; min-height: 29px; font-size: var(--hsas-font-13); }
 .fuma-content-performance-results .fuma-content-collection__track.is-grid { padding-inline: 0; }
+.fuma-content-performance-results > .fuma-list-search {
+  margin-block: var(--hsas-space-14);
+}
 
 .fuma-selector-performance-tabs {
   display: flex;

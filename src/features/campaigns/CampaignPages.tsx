@@ -312,7 +312,11 @@ export function CampaignListPage({ refreshRevision = 0 }: { refreshRevision?: nu
             </div>
             <div className="fuma-creator-toolbar fuma-creator-toolbar__controls">
               <span aria-hidden="true" className="fuma-creator-toolbar__divider" />
-              <ViewModeToggle onChange={changeViewMode} value={viewMode} />
+              <ViewModeToggle
+                onChange={changeViewMode}
+                tooltipPlacement="bottom"
+                value={viewMode}
+              />
             </div>
           </div>
           {listError ? (

@@ -5158,46 +5158,51 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
   }
 }
 
+.fuma-page[data-visual-contract="content-inspection"] > .fuma-page__body {
+  gap: var(--hsas-space-16);
+}
+
+.fuma-page[data-visual-contract="content-inspection"] > .fuma-page__body > .fuma-list-search {
+  margin-bottom: var(--hsas-space-4);
+}
+
 /* Content collection board */
 .fuma-page[data-visual-contract="content-inspection"] .fuma-content-inspection-table {
   display: none;
 }
 
+.fuma-list-search {
+  margin-block: var(--hsas-space-14);
+}
+
+.fuma-page__body > .fuma-list-search:first-child {
+  margin-top: 0;
+}
+
 .fuma-list-search .hsas-search-panel__fields {
-  grid-template-columns: 300px 220px minmax(330px, 1fr);
+  grid-template-columns: minmax(420px, 1fr) minmax(148px, 168px);
   column-gap: var(--hsas-space-20);
+  row-gap: var(--hsas-space-10);
   justify-content: start;
 }
 
-.fuma-list-search .fuma-filter-field:first-child {
-  grid-template-columns: 78px minmax(0, 1fr);
-}
-
-.fuma-list-search .fuma-filter-field:nth-child(2) {
-  grid-template-columns: 62px minmax(0, 1fr);
-}
-
+.fuma-list-search .fuma-filter-field,
+.fuma-list-search .fuma-filter-field:first-child,
+.fuma-list-search .fuma-filter-field:nth-child(2),
 .fuma-list-search .fuma-filter-field:nth-child(3) {
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--hsas-space-8);
 }
 
 @media (max-width: 1180px) {
   .fuma-list-search .hsas-search-panel__fields {
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
-  }
-
-  .fuma-list-search .fuma-filter-field:nth-child(3) {
-    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) minmax(148px, 180px);
   }
 }
 
 @media (max-width: 820px) {
   .fuma-list-search .hsas-search-panel__fields {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .fuma-list-search .fuma-filter-field:nth-child(3) {
-    grid-column: auto;
   }
 }
 
@@ -5299,6 +5304,7 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
 
 .fuma-content-collection-run-actions {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: var(--hsas-space-8);
   margin-block: var(--hsas-space-4);
@@ -5307,15 +5313,23 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
 .fuma-content-inspection-start-tooltip {
   position: relative;
   display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
 }
 
 .fuma-content-inspection-start-tooltip > .hsas-tooltip {
   --hsas-tooltip-arrow-right: calc(var(--hsas-control-height) / 2 - 5px);
 
   position: absolute;
+  top: auto;
   right: 0;
   bottom: calc(100% + var(--hsas-space-8));
-  max-width: none;
+  left: auto;
+  z-index: 30;
+  width: max-content;
+  max-width: 210px;
+  color: #fff;
+  white-space: normal;
 }
 
 .fuma-content-inspection-start-tooltip:hover > .hsas-tooltip,
