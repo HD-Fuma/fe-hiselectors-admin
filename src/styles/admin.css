@@ -145,6 +145,12 @@
   display: inline-flex;
 }
 
+.hsas-view-mode-toggle-wrap {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
 
 .hsas-view-mode-toggle {
   position: relative;
@@ -205,7 +211,7 @@
 .hsas-tooltip {
   z-index: 20;
   width: max-content;
-  max-width: 210px;
+  max-width: none;
   padding: var(--hsas-space-8) var(--hsas-space-10);
   border-radius: 7px;
   background: var(--hsas-tooltip-background);
@@ -213,6 +219,7 @@
   font-size: var(--hsas-font-12);
   font-weight: 700;
   line-height: 1.35;
+  white-space: nowrap;
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
@@ -1820,7 +1827,7 @@
 .fuma-campaign-rule-guide::before {
   margin-right: var(--hsas-space-5);
   color: var(--hsas-teal-dark);
-  content: "??;
+  content: "•";
 }
 
 .fuma-campaign-result-toolbar {
@@ -2964,7 +2971,7 @@
 .fuma-violation-guide::before {
   margin-right: var(--hsas-space-5);
   color: var(--hsas-teal-dark);
-  content: "??;
+  content: "•";
 }
 
 .fuma-content-status-toolbar {
@@ -3736,7 +3743,6 @@
   position: absolute;
   right: 0;
   bottom: calc(100% + 8px);
-  max-width: 320px;
 }
 
 .fuma-applicant-minimum-tooltip:hover > .hsas-tooltip,
@@ -3900,7 +3906,7 @@
 .fuma-operations-guide::before {
   margin-right: var(--hsas-space-5);
   color: var(--hsas-teal-dark);
-  content: "??;
+  content: "•";
 }
 
 .fuma-cohort-detail {
@@ -9359,7 +9365,7 @@
   font-weight: 700;
 }
 
-/* 01 ??full-bleed cinema */
+/* 01 — full-bleed cinema */
 .fuma-representative-card[data-design="cinema"] {
   grid-template-columns: 1fr;
   align-items: end;
@@ -9398,7 +9404,7 @@
   color: var(--hsas-color-white);
 }
 
-/* 02 ??editorial magazine cover */
+/* 02 — editorial magazine cover */
 .fuma-representative-card[data-design="magazine"] {
   grid-template-columns: minmax(220px, 46%) minmax(0, 1fr);
   align-items: stretch;
@@ -9423,7 +9429,7 @@
   color: #7a1f54;
 }
 
-/* 03 ??quiet split screen */
+/* 03 — quiet split screen */
 .fuma-representative-card[data-design="split"] {
   grid-template-columns: minmax(220px, 52%) minmax(0, 1fr);
   padding: 0;
@@ -9444,7 +9450,7 @@
   padding: var(--hsas-space-24);
 }
 
-/* 04 ??social content in a phone */
+/* 04 — social content in a phone */
 .fuma-representative-card[data-design="phone"] {
   grid-template-columns: minmax(150px, 180px) minmax(0, 1fr);
   justify-content: center;
@@ -9471,7 +9477,7 @@
   transform: translateX(-50%);
 }
 
-/* 05 ??casually stacked content deck */
+/* 05 — casually stacked content deck */
 .fuma-representative-card[data-design="deck"] {
   background: #f5f2ee;
 }
@@ -9488,7 +9494,7 @@
   transform: rotate(-2deg) translateY(-4px);
 }
 
-/* 06 ??now playing */
+/* 06 — now playing */
 .fuma-representative-card[data-design="player"] {
   border-radius: 18px;
   background: linear-gradient(135deg, #202522, #303b35);
@@ -9525,7 +9531,7 @@
   content: "";
 }
 
-/* 07 ??restrained art gallery */
+/* 07 — restrained art gallery */
 .fuma-representative-card[data-design="gallery"] {
   grid-template-columns: 1fr;
   justify-items: center;
@@ -9552,7 +9558,7 @@
   justify-content: center;
 }
 
-/* 08 ??social sticker collage */
+/* 08 — social sticker collage */
 .fuma-representative-card[data-design="stickers"] {
   background: linear-gradient(135deg, #fff2a8, #ffcfe6 56%, #c8f1df);
   box-shadow: 0 12px 0 #372c34;
@@ -9577,7 +9583,7 @@
   transform: rotate(2deg);
 }
 
-/* 09 ??perforated content ticket */
+/* 09 — perforated content ticket */
 .fuma-representative-card[data-design="ticket"] {
   grid-template-columns: minmax(190px, 42%) minmax(0, 1fr);
   padding: var(--hsas-space-16);
@@ -9602,7 +9608,7 @@
   letter-spacing: .16em;
 }
 
-/* 10 ??dark spotlight stage */
+/* 10 — dark spotlight stage */
 .fuma-representative-card[data-design="spotlight"] {
   grid-template-columns: 1fr;
   justify-items: center;
@@ -9639,7 +9645,7 @@
   justify-content: center;
 }
 
-/* 11 ??automatic cinema / light player */
+/* 11 — automatic cinema / light player */
 .fuma-representative-card[data-design="adaptive-a"][data-media="video"] {
   grid-template-columns: 1fr;
   align-items: end;
@@ -9711,7 +9717,7 @@
   content: "";
 }
 
-/* 12 ???�토 믹스 B: cinematic media mood (vignette + deep shadow + subtle grade) */
+/* 12 — 오토 믹스 B: cinematic media mood (vignette + deep shadow + subtle grade) */
 .fuma-representative-card[data-design="adaptive-b"] .fuma-representative-card__media {
   box-shadow: 0 22px 40px rgb(10 10 12 / 30%);
 }

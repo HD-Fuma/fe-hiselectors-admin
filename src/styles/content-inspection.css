@@ -142,15 +142,17 @@ body:has(.fuma-content-inspection-studio) {
   position: absolute;
   right: 0;
   bottom: calc(100% + var(--hsas-space-8));
-  left: 0;
+  left: auto;
   z-index: 30;
-  max-width: min(280px, calc(100% - 24px));
-  margin-inline: auto;
+  max-width: none;
+  width: max-content;
+  margin-inline: 0;
+  margin-right: 0;
   border: 1px solid rgb(255 255 255 / 24%);
   border-radius: 12px;
   box-shadow: 0 12px 28px rgb(32 34 36 / 22%);
   text-align: center;
-  white-space: normal;
+  white-space: nowrap;
   backdrop-filter: blur(14px);
 }
 
@@ -1371,6 +1373,7 @@ button.fuma-content-inspection-studio__violation-bubble {
     0 18px 48px rgb(54 65 72 / 12%);
   pointer-events: auto;
   translate: 0;
+  white-space: normal;
   backdrop-filter: blur(24px) saturate(1.15);
   animation: hsas-bubble-dialog-enter 160ms ease-out both;
 }
@@ -2827,7 +2830,7 @@ html[data-theme="dark"] .fuma-content-inspection-detail {
 .fuma-inspection-changes li::before {
   margin-right: var(--hsas-space-6);
   color: var(--inspection-warning);
-  content: "??;
+  content: "•";
 }
 
 .fuma-content-comparison {
@@ -4194,7 +4197,7 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
   object-fit: cover;
 }
 
-.fuma-social-snapshot__thumbs button[data-kind="?�영??] img {
+.fuma-social-snapshot__thumbs button[data-kind="동영상"] img {
   filter: brightness(.7);
 }
 
@@ -7433,19 +7436,19 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
   color: var(--hsas-sidebar-active);
 }
 
-.fuma-minimal-final-inspection__candidates > article[data-judgment="?�반"] .fuma-minimal-final-inspection__candidate-actions .hsas-button[aria-pressed="true"] {
+.fuma-minimal-final-inspection__candidates > article[data-judgment="위반"] .fuma-minimal-final-inspection__candidate-actions .hsas-button[aria-pressed="true"] {
   border-color: var(--inspection-danger);
   color: var(--hsas-color-white);
   background: var(--inspection-danger);
 }
 
-.fuma-minimal-final-inspection__candidates > article[data-judgment="?�상"] {
+.fuma-minimal-final-inspection__candidates > article[data-judgment="정상"] {
   border-color: #e7ebe9;
   background: var(--hsas-surface);
 }
 
-.fuma-minimal-final-inspection__candidates > article[data-judgment="?�상"] .fuma-minimal-final-inspection__candidate-jump > strong,
-.fuma-minimal-final-inspection__candidates > article[data-judgment="?�상"] blockquote {
+.fuma-minimal-final-inspection__candidates > article[data-judgment="정상"] .fuma-minimal-final-inspection__candidate-jump > strong,
+.fuma-minimal-final-inspection__candidates > article[data-judgment="정상"] blockquote {
   color: #5d6f68;
 }
 
@@ -8128,8 +8131,8 @@ html[data-theme="dark"] :is(
   .fuma-minimal-inspection-section__header time,
   .fuma-minimal-extract-grid span,
   .fuma-minimal-final-inspection__candidate-actions > span,
-  .fuma-minimal-final-inspection__candidates > article[data-judgment="?�상"] .fuma-minimal-final-inspection__candidate-jump > strong,
-  .fuma-minimal-final-inspection__candidates > article[data-judgment="?�상"] blockquote,
+  .fuma-minimal-final-inspection__candidates > article[data-judgment="정상"] .fuma-minimal-final-inspection__candidate-jump > strong,
+  .fuma-minimal-final-inspection__candidates > article[data-judgment="정상"] blockquote,
   .fuma-platform-inspection-frame__instagram-header small,
   .fuma-platform-inspection-frame__instagram-copy > button,
   .fuma-platform-inspection-frame__instagram-copy time,

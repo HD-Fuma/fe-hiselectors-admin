@@ -53,7 +53,7 @@ describe("HSAS controls", () => {
     const toggle = screen.getByRole("switch", { name: "보기 방식" });
     expect(toggle).toHaveClass("is-grid");
     expect(toggle).not.toBeChecked();
-    expect(screen.getByRole("tooltip")).toHaveTextContent("보기�?변경할 ???�습?�다");
+    expect(screen.getByRole("tooltip")).toHaveTextContent("보기를 변경할 수 있습니다");
     expect(screen.getByRole("tooltip")).toHaveClass("is-visible");
 
     expect(adminStyles).toMatch(
@@ -347,5 +347,5 @@ test("supports the documented compact option props and utility classes", () => {
     "aria-pressed",
     "true",
   );
-  expect(screen.getByRole("group", { name: "?�택 ?�션" })).toBeInTheDocument();
+  expect(screen.getByRole("group", { name: "선택 옵션" })).toBeInTheDocument();
 });
