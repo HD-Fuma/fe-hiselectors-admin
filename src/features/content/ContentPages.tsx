@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -22,7 +23,6 @@ import {
   Maximize,
   MessageCircle,
   MoreHorizontal,
-  Mouse,
   Play,
   Repeat2,
   RefreshCw,
@@ -74,16 +74,17 @@ import {
   type ContentSnapshot,
   type InspectionStatus,
 } from "../../entities/content";
-import { getSelector, snsAccountHref, type SelectorDetail } from "../../entities/selectors";
+import { getSelector, SelectorDetailPanel, snsAccountHref, type SelectorDetail } from "../../entities/selectors";
 import { getTaskRun } from "../../entities/task-run";
 import { formatCompactCount, formatNumber, formatWon } from "../../lib/formatters";
+import { ContentInspectionStudioTour } from "./ContentInspectionStudioTour";
 import { InstagramReelsCard } from "./InstagramReelsCard";
 import { YouTubeShortsCard } from "./YouTubeShortsCard";
 
 const CONTENT_INSPECTION_PAGE_SIZE = 20;
 const STUDIO_CONTENT_SLIDE_EXIT_MS = 180;
 const STUDIO_CONTENT_SLIDE_ENTER_MS = 260;
-const STUDIO_HELP_DURATION_MS = 5_000;
+const STUDIO_HELP_TOOLTIP_DURATION_MS = 5_000;
 const STUDIO_HISTORY_HINT_DURATION_MS = 3_000;
 type ContentInspectionCategory =
   | "신규"
@@ -196,7 +197,7 @@ function GuidelineComplianceDetails({
   if (analysis.normalItemCount === 0) return null;
 
   return (
-    <details className="fuma-content-inspection-evidence__normal-group">
+    <details className="fuma-content-inspection-evidence__normal-group" open>
       <summary>
         <strong>가이드 준수 항목</strong>
         <span>{analysis.normalItemCount}건 <ChevronDown aria-hidden="true" size={14} /></span>
@@ -1049,20 +1050,11 @@ function StudioViolationBubbleCloud({
     const cloud = cloudRef.current;
     const version = cloud?.closest<HTMLElement>(".fuma-content-inspection-studio__version");
     if (!cloud || !version) return undefined;
-    const profile = placement === "left"
-      ? version.closest<HTMLElement>(".fuma-content-inspection-studio")
-        ?.querySelector<HTMLElement>(".fuma-content-inspection-studio__profile")
-      : null;
     let frameId = 0;
     const positionBubbles = () => {
       cancelAnimationFrame(frameId);
       frameId = requestAnimationFrame(() => {
-        const versionRect = version.getBoundingClientRect();
-        const profileBottom = profile?.getBoundingClientRect().bottom;
-        const cloudTop = profileBottom == null
-          ? 0
-          : Math.max(0, profileBottom + 12 - versionRect.top);
-        cloud.style.top = `${Math.round(cloudTop)}px`;
+        cloud.style.top = "0px";
         const cloudRect = cloud.getBoundingClientRect();
 
         const bubbles = Array.from(
@@ -1133,7 +1125,6 @@ function StudioViolationBubbleCloud({
       : new ResizeObserver(positionBubbles);
     resizeObserver?.observe(version);
     if (card) resizeObserver?.observe(card);
-    if (profile) resizeObserver?.observe(profile);
 
     const mutationObserver = typeof MutationObserver === "undefined" || !card
       ? null
@@ -1400,6 +1391,24 @@ function MinimalVersionCard({
   }, [focusedAnnotation, focusedViolation, focusedViolationRequestKey, textDataExpanded, visibleIndex]);
 
   const canToggleDescription = descriptionOverflowing || textDataExpanded;
+  const openDescriptionPanel = (event: MouseEvent<HTMLParagraphElement>) => {
+    if (textDataExpanded || !descriptionOverflowing) return;
+    if (
+      event.target instanceof Element
+      && event.target.closest("mark, button, a, .fuma-platform-inspection-frame__description-toggle")
+    ) {
+      return;
+    }
+    event.stopPropagation();
+    setTextDataExpanded(true);
+  };
+  const descriptionTextProps = {
+    className: "fuma-platform-inspection-frame__description-text",
+    "data-expandable": descriptionOverflowing && !textDataExpanded,
+    "data-studio-tour": inert ? undefined : "description",
+    onClick: openDescriptionPanel,
+    ref: descriptionRef,
+  };
   const descriptionToggle = (
     <button
       aria-controls={textDataPanelId}
@@ -1665,7 +1674,7 @@ function MinimalVersionCard({
             creatorName={content.author}
             handle={handle}
           >
-            <p ref={descriptionRef}>
+            <p {...descriptionTextProps}>
               <ViolationHighlightedText
                 annotations={annotations}
                 focusedOrdinal={focusedViolation?.ordinal}
@@ -1689,7 +1698,7 @@ function MinimalVersionCard({
               <button aria-label="저장" type="button"><Bookmark aria-hidden="true" size={23} /></button>
             </div>
             <div className="fuma-platform-inspection-frame__instagram-copy">
-              <p ref={descriptionRef}>
+              <p {...descriptionTextProps}>
                 <b>{handle}</b>{" "}
                 <ViolationHighlightedText
                   annotations={annotations}
@@ -1710,7 +1719,7 @@ function MinimalVersionCard({
             creatorName={content.author}
             handle={handle}
           >
-            <p ref={descriptionRef}>
+            <p {...descriptionTextProps}>
               <ViolationHighlightedText
                 annotations={annotations}
                 focusedOrdinal={focusedViolation?.ordinal}
@@ -1754,7 +1763,7 @@ function MinimalVersionCard({
             </div>
             <div className="fuma-platform-inspection-frame__youtube-description">
               <strong>{postDate}</strong>
-              <p ref={descriptionRef}>
+              <p {...descriptionTextProps}>
                 <ViolationHighlightedText
                   annotations={annotations}
                   focusedOrdinal={focusedViolation?.ordinal}
@@ -2343,12 +2352,19 @@ function ContentInspectionDetailContent({
 export function ContentInspectionDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [studioHelpVisible, setStudioHelpVisible] = useState(() => Boolean(
-    (location.state as { inspectionSession?: boolean } | null)?.inspectionSession,
-  ));
+  const [studioHelpTooltipVisible, setStudioHelpTooltipVisible] = useState(() => {
+    const state = location.state as {
+      inspectionSession?: boolean;
+      singleInspection?: boolean;
+    } | null;
+    return Boolean(state?.inspectionSession && !state?.singleInspection);
+  });
+  const [studioTourOpen, setStudioTourOpen] = useState(false);
   const [studioHistoryHintVisible, setStudioHistoryHintVisible] = useState(false);
   const [studioDecision, setStudioDecision] = useState<"approve" | "reject" | null>(null);
   const [studioSelector, setStudioSelector] = useState<SelectorDetail | null>(null);
+  const [studioSelectorError, setStudioSelectorError] = useState("");
+  const [studioSelectorPanelOpen, setStudioSelectorPanelOpen] = useState(false);
   const [studioHistoricalContents, setStudioHistoricalContents] = useState<ContentInspectionFixture[]>([]);
   const [studioHistoryError, setStudioHistoryError] = useState<string | null>(null);
   const [studioHistoryPending, setStudioHistoryPending] = useState(false);
@@ -2929,13 +2945,13 @@ export function ContentInspectionDetailPage() {
   }, []);
 
   useEffect(() => {
-    if (!routeState?.inspectionSession || !studioHelpVisible) return undefined;
+    if (!routeState?.inspectionSession || !studioHelpTooltipVisible) return undefined;
     const timeoutId = window.setTimeout(
-      () => setStudioHelpVisible(false),
-      STUDIO_HELP_DURATION_MS,
+      () => setStudioHelpTooltipVisible(false),
+      STUDIO_HELP_TOOLTIP_DURATION_MS,
     );
     return () => window.clearTimeout(timeoutId);
-  }, [routeState?.inspectionSession, studioHelpVisible]);
+  }, [routeState?.inspectionSession, studioHelpTooltipVisible]);
 
   useEffect(() => {
     if (!routeState?.inspectionSession || visibleStudioHistoricalContents.length === 0) {
@@ -2959,6 +2975,20 @@ export function ContentInspectionDetailPage() {
           ? "2"
           : null;
       if (studioExiting) return;
+      if (studioTourOpen) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setStudioTourOpen(false);
+        }
+        return;
+      }
+      if (studioSelectorPanelOpen) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setStudioSelectorPanelOpen(false);
+        }
+        return;
+      }
       if (event.key === "Escape" && studioSingleInspection && !studioActionPending) {
         event.preventDefault();
         setStudioExiting(true);
@@ -3022,7 +3052,9 @@ export function ContentInspectionDetailPage() {
     studioReportRefreshVersionId,
     studioReviewReadOnly,
     studioSelectedIsLatest,
+    studioSelectorPanelOpen,
     studioSingleInspection,
+    studioTourOpen,
     studioViolationJudgments,
     studioViolationSignals.length,
     submitStudioDecision,
@@ -3044,6 +3076,8 @@ export function ContentInspectionDetailPage() {
       if (event.ctrlKey) return;
       if (
         studioExiting
+        || studioTourOpen
+        || studioSelectorPanelOpen
         || completionOpen
         || exitConfirmationOpen
         || studioActionPending
@@ -3102,6 +3136,8 @@ export function ContentInspectionDetailPage() {
     studioActionPending,
     studioContentTransition,
     studioExiting,
+    studioSelectorPanelOpen,
+    studioTourOpen,
   ]);
 
   useEffect(() => {
@@ -3189,12 +3225,18 @@ export function ContentInspectionDetailPage() {
   useEffect(() => {
     if (!routeState?.inspectionSession || !content?.selectorsId) return undefined;
     const controller = new AbortController();
+    setStudioSelector(null);
+    setStudioSelectorError("");
 
     void getSelector(content.selectorsId, controller.signal)
       .then((selector) => {
         if (!controller.signal.aborted) setStudioSelector(selector);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setStudioSelectorError("셀렉터스 상세 정보를 불러오지 못했습니다.");
+        }
+      });
 
     return () => controller.abort();
   }, [content?.selectorsId, contentId, routeState?.inspectionSession]);
@@ -3242,7 +3284,7 @@ export function ContentInspectionDetailPage() {
             aria-keyshortcuts="Escape"
             aria-label="검수 화면 나가기"
             className="fuma-content-inspection-studio__exit-button"
-            disabled={studioActionPending !== null || studioContentTransition !== "idle"}
+            disabled={studioActionPending !== null}
             onClick={() => setExitConfirmationOpen(true)}
             type="button"
           >
@@ -3253,124 +3295,341 @@ export function ContentInspectionDetailPage() {
             <span>CONTENT INSPECTION</span>
             <strong>콘텐츠 검수</strong>
           </div>
-          {!studioSingleInspection ? (
-            <nav aria-label="검수 콘텐츠 이동" className="fuma-content-inspection-studio__queue">
-              <div className="fuma-content-inspection-studio__queue-progress">
-                <span>검수 진행</span>
-                <strong>
-                  {studioInspectionComplete ? (
-                    <b>완료</b>
-                  ) : (
-                    <>
-                      <b>{currentPendingIndex >= 0 ? currentPendingIndex + 1 : 0}</b>
-                      <small> / {pendingContents.length}</small>
-                    </>
-                  )}
-                </strong>
-                <span aria-hidden="true" className="fuma-content-inspection-studio__queue-track">
-                  <i style={{ width: `${inspectionProgress}%` }} />
-                </span>
+          <div className="fuma-content-inspection-studio__header-tools">
+            {!studioSingleInspection ? (
+              <div className="fuma-content-inspection-studio__session-help-control">
+                <button
+                  aria-label="검수 도움말 보기"
+                  className="fuma-content-inspection-studio__session-help-trigger"
+                  onClick={() => {
+                    setStudioHelpTooltipVisible(false);
+                    setStudioTourOpen(true);
+                  }}
+                  type="button"
+                >
+                  <CircleHelp aria-hidden="true" size={20} />
+                </button>
+                <Tooltip
+                  className="fuma-content-inspection-studio__session-help-tooltip"
+                  placement="bottom"
+                  role="status"
+                  visible={studioHelpTooltipVisible}
+                >
+                  도움말을 확인할 수 있습니다.
+                </Tooltip>
               </div>
-              <span className="fuma-content-inspection-studio__queue-actions">
-                <button
-                  aria-label="이전 콘텐츠"
-                  disabled={
-                    !previousContent
-                    || studioActionPending !== null
-                    || studioContentTransition !== "idle"
-                  }
-                  onClick={() => navigateStudioContent(previousContent, "previous")}
-                  type="button"
-                >
-                  <ChevronLeft aria-hidden="true" size={20} />
-                  <span>이전</span>
-                </button>
-                <button
-                  aria-label={studioShowFinish ? "검수 마침" : "다음 콘텐츠"}
-                  disabled={
-                    studioActionPending !== null
-                    || studioContentTransition !== "idle"
-                    || (!studioInspectionComplete && !nextContent)
-                  }
-                  onClick={() => studioInspectionComplete
-                    ? setCompletionOpen(true)
-                    : navigateStudioContent(nextContent, "next")}
-                  type="button"
-                >
-                  <span>{studioShowFinish ? "마침" : "다음"}</span>
-                  {studioShowFinish
-                    ? <CheckCircle2 aria-hidden="true" size={19} />
-                    : <ChevronRight aria-hidden="true" size={20} />}
-                </button>
-              </span>
-            </nav>
-          ) : null}
+            ) : null}
+            {!studioSingleInspection ? (
+              <nav
+                aria-label="검수 콘텐츠 이동"
+                className="fuma-content-inspection-studio__queue"
+                data-studio-tour="queue"
+              >
+                <div className="fuma-content-inspection-studio__queue-progress">
+                  <span>검수 진행</span>
+                  <strong>
+                    {studioInspectionComplete ? (
+                      <b>완료</b>
+                    ) : (
+                      <>
+                        <b>{currentPendingIndex >= 0 ? currentPendingIndex + 1 : 0}</b>
+                        <small> / {pendingContents.length}</small>
+                      </>
+                    )}
+                  </strong>
+                  <span aria-hidden="true" className="fuma-content-inspection-studio__queue-track">
+                    <i style={{ width: `${inspectionProgress}%` }} />
+                  </span>
+                </div>
+                <span className="fuma-content-inspection-studio__queue-actions">
+                  <button
+                    aria-label="이전 콘텐츠"
+                    disabled={!previousContent || studioActionPending !== null}
+                    onClick={() => navigateStudioContent(previousContent, "previous")}
+                    type="button"
+                  >
+                    <ChevronLeft aria-hidden="true" size={20} />
+                    <span>이전</span>
+                  </button>
+                  <button
+                    aria-label={studioShowFinish ? "검수 마침" : "다음 콘텐츠"}
+                    disabled={
+                      studioActionPending !== null
+                      || (!studioInspectionComplete && !nextContent)
+                    }
+                    onClick={() => studioInspectionComplete
+                      ? setCompletionOpen(true)
+                      : navigateStudioContent(nextContent, "next")}
+                    type="button"
+                  >
+                    <span>{studioShowFinish ? "마침" : "다음"}</span>
+                    {studioShowFinish
+                      ? <CheckCircle2 aria-hidden="true" size={19} />
+                      : <ChevronRight aria-hidden="true" size={20} />}
+                  </button>
+                </span>
+              </nav>
+            ) : null}
+          </div>
         </header>
         {content ? (
           <>
-            <aside aria-label="셀렉터스 프로필" className="fuma-content-inspection-studio__profile">
-              {content.selectorsId ? (
-                <button
-                  aria-label={`${selectorNickname} 셀렉터스 상세 보기`}
-                  className="fuma-content-inspection-studio__profile-detail-trigger"
-                  onClick={() => navigate(`/selectors/${content.selectorsId}`)}
-                  type="button"
-                />
-              ) : null}
-              <div className="fuma-content-inspection-studio__profile-identity">
-                <span className="fuma-content-inspection-studio__profile-avatar">
-                  {(snsAccount?.profileImageUrl ?? content.profileImageUrl)
-                    ? (
-                        <CreatorProfilePhoto
-                          creatorName={selectorNickname}
-                          src={snsAccount?.profileImageUrl ?? content.profileImageUrl ?? ""}
-                        />
-                      )
-                    : (
-                        <UserRound
-                          aria-label={`${selectorNickname} 프로필 이미지 없음`}
-                          role="img"
-                          size={24}
-                        />
-                      )}
-                </span>
-                <div>
-                  <strong>{selectorNickname}</strong>
-                  <span className="fuma-content-inspection-studio__profile-meta">
-                    {profileUrl ? (
-                      <a href={profileUrl} rel="noreferrer" target="_blank">
-                        {snsIdLabel}
-                      </a>
-                    ) : <span>{snsIdLabel}</span>}
-                    <PlatformIcon platform={contentPlatform(content.sourcePlatform)} />
+            <div className="fuma-content-inspection-studio__side-rail">
+              <aside
+                aria-label="셀렉터스 프로필"
+                className="fuma-content-inspection-studio__profile"
+                data-studio-tour="profile"
+              >
+                {content.selectorsId ? (
+                  <button
+                    aria-label={`${selectorNickname} 셀렉터스 상세 보기`}
+                    className="fuma-content-inspection-studio__profile-detail-trigger"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setStudioSelectorPanelOpen(true);
+                    }}
+                    type="button"
+                  />
+                ) : null}
+                <div className="fuma-content-inspection-studio__profile-identity">
+                  <span className="fuma-content-inspection-studio__profile-avatar">
+                    {(snsAccount?.profileImageUrl ?? content.profileImageUrl)
+                      ? (
+                          <CreatorProfilePhoto
+                            creatorName={selectorNickname}
+                            src={snsAccount?.profileImageUrl ?? content.profileImageUrl ?? ""}
+                          />
+                        )
+                      : (
+                          <UserRound
+                            aria-label={`${selectorNickname} 프로필 이미지 없음`}
+                            role="img"
+                            size={24}
+                          />
+                        )}
+                  </span>
+                  <div>
+                    <strong>{selectorNickname}</strong>
+                    <span className="fuma-content-inspection-studio__profile-meta">
+                      {profileUrl ? (
+                        <a href={profileUrl} rel="noreferrer" target="_blank">
+                          {snsIdLabel}
+                        </a>
+                      ) : <span>{snsIdLabel}</span>}
+                      <PlatformIcon platform={contentPlatform(content.sourcePlatform)} />
+                    </span>
+                  </div>
+                  <span className="fuma-content-inspection-studio__profile-id">
+                    <small>셀렉터스 ID</small>
+                    <b>{studioSelector?.selectorsCode ?? (content.selectorsId ? `#${content.selectorsId}` : "-")}</b>
                   </span>
                 </div>
-                <span className="fuma-content-inspection-studio__profile-id">
-                  <small>셀렉터스 ID</small>
-                  <b>{studioSelector?.selectorsCode ?? (content.selectorsId ? `#${content.selectorsId}` : "-")}</b>
-                </span>
-              </div>
-              <dl>
+                <dl>
+                  <div>
+                    <dt>팔로워</dt>
+                    <dd>{followerCount == null ? "-" : `${formatCompactCount(followerCount)}명`}</dd>
+                  </div>
+                  <div>
+                    <dt>이번 기수 매출</dt>
+                    <dd>{generationSales == null ? "-" : formatWon(generationSales)}</dd>
+                  </div>
+                  <div>
+                    <dt>등록 콘텐츠</dt>
+                    <dd>{registeredContentCount == null ? "-" : `${formatNumber(registeredContentCount)}건`}</dd>
+                  </div>
+                </dl>
+              </aside>
+              {studioReportContent ? (
+                <aside
+                  aria-label="AI 검수 리포트"
+                  className="fuma-content-inspection-studio__report"
+                  data-read-only={!studioSelectedIsLatest}
+                  data-studio-tour="report"
+                  ref={studioReportRef}
+                >
+
+              <header>
                 <div>
-                  <dt>팔로워</dt>
-                  <dd>{followerCount == null ? "-" : `${formatCompactCount(followerCount)}명`}</dd>
+                  <span>AI ANALYSIS</span>
+                  <strong>검수 리포트</strong>
+                </div>
+                {studioSelectedIsLatest ? (
+                  <button
+                    className="fuma-content-inspection-studio__report-generate"
+                    data-pending={studioActionPending === "report"}
+                    disabled={
+                      studioActionPending !== null
+                      || studioReviewReadOnly
+                      || !studioLatestVersion?.contentVersionId
+                    }
+                    onClick={() => void generateStudioReport()}
+                    type="button"
+                  >
+                    <RefreshCw aria-hidden="true" size={12} />
+                    {studioActionPending === "report"
+                      ? studioReportRefreshVersionId == null ? "생성 중" : "불러오는 중"
+                      : studioReportRefreshVersionId == null ? "리포트 생성" : "리포트 불러오기"}
+                  </button>
+                ) : null}
+              </header>
+              {(studioSelectedIsLatest ? studioActionError : null) || visibleError ? (
+                <p
+                  className="fuma-content-inspection-studio__report-feedback"
+                  data-error="true"
+                  role="alert"
+                >
+                  {(studioSelectedIsLatest ? studioActionError : null) ?? visibleError}
+                </p>
+              ) : studioSelectedIsLatest && studioActionFeedback ? (
+                <p className="fuma-content-inspection-studio__report-feedback" role="status">
+                  {studioActionFeedback}
+                </p>
+              ) : null}
+              <section
+                aria-label="콘텐츠 정보"
+                className="fuma-content-inspection-studio__content-meta"
+              >
+                <div>
+                  <span>최초 수집 일시</span>
+                  <strong>
+                    <time dateTime={studioReportContent.submittedAt}>
+                      {formatInspectionDate(studioReportContent.submittedAt)}
+                    </time>
+                  </strong>
                 </div>
                 <div>
-                  <dt>이번 기수 매출</dt>
-                  <dd>{generationSales == null ? "-" : formatWon(generationSales)}</dd>
+                  <span>수집 일시</span>
+                  <strong>
+                    <time dateTime={studioReportContent.currentSnapshot.capturedAt}>
+                      {formatInspectionDate(studioReportContent.currentSnapshot.capturedAt)}
+                    </time>
+                  </strong>
                 </div>
                 <div>
-                  <dt>등록 콘텐츠</dt>
-                  <dd>{registeredContentCount == null ? "-" : `${formatNumber(registeredContentCount)}건`}</dd>
+                  <span>유형</span>
+                  <strong>{studioReportContent.contentFormat}</strong>
                 </div>
-              </dl>
-            </aside>
+              </section>
+              <section
+                aria-label="콘텐츠 요약"
+                className="fuma-content-inspection-studio__report-summary"
+              >
+                <span>콘텐츠 요약</span>
+                {!studioSelectedReportReady ? (
+                  <p>리포트가 생성되지 않았습니다.</p>
+                ) : studioReportAnalysis && studioReportAnalysis.summaryBullets.length > 0 ? (
+                  <ul>
+                    {studioReportAnalysis.summaryBullets.map((bullet) => (
+                      <li key={bullet}>{bullet}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>요약 정보가 없습니다.</p>
+                )}
+              </section>
+              <section
+                aria-label="위반 내역"
+                className="fuma-content-inspection-studio__report-evidence"
+              >
+                <div>
+                  <span>위반 내역</span>
+                </div>
+                {!studioSelectedReportReady ? (
+                  <p className="fuma-content-inspection-studio__report-empty">
+                    리포트가 생성되지 않았습니다.
+                  </p>
+                ) : studioReportViolationSignals.length > 0 ? (
+                  <ul>
+                    {studioReportViolationSignals.map((signal, index) => {
+                      const judgment = studioSelectedIsLatest
+                        ? studioViolationJudgments[index]
+                        : signal.tone === "critical"
+                          ? "violation"
+                          : signal.tone === "pass" ? "clear" : null;
+                      const focused = studioSelectedCardFocusedViolation?.ordinal === signal.ordinal;
+
+                      return (
+                        <li
+                          data-focused={focused}
+                          data-judgment={judgment ?? "pending"}
+                          data-tone={signal.tone}
+                          data-violation-index={index}
+                          key={`${signal.title}-${signal.source}-${index}`}
+                        >
+                          <button
+                            aria-current={focused}
+                            aria-label={`${issueOrdinalLabel(signal.ordinal)} ${signal.title} 위치로 이동`}
+                            className="fuma-content-inspection-studio__report-evidence-item"
+                            data-focused={focused}
+                            onClick={() => focusStudioReportViolation(index, signal.ordinal)}
+                            type="button"
+                          >
+                            <span className="fuma-content-inspection-evidence__candidate-label">
+                              {issueOrdinalLabel(signal.ordinal)} {signal.title}
+                            </span>
+                            {showsInspectionGuideline(signal) ? (
+                              <aside className="fuma-content-inspection-studio__report-guideline">
+                                <span>검수 기준</span>
+                                <p>{signal.guidance}</p>
+                              </aside>
+                            ) : null}
+                            <p>{signal.detail || signal.evidence}</p>
+                          </button>
+                          {studioSelectedIsLatest && !studioReviewReadOnly ? (
+                            <div
+                              aria-label={`${signal.title} 판정`}
+                              className="fuma-content-inspection-studio__report-choices"
+                              onFocus={() => {
+                                setStudioViolationLocation(null);
+                                setFocusedStudioViolationIndex(index);
+                              }}
+                              role="group"
+                            >
+                              <button
+                                aria-keyshortcuts="1"
+                                aria-pressed={judgment === "violation"}
+                                disabled={
+                                  studioActionPending !== null
+                                  || studioReportRefreshVersionId !== null
+                                }
+                                onClick={() => judgeStudioViolationAndAdvance(index, "violation")}
+                                type="button"
+                              >
+                                위반
+                              </button>
+                              <button
+                                aria-keyshortcuts="2"
+                                aria-pressed={judgment === "clear"}
+                                disabled={
+                                  studioActionPending !== null
+                                  || studioReportRefreshVersionId !== null
+                                }
+                                onClick={() => judgeStudioViolationAndAdvance(index, "clear")}
+                                type="button"
+                              >
+                                위반 허용
+                              </button>
+                            </div>
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : <p className="fuma-content-inspection-studio__report-empty">위반 사항이 없습니다.</p>}
+              </section>
+              {studioSelectedReportReady && studioReportAnalysis ? (
+                <GuidelineComplianceDetails analysis={studioReportAnalysis} />
+              ) : null}
+                </aside>
+              ) : null}
+            </div>
             <section
               aria-label="콘텐츠 버전 비교"
               className="fuma-content-inspection-studio__versions"
               data-content-format={contentCollectionFormatKey(content.contentFormat)}
               data-content-transition={studioContentTransition}
               data-revised={studioHasHistoricalVersion}
+              data-studio-tour="versions"
             >
               {studioHasHistoricalVersion ? (
                 <div className="fuma-content-inspection-studio__history">
@@ -3493,192 +3752,12 @@ export function ContentInspectionDetailPage() {
             </section>
           </>
         ) : null}
-        {studioReportContent ? (
-          <aside
-            aria-label="AI 검수 리포트"
-            className="fuma-content-inspection-studio__report"
-            data-read-only={!studioSelectedIsLatest}
-            ref={studioReportRef}
-          >
-            <header>
-              <div>
-                <span>AI ANALYSIS</span>
-                <strong>검수 리포트</strong>
-              </div>
-              {studioSelectedIsLatest ? (
-                <button
-                  className="fuma-content-inspection-studio__report-generate"
-                  data-pending={studioActionPending === "report"}
-                  disabled={
-                    studioActionPending !== null
-                    || studioReviewReadOnly
-                    || !studioLatestVersion?.contentVersionId
-                  }
-                  onClick={() => void generateStudioReport()}
-                  type="button"
-                >
-                  <RefreshCw aria-hidden="true" size={12} />
-                  {studioActionPending === "report"
-                    ? studioReportRefreshVersionId == null ? "생성 중" : "불러오는 중"
-                    : studioReportRefreshVersionId == null ? "리포트 생성" : "리포트 불러오기"}
-                </button>
-              ) : null}
-            </header>
-            {(studioSelectedIsLatest ? studioActionError : null) || visibleError ? (
-              <p
-                className="fuma-content-inspection-studio__report-feedback"
-                data-error="true"
-                role="alert"
-              >
-                {(studioSelectedIsLatest ? studioActionError : null) ?? visibleError}
-              </p>
-            ) : studioSelectedIsLatest && studioActionFeedback ? (
-              <p className="fuma-content-inspection-studio__report-feedback" role="status">
-                {studioActionFeedback}
-              </p>
-            ) : null}
-            <section
-              aria-label="콘텐츠 정보"
-              className="fuma-content-inspection-studio__content-meta"
-            >
-              <div>
-                <span>최초 등록일</span>
-                <strong>
-                  <time dateTime={studioReportContent.submittedAt}>
-                    {formatInspectionDate(studioReportContent.submittedAt)}
-                  </time>
-                </strong>
-              </div>
-              <div>
-                <span>마지막 수정</span>
-                <strong>
-                  <time dateTime={studioReportContent.currentSnapshot.capturedAt}>
-                    {formatInspectionDate(studioReportContent.currentSnapshot.capturedAt)}
-                  </time>
-                </strong>
-              </div>
-              <div>
-                <span>콘텐츠 유형</span>
-                <strong>{studioReportContent.contentFormat}</strong>
-              </div>
-            </section>
-            <section
-              aria-label="콘텐츠 요약"
-              className="fuma-content-inspection-studio__report-summary"
-            >
-              <span>콘텐츠 요약</span>
-              {!studioSelectedReportReady ? (
-                <p>리포트가 생성되지 않았습니다.</p>
-              ) : studioReportAnalysis && studioReportAnalysis.summaryBullets.length > 0 ? (
-                <ul>
-                  {studioReportAnalysis.summaryBullets.map((bullet) => (
-                    <li key={bullet}>{bullet}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p>요약 정보가 없습니다.</p>
-              )}
-            </section>
-            <section
-              aria-label="위반 내역"
-              className="fuma-content-inspection-studio__report-evidence"
-            >
-              <div>
-                <span>위반 내역</span>
-              </div>
-              {!studioSelectedReportReady ? (
-                <p className="fuma-content-inspection-studio__report-empty">
-                  리포트가 생성되지 않았습니다.
-                </p>
-              ) : studioReportViolationSignals.length > 0 ? (
-                <ul>
-                  {studioReportViolationSignals.map((signal, index) => {
-                    const judgment = studioSelectedIsLatest
-                      ? studioViolationJudgments[index]
-                      : signal.tone === "critical"
-                        ? "violation"
-                        : signal.tone === "pass" ? "clear" : null;
-                    const focused = studioSelectedCardFocusedViolation?.ordinal === signal.ordinal;
-
-                    return (
-                      <li
-                        data-focused={focused}
-                        data-judgment={judgment ?? "pending"}
-                        data-tone={signal.tone}
-                        data-violation-index={index}
-                        key={`${signal.title}-${signal.source}-${index}`}
-                      >
-                        <button
-                          aria-current={focused}
-                          aria-label={`${issueOrdinalLabel(signal.ordinal)} ${signal.title} 위치로 이동`}
-                          className="fuma-content-inspection-studio__report-evidence-item"
-                          data-focused={focused}
-                          onClick={() => focusStudioReportViolation(index, signal.ordinal)}
-                          type="button"
-                        >
-                          <span className="fuma-content-inspection-evidence__candidate-label">
-                            {issueOrdinalLabel(signal.ordinal)} {signal.title}
-                          </span>
-                          {showsInspectionGuideline(signal) ? (
-                            <aside className="fuma-content-inspection-studio__report-guideline">
-                              <span>검수 기준</span>
-                              <p>{signal.guidance}</p>
-                            </aside>
-                          ) : null}
-                          <p>{signal.detail || signal.evidence}</p>
-                        </button>
-                        {studioSelectedIsLatest && !studioReviewReadOnly ? (
-                          <div
-                            aria-label={`${signal.title} 판정`}
-                            className="fuma-content-inspection-studio__report-choices"
-                            onFocus={() => {
-                              setStudioViolationLocation(null);
-                              setFocusedStudioViolationIndex(index);
-                            }}
-                            role="group"
-                          >
-                            <button
-                              aria-keyshortcuts="1"
-                              aria-pressed={judgment === "violation"}
-                              disabled={
-                                studioActionPending !== null
-                                || studioReportRefreshVersionId !== null
-                              }
-                              onClick={() => judgeStudioViolationAndAdvance(index, "violation")}
-                              type="button"
-                            >
-                              위반
-                            </button>
-                            <button
-                              aria-keyshortcuts="2"
-                              aria-pressed={judgment === "clear"}
-                              disabled={
-                                studioActionPending !== null
-                                || studioReportRefreshVersionId !== null
-                              }
-                              onClick={() => judgeStudioViolationAndAdvance(index, "clear")}
-                              type="button"
-                            >
-                              위반 허용
-                            </button>
-                          </div>
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : <p className="fuma-content-inspection-studio__report-empty">위반 사항이 없습니다.</p>}
-            </section>
-            {studioSelectedReportReady && studioReportAnalysis ? (
-              <GuidelineComplianceDetails analysis={studioReportAnalysis} />
-            ) : null}
-          </aside>
-        ) : null}
         {studioSelectedIsLatest ? (
           <div
           aria-label="최종 검수"
           className="fuma-content-inspection-studio__decision"
           data-active={studioFinalFocused}
+          data-studio-tour="decision"
           ref={studioDecisionRef}
           role="group"
           tabIndex={-1}
@@ -3719,64 +3798,24 @@ export function ContentInspectionDetailPage() {
           </button>
           </div>
         ) : null}
-        <div
-          className="fuma-content-inspection-studio__session-help-control"
-          data-expanded={studioHelpVisible}
-        >
-          <button
-            aria-expanded={studioHelpVisible}
-            aria-label="검수 도움말 보기"
-            className="fuma-content-inspection-studio__session-help-trigger"
-            onClick={() => setStudioHelpVisible(true)}
-            type="button"
-          >
-            <CircleHelp aria-hidden="true" size={22} />
-          </button>
-          <Tooltip
-            aria-label="검수 조작 도움말"
-            className="fuma-content-inspection-studio__report-choice-tooltip fuma-content-inspection-studio__navigation-tooltip fuma-content-inspection-studio__session-help"
-            placement="none"
-            role="status"
-            visible
-          >
-            <span className="fuma-content-inspection-studio__session-help-title">
-              <small>QUICK GUIDE</small>
-              <strong>검수 단축키</strong>
-            </span>
-            {!studioSingleInspection ? (
-              <span className="fuma-content-inspection-studio__session-help-item">
-                <span className="fuma-content-inspection-studio__session-help-mouse" aria-hidden="true">
-                  <Mouse size={32} strokeWidth={1.8} />
-                </span>
-                <span className="fuma-content-inspection-studio__session-help-copy">
-                  <small>마우스 휠</small>
-                  <strong>이전 / 다음</strong>
-                </span>
-              </span>
-            ) : null}
-            <span className="fuma-content-inspection-studio__session-help-item">
-              <kbd>1</kbd>
-              <span className="fuma-content-inspection-studio__session-help-copy">
-                <small>숫자 키</small>
-                <strong>반려</strong>
-              </span>
-            </span>
-            <span className="fuma-content-inspection-studio__session-help-item">
-              <kbd>2</kbd>
-              <span className="fuma-content-inspection-studio__session-help-copy">
-                <small>숫자 키</small>
-                <strong>승인</strong>
-              </span>
-            </span>
-            <span className="fuma-content-inspection-studio__session-help-item">
-              <kbd>ESC</kbd>
-              <span className="fuma-content-inspection-studio__session-help-copy">
-                <small>키보드</small>
-                <strong>나가기</strong>
-              </span>
-            </span>
-          </Tooltip>
-        </div>
+        {studioTourOpen ? (
+          <ContentInspectionStudioTour
+            onClose={() => setStudioTourOpen(false)}
+            singleInspection={studioSingleInspection}
+          />
+        ) : null}
+        {studioSelectorPanelOpen ? (
+          <SelectorDetailPanel
+            onClose={() => setStudioSelectorPanelOpen(false)}
+            selectorDetail={studioSelector}
+            selectorDetailError={studioSelectorError}
+            selectorDetailLoading={
+              Boolean(content?.selectorsId)
+              && studioSelector == null
+              && !studioSelectorError
+            }
+          />
+        ) : null}
         <BubbleDialog
           actions={(
             <button
