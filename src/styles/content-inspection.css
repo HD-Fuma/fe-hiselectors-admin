@@ -5327,9 +5327,9 @@ html[data-theme="dark"] .fuma-text-inspection-detail {
   left: auto;
   z-index: 30;
   width: max-content;
-  max-width: 210px;
+  max-width: none;
   color: #fff;
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .fuma-content-inspection-start-tooltip:hover > .hsas-tooltip,

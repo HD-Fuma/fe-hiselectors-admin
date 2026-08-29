@@ -259,8 +259,8 @@ test("uses an isolated action layout and a readable success text token", () => {
   )?.[1];
   expect(startTooltipRule).toMatch(/position:\s*absolute;/);
   expect(startTooltipRule).toMatch(/bottom:\s*calc\(100% \+ var\(--hsas-space-8\)\);/);
-  expect(startTooltipRule).toMatch(/max-width:\s*210px;/);
-  expect(startTooltipRule).toMatch(/white-space:\s*normal;/);
+  expect(startTooltipRule).toMatch(/max-width:\s*none;/);
+  expect(startTooltipRule).toMatch(/white-space:\s*nowrap;/);
   const feedbackRule = contentInspectionStyles.match(
     /\.fuma-content-inspection-collection-feedback\s*\{([^}]*)\}/,
   )?.[1];
