@@ -70,6 +70,7 @@ import {
   type ContentAnnotation,
   type ContentAnnotationTarget,
   type ContentInspectionFixture,
+  type ContentReportAnalysisInsight,
   type ContentInspectionConfirmationRequest,
   type ContentSnapshot,
   type InspectionStatus,
@@ -133,15 +134,55 @@ function latestContentVersion(content: ContentInspectionFixture) {
 }
 
 function contentSummaryBullets(content: ContentInspectionFixture) {
+  const overview = content.report.analysis?.overview;
   return [
-    content.aiSummary,
-    content.report.purpose,
-    content.report.flow,
+    overview?.summary || content.aiSummary,
+    overview?.purpose || content.report.purpose,
+    overview?.flow || content.report.flow,
+    overview?.overallAssessment || content.report.overallAssessment,
   ].flatMap((value) => {
     const text = value?.trim();
     if (!text || text === "분석 대기" || text === "분석 완료") return [];
     return [text];
   });
+}
+
+function reportInsightRows(insight: ContentReportAnalysisInsight) {
+  const join = (values: readonly string[]) => values.map((value) => value.trim()).filter(Boolean);
+  return [
+    ["스타일", insight.contentStyle],
+    ["강점", join(insight.strengths).join(", ")],
+    ["주의", join(insight.cautions).join(", ")],
+    ["혐오 표현", insight.hateConfirmed ? "확인됨" : ""],
+  ].flatMap(([label, value]) => {
+    const text = value.trim();
+    return text ? [{ label, value: text }] : [];
+  });
+}
+
+function ContentReportInsight({
+  insight,
+  className,
+}: {
+  insight: ContentReportAnalysisInsight | null | undefined;
+  className?: string;
+}) {
+  const rows = insight ? reportInsightRows(insight) : [];
+  if (rows.length === 0) return null;
+
+  return (
+    <section aria-label="상세 분석" className={className}>
+      <span>상세 분석</span>
+      <dl>
+        {rows.map((row) => (
+          <div key={row.label}>
+            <dt>{row.label}</dt>
+            <dd>{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
 }
 
 type InspectionIssueSignal = ContentInspectionFixture["report"]["signals"][number] & {
@@ -168,17 +209,22 @@ function inspectionPassSignals(content: ContentInspectionFixture) {
   ));
 }
 
-function inspectionAnalysisData(content: ContentInspectionFixture) {
-  const issues = inspectionIssueSignals(content);
-  const passSignals = inspectionPassSignals(content);
-  const receivedViolationTypes = new Set(
-    content.report.signals.flatMap(({ violationItemId, violationType }) => (
-      violationItemId != null && violationType ? [violationType] : []
-    )),
+function inspectionAnalysisData(
+  content: ContentInspectionFixture,
+  issues = inspectionIssueSignals(content),
+) {
+  const openViolationTypes = new Set(
+    issues.flatMap(({ violationType }) => violationType ? [violationType] : []),
+  );
+  const catalogTypes = new Set(
+    CONTENT_VIOLATION_TYPE_OPTIONS.map(({ value }) => value),
   );
   const normalViolationTypes = CONTENT_VIOLATION_TYPE_OPTIONS.filter(
-    ({ value }) => !receivedViolationTypes.has(value),
+    ({ value }) => !openViolationTypes.has(value),
   );
+  const passSignals = inspectionPassSignals(content).filter(({ violationType }) => (
+    violationType == null || !catalogTypes.has(violationType)
+  ));
 
   return {
     issues,
@@ -868,12 +914,14 @@ function indexedViolationAnnotations(
     });
 
   if (snapshot === content.currentSnapshot) {
-    candidates.forEach((signal) => {
-      if (signal.locationAvailable !== false
-        && !annotations.some((annotation) => annotationMatchesSignal(annotation, signal))) {
-        annotations.push(annotationFromSignal(signal, snapshot, signal.ordinal));
-      }
-    });
+    candidates
+      .filter((signal) => signal.violationStatus == null || signal.violationStatus === "PENDING")
+      .forEach((signal) => {
+        if (signal.locationAvailable !== false
+          && !annotations.some((annotation) => annotationMatchesSignal(annotation, signal))) {
+          annotations.push(annotationFromSignal(signal, snapshot, signal.ordinal));
+        }
+      });
   }
 
   return annotations.sort((left, right) => left.ordinal - right.ordinal);
@@ -1873,6 +1921,10 @@ function MinimalAiAnalysis({
                 <p>요약 정보가 없습니다.</p>
               )}
             </section>
+            <ContentReportInsight
+              className="fuma-content-analysis-insight"
+              insight={content.report.analysis?.insight}
+            />
             <section aria-label="위반 내역" className="fuma-content-inspection-evidence">
               <header>
                 <h4>위반 내역</h4>
@@ -2446,11 +2498,17 @@ export function ContentInspectionDetailPage() {
     && selectedStudioVersionId === displayedStudioHistoricalContent?.contentVersionId;
   const studioSelectedIsLatest = selectedStudioVersionId === null;
   const studioReportContent = studioSelectedIsLatest ? content : selectedStudioHistoricalContent;
-  const studioReportAnalysis = useMemo(
-    () => studioReportContent ? inspectionAnalysisData(studioReportContent) : null,
-    [studioReportContent],
-  );
   const studioReviewReadOnly = content != null && content.inspectionStatus !== "검수 대기";
+  const studioReportAnalysis = useMemo(
+    () => {
+      if (!studioReportContent) return null;
+      const visibleIssues = studioSelectedIsLatest && !studioReviewReadOnly
+        ? pendingInspectionCandidates(studioReportContent)
+        : inspectionIssueSignals(studioReportContent);
+      return inspectionAnalysisData(studioReportContent, visibleIssues);
+    },
+    [studioReportContent, studioReviewReadOnly, studioSelectedIsLatest],
+  );
   const studioViolationSignals = useMemo(
     () => content
       ? studioReviewReadOnly
@@ -2696,9 +2754,12 @@ export function ContentInspectionDetailPage() {
       if (error instanceof Error && error.name === "AbortError") return;
       if (inspectedVersionId != null) {
         setStudioReportRefreshVersionId(inspectedVersionId);
+        const reason = error instanceof Error && error.message.trim()
+          ? error.message
+          : "콘텐츠 상세 조회에 실패했습니다.";
         setStudioActionError(versionCreated == null
-          ? "생성된 리포트를 불러오지 못했습니다. 다시 눌러 불러오세요."
-          : "리포트 생성은 완료됐지만 불러오지 못했습니다. 다시 눌러 불러오세요.");
+          ? `생성된 리포트를 불러오지 못했습니다. 다시 눌러 불러오세요. (${reason})`
+          : `리포트 생성은 완료됐지만 불러오지 못했습니다. 다시 눌러 불러오세요. (${reason})`);
       } else {
         setStudioActionError(error instanceof Error
           ? error.message
@@ -3534,6 +3595,12 @@ export function ContentInspectionDetailPage() {
                   <p>요약 정보가 없습니다.</p>
                 )}
               </section>
+              {studioSelectedReportReady ? (
+                <ContentReportInsight
+                  className="fuma-content-inspection-studio__report-insight"
+                  insight={studioReportContent.report.analysis?.insight}
+                />
+              ) : null}
               <section
                 aria-label="위반 내역"
                 className="fuma-content-inspection-studio__report-evidence"

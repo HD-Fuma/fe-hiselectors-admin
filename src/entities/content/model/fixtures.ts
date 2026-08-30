@@ -1,4 +1,8 @@
-import type { ContentInspectionDecision, ContentViolationType } from "../api";
+import type {
+  ContentInspectionDecision,
+  ContentReportAnalysis,
+  ContentViolationType,
+} from "../api";
 
 export type InspectionType = "NEW" | "VIOLATION_CORRECTION" | "EDITED";
 export type InspectionStatus = "검수 대기" | "수정 요청" | "승인" | "위반";
@@ -106,6 +110,7 @@ export interface ContentInspectionReport {
   purpose?: string | null;
   flow?: string | null;
   overallAssessment?: string | null;
+  analysis?: ContentReportAnalysis | null;
 }
 
 export interface ContentInspectionVersionSummary {

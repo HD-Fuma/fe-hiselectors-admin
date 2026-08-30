@@ -19,6 +19,8 @@ export type {
   ContentInspectionSnsCode,
   ContentInspectionRunResponse,
   ContentReport,
+  ContentReportAnalysis,
+  ContentReportAnalysisInsight,
   ContentVersionDetail,
   ContentVersionMedia,
   ContentVersionSummary,

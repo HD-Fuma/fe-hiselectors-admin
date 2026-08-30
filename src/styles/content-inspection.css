@@ -1219,6 +1219,68 @@ button.fuma-content-inspection-studio__violation-bubble {
   margin-top: 4px;
 }
 
+.fuma-content-inspection-studio__report-insight {
+  min-width: 0;
+  margin-top: 15px;
+  padding-bottom: 17px;
+  border-bottom: 1px solid rgb(32 34 36 / 8%);
+}
+
+.fuma-content-inspection-studio__report-insight > span,
+.fuma-content-analysis-insight > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: rgb(32 34 36 / 82%);
+  font-size: var(--hsas-font-13);
+  font-weight: 850;
+}
+
+.fuma-content-inspection-studio__report-insight > span::before,
+.fuma-content-analysis-insight > span::before {
+  width: 4px;
+  height: 14px;
+  flex: 0 0 4px;
+  border-radius: 999px;
+  background: rgb(32 34 36 / 76%);
+  content: "";
+}
+
+.fuma-content-inspection-studio__report-insight dl,
+.fuma-content-analysis-insight dl {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+}
+
+.fuma-content-inspection-studio__report-insight dl > div,
+.fuma-content-analysis-insight dl > div {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.fuma-content-inspection-studio__report-insight dt,
+.fuma-content-analysis-insight dt {
+  color: rgb(32 34 36 / 52%);
+  font-size: var(--hsas-font-12);
+  font-weight: 700;
+}
+
+.fuma-content-inspection-studio__report-insight dd,
+.fuma-content-analysis-insight dd {
+  margin: 0;
+  color: rgb(32 34 36 / 76%);
+  font-size: var(--hsas-font-13);
+  line-height: 1.5;
+}
+
+.fuma-content-analysis-insight {
+  display: grid;
+  gap: var(--hsas-space-8);
+}
+
 .fuma-content-inspection-studio__report-evidence {
   min-width: 0;
   margin-top: 17px;
