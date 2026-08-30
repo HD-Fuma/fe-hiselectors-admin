@@ -290,6 +290,30 @@ export function getSelectors(input: SelectorSearchRequest, signal?: AbortSignal)
   );
 }
 
+export interface SelectorTestResetRequest {
+  snsCode: SelectorSnsCode;
+  accountId: string;
+}
+
+export interface SelectorTestResetResult {
+  snsCode: SelectorSnsCode;
+  accountId: string;
+  selectorsIds: number[];
+  applicationIds: number[];
+  deletedRowCount: number;
+  /** 테이블별 삭제 행 수. 0건인 테이블은 담기지 않는다. */
+  deletedRowCounts: Record<string, number>;
+}
+
+/** 테스트 계정을 지원 이전 상태로 되돌린다. 되돌릴 수 없다. */
+export function resetSelectorTestAccount(input: SelectorTestResetRequest) {
+  return request<SelectorTestResetResult>(
+    `/api/admin/selectors/test-reset?${query({ ...input })}`,
+    "테스트 계정 리셋에 실패했습니다.",
+    { method: "DELETE" },
+  );
+}
+
 export function getSelector(id: number, signal?: AbortSignal) {
   return request<SelectorDetail>(
     `/api/admin/selectors/${id}`,

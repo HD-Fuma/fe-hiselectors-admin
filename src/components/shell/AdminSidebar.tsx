@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Settings,
   Sun,
+  UserRoundX,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -20,6 +21,8 @@ import { CREATOR_POOL_RESET_EVENT } from "../../lib/creatorPoolEvents";
 import { applyTheme, getTheme, saveTheme } from "../../lib/theme";
 import { resetContentInspections } from "../../entities/content";
 import { resetCreatorPool } from "../../entities/creator";
+import { resetSelectorTestAccount } from "../../entities/selectors";
+import type { SelectorSnsCode } from "../../entities/selectors";
 import {
   clearAdministratorSession,
   getAdministratorSession,
@@ -30,7 +33,7 @@ import type {
   NavGroupMeta,
 } from "./navigationModel";
 import { BubbleDialog } from "../ui/BubbleDialog";
-import { Button, TextInput } from "../ui/Controls";
+import { Button, Select, TextInput } from "../ui/Controls";
 import { FormRow } from "../ui/FormRow";
 import { Modal } from "../ui/Modal";
 import "../../styles/sidebar-account.css";
@@ -51,6 +54,15 @@ const THEME_OPTIONS = [
 
 const THEME_SETTINGS_ID = "hsas-theme-settings";
 const CREATOR_POOL_RESET_CONFIRMATION = "초기화";
+
+const TEST_RESET_SNS_OPTIONS: readonly { value: SelectorSnsCode; label: string }[] = [
+  { value: "INSTAGRAM", label: "Instagram" },
+  { value: "YOUTUBE", label: "YouTube" },
+];
+const TEST_RESET_DEFAULT_ACCOUNT_IDS: Record<SelectorSnsCode, string> = {
+  INSTAGRAM: "@hi_selectors",
+  YOUTUBE: "UCD2RQE52TloxzZxZ2fyq8HQ",
+};
 
 interface AdminSidebarProps {
   activeRoute: AdminRouteMeta;
@@ -95,8 +107,16 @@ export function AdminSidebar({
   const [isCreatorResetting, setCreatorResetting] = useState(false);
   const [creatorResetConfirmation, setCreatorResetConfirmation] = useState("");
   const [creatorResetError, setCreatorResetError] = useState("");
+  const [isTestResetDialogOpen, setTestResetDialogOpen] = useState(false);
+  const [isTestResetting, setTestResetting] = useState(false);
+  const [testResetSnsCode, setTestResetSnsCode] = useState<SelectorSnsCode>("YOUTUBE");
+  const [testResetAccountId, setTestResetAccountId] = useState(
+    TEST_RESET_DEFAULT_ACCOUNT_IDS.YOUTUBE,
+  );
+  const [testResetError, setTestResetError] = useState("");
   const [theme, setTheme] = useState(getTheme);
   const creatorResetDescriptionId = useId();
+  const testResetDescriptionId = useId();
   const settingsRef = useRef<HTMLDivElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<NavGroup>>(
@@ -108,15 +128,17 @@ export function AdminSidebar({
   useEffect(() => {
     if (!isSettingsOpen) return undefined;
 
+    // 모달이 떠 있는 동안은 팝오버를 살려 둔다. 모달을 닫으면 다시 여기로 돌아온다.
+    const isModalOpen = isCreatorResetDialogOpen || isTestResetDialogOpen;
     const closeOnPointerDown = (event: PointerEvent) => {
-      if (isCreatorResetDialogOpen) return;
+      if (isModalOpen) return;
       if (event.target instanceof Node && !settingsRef.current?.contains(event.target)) {
         setSettingsOpen(false);
         setThemeMenuOpen(false);
       }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (isCreatorResetDialogOpen) return;
+      if (isModalOpen) return;
       if (event.key !== "Escape") return;
       setSettingsOpen(false);
       setThemeMenuOpen(false);
@@ -129,7 +151,7 @@ export function AdminSidebar({
       document.removeEventListener("pointerdown", closeOnPointerDown);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [isCreatorResetDialogOpen, isSettingsOpen]);
+  }, [isCreatorResetDialogOpen, isSettingsOpen, isTestResetDialogOpen]);
 
   const toggleGroup = (groupId: NavGroup) => {
     setExpandedGroups((current) => {
@@ -165,6 +187,44 @@ export function AdminSidebar({
     setCreatorResetDialogOpen(false);
     setCreatorResetConfirmation("");
     setCreatorResetError("");
+  };
+
+  const closeTestReset = () => {
+    setTestResetDialogOpen(false);
+    setTestResetSnsCode("YOUTUBE");
+    setTestResetAccountId(TEST_RESET_DEFAULT_ACCOUNT_IDS.YOUTUBE);
+    setTestResetError("");
+  };
+
+  const openTestReset = () => {
+    setResetFeedback(null);
+    setTestResetSnsCode("YOUTUBE");
+    setTestResetAccountId(TEST_RESET_DEFAULT_ACCOUNT_IDS.YOUTUBE);
+    setTestResetError("");
+    setTestResetDialogOpen(true);
+    setThemeMenuOpen(false);
+  };
+
+  const resetTestAccount = async () => {
+    setTestResetting(true);
+    setTestResetError("");
+    try {
+      const result = await resetSelectorTestAccount({
+        snsCode: testResetSnsCode,
+        accountId: testResetAccountId,
+      });
+      closeTestReset();
+      setResetFeedback(
+        `${result.accountId} 계정을 리셋했습니다. 셀렉터스 ${result.selectorsIds.length}건,`
+        + ` 지원 ${result.applicationIds.length}건 포함 ${result.deletedRowCount}행을 삭제했습니다.`,
+      );
+    } catch (error) {
+      setTestResetError(
+        error instanceof Error ? error.message : "셀렉터스 데이터 삭제에 실패했습니다.",
+      );
+    } finally {
+      setTestResetting(false);
+    }
   };
 
   const resetPool = async () => {
@@ -411,6 +471,16 @@ export function AdminSidebar({
                     <RotateCcw aria-hidden="true" />
                     <span>검수 상태 초기화</span>
                   </button>
+                  <button
+                    className="hsas-theme-settings__item hsas-theme-settings__item--danger"
+                    onClick={() => {
+                      openTestReset();
+                    }}
+                    type="button"
+                  >
+                    <UserRoundX aria-hidden="true" />
+                    <span>테스트용 셀렉터스 삭제</span>
+                  </button>
                 </div>
                 {resetFeedback ? (
                   <p className="hsas-theme-settings__feedback" role="status">
@@ -481,6 +551,62 @@ export function AdminSidebar({
                 />
               </FormRow>
               {creatorResetError ? <p role="alert">{creatorResetError}</p> : null}
+            </Modal>
+            <Modal
+              actions={(
+                <>
+                  <Button disabled={isTestResetting} onClick={closeTestReset}>취소</Button>
+                  <Button
+                    disabled={isTestResetting
+                      || !testResetAccountId.trim()}
+                    onClick={() => void resetTestAccount()}
+                    variant="danger"
+                  >
+                    {isTestResetting ? "삭제 중..." : "영구 삭제"}
+                  </Button>
+                </>
+              )}
+              ariaDescribedBy={testResetDescriptionId}
+              onClose={isTestResetting ? undefined : closeTestReset}
+              open={isTestResetDialogOpen}
+              role="alertdialog"
+              title="셀렉터스 데이터 영구 삭제"
+            >
+              <div id={testResetDescriptionId}>
+                <p>
+                  입력한 SNS 계정의 셀렉터스와 지원서, 그리고 연결된 콘텐츠·검수·패널티·정산·구매
+                  기록을 모두 물리 삭제합니다.
+                </p>
+                <p>로그인 계정은 유지되며 같은 HiID로 지원부터 다시 진행할 수 있습니다.</p>
+              </div>
+              <FormRow label="플랫폼" required>
+                <Select
+                  aria-label="삭제 대상 플랫폼"
+                  disabled={isTestResetting}
+                  onChange={(event) => {
+                    const snsCode = event.target.value as SelectorSnsCode;
+                    setTestResetSnsCode(snsCode);
+                    setTestResetAccountId(TEST_RESET_DEFAULT_ACCOUNT_IDS[snsCode]);
+                    setTestResetError("");
+                  }}
+                  options={TEST_RESET_SNS_OPTIONS}
+                  value={testResetSnsCode}
+                />
+              </FormRow>
+              <FormRow label="계정 ID" required>
+                <TextInput
+                  aria-label="삭제 대상 계정 ID"
+                  autoComplete="off"
+                  disabled={isTestResetting}
+                  onChange={(event) => {
+                    setTestResetAccountId(event.target.value);
+                    setTestResetError("");
+                  }}
+                  placeholder={TEST_RESET_DEFAULT_ACCOUNT_IDS[testResetSnsCode]}
+                  value={testResetAccountId}
+                />
+              </FormRow>
+              {testResetError ? <p role="alert">{testResetError}</p> : null}
             </Modal>
           </div>
           <button
