@@ -343,6 +343,93 @@ test("resets the creator pool from environment settings after typed confirmation
   ))).toHaveLength(2));
 });
 
+test("resets YouTube and Instagram test data from editable default identifiers in settings", async () => {
+  const fetchMock = vi.fn((input: RequestInfo | URL) => {
+    if (String(input).includes("/api/admin/selectors/test-reset")) {
+      return Promise.resolve(new Response(JSON.stringify({
+        success: true,
+        data: {
+          snsCode: "INSTAGRAM",
+          accountId: "hi_selectors",
+          selectorsIds: [7],
+          applicationIds: [11],
+          deletedRowCount: 23,
+          deletedRowCounts: { selectors: 1, application: 1 },
+        },
+      })));
+    }
+    return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} })));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  renderRoute("/dashboard");
+
+  fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
+  const settings = screen.getByRole("group", { name: "환경설정" });
+  fireEvent.click(within(settings).getByRole("button", { name: "셀렉터스 데이터 영구 삭제" }));
+
+  const dialog = screen.getByRole("alertdialog", { name: "셀렉터스 데이터 영구 삭제" });
+  const confirm = within(dialog).getByRole("button", { name: "영구 삭제" });
+  expect(confirm).toBeEnabled();
+  expect(within(dialog).getByRole("textbox", { name: "삭제 대상 계정 ID" }))
+    .toHaveValue("UCD2RQE52TloxzZxZ2fyq8HQ");
+
+  fireEvent.change(within(dialog).getByRole("combobox", { name: "삭제 대상 플랫폼" }), {
+    target: { value: "INSTAGRAM" },
+  });
+  expect(within(dialog).getByRole("textbox", { name: "삭제 대상 계정 ID" }))
+    .toHaveValue("@hi_selectors");
+  fireEvent.click(confirm);
+
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+    expect.stringContaining("/api/admin/selectors/test-reset?"),
+    expect.objectContaining({ method: "DELETE" }),
+  ));
+  expect(String(fetchMock.mock.calls.find(([input]) => (
+    String(input).includes("/api/admin/selectors/test-reset")
+  ))?.[0])).toContain("snsCode=INSTAGRAM");
+  expect(String(fetchMock.mock.calls.find(([input]) => (
+    String(input).includes("/api/admin/selectors/test-reset")
+  ))?.[0])).toContain("accountId=%40hi_selectors");
+
+  await waitFor(() => expect(screen.queryByRole("alertdialog", {
+    name: "셀렉터스 데이터 영구 삭제",
+  })).not.toBeInTheDocument());
+  expect(within(settings).getByRole("status"))
+    .toHaveTextContent("hi_selectors 계정을 리셋했습니다.");
+});
+
+test("keeps deletion ready when the platform changes", () => {
+  renderRoute("/dashboard");
+
+  fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
+  const settings = screen.getByRole("group", { name: "환경설정" });
+  fireEvent.click(within(settings).getByRole("button", { name: "셀렉터스 데이터 영구 삭제" }));
+
+  const dialog = screen.getByRole("alertdialog", { name: "셀렉터스 데이터 영구 삭제" });
+  const confirm = within(dialog).getByRole("button", { name: "영구 삭제" });
+  expect(confirm).toBeEnabled();
+
+  fireEvent.change(within(dialog).getByRole("combobox", { name: "삭제 대상 플랫폼" }), {
+    target: { value: "INSTAGRAM" },
+  });
+  expect(confirm).toBeEnabled();
+});
+
+test("keeps the settings popover open behind the test reset dialog", () => {
+  vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => undefined)));
+  renderRoute("/dashboard");
+
+  fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
+  const settings = screen.getByRole("group", { name: "환경설정" });
+  fireEvent.click(within(settings).getByRole("button", { name: "셀렉터스 데이터 영구 삭제" }));
+  const dialog = screen.getByRole("alertdialog", { name: "셀렉터스 데이터 영구 삭제" });
+
+  fireEvent.keyDown(document, { key: "Escape" });
+
+  expect(settings).toBeInTheDocument();
+  expect(dialog).toBeInTheDocument();
+});
+
 test("keeps settings focus behind the creator reset dialog while a request is running", async () => {
   vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => undefined)));
   renderRoute("/dashboard");

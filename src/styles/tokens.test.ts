@@ -136,4 +136,16 @@ describe("shared component visual contracts", () => {
       /--hsas-sidebar-hover:\s*#eee;/,
     );
   });
+
+  test("keeps environment setting actions on one line", () => {
+    const popoverRule = accountStyles.match(
+      /\.hsas-theme-settings-popover\s*\{([^}]*)\}/,
+    )?.[1];
+    const itemRule = accountStyles.match(
+      /\.hsas-theme-settings__item\s*\{([^}]*)\}/,
+    )?.[1];
+
+    expect(popoverRule).toMatch(/width:\s*220px;/);
+    expect(itemRule).toMatch(/white-space:\s*nowrap;/);
+  });
 });
