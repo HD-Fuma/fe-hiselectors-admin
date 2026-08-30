@@ -367,6 +367,94 @@ test("keeps analysis pending when the latest version has no report yet", () => {
   });
 });
 
+test("synthesizes a text-start pin when absence violations have no locations", () => {
+  const adaptContentInspectionDetail = (
+    contentEntity as unknown as { adaptContentInspectionDetail?: AdaptContentInspectionDetail }
+  ).adaptContentInspectionDetail;
+  expect(adaptContentInspectionDetail).toBeTypeOf("function");
+  if (!adaptContentInspectionDetail) return;
+
+  const inspection = adaptContentInspectionDetail({
+    contentId: 42,
+    contentType: "FEED",
+    contentUrl: "https://instagram.com/p/actual-42",
+    selectedVersion: {
+      contentReport: null,
+      contentVersionId: 420,
+      creationReason: "INITIAL",
+      createdAt: "2026-08-18T10:05:00",
+      inspectedAt: "2026-08-18T10:06:00",
+      inspectionStatus: "COMPLETED",
+      media: [{
+        contentMediaId: 4201,
+        mediaType: "TEXT",
+        mediaUrl: null,
+        sequenceNo: 0,
+        snsMediaId: null,
+        text: "종이컵이 8개",
+      }],
+      violations: [{
+        evidence: {
+          confidence: 1,
+          locations: [],
+          reason: "콘텐츠에서 셀렉터스 제휴 링크를 확인할 수 없습니다.",
+          source: "RULE",
+        },
+        currentStatus: "PENDING",
+        detectedAt: "2026-08-18T10:06:00",
+        inspectionPolicyId: 7,
+        violationEvidenceHistoryId: 11,
+        violationItemId: 21,
+        violationType: "AFFILIATE_LINK_INVALID",
+        violationTypeDescription: "제휴 링크 확인 필요",
+      }, {
+        evidence: {
+          confidence: 1,
+          locations: [],
+          reason: "제목 또는 본문 첫 줄의 광고·수수료 안내 문구 및 영상 내부 광고 안내 문구를 확인할 수 없습니다.",
+          source: "RULE",
+        },
+        currentStatus: "PENDING",
+        detectedAt: "2026-08-18T10:06:00",
+        inspectionPolicyId: 7,
+        violationEvidenceHistoryId: 12,
+        violationItemId: 22,
+        violationType: "AD_DISCLOSURE_INVALID",
+        violationTypeDescription: "광고·수수료 안내 문구 확인 필요",
+      }],
+      versionNo: 1,
+    },
+    selectorsId: 7,
+    snsCode: "INSTAGRAM",
+    snsContentId: "actual-42",
+    storedAt: "2026-08-18T10:00:00",
+    versions: [],
+  });
+
+  expect(inspection.currentSnapshot.annotations).toEqual([
+    expect.objectContaining({
+      target: { kind: "text-start", quote: "제휴 링크 확인 필요" },
+      title: "제휴 링크 확인 필요",
+    }),
+    expect.objectContaining({
+      target: { kind: "text-start", quote: "광고·수수료 안내 문구 확인 필요" },
+      title: "광고·수수료 안내 문구 확인 필요",
+    }),
+  ]);
+  expect(inspection.report.signals).toEqual([
+    expect.objectContaining({
+      locationAvailable: true,
+      source: "게시물 본문(TEXT)",
+      violationType: "AFFILIATE_LINK_INVALID",
+    }),
+    expect.objectContaining({
+      locationAvailable: true,
+      source: "게시물 본문(TEXT)",
+      violationType: "AD_DISCLOSURE_INVALID",
+    }),
+  ]);
+});
+
 test("maps approved and rejected decisions to separate inspection statuses", () => {
   const adaptContentInspection = (
     contentEntity as unknown as { adaptContentInspection?: AdaptContentInspection }

@@ -42,6 +42,7 @@ interface PoolCategory {
 }
 
 const CATEGORY_COLORS = [WHITE];
+const UNCATEGORIZED_LABEL = "기타";
 
 
 // 백엔드 필드명이 확정 전이라 카테고리로 쓸 수 있는 키를 순서대로 훑는다.
@@ -58,18 +59,18 @@ function rawCategory(selector: SelectorSummary) {
 
 function categoryOf(selector: SelectorSummary) {
   const raw = rawCategory(selector);
-  return (raw ? categoryLabel(raw) : null) || "미분류";
+  return (raw ? categoryLabel(raw) : null) || UNCATEGORIZED_LABEL;
 }
 
 function nodeRadius(followerCount: number | null) {
   return 26 + Math.min(20, Math.log10((followerCount ?? 0) + 1) * 4);
 }
 
-/** 카테고리 중심은 큰 원 위에, 미분류는 원 밖 오른쪽에 따로 배치한다. */
+/** 카테고리 중심은 큰 원 위에, 기타는 원 밖 오른쪽에 따로 배치한다. */
 function layoutCategories(counts: Map<string, number>): PoolCategory[] {
   const entries = [...counts.entries()];
-  const categorized = entries.filter(([label]) => label !== "미분류");
-  const uncategorized = entries.find(([label]) => label === "미분류");
+  const categorized = entries.filter(([label]) => label !== UNCATEGORIZED_LABEL);
+  const uncategorized = entries.find(([label]) => label === UNCATEGORIZED_LABEL);
   // 각 클러스터가 차지하는 반지름을 먼저 재고, 서로 닿지 않을 만큼 큰 원을 잡는다.
   const clusterReach = Math.max(
     ...categorized.map(([, count]) => clusterRadius(count)),

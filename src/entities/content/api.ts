@@ -141,11 +141,37 @@ export interface ContentVersionMedia {
   text: string | null;
 }
 
+export interface ContentReportAnalysisOverview {
+  flow: string;
+  overallAssessment: string;
+  purpose: string;
+  summary: string;
+}
+
+export interface ContentReportAnalysisInsight {
+  cautions: string[];
+  collabBrands: string[];
+  contentStyle: string;
+  hateConfirmed: boolean;
+  risks: string[];
+  strengths: string[];
+  tone: string;
+}
+
+export interface ContentReportAnalysis {
+  insight: ContentReportAnalysisInsight;
+  overview: ContentReportAnalysisOverview;
+}
+
 export interface ContentReport {
+  analysis?: ContentReportAnalysis | null;
   contentReportId: number;
+  executionMetadata?: Record<string, unknown>;
   flow: string | null;
+  inspectionPolicyId?: number | null;
   overallAssessment: string | null;
   purpose: string | null;
+  reportSchemaVersion?: string | null;
   summary: string | null;
 }
 
