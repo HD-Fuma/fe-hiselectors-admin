@@ -16,6 +16,7 @@
 - 채널 ID가 바뀌면 확인 문구를 비우고, 실행 action 옆에 최종 대상 채널 ID를 표시한다.
 - 요청 진행 중 입력, 닫기, 실행 action을 잠근다.
 - 성공 시 삭제 대상 채널 ID와 전체 삭제 행 수를 환경설정 영역에 표시한다.
+- `noOp: true`는 `삭제할 테스트 데이터가 없습니다.`로 표시한다.
 - 실패 시 입력값과 확인 문구를 유지하고 서버 메시지를 모달 내부 경고로 표시한다.
 
 ## API 계약
@@ -32,9 +33,9 @@ DELETE /api/admin/selectors/test-data?channelId={youtubeChannelId}
 
 ## 삭제 범위와 순서
 
-서비스는 `application.sns_account_id`와 `selectors_sns_account.account_id` 양쪽에서 채널 ID를 찾는다. 한쪽에만 데이터가 있는 부분 상태도 정상 삭제 대상으로 처리한다. 최초 일치 행에서 `user_id`를 수집한 뒤 해당 사용자의 모든 지원서와 셀렉터스로 삭제 집합을 확장한다. 서로 다른 `user_id`가 두 개 이상 연결된 채널은 데이터 충돌로 보고 `409`를 반환한다.
+서비스는 `application.sns_account_id`와 `selectors_sns_account.account_id` 양쪽에서 채널 ID를 찾는다. 한쪽에만 데이터가 있는 부분 상태도 정상 삭제 대상으로 처리한다. 최초 일치 지원서의 `user_id`, 최초 일치 셀렉터스의 `user_id`, 최초 일치 셀렉터스의 `application_id`가 가리키는 지원서의 `user_id`를 합친다. 수집한 사용자별 모든 지원서와 셀렉터스를 찾고, 새로 찾은 셀렉터스의 `application_id`까지 따라가 관계 폐쇄를 완성한다. 서로 다른 `user_id`가 두 개 이상 연결된 채널은 데이터 충돌로 보고 `409`를 반환한다. 사용자 연결이 전혀 없는 셀렉터스도 채널에 직접 일치하면 삭제 집합에 포함한다.
 
-대상 사용자 행을 비관적 쓰기 잠금으로 읽어 같은 사용자에 대한 요청을 직렬화한다. 대기한 후 데이터가 사라진 요청은 `noOp: true`를 반환한다. 이후 하나의 트랜잭션에서 자식 행부터 삭제한다.
+대상 사용자 행을 비관적 쓰기 잠금으로 읽어 같은 사용자에 대한 요청을 직렬화한다. 잠금 획득 후 채널 일치와 관계 폐쇄를 다시 계산한다. 대기한 후 데이터가 사라진 요청은 `noOp: true`를 반환한다. 이후 하나의 트랜잭션에서 자식 행부터 삭제한다.
 
 삭제 범위:
 
@@ -48,10 +49,11 @@ DELETE /api/admin/selectors/test-data?channelId={youtubeChannelId}
 `notification`은 다음 조건 중 하나를 만족하면 삭제한다.
 
 - `receiver`가 삭제 대상 `user_kakao_recipient.kakao_message_uuid`와 일치
-- `APPLICATION_RECEIVED`, `SELECTION_APPROVED`, `SELECTION_REJECTED`, `APP_QUANT_START`, `APP_QUAL_START`, `APP_QUAL_DONE`의 `reference_id`가 대상 지원서 ID와 일치
-- 셀렉터스 성과 알림 유형의 `reference_id`가 대상 셀렉터스 ID와 일치
-- 정산 알림 유형의 `reference_id`가 삭제 대상 정산 ID와 일치
-- `PENALTY_RELEASED`의 `reference_id`가 삭제 대상 패널티 ID와 일치
+- `APPLICATION_RECEIVED`, `SELECTION_APPROVED`, `SELECTION_REJECTED`, `APP_QUANT_START`, `APP_QUAL_START`, `APP_QUAL_DONE`: `reference_id`가 대상 지원서 ID와 일치
+- `FIRST_PURCHASE`, `FIRST_REVENUE`, `LAST_MONTH_SALES`, `MID_MONTH_ACTIVITY`, `NO_PAGE_VIEWS`, `SALES_100K`, `SALES_500K`, `SALES_1M`, `SALES_5M`, `SALES_10M`, `ORDERS_10`, `ORDERS_50`, `ORDERS_100`, `WEEKLY_SALES_GROWTH`: `reference_id`가 대상 셀렉터스 ID와 일치
+- `SETTLEMENT_COMPLETED`, `SETTLEMENT_CARRYOVER`, `SETTLEMENT_MISSING`, `SETTLEMENT_UPCOMING`: `reference_id`가 삭제 대상 `settlement_history` ID와 일치
+- `PENALTY_RELEASED`: `reference_id`가 삭제 대상 `penalty_history` ID와 일치
+- `CONTENT_EDIT_REQUEST`: `reference_id`가 삭제 대상 `content` ID 또는 `violation_item` ID와 일치
 
 알림은 참조 대상 도메인 행과 카카오 연결보다 먼저 삭제한다. `users` 행은 유지한다. 삭제 도중 오류가 발생하면 트랜잭션 전체를 롤백한다.
 
