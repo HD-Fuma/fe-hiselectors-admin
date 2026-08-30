@@ -53,7 +53,7 @@ DELETE /api/admin/selectors/test-data?channelId={youtubeChannelId}
 - `FIRST_PURCHASE`, `FIRST_REVENUE`, `LAST_MONTH_SALES`, `MID_MONTH_ACTIVITY`, `NO_PAGE_VIEWS`, `SALES_100K`, `SALES_500K`, `SALES_1M`, `SALES_5M`, `SALES_10M`, `ORDERS_10`, `ORDERS_50`, `ORDERS_100`, `WEEKLY_SALES_GROWTH`: `reference_id`가 대상 셀렉터스 ID와 일치
 - `SETTLEMENT_COMPLETED`, `SETTLEMENT_CARRYOVER`, `SETTLEMENT_MISSING`, `SETTLEMENT_UPCOMING`: `reference_id`가 삭제 대상 `settlement_history` ID와 일치
 - `PENALTY_RELEASED`: `reference_id`가 삭제 대상 `penalty_history` ID와 일치
-- `CONTENT_EDIT_REQUEST`: `reference_id`가 삭제 대상 `content` ID 또는 `violation_item` ID와 일치
+- `CONTENT_EDIT_REQUEST`: `receiver`가 대상 사용자의 카카오 수신 UUID와 일치할 때 삭제. 이 목적 코드는 `reference_id`에 `content` ID와 `violation_item` ID를 함께 사용해 숫자 충돌 가능성이 있으므로 참조 ID 단독 조건은 생략한다.
 
 알림은 참조 대상 도메인 행과 카카오 연결보다 먼저 삭제한다. `users` 행은 유지한다. 삭제 도중 오류가 발생하면 트랜잭션 전체를 롤백한다.
 
@@ -65,7 +65,7 @@ DELETE /api/admin/selectors/test-data?channelId={youtubeChannelId}
 
 - 백엔드 서비스 단위 테스트로 대상 탐색, 삭제 순서, 사용자 행 유지, 사용자 구매·카카오 연결 삭제, 실패 시 감사 기록을 검증한다.
 - 백엔드 controller 테스트로 관리자 endpoint, 입력 검증, 응답 계약을 검증한다.
-- 백엔드 데이터베이스 통합 테스트로 나열된 연관 테이블 전체, 알림 참조, 부분 상태, 사용자 credential 유지, 재요청 no-op, 동시 요청 직렬화, 중간 실패 롤백을 검증한다.
+- 백엔드 데이터베이스 통합 테스트로 나열된 연관 테이블 전체, 알림 참조, 부분 상태, 사용자 credential 유지, 재요청 no-op, 동시 요청 직렬화, 중간 실패 롤백을 검증한다. 대상 콘텐츠 ID와 다른 사용자의 위반 ID가 같은 충돌 사례에서 다른 사용자의 알림이 유지되는지도 검증한다.
 - 프런트 entity API 테스트로 URL 인코딩, `DELETE`, 인증 header, 오류 메시지를 검증한다.
 - 사이드바 테스트로 기본 채널 ID, 편집, 확인 문구, 진행 상태, 성공·실패 피드백을 검증한다.
 - 관련 테스트 후 각 저장소의 표준 전체 검사를 실행한다.
