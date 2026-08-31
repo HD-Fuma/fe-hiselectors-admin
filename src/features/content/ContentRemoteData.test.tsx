@@ -219,6 +219,30 @@ test("shows a YouTube thumbnail when the video has no direct media URL", async (
   );
 });
 
+test("shows an Instagram video from its direct media URL", async () => {
+  mockContentApis([contentItem({
+    contentType: "SHORT_FORM",
+    media: [{
+      mediaType: "VIDEO",
+      mediaUrl: "https://cdn.example.com/reel-901.mp4",
+      sequenceNo: 1,
+      snsMediaId: "reel-901",
+      thumbnailUrl: "https://cdn.example.com/reel-901.jpg",
+    }],
+    texts: ["Instagram 영상"],
+  })]);
+
+  renderRoute("/content/inspections");
+
+  const video = await screen.findByLabelText(
+    "Instagram 영상 썸네일",
+    {},
+    { timeout: 5_000 },
+  );
+  expect(video.tagName).toBe("VIDEO");
+  expect(video).toHaveAttribute("src", "https://cdn.example.com/reel-901.mp4");
+});
+
 test("loads a direct detail route and keeps pending analysis and decisions honest", async () => {
   const fetchMock = mockContentApis([contentItem()]);
 
