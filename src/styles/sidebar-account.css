@@ -133,6 +133,33 @@
   color: var(--hsas-teal);
 }
 
+.hsas-theme-settings__fast-mode {
+  width: 100%;
+  min-height: 34px;
+  gap: var(--hsas-space-8);
+  margin: 0;
+  padding: 0 var(--hsas-space-8);
+  border-radius: var(--hsas-sidebar-radius);
+  color: var(--hsas-sidebar-strong-text);
+  font-size: var(--hsas-font-11);
+}
+
+.hsas-theme-settings__fast-mode:hover {
+  background: var(--hsas-sidebar-hover);
+}
+
+.hsas-theme-settings__fast-mode .hsas-switch__label {
+  order: 1;
+  flex: 1;
+  font-size: var(--hsas-font-12);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.hsas-theme-settings__fast-mode .hsas-switch__track {
+  order: 2;
+}
+
 .hsas-theme-settings__feedback {
   margin: 0;
   padding: var(--hsas-space-4) var(--hsas-space-8) 0;

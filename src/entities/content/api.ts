@@ -1,5 +1,6 @@
 import { adminFetch } from "../../lib/adminAuthentication";
 import { API_BASE_URL } from "../../lib/apiBaseUrl";
+import { getFastMode } from "../../lib/fastMode";
 import type { TaskRun } from "../task-run";
 
 const AUTH_STORAGE_KEY = "selectors-auth";
@@ -259,13 +260,14 @@ function authorizationHeader() {
   }
 }
 
-export async function runContentBatch(): Promise<ContentBatchRunResponse> {
+export async function runContentBatch(fastMode = getFastMode()): Promise<ContentBatchRunResponse> {
   const headers = new Headers();
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
   headers.set("Idempotency-Key", crypto.randomUUID());
 
-  const response = await adminFetch(`${API_BASE_URL}/api/admin/content-batch/run`, {
+  const query = fastMode ? "?fastMode=true" : "";
+  const response = await adminFetch(`${API_BASE_URL}/api/admin/content-batch/run${query}`, {
     headers,
     method: "POST",
   });

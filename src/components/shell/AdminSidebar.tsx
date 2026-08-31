@@ -18,6 +18,7 @@ import {
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Link, matchPath, useNavigate } from "react-router-dom";
 import { CREATOR_POOL_RESET_EVENT } from "../../lib/creatorPoolEvents";
+import { getFastMode, saveFastMode } from "../../lib/fastMode";
 import { applyTheme, getTheme, saveTheme } from "../../lib/theme";
 import { resetContentInspections } from "../../entities/content";
 import { resetCreatorPool } from "../../entities/creator";
@@ -33,7 +34,7 @@ import type {
   NavGroupMeta,
 } from "./navigationModel";
 import { BubbleDialog } from "../ui/BubbleDialog";
-import { Button, Select, TextInput } from "../ui/Controls";
+import { Button, Select, Switch, TextInput } from "../ui/Controls";
 import { FormRow } from "../ui/FormRow";
 import { Modal } from "../ui/Modal";
 import "../../styles/sidebar-account.css";
@@ -115,6 +116,7 @@ export function AdminSidebar({
   );
   const [testResetError, setTestResetError] = useState("");
   const [theme, setTheme] = useState(getTheme);
+  const [fastMode, setFastMode] = useState(getFastMode);
   const creatorResetDescriptionId = useId();
   const testResetDescriptionId = useId();
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -448,6 +450,16 @@ export function AdminSidebar({
                       </div>
                     ) : null}
                   </div>
+                  <Switch
+                    checked={fastMode}
+                    className="hsas-theme-settings__fast-mode"
+                    label="FAST 모드"
+                    onChange={(event) => {
+                      setFastMode(event.currentTarget.checked);
+                      saveFastMode(event.currentTarget.checked);
+                    }}
+                    title="수동 콘텐츠 배치에서 지정된 YouTube·Instagram 계정만 확인합니다."
+                  />
                   <button
                     className="hsas-theme-settings__item hsas-theme-settings__item--danger"
                     onClick={() => {

@@ -67,8 +67,9 @@ test("requests an asynchronous content batch with authentication and idempotency
     status: "QUEUED",
   });
 
-  expect(new URL(String(fetchMock.mock.calls[0][0])).pathname)
-    .toBe("/api/admin/content-batch/run");
+  const requestUrl = new URL(String(fetchMock.mock.calls[0][0]));
+  expect(requestUrl.pathname).toBe("/api/admin/content-batch/run");
+  expect(requestUrl.searchParams.has("fastMode")).toBe(false);
   expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({ method: "POST" }));
   const [, init] = fetchMock.mock.calls[0];
   const headers = new Headers(init.headers);

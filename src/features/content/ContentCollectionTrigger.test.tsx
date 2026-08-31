@@ -152,6 +152,26 @@ test("requests one content collection run with idempotency and hides the accepte
   );
 });
 
+test("requests a scoped content collection run when fast mode is enabled", async () => {
+  localStorage.setItem("selectors-content-fast-mode", "true");
+  const fetchMock = vi.fn().mockImplementation((_input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "POST") {
+      return Promise.resolve(collectionResponse());
+    }
+    return Promise.resolve(contentsResponse([contentItem(1, "기존 콘텐츠")]));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  renderRoute("/content/inspections");
+
+  await waitFor(() => expect(screen.getByRole("main")).toHaveTextContent("기존 콘텐츠"));
+  const categoryTabs = screen.getByRole("navigation", { name: "콘텐츠 처리 구분" });
+  fireEvent.click(within(categoryTabs).getByRole("button", { name: "콘텐츠 새로고침" }));
+
+  const request = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
+  expect(request).toBeDefined();
+  expect(new URL(String(request?.[0])).searchParams.get("fastMode")).toBe("true");
+});
+
 test("keeps backend-provided completed content without a local violation filter", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(contentsResponse([{
     ...contentItem(2, "승인된 콘텐츠"),

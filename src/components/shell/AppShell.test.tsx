@@ -9,6 +9,7 @@ import { getTaskRunPanelApiMock, renderRoute } from "../../test/renderRoute";
 
 function resetTheme() {
   localStorage.removeItem("selectors-theme");
+  localStorage.removeItem("selectors-content-fast-mode");
   document.documentElement.removeAttribute("data-theme");
   document.documentElement.removeAttribute("data-sidebar-theme");
   document.documentElement.style.removeProperty("color-scheme");
@@ -269,6 +270,23 @@ test("opens and closes environment settings only when the icon is clicked", () =
   fireEvent.click(trigger);
   expect(screen.queryByRole("group", { name: "환경설정" })).not.toBeInTheDocument();
   expect(trigger).toHaveAttribute("aria-expanded", "false");
+});
+
+test("toggles and persists fast mode from environment settings", () => {
+  renderRoute("/content/inspections");
+  fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
+  const settings = screen.getByRole("group", { name: "환경설정" });
+  const fastMode = within(settings).getByRole("checkbox", { name: "FAST 모드" });
+
+  expect(fastMode).not.toBeChecked();
+  fireEvent.click(fastMode);
+
+  expect(fastMode).toBeChecked();
+  expect(localStorage.getItem("selectors-content-fast-mode")).toBe("true");
+
+  fireEvent.click(fastMode);
+  expect(fastMode).not.toBeChecked();
+  expect(localStorage.getItem("selectors-content-fast-mode")).toBeNull();
 });
 
 test("resets the creator pool from environment settings after typed confirmation", async () => {
