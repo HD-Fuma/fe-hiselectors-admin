@@ -2,6 +2,7 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Minus,
+  RefreshCw,
   TriangleAlert,
   WalletCards,
 } from "lucide-react";
@@ -10,7 +11,7 @@ import { HsECharts, type EChartsOption } from "../../components/charts/HsECharts
 import { ECHARTS_TOOLTIP_STYLE } from "../../components/charts/chartColors";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { ChoiceTabs } from "../../components/ui/ChoiceTabs";
-import { TextInput } from "../../components/ui/Controls";
+import { Button, TextInput } from "../../components/ui/Controls";
 import { FilterField } from "../../components/ui/FilterField";
 import { Pagination } from "../../components/ui/Pagination";
 import { ResultToolbar } from "../../components/ui/ResultToolbar";
@@ -28,6 +29,7 @@ import {
   getSettlementEstimateSummary,
   getSettlementSelectorDetail,
   isDemoSettlement,
+  recalculateAllSettlementEstimates,
   SETTLEMENT_STATUS_FILTERS,
   settlementStatusTone,
   SettlementTable,
@@ -39,6 +41,7 @@ import {
   type SettlementTableRow,
   type SpringPage,
 } from "../../entities/settlement";
+import { getTaskRun } from "../../entities/task-run";
 import {
   getSelector,
   SELECTORS,
@@ -556,12 +559,15 @@ export function SettlementManagementPage() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
   const [hasTableError, setHasTableError] = useState(false);
   const [hasSummaryError, setHasSummaryError] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
+  const [recalculationError, setRecalculationError] = useState("");
   const [selectedSettlement, setSelectedSettlement] = useState<SettlementTableRow | null>(null);
   const [settlementDetailState, setSettlementDetailState] = useState<SettlementDetailState | null>(null);
   const latestTableRequestId = useRef(0);
   const latestSummaryRequestId = useRef(0);
   const detailAbortController = useRef<AbortController | null>(null);
   const detailRequestId = useRef(0);
+  const recalculationAbortController = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -626,7 +632,10 @@ export function SettlementManagementPage() {
     return () => controller.abort();
   }, [appliedMonth, summaryRequestVersion]);
 
-  useEffect(() => () => detailAbortController.current?.abort(), []);
+  useEffect(() => () => {
+    detailAbortController.current?.abort();
+    recalculationAbortController.current?.abort();
+  }, []);
 
   const closeSettlementDetail = () => {
     detailAbortController.current?.abort();
@@ -744,6 +753,40 @@ export function SettlementManagementPage() {
     prepareTableRequest(nextPageSize);
   };
 
+  const recalculateAllSettlements = async () => {
+    const controller = new AbortController();
+    recalculationAbortController.current = controller;
+    setIsRecalculating(true);
+    setRecalculationError("");
+
+    try {
+      const result = await recalculateAllSettlementEstimates(controller.signal);
+      while (!controller.signal.aborted) {
+        const run = await getTaskRun(result.runId, controller.signal);
+        if (run.status === "SUCCEEDED" || run.status === "PARTIAL_FAILED") {
+          setPage(1);
+          prepareTableRequest();
+          prepareSummaryRequest();
+          break;
+        }
+        if (run.status === "FAILED" || run.status === "STALE") {
+          throw new Error("전체 정산 내역 새로고침에 실패했습니다.");
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      setRecalculationError(
+        error instanceof Error ? error.message : "전체 정산 내역 새로고침에 실패했습니다.",
+      );
+    } finally {
+      if (!controller.signal.aborted) setIsRecalculating(false);
+      if (recalculationAbortController.current === controller) {
+        recalculationAbortController.current = null;
+      }
+    }
+  };
+
   const usingDemoData = !isTableLoading
     && !isSummaryLoading
     && !hasTableError
@@ -799,8 +842,23 @@ export function SettlementManagementPage() {
           summary={displayedSettlementSummary}
         />
         <ChoiceTabs
+          actions={(
+            <Button
+              aria-label={isRecalculating ? "전체 정산 내역 새로고침 중" : "전체 정산 내역 새로고침"}
+              className="fuma-content-inspection-refresh-button"
+              disabled={isRecalculating}
+              onClick={() => void recalculateAllSettlements()}
+              title={isRecalculating ? "전체 정산 내역 새로고침 중" : "전체 정산 내역 새로고침"}
+            >
+              <RefreshCw
+                aria-hidden="true"
+                className={isRecalculating ? "is-spinning" : undefined}
+                size={15}
+              />
+            </Button>
+          )}
           ariaLabel="지급 상태"
-          className="fuma-settlement-status-filter"
+          className="fuma-settlement-status-filter fuma-list-action-toolbar"
           emptyOption={{
             label: "전체",
             onSelect: () => changeStatus(null),
@@ -809,6 +867,11 @@ export function SettlementManagementPage() {
           options={SETTLEMENT_STATUS_FILTERS}
           value={selectedStatus}
         />
+        {recalculationError ? (
+          <p className="fuma-settlement-refresh-feedback" role="alert">
+            {recalculationError}
+          </p>
+        ) : null}
         <ResultToolbar
           className="fuma-simple-result-toolbar"
           meta={

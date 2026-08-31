@@ -14,7 +14,13 @@ const API_CONTENTS = [
     followerCount: 12000,
     generationName: "1기",
     likeCount: 420,
-    media: [{ mediaType: "VIDEO", mediaUrl: "https://cdn.example.com/901.jpg", sequenceNo: 0, snsMediaId: "901" }],
+    media: [{
+      mediaType: "VIDEO",
+      mediaUrl: "https://cdn.example.com/901.mp4",
+      sequenceNo: 0,
+      snsMediaId: "901",
+      thumbnailUrl: "https://cdn.example.com/901.jpg",
+    }],
     profileImageUrl: "https://cdn.example.com/profile.jpg",
     publishedAt: "2026-08-18T09:00:00",
     selectorsId: 91,
@@ -111,7 +117,18 @@ test("content performance opens card and list details in a side panel", async ()
   expect(within(uploadStatus!).getByText("8건")).toBeInTheDocument();
   expect(within(uploadStatus!).getByText("+60.0%")).toBeInTheDocument();
   expect(screen.getByText("기간별 콘텐츠 성과")).toBeInTheDocument();
-  const chartScroll = screen.getByRole("region", { name: "기간별 콘텐츠 성과 그래프 좌우 이동" });
+  const periodSearch = screen.getByRole("form", { name: "콘텐츠 성과 기간 검색" });
+  fireEvent.change(within(periodSearch).getByLabelText("성과 시작일"), {
+    target: { value: "2026-08-18" },
+  });
+  fireEvent.change(within(periodSearch).getByLabelText("성과 종료일"), {
+    target: { value: "2026-08-19" },
+  });
+  fireEvent.click(within(periodSearch).getByRole("button", { name: "조회" }));
+  const chartScroll = await screen.findByRole(
+    "region",
+    { name: "기간별 콘텐츠 성과 그래프 좌우 이동" },
+  );
   expect(chartScroll).toHaveClass("fuma-content-cohort-chart__scroll--draggable");
   const cohortChart = screen.getByRole("article", { name: "기간별 콘텐츠 성과" });
   expect(within(cohortChart).getByRole("tooltip", { hidden: true }))
@@ -152,7 +169,9 @@ test("content performance opens card and list details in a side panel", async ()
   expect(within(originalContent).getByText("콘텐츠 제목")).toBeInTheDocument();
   expect(within(originalContent).getByText("원문")).toBeInTheDocument();
   expect(within(originalContent).getByText(/API에서 불러온 본문/)).toBeInTheDocument();
-  expect(within(originalContent).getByRole("img", { name: `${highestViewContent.texts[0]} 썸네일` }))
+  expect(within(originalContent).getByLabelText(`${highestViewContent.texts[0]} 영상`))
+    .toHaveProperty("tagName", "VIDEO");
+  expect(within(originalContent).getByLabelText(`${highestViewContent.texts[0]} 영상`))
     .toHaveAttribute("src", highestViewContent.media[0].mediaUrl);
   expect(within(cardDetail).getByRole("heading", { name: highestViewContent.texts[0] })).toBeInTheDocument();
   expect(within(cardDetail).getByRole("heading", { name: "조회 및 반응 추이" })).toBeInTheDocument();

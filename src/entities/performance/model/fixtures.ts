@@ -90,6 +90,8 @@ export interface ContentInfluence {
   viewsTrend: readonly ContentViewPoint[];
   reactionTrend: readonly ContentReactionPoint[];
   profileImageUrl?: string | null;
+  mediaType?: "IMAGE" | "VIDEO" | null;
+  mediaUrl?: string | null;
   thumbnailUrl?: string | null;
 }
 

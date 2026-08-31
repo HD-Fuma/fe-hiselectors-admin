@@ -71,21 +71,29 @@ const CONTENT_MEDIA: Record<string, { creatorImage: string; thumbnail: string }>
 };
 
 function contentMediaFor(content: ContentInfluence) {
-  if (content.thumbnailUrl || content.profileImageUrl) {
+  if (content.mediaUrl || content.thumbnailUrl || content.profileImageUrl) {
+    const showsVideo = content.mediaType === "VIDEO" && Boolean(content.mediaUrl);
     return {
-      thumbnail: content.thumbnailUrl ?? "",
       creatorImage: content.profileImageUrl ?? "",
+      mediaType: showsVideo ? "VIDEO" as const : "IMAGE" as const,
+      mediaUrl: showsVideo
+        ? content.mediaUrl ?? ""
+        : content.thumbnailUrl ?? content.mediaUrl ?? "",
     };
   }
 
   const savedMedia = CONTENT_MEDIA[content.id];
 
   if (savedMedia) {
-    return savedMedia;
+    return {
+      creatorImage: savedMedia.creatorImage,
+      mediaType: "IMAGE" as const,
+      mediaUrl: savedMedia.thumbnail,
+    };
   }
 
   if (!content.id.startsWith("ct-")) {
-    return { thumbnail: "", creatorImage: "" };
+    return { creatorImage: "", mediaType: "IMAGE" as const, mediaUrl: "" };
   }
 
   const selectorNumber = Number(content.selectorId.replace(/\D/g, "")) || 1;
@@ -94,9 +102,35 @@ function contentMediaFor(content: ContentInfluence) {
   const creatorId = String(creatorNumber).padStart(3, "0");
 
   return {
-    thumbnail: `creator-media/kr-cr-${creatorId}-${String(imageNumber).padStart(2, "0")}.jpg`,
     creatorImage: `creator-media/kr-cr-${creatorId}-profile.jpg`,
+    mediaType: "IMAGE" as const,
+    mediaUrl: `creator-media/kr-cr-${creatorId}-${String(imageNumber).padStart(2, "0")}.jpg`,
   };
+}
+
+function ContentPerformanceMedia({
+  alt,
+  controls = false,
+  media,
+}: {
+  alt: string;
+  controls?: boolean;
+  media: ReturnType<typeof contentMediaFor>;
+}) {
+  if (!media.mediaUrl) return null;
+  if (media.mediaType === "VIDEO") {
+    return (
+      <video
+        aria-label={alt}
+        controls={controls}
+        muted={!controls}
+        playsInline
+        preload="metadata"
+        src={assetUrl(media.mediaUrl)}
+      />
+    );
+  }
+  return <img alt={alt} src={assetUrl(media.mediaUrl)} />;
 }
 
 function trendDateLabel(recordedAt: string | undefined) {
@@ -615,7 +649,8 @@ function ContentPerformanceCard({
         footerEnd={<span className="fuma-content-performance-card__hint">상세 보기</span>}
         footerStart={content.publishedAt}
         mediaAlt={`${content.title} 썸네일`}
-        mediaUrl={media.thumbnail}
+        mediaType={media.mediaType}
+        mediaUrl={media.mediaUrl}
         platform={platform}
         profileImageUrl={media.creatorImage}
         showPlay={showPlay}
@@ -688,8 +723,14 @@ function ContentPerformanceDetailPanel({
           <div className="fuma-creator-analysis-report__content">
             <div className="fuma-content-performance-detail__overview">
               <div className="fuma-content-performance-detail__media">
-                {media.thumbnail ? (
-                  <img alt={`${content.title} 썸네일`} src={assetUrl(media.thumbnail)} />
+                {media.mediaUrl ? (
+                  <ContentPerformanceMedia
+                    alt={media.mediaType === "VIDEO"
+                      ? `${content.title} 영상`
+                      : `${content.title} 썸네일`}
+                    controls
+                    media={media}
+                  />
                 ) : (
                   <span>
                     <Images aria-hidden="true" size={26} />
@@ -797,7 +838,7 @@ function contentPerformanceColumns(
         const media = contentMediaFor(content);
         return (
           <div className="fuma-content-reaction-table__content">
-            <img alt="" src={assetUrl(media.thumbnail)} />
+            <ContentPerformanceMedia alt="" media={media} />
             <div>
               <strong>{content.title}</strong>
               <span>{content.publishedAt}</span>

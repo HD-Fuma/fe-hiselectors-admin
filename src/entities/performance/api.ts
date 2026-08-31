@@ -18,6 +18,7 @@ interface SpringPage<T> {
 interface ContentPerformanceMedia {
   mediaType: "IMAGE" | "VIDEO";
   mediaUrl: string | null;
+  thumbnailUrl?: string | null;
   sequenceNo: number;
   snsMediaId: string | null;
 }
@@ -144,23 +145,43 @@ function contentTitle(item: ContentPerformanceApiItem) {
   return firstLine || `${item.selectorsNickname} 콘텐츠`;
 }
 
-function contentThumbnailUrl(
+function contentMedia(
   item: ContentPerformanceApiItem,
   sortedMedia: readonly ContentPerformanceMedia[],
 ) {
-  const mediaUrl = sortedMedia.find((media) => media.mediaUrl)?.mediaUrl;
-  if (mediaUrl) return mediaUrl;
-  if (item.snsCode !== "YOUTUBE") return null;
-
+  const primaryMedia = sortedMedia[0];
   const youtubeVideoId = sortedMedia.find((media) => media.mediaType === "VIDEO")?.snsMediaId
     ?? item.snsContentId;
-  return youtubeVideoId
+  const youtubeThumbnailUrl = item.snsCode === "YOUTUBE" && youtubeVideoId
     ? `https://i.ytimg.com/vi/${encodeURIComponent(youtubeVideoId)}/hqdefault.jpg`
     : null;
+
+  if (!primaryMedia) {
+    return {
+      mediaType: youtubeThumbnailUrl ? "IMAGE" as const : null,
+      mediaUrl: null,
+      thumbnailUrl: youtubeThumbnailUrl,
+    };
+  }
+
+  if (primaryMedia.mediaType === "VIDEO") {
+    return {
+      mediaType: "VIDEO" as const,
+      mediaUrl: primaryMedia.mediaUrl,
+      thumbnailUrl: primaryMedia.thumbnailUrl ?? youtubeThumbnailUrl,
+    };
+  }
+
+  return {
+    mediaType: "IMAGE" as const,
+    mediaUrl: null,
+    thumbnailUrl: primaryMedia.thumbnailUrl ?? primaryMedia.mediaUrl,
+  };
 }
 
 export function adaptContentPerformance(item: ContentPerformanceApiItem): ContentInfluence {
   const sortedMedia = [...item.media].sort((left, right) => left.sequenceNo - right.sequenceNo);
+  const media = contentMedia(item, sortedMedia);
   return {
     accountId: item.accountId,
     authorName: item.selectorsNickname,
@@ -175,6 +196,8 @@ export function adaptContentPerformance(item: ContentPerformanceApiItem): Conten
     followers: item.followerCount,
     id: String(item.contentId),
     likes: item.likeCount,
+    mediaType: media.mediaType,
+    mediaUrl: media.mediaUrl,
     platform: item.snsCode === "YOUTUBE" ? "YouTube" : "Instagram",
     profileImageUrl: item.profileImageUrl,
     publishedAt: item.publishedAt.slice(0, 10),
@@ -184,7 +207,7 @@ export function adaptContentPerformance(item: ContentPerformanceApiItem): Conten
       recordedAt: point.recordedAt.slice(0, 10),
     })),
     selectorId: `selector-${item.selectorsId}`,
-    thumbnailUrl: contentThumbnailUrl(item, sortedMedia),
+    thumbnailUrl: media.thumbnailUrl,
     title: contentTitle(item),
     views: item.viewCount,
     viewsTrend: item.trend.map((point) => ({
