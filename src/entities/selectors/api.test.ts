@@ -2,11 +2,14 @@ import {
   createGeneration,
   getSelector,
   getSelectorFilterGenerations,
+  getSelectorMatching,
+  getSelectorPerformanceBreakdown,
   getSelectorPerformanceSummary,
   getSelectorPerformanceTrend,
   getSelectorSalesPerformance,
   getSelectors,
   resetSelectorTestAccount,
+  sendSelectorProposals,
   updateGeneration,
   updateGenerationStatus,
 } from "./api";
@@ -179,6 +182,50 @@ describe("selector admin api", () => {
     expect(String(url)).toContain("accountId=%40hiselectors_test");
     expect(init?.method).toBe("DELETE");
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer token");
+  });
+
+  test("loads the selector breakdown for the given period", async () => {
+    const breakdown = { selectorId: 12, products: [], campaigns: [] };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(breakdown)));
+
+    await expect(getSelectorPerformanceBreakdown(12, {
+      startDate: "2026-08-01",
+      endDate: "2026-08-31",
+    })).resolves.toEqual(breakdown);
+
+    const url = String(vi.mocked(fetch).mock.calls[0][0]);
+    expect(url).toContain("/api/admin/selector-performance/12/breakdown?");
+    expect(url).toContain("startDate=2026-08-01");
+    expect(url).toContain("endDate=2026-08-31");
+  });
+
+  test("passes only the given matching target and limit", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json([])));
+
+    await expect(getSelectorMatching({ campaignId: 7, limit: 20 })).resolves.toEqual([]);
+
+    const url = String(vi.mocked(fetch).mock.calls[0][0]);
+    expect(url).toContain("/api/admin/selector-matching?");
+    expect(url).toContain("campaignId=7");
+    expect(url).toContain("limit=20");
+    expect(url).not.toContain("productId");
+    expect(url).not.toContain("category=");
+  });
+
+  test("posts selector proposals with the caller idempotency key", async () => {
+    const run = { runId: "run-1", status: "QUEUED" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(run)));
+
+    await expect(sendSelectorProposals(
+      { selectorIds: [12, 45], subject: "제안", body: "본문" },
+      "key-1",
+    )).resolves.toEqual(run);
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toContain("/api/admin/selector-proposals");
+    expect(init?.method).toBe("POST");
+    expect(new Headers(init?.headers).get("Idempotency-Key")).toBe("key-1");
+    expect(JSON.parse(String(init?.body)).selectorIds).toEqual([12, 45]);
   });
 
   test("uses the backend error message", async () => {

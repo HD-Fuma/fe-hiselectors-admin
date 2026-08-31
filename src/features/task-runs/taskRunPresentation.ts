@@ -13,6 +13,7 @@ export const TASK_LABELS: Record<TaskType, string> = {
   SETTLEMENT_CALCULATION: "정산 계산",
   KAKAO_MESSAGE_SEND: "카카오 메시지 발송",
   PROPOSAL_EMAIL_SEND: "제안 이메일 발송",
+  SELECTOR_PROPOSAL_EMAIL_SEND: "셀렉터스 제안 이메일 발송",
 };
 
 export const STATUS_LABELS: Record<TaskRunStatus, string> = {
@@ -45,6 +46,7 @@ export const STEP_LABELS: Record<string, string> = {
   NEW_CONTENT_SYNC: "신규 콘텐츠 수집 중",
   PROPOSAL_EMAIL_SEND: "제안 이메일 발송 중",
   RECALCULATE: "정산 재계산 중",
+  SELECTOR_PROPOSAL_EMAIL_SEND: "셀렉터스 제안 이메일 발송 중",
   STALE_CONTENT_INSPECTION: "콘텐츠 리포트 생성 중",
   STORED_CONTENT_SYNC: "기존 콘텐츠 수집 중",
   YOUTUBE_CREATOR_SYNC: "YouTube 크리에이터 동기화 중",

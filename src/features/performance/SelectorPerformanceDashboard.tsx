@@ -169,47 +169,6 @@ export function SelectorPerformanceDashboard({
           ) : <p>조회 기간에 표시할 성과 추이가 없습니다.</p>}
         </article>
 
-        <article aria-label="셀렉터스 성과 분포" className="fuma-content-performance-panel">
-          <header>
-            <span>DISTRIBUTION</span>
-            <h2>성과 분포</h2>
-          </header>
-          <dl className="fuma-selector-dashboard__focus">
-            <div>
-              <dt>매출 발생</dt>
-              <dd>{formatNumber(summary.producingCount)} / {formatNumber(summary.selectorCount)}명</dd>
-            </div>
-            <div>
-              <dt>무매출</dt>
-              <dd>{formatNumber(summary.zeroSalesCount)}명</dd>
-            </div>
-            <div>
-              <dt>상위 집중도</dt>
-              <dd>{(summary.concentrationShare * 100).toFixed(1)}%</dd>
-            </div>
-            <div>
-              <dt>중앙 매출</dt>
-              <dd>{compactDashboardWon(summary.medianSales)}</dd>
-            </div>
-          </dl>
-          <p className="fuma-selector-dashboard__note">
-            상위 집중도는 집계 대상 기준 상위 10%(50명 미만이면 상위 10명) 매출 비중입니다.
-            막대 높이는 해당 매출 구간의 인원입니다.
-          </p>
-          <CategoryBarChart
-            ariaLabel="매출 구간별 인원"
-            bars={summary.buckets.map((bucket, index) => ({
-              color: BUCKET_COLORS[index] ?? BUCKET_COLORS[0],
-              label: bucket.label,
-              value: bucket.count,
-            }))}
-            formatValue={formatNumber}
-            name="인원"
-          />
-        </article>
-      </div>
-
-      <div className="fuma-selector-dashboard__split">
         <article aria-label="성과 TOP 5" className="fuma-content-performance-panel">
           <header>
             <span>RANKING</span>
@@ -264,6 +223,47 @@ export function SelectorPerformanceDashboard({
               </ol>
             </div>
           )}
+        </article>
+      </div>
+
+      <div className="fuma-selector-dashboard__split">
+        <article aria-label="셀렉터스 성과 분포" className="fuma-content-performance-panel">
+          <header>
+            <span>DISTRIBUTION</span>
+            <h2>성과 분포</h2>
+          </header>
+          <dl className="fuma-selector-dashboard__focus">
+            <div>
+              <dt>매출 발생</dt>
+              <dd>{formatNumber(summary.producingCount)} / {formatNumber(summary.selectorCount)}명</dd>
+            </div>
+            <div>
+              <dt>무매출</dt>
+              <dd>{formatNumber(summary.zeroSalesCount)}명</dd>
+            </div>
+            <div>
+              <dt>상위 집중도</dt>
+              <dd>{(summary.concentrationShare * 100).toFixed(1)}%</dd>
+            </div>
+            <div>
+              <dt>중앙 매출</dt>
+              <dd>{compactDashboardWon(summary.medianSales)}</dd>
+            </div>
+          </dl>
+          <p className="fuma-selector-dashboard__note">
+            상위 집중도는 집계 대상 기준 상위 10%(50명 미만이면 상위 10명) 매출 비중입니다.
+            막대 높이는 해당 매출 구간의 인원입니다.
+          </p>
+          <CategoryBarChart
+            ariaLabel="매출 구간별 인원"
+            bars={summary.buckets.map((bucket, index) => ({
+              color: BUCKET_COLORS[index] ?? BUCKET_COLORS[0],
+              label: bucket.label,
+              value: bucket.count,
+            }))}
+            formatValue={formatNumber}
+            name="인원"
+          />
         </article>
 
         <article aria-label="셀렉터스 유형별 성과" className="fuma-content-performance-panel">
