@@ -39,7 +39,8 @@ export function CategoryBarChart({
       right: 8,
       top: 24,
     },
-    tooltip: {
+    // hover 라벨이 막대 위에 값을 그대로 띄우므로 tooltip 상자는 켜지 않는다.
+    tooltip: valueLabel === "hover" ? { show: false } : {
       ...ECHARTS_TOOLTIP_STYLE,
       trigger: "axis",
       axisPointer: { type: "shadow" },
