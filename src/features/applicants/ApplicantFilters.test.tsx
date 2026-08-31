@@ -516,7 +516,7 @@ describe("applicant api pages", () => {
     { status: "PENDING", analysisStatus: "DONE", message: applicantAiReport.summary },
     { status: "PENDING", analysisStatus: "FAILED", message: "AI 리포트 생성에 실패했습니다." },
     { status: "REJECTED", analysisStatus: "PENDING", message: "반려된 지원서는 AI 분석 대상에서 제외됩니다." },
-  ] as const)("refreshes a pending applicant after a cached missing report and stops at $status/$analysisStatus", async ({ status, analysisStatus, message }) => {
+  ] as const)("refreshes a pending applicant without prefetching its report and stops at $status/$analysisStatus", async ({ status, analysisStatus, message }) => {
     vi.useFakeTimers();
     let finished = false;
     let detailRequests = 0;
@@ -543,6 +543,8 @@ describe("applicant api pages", () => {
       await act(async () => {
         prefetchAdminApplication(1);
         await vi.advanceTimersByTimeAsync(0);
+        prefetchAdminApplication(1);
+        await vi.advanceTimersByTimeAsync(0);
       });
       renderApplicantPage("/applicants?detail=1");
       await act(async () => { await vi.advanceTimersByTimeAsync(0); });
@@ -551,7 +553,7 @@ describe("applicant api pages", () => {
         .toBeInTheDocument();
       expect(within(panel).getByRole("button", { name: "승인" })).toBeEnabled();
       expect(within(panel).getByRole("button", { name: "반려" })).toBeEnabled();
-      expect(reportRequests).toBe(1);
+      expect(reportRequests).toBe(0);
 
       finished = true;
       await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
@@ -560,7 +562,7 @@ describe("applicant api pages", () => {
       expect(within(panel).getByText(message)).toBeInTheDocument();
       await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
       expect(detailRequests).toBe(2);
-      expect(reportRequests).toBe(analysisStatus === "DONE" ? 2 : 1);
+      expect(reportRequests).toBe(analysisStatus === "DONE" ? 1 : 0);
     } finally {
       vi.useRealTimers();
     }
