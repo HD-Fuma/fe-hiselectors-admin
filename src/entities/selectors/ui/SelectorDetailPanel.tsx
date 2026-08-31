@@ -33,6 +33,11 @@ const BREAKDOWN_COLORS = [
 ] as const;
 const BREAKDOWN_TOP_COUNT = 5;
 
+/** 축과 tooltip이 길어지지 않도록 만 단위로 줄인 금액. */
+function breakdownWon(value: number) {
+  return `${formatCompactCount(value)}원`;
+}
+
 function selectorStatusTone(
   status: SelectorFixture["status"],
 ): NonNullable<StatusPillProps["tone"]> {
@@ -789,8 +794,9 @@ function SelectorBreakdownCharts({
               label: product.productName || `상품 ${product.productId}`,
               value: product.confirmedSales,
             }))}
-            formatValue={formatWon}
+            formatValue={breakdownWon}
             name="확정 매출"
+            showValueLabels={false}
           />
         ) : <p className="fuma-selector-breakdown__empty">집계된 상품이 없습니다.</p>}
       </div>
@@ -804,14 +810,12 @@ function SelectorBreakdownCharts({
               label: campaign.title || `캠페인 ${campaign.campaignId}`,
               value: campaign.confirmedSales,
             }))}
-            formatValue={formatWon}
+            formatValue={breakdownWon}
             name="확정 매출"
+            showValueLabels={false}
           />
         ) : <p className="fuma-selector-breakdown__empty">집계된 캠페인이 없습니다.</p>}
       </div>
-      <p className="fuma-selector-breakdown__note">
-        구매확정 매출 기준입니다. 한 상품이 여러 캠페인에 속하면 캠페인 매출이 중복 집계될 수 있습니다.
-      </p>
     </div>
   );
 }
@@ -936,11 +940,7 @@ function SelectorApiDetailContent({
       )}
 
       {settlementOnly || (performanceBreakdown === undefined && !performanceBreakdownError) ? null : (
-      <SelectorDetailListSection
-        meta={<span>상위 {BREAKDOWN_TOP_COUNT}건</span>}
-        title="상품·캠페인 성과"
-        titleId="selector-breakdown-title"
-      >
+      <SelectorDetailListSection title="상품·캠페인 성과" titleId="selector-breakdown-title">
         {performanceBreakdownError ? (
           <p className="fuma-selector-breakdown__empty" role="alert">{performanceBreakdownError}</p>
         ) : performanceBreakdown ? (

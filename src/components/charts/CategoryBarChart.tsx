@@ -14,6 +14,8 @@ interface CategoryBarChartProps {
   formatValue?: (value: number) => string;
   height?: number;
   name?: string;
+  /** 막대 위 값 표시를 끈다. 값은 tooltip으로 확인한다. */
+  showValueLabels?: boolean;
 }
 
 export function CategoryBarChart({
@@ -22,6 +24,7 @@ export function CategoryBarChart({
   formatValue = (value) => value.toLocaleString("ko-KR"),
   height = 200,
   name = "인원",
+  showValueLabels = true,
 }: CategoryBarChartProps) {
   const option = useMemo<EChartsOption>(() => ({
     animation: false,
@@ -87,7 +90,7 @@ export function CategoryBarChart({
           },
         })),
         label: {
-          show: true,
+          show: showValueLabels,
           position: "top" as const,
           color: "#65716c",
           fontSize: 12,
@@ -97,7 +100,7 @@ export function CategoryBarChart({
         emphasis: { focus: "series" as const },
       },
     ],
-  }), [bars, formatValue, name]);
+  }), [bars, formatValue, name, showValueLabels]);
 
   return (
     <div

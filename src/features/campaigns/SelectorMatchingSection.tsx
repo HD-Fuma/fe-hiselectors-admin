@@ -93,6 +93,7 @@ function matchColumns(
 
 /** 캠페인·상품에 맞는 셀렉터스를 추천하고, 선택한 대상에게 제안 메일을 보낸다. */
 export function SelectorMatchingSection({ campaign }: { campaign: Campaign }) {
+  const [open, setOpen] = useState(false);
   const [target, setTarget] = useState("campaign");
   const [matches, setMatches] = useState<SelectorMatch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,6 +116,8 @@ export function SelectorMatchingSection({ campaign }: { campaign: Campaign }) {
   };
 
   useEffect(() => {
+    if (!open) return;
+
     const controller = new AbortController();
     const productId = target === "campaign" ? undefined : Number(target);
     void getSelectorMatching(
@@ -139,7 +142,7 @@ export function SelectorMatchingSection({ campaign }: { campaign: Campaign }) {
       });
 
     return () => controller.abort();
-  }, [campaign.id, target]);
+  }, [campaign.id, open, target]);
 
   const toggle = (selectorId: number) => {
     setSelected((current) => {
@@ -182,35 +185,42 @@ export function SelectorMatchingSection({ campaign }: { campaign: Campaign }) {
   return (
     <section aria-labelledby="campaign-matching-title" className="fuma-campaign-detail-list-section">
       <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar">
-        <strong id="campaign-matching-title">적합 셀렉터스 추천</strong>
+        <strong id="campaign-matching-title">연관 셀렉터스</strong>
         <div className="fuma-settlement-result-meta fuma-selector-matching__toolbar">
-          <Select
-            aria-label="추천 기준"
-            onChange={(event) => changeTarget(event.target.value)}
-            options={[
-              { label: "캠페인 전체 상품 기준", value: "campaign" },
-              ...campaign.products.map((product) => ({
-                label: product.productName || `상품 ${product.id}`,
-                value: String(product.id),
-              })),
-            ]}
-            value={target}
-          />
-          <span>총 {matches.length}명</span>
-          <Button disabled={matches.length === 0} onClick={toggleAll}>
-            {selected.size === matches.length && matches.length > 0 ? "선택 해제" : "전체 선택"}
-          </Button>
-          <Button
-            disabled={selected.size === 0}
-            onClick={() => {
-              setSendError("");
-              setComposeOpen(true);
-            }}
-            variant="primary"
-          >
-            선택 {selected.size}명에게 제안 발송
+          <Button aria-expanded={open} onClick={() => setOpen(!open)}>
+            {open ? "접기" : "연관 셀렉터스 보기"}
           </Button>
         </div>
+      </div>
+      {!open ? null : (
+      <>
+      <div className="fuma-selector-matching__toolbar">
+        <Select
+          aria-label="추천 기준"
+          onChange={(event) => changeTarget(event.target.value)}
+          options={[
+            { label: "캠페인 전체 상품 기준", value: "campaign" },
+            ...campaign.products.map((product) => ({
+              label: product.productName || `상품 ${product.id}`,
+              value: String(product.id),
+            })),
+          ]}
+          value={target}
+        />
+        <span>총 {matches.length}명</span>
+        <Button disabled={matches.length === 0} onClick={toggleAll}>
+          {selected.size === matches.length && matches.length > 0 ? "선택 해제" : "전체 선택"}
+        </Button>
+        <Button
+          disabled={selected.size === 0}
+          onClick={() => {
+            setSendError("");
+            setComposeOpen(true);
+          }}
+          variant="primary"
+        >
+          선택 {selected.size}명에게 제안 발송
+        </Button>
       </div>
       {error ? <p role="alert">{error}</p> : null}
       <div className="fuma-wide-table fuma-settlement-table fuma-selector-list-table">
@@ -221,6 +231,8 @@ export function SelectorMatchingSection({ campaign }: { campaign: Campaign }) {
           rows={error ? [] : matches}
         />
       </div>
+      </>
+      )}
 
       {composeOpen ? (
         <Modal
