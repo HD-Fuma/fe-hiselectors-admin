@@ -2442,6 +2442,18 @@
   padding-top: var(--hsas-space-40);
 }
 
+/* 추천 사유는 잘리지 않고 줄바꿈한다. */
+.fuma-selector-matching-table .hsas-dense-table td:last-child {
+  height: auto;
+  padding-top: var(--hsas-space-6);
+  padding-bottom: var(--hsas-space-6);
+  overflow: visible;
+  line-height: 18px;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
 .fuma-selector-matching__toolbar {
   display: flex;
   flex-wrap: wrap;

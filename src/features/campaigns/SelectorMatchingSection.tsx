@@ -50,6 +50,7 @@ function matchColumns(
     {
       key: "nickname",
       header: "셀렉터스",
+      width: 190,
       render: (match) => (
         <div className="fuma-creator-account-cell">
           <div className="fuma-creator-account-cell__profile is-static">
@@ -241,7 +242,7 @@ export function SelectorMatchingSection({
         </Button>
       </div>
       {error ? <p role="alert">{error}</p> : null}
-      <div className="fuma-wide-table fuma-settlement-table fuma-selector-list-table">
+      <div className="fuma-settlement-table fuma-selector-matching-table">
         <DenseTable
           columns={matchColumns(selected, toggle)}
           emptyMessage={loading ? "추천 셀렉터스를 불러오는 중입니다." : "추천할 셀렉터스가 없습니다."}
