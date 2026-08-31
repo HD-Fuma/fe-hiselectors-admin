@@ -8,11 +8,15 @@ import {
   deleteDiscoveryCategory,
   deleteDiscoveryKeyword,
   getDiscoveryCategories,
+  getDiscoveryCoverage,
   updateDiscoveryCategory,
   updateDiscoveryKeyword,
   type DiscoveryCategory,
+  type DiscoveryCoverage,
+  type DiscoveryCoverageStatus,
   type DiscoveryKeyword,
 } from "../../entities/discovery-category";
+import { runCreatorDiscoveryByCategory } from "../../entities/creator";
 
 interface CategoryDraft {
   id: number;
@@ -35,6 +39,13 @@ function emptyKeywordDraft(): KeywordDraft {
 
 const RELOAD_ERROR = "변경사항은 저장됐지만 목록을 새로고침하지 못했습니다. 패널을 닫았다 다시 열어 주세요.";
 
+const COVERAGE_STATUS: Record<DiscoveryCoverageStatus, { label: string; tone: "approved" | "neutral" | "pending" }> = {
+  INSUFFICIENT_DATA: { label: "데이터 부족", tone: "neutral" },
+  EXPLORING: { label: "탐색 중", tone: "pending" },
+  MATURING: { label: "성숙 단계", tone: "pending" },
+  SATURATING: { label: "포화 예상", tone: "approved" },
+};
+
 export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
   const [categories, setCategories] = useState<DiscoveryCategory[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -43,14 +54,22 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
   const [keywordEdits, setKeywordEdits] = useState<Record<number, string>>({});
   const [draggedKeywordId, setDraggedKeywordId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [coverageLoading, setCoverageLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [categoryDiscoveryRunning, setCategoryDiscoveryRunning] = useState(false);
+  const [coverage, setCoverage] = useState<DiscoveryCoverage[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const selectedCategory = categories.find((category) => category.id === selectedId) ?? null;
+  const selectedCoverage = coverage.find((item) => item.categoryId === selectedId) ?? null;
 
   async function reload(preferredId?: number) {
-    const nextCategories = await getDiscoveryCategories();
+    const [nextCategories, nextCoverage] = await Promise.all([
+      getDiscoveryCategories(),
+      getDiscoveryCoverage(),
+    ]);
     setCategories(nextCategories);
+    setCoverage(nextCoverage);
     setKeywordEdits({});
     setSelectedId((current) => {
       const nextId = preferredId ?? current;
@@ -66,12 +85,20 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
       .then((nextCategories) => {
         setCategories(nextCategories);
         setSelectedId(nextCategories[0]?.id ?? null);
+        return getDiscoveryCoverage(controller.signal)
+          .then(setCoverage)
+          .catch(() => {
+            if (!controller.signal.aborted) setCoverage([]);
+          });
       })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted) setError(reasonMessage(reason, "발굴 설정을 불러오지 못했습니다."));
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          setCoverageLoading(false);
+        }
       });
     return () => controller.abort();
   }, []);
@@ -218,11 +245,35 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
     }
   }
 
+  async function runSelectedCategory() {
+    if (!selectedCategory) return;
+    const category = selectedCategory;
+    setCategoryDiscoveryRunning(true);
+    setError("");
+    setNotice("");
+    try {
+      await runCreatorDiscoveryByCategory(category.id);
+      setNotice(`${category.name} 발굴 작업을 시작했습니다. 완료 여부는 알림센터에서 확인하세요.`);
+    } catch (reason) {
+      setError(reasonMessage(reason, "카테고리 크리에이터 발굴에 실패했습니다."));
+    } finally {
+      setCategoryDiscoveryRunning(false);
+    }
+  }
+
   return (
     <SidePanel onClose={onClose} title="크리에이터 발굴 키워드 설정">
       <div className="fuma-detail-panel__content fuma-discovery-settings">
         {error ? <p className="fuma-discovery-settings__message fuma-discovery-settings__message--error" role="alert">{error}</p> : null}
         {notice ? <p className="fuma-discovery-settings__message" role="status">{notice}</p> : null}
+
+        {selectedCategory ? (
+          <DiscoveryCoverageCard
+            coverage={selectedCoverage}
+            loading={coverageLoading}
+            name={selectedCategory.name}
+          />
+        ) : null}
 
         <div className="fuma-discovery-settings__workspace">
           <section className="fuma-discovery-settings__section fuma-discovery-settings__section--categories">
@@ -275,6 +326,7 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
                     </summary>
                     <div>
                       <button
+                        aria-label={`${category.name} 카테고리 수정`}
                         disabled={saving}
                         onClick={(event) => {
                           event.currentTarget.closest("details")?.removeAttribute("open");
@@ -291,6 +343,7 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
                         수정
                       </button>
                       <button
+                        aria-label={`${category.name} 카테고리 삭제`}
                         className="is-danger"
                         disabled={saving}
                         onClick={(event) => {
@@ -315,6 +368,22 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
                 <h3>{selectedCategory ? `${selectedCategory.name} 발굴 키워드` : "발굴 키워드"}</h3>
                 <p>해당 분야의 크리에이터를 찾을 검색어를 관리합니다.</p>
               </div>
+              {selectedCategory ? (
+                <Button
+                  disabled={categoryDiscoveryRunning
+                    || saving
+                    || !selectedCategory.enabled
+                    || !selectedCategory.keywords.some((keyword) => keyword.enabled)}
+                  onClick={() => void runSelectedCategory()}
+                  title={!selectedCategory.enabled
+                    || !selectedCategory.keywords.some((keyword) => keyword.enabled)
+                    ? "활성 카테고리와 활성 키워드가 필요합니다."
+                    : undefined}
+                  variant="primary"
+                >
+                  {categoryDiscoveryRunning ? "접수 중" : `${selectedCategory.name}만 발굴`}
+                </Button>
+              ) : null}
             </header>
 
             {!selectedCategory ? <p className="fuma-discovery-settings__empty">카테고리를 선택해 주세요.</p> : null}
@@ -407,5 +476,86 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
         </div>
       </div>
     </SidePanel>
+  );
+}
+
+function DiscoveryCoverageCard({
+  coverage,
+  loading,
+  name,
+}: {
+  coverage: DiscoveryCoverage | null;
+  loading: boolean;
+  name: string;
+}) {
+  if (loading) {
+    return <section className="fuma-discovery-coverage fuma-discovery-settings__empty">발굴 분석을 불러오는 중입니다.</section>;
+  }
+  if (!coverage) {
+    return <section className="fuma-discovery-coverage fuma-discovery-settings__empty">발굴 분석 정보를 불러오지 못했습니다.</section>;
+  }
+
+  const status = COVERAGE_STATUS[coverage.status];
+  const hasEstimate = coverage.coveragePercent !== null;
+  const progress = hasEstimate
+    ? coverage.coveragePercent ?? 0
+    : Math.min(100, coverage.executedKeywordCount / coverage.minimumKeywordCount * 100);
+
+  return (
+    <section aria-label={`${name} 발굴 포화도`} className="fuma-discovery-coverage">
+      <header>
+        <div>
+          <span>CAPTURE–RECAPTURE</span>
+          <h3>{name} 크리에이터 발굴 현황</h3>
+          <p>서로 다른 검색 키워드에서 동일 계정이 다시 발견되는 정도를 분석합니다.</p>
+        </div>
+        <StatusPill tone={status.tone}>{status.label}</StatusPill>
+      </header>
+
+      <div className="fuma-discovery-coverage__overview">
+        <div>
+          <strong>{hasEstimate ? `약 ${coverage.coveragePercent}%` : `${coverage.executedKeywordCount} / ${coverage.minimumKeywordCount}개`}</strong>
+          <small>{hasEstimate ? "추정 발굴 포화도" : "분석 준비 키워드"}</small>
+        </div>
+        <div
+          aria-label={hasEstimate ? "추정 발굴 포화도" : "분석 준비도"}
+          aria-valuemax={100}
+          aria-valuemin={0}
+          aria-valuenow={Math.round(progress)}
+          className="fuma-discovery-coverage__progress"
+          role="progressbar"
+        >
+          <i style={{ width: `${progress}%` }} />
+        </div>
+        <p>{coverage.recommendation}</p>
+      </div>
+
+      <dl className="fuma-discovery-coverage__metrics">
+        <div><dt>관측 YouTube 계정</dt><dd>{coverage.observedCreators}<small>명</small></dd></div>
+        <div><dt>추정 발굴 가능 규모</dt><dd>{coverage.estimatedCreators === null ? "-" : `약 ${Math.ceil(coverage.estimatedCreators)}`}<small>{coverage.estimatedCreators === null ? "" : "명"}</small></dd></div>
+        <div><dt>실행 키워드</dt><dd>{coverage.executedKeywordCount}<small>개</small></dd></div>
+        <div><dt>한 키워드에서만 발견</dt><dd>{coverage.singletonCreators}<small>명</small></dd></div>
+      </dl>
+
+      {coverage.keywords.length > 0 ? (
+        <div className="fuma-discovery-coverage__table-wrap">
+          <table>
+            <thead><tr><th>실행 키워드</th><th>발견</th><th>단독</th><th>중복</th><th>중복률</th></tr></thead>
+            <tbody>
+              {coverage.keywords.map((keyword) => (
+                <tr key={keyword.keywordId}>
+                  <td><strong>{keyword.keyword}</strong><small>{keyword.lastRunAt.slice(0, 10)} 실행</small></td>
+                  <td>{keyword.discoveredCreators}명</td>
+                  <td>{keyword.exclusiveCreators}명</td>
+                  <td>{keyword.overlapCreators}명</td>
+                  <td>{keyword.overlapPercent}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+      <small className="fuma-discovery-coverage__note">등록 키워드 범위에서 계산한 참고 추정치이며 자동 수집 중단에는 사용하지 않습니다.</small>
+    </section>
   );
 }

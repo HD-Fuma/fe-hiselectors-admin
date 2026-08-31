@@ -8,10 +8,12 @@ import type {
   ContentVersionSummary,
   ContentViolation,
   ContentViolationItemStatus,
+  ContentViolationType,
 } from "../api";
 import type {
   ContentAnnotation,
   ContentFormat,
+  ContentInspectionExtract,
   ContentInspectionFixture,
   ContentInspectionHistoryItem,
   ContentInspectionSignal,
@@ -51,6 +53,27 @@ const CLOSED_VIOLATION_STATUSES = new Set<ContentViolationItemStatus>([
   "DISMISSED",
   "RESOLVED",
 ]);
+
+const ABSENCE_VIOLATION_TYPES = new Set<ContentViolationType>([
+  "AD_DISCLOSURE_INVALID",
+  "AFFILIATE_LINK_INVALID",
+]);
+
+const COMPLETED_ANALYSIS_STATUSES = new Set([
+  "APPROVED",
+  "COMPLETED",
+  "REJECTED",
+  "REVISION_REQUESTED",
+  "VIOLATION_CONFIRMED",
+  "수정 요청",
+  "승인",
+  "위반",
+  "위반 확정",
+]);
+
+function analysisStatus(status: string | null): "ready" | "pending" {
+  return status && COMPLETED_ANALYSIS_STATUSES.has(status) ? "ready" : "pending";
+}
 
 function inspectionStatus(status: string | null) {
   return status ? INSPECTION_STATUSES[status] ?? "검수 대기" : "검수 대기";
@@ -104,6 +127,11 @@ function signalTone(status: ContentViolationItemStatus): InspectionSignalTone {
   return "critical";
 }
 
+function isAbsenceViolation(violation: ContentViolation) {
+  return ABSENCE_VIOLATION_TYPES.has(violation.violationType)
+    && (violation.evidence?.locations.length ?? 0) === 0;
+}
+
 function signalsFromViolations(
   violations: readonly ContentViolation[],
   mediaTextById: ReadonlyMap<number, string>,
@@ -113,15 +141,17 @@ function signalsFromViolations(
     const locationText = location?.contentMediaId == null
       ? ""
       : mediaTextById.get(location.contentMediaId) ?? "";
+    const absence = isAbsenceViolation(violation);
     return {
       detail: violation.evidence?.reason?.trim() || violation.violationTypeDescription,
       detectorSource: violation.evidence?.source,
       evidence: locationQuote(location, locationText) || violation.violationTypeDescription,
-      locationAvailable: location !== undefined,
-      source: locationSource(location),
+      locationAvailable: location !== undefined || absence,
+      source: location ? locationSource(location) : absence ? "게시물 본문(TEXT)" : "콘텐츠 전체",
       title: violation.violationTypeDescription,
       tone: signalTone(violation.currentStatus),
       violationItemId: violation.violationItemId,
+      violationType: violation.violationType,
       violationStatus: violation.currentStatus,
       inspectionPolicyId: violation.inspectionPolicyId,
       violationEvidenceHistoryId: violation.violationEvidenceHistoryId,
@@ -137,8 +167,38 @@ function annotationsFromViolations(
 ): ContentAnnotation[] {
   const mediaById = new Map(media.map((item) => [item.contentMediaId, item]));
   const visualMedia = media.filter((item) => item.mediaType !== "TEXT");
-  return violations.flatMap((violation) => (
-    (violation.evidence?.locations ?? [])
+  return violations.flatMap((violation) => {
+    const locations = violation.evidence?.locations ?? [];
+    if (locations.length === 0 && isAbsenceViolation(violation)) {
+      const textMedia = media.find((item) => item.mediaType === "TEXT");
+      const visualIndex = textMedia
+        ? -1
+        : visualMedia.findIndex((item) => item.mediaType === "VIDEO" || item.mediaType === "IMAGE");
+      const sourceMedia = textMedia ?? visualMedia[visualIndex];
+      if (!sourceMedia) return [];
+      const quote = violation.violationTypeDescription;
+      return [{
+        guidance: violation.evidence?.reason?.trim() || "표시된 근거를 확인해 주세요.",
+        id: `violation-history-${violation.violationEvidenceHistoryId}-absence`,
+        location: textMedia ? "게시물 본문(TEXT)" : locationSource(undefined),
+        reason: violation.evidence?.reason?.trim() || violation.violationTypeDescription,
+        severity: signalTone(violation.currentStatus) === "warning" ? "warning" : "critical",
+        source: "자동 감지" as const,
+          state: !showHistoricalEvidence && violation.currentStatus != null
+            && violation.currentStatus !== "PENDING"
+            ? "resolved" as const
+            : "active" as const,
+        target: textMedia
+          ? { kind: "text-start" as const, quote }
+          : {
+              kind: "media" as const,
+              ...(visualIndex >= 0 ? { mediaIndex: visualIndex } : {}),
+              quote,
+            },
+        title: violation.violationTypeDescription,
+      }];
+    }
+    return locations
       .flatMap((location, locationIndex) => {
         const sourceMedia = location.contentMediaId == null
           ? undefined
@@ -155,7 +215,7 @@ function annotationsFromViolations(
           && location.startIndex < location.endIndex
           && mediaText.slice(location.startIndex, location.endIndex) === quote;
         const offset = textOffsets.get(sourceMedia.contentMediaId);
-        const useTextTarget = hasMatchingRange
+        const useTextTarget = sourceMedia.mediaType === "TEXT" && hasMatchingRange
           && offset !== undefined
           && location.startTime == null
           && location.bbox == null;
@@ -169,7 +229,8 @@ function annotationsFromViolations(
           reason: violation.evidence?.reason?.trim() || violation.violationTypeDescription,
           severity: signalTone(violation.currentStatus) === "warning" ? "warning" : "critical",
           source: "자동 감지" as const,
-          state: !showHistoricalEvidence && CLOSED_VIOLATION_STATUSES.has(violation.currentStatus)
+          state: !showHistoricalEvidence && violation.currentStatus != null
+            && violation.currentStatus !== "PENDING"
             ? "resolved" as const
             : "active" as const,
           target: useTextTarget
@@ -180,6 +241,11 @@ function annotationsFromViolations(
                 quote,
                 startIndex: offset + (location.startIndex ?? 0),
               }
+            : sourceMedia.mediaType === "TEXT"
+              ? {
+                  kind: "text-start" as const,
+                  quote,
+                }
             : {
                 ...(location.bbox ? { box: location.bbox, boxUnit: "pixel" as const } : {}),
                 kind: "media" as const,
@@ -194,8 +260,8 @@ function annotationsFromViolations(
               },
           title: violation.violationTypeDescription,
         }];
-      })
-  ));
+      });
+  });
 }
 
 function mediaTextLayout(media: readonly ContentVersionMedia[]) {
@@ -206,12 +272,27 @@ function mediaTextLayout(media: readonly ContentVersionMedia[]) {
   media.forEach((item) => {
     const value = item.text?.trim();
     if (!value) return;
+    textById.set(item.contentMediaId, value);
+    if (item.mediaType !== "TEXT") return;
     if (text) text += "\n";
     offsets.set(item.contentMediaId, text.length);
-    textById.set(item.contentMediaId, value);
     text += value;
   });
   return { offsets, text, textById };
+}
+
+function extractsFromMedia(media: readonly ContentVersionMedia[]): ContentInspectionExtract[] {
+  return media
+    .filter((item) => item.mediaType !== "TEXT")
+    .flatMap((item, index) => {
+      const text = item.text?.trim();
+      if (!text) return [];
+      return [{
+        location: `${item.mediaType === "VIDEO" ? "동영상" : "이미지"} ${index + 1}`,
+        text,
+        type: item.mediaType === "VIDEO" ? "STT" as const : "OCR" as const,
+      }];
+    });
 }
 
 function historyFromVersions(
@@ -250,6 +331,7 @@ export function adaptContentInspection(content: CollectedContent): ContentInspec
   const texts = trimmedTexts(content.texts);
   const media = [...(content.media ?? [])].sort((left, right) => left.sequenceNo - right.sequenceNo);
   const status = inspectionStatus(content.inspectionStatus);
+  const aiStatus = analysisStatus(content.inspectionStatus);
   const contentFormat = CONTENT_FORMATS[content.contentType];
   const youtubeVideoId = content.snsCode === "YOUTUBE"
     ? media.find(({ mediaType }) => mediaType === "VIDEO")?.snsMediaId ?? content.snsContentId
@@ -257,8 +339,8 @@ export function adaptContentInspection(content: CollectedContent): ContentInspec
 
   return {
     accountId: content.accountId,
-    aiStatus: "pending",
-    aiSummary: "분석 대기",
+    aiStatus,
+    aiSummary: aiStatus === "ready" ? "분석 완료" : "분석 대기",
     author: content.selectorsNickname?.trim() || content.accountId,
     availableActions: [],
     changeItems: [],
@@ -279,6 +361,10 @@ export function adaptContentInspection(content: CollectedContent): ContentInspec
     },
     detectedIssues: [],
     id: String(content.contentId),
+    inspectionDecision: content.inspectionStatus === "APPROVED"
+      || content.inspectionStatus === "REJECTED"
+      ? content.inspectionStatus
+      : null,
     inspectionStatus: status,
     inspectionType: content.latestVersionNo > 1 ? "EDITED" : "NEW",
     latestVersionNo: content.latestVersionNo,
@@ -335,7 +421,9 @@ export function adaptContentInspectionDetail(
   return {
     accountId: base?.accountId,
     aiStatus: analysisReady ? "ready" : "pending",
-    aiSummary: contentReport?.summary?.trim() || (analysisReady ? "분석 완료" : "분석 대기"),
+    aiSummary: contentReport?.analysis?.overview?.summary?.trim()
+      || contentReport?.summary?.trim()
+      || (analysisReady ? "분석 완료" : "분석 대기"),
     author: base?.author || detail.snsContentId,
     availableActions: base?.availableActions ?? [],
     changeItems: base?.changeItems ?? [],
@@ -367,6 +455,7 @@ export function adaptContentInspectionDetail(
     },
     detectedIssues: activeViolations.map((violation) => violation.violationTypeDescription),
     id: String(detail.contentId),
+    inspectionDecision: selectedVersion.inspectionDecision ?? null,
     inspectionStatus: status,
     inspectionType: latestVersionNo > 1 ? "EDITED" : "NEW",
     latestVersionNo,
@@ -374,12 +463,15 @@ export function adaptContentInspectionDetail(
     processingState: processingState(status),
     profileImageUrl: base?.profileImageUrl,
     report: {
-      extracts: [],
-      flow: contentReport?.flow ?? null,
+      analysis: contentReport?.analysis ?? null,
+      extracts: extractsFromMedia(media),
+      flow: contentReport?.analysis?.overview?.flow ?? contentReport?.flow ?? null,
       generatedAt: selectedVersion.inspectedAt,
       history: historyFromVersions(detail.storedAt, detail.versions ?? []),
-      overallAssessment: contentReport?.overallAssessment ?? null,
-      purpose: contentReport?.purpose ?? null,
+      overallAssessment: contentReport?.analysis?.overview?.overallAssessment
+        ?? contentReport?.overallAssessment ?? null,
+      purpose: contentReport?.analysis?.overview?.purpose
+        ?? contentReport?.purpose ?? null,
       signals: signalsFromViolations(violations, textLayout.textById),
     },
     selectorsId: detail.selectorsId,

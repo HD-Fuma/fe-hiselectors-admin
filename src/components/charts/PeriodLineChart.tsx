@@ -81,7 +81,7 @@ export function PeriodLineChart({
       axisTick: { show: false },
       axisLabel: {
         color: labelColor,
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 700,
         margin: 12,
       },
@@ -125,7 +125,7 @@ export function PeriodLineChart({
             show: true,
             position: "top" as const,
             color: labelColor,
-            fontSize: 8,
+            fontSize: 12,
             fontWeight: 700,
             formatter: (params: { value: unknown }) => formatValue(Number(params.value ?? 0)),
           }

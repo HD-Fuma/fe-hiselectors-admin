@@ -144,6 +144,21 @@ function contentTitle(item: ContentPerformanceApiItem) {
   return firstLine || `${item.selectorsNickname} 콘텐츠`;
 }
 
+function contentThumbnailUrl(
+  item: ContentPerformanceApiItem,
+  sortedMedia: readonly ContentPerformanceMedia[],
+) {
+  const mediaUrl = sortedMedia.find((media) => media.mediaUrl)?.mediaUrl;
+  if (mediaUrl) return mediaUrl;
+  if (item.snsCode !== "YOUTUBE") return null;
+
+  const youtubeVideoId = sortedMedia.find((media) => media.mediaType === "VIDEO")?.snsMediaId
+    ?? item.snsContentId;
+  return youtubeVideoId
+    ? `https://i.ytimg.com/vi/${encodeURIComponent(youtubeVideoId)}/hqdefault.jpg`
+    : null;
+}
+
 export function adaptContentPerformance(item: ContentPerformanceApiItem): ContentInfluence {
   const sortedMedia = [...item.media].sort((left, right) => left.sequenceNo - right.sequenceNo);
   return {
@@ -169,7 +184,7 @@ export function adaptContentPerformance(item: ContentPerformanceApiItem): Conten
       recordedAt: point.recordedAt.slice(0, 10),
     })),
     selectorId: `selector-${item.selectorsId}`,
-    thumbnailUrl: sortedMedia.find((media) => media.mediaUrl)?.mediaUrl ?? null,
+    thumbnailUrl: contentThumbnailUrl(item, sortedMedia),
     title: contentTitle(item),
     views: item.viewCount,
     viewsTrend: item.trend.map((point) => ({

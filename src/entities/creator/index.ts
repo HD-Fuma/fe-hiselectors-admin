@@ -25,6 +25,7 @@ export {
   postAdminProposal,
   resetCreatorPool,
   runCreatorDiscovery,
+  runCreatorDiscoveryByCategory,
 } from "./api";
 export type {
   CreatorDetail,

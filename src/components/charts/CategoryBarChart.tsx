@@ -51,7 +51,7 @@ export function CategoryBarChart({
       axisTick: { show: false },
       axisLabel: {
         color: "#4b5752",
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 700,
         hideOverlap: true,
         interval: 0,
@@ -66,7 +66,7 @@ export function CategoryBarChart({
       axisTick: { show: false },
       axisLabel: {
         color: "#4b5752",
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 700,
         formatter: (value: number) => formatValue(value),
       },
@@ -90,7 +90,7 @@ export function CategoryBarChart({
           show: true,
           position: "top" as const,
           color: "#65716c",
-          fontSize: 9,
+          fontSize: 12,
           fontWeight: 700,
           formatter: ({ value }: { value: unknown }) => formatValue(Number(value ?? 0)),
         },

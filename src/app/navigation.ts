@@ -13,6 +13,9 @@ function lazyPage(loader: () => Promise<ComponentType>) {
   return lazy(async () => ({ default: await loader() }));
 }
 
+const DashboardPage = lazyPage(() =>
+  import("../features/dashboard/DashboardPage").then((module) => module.DashboardPage),
+);
 const CreatorListPage = lazyPage(() =>
   import("../features/creators/CreatorPages").then((module) => module.CreatorListPage),
 );
@@ -81,13 +84,24 @@ const TaskRunHistoryPage = lazyPage(() =>
 );
 
 const NAV_GROUPS: readonly NavGroupMeta[] = [
+  { id: "dashboard", label: "대시보드" },
   { id: "recruitment", label: "모집·선발" },
   { id: "operations", label: "운영" },
   { id: "performance", label: "성과·정산" },
-  { id: "notifications", label: "알림·메시지" },
+  { id: "notifications", label: "시스템 관리" },
 ];
 
 export const ADMIN_ROUTE_MANIFEST = [
+  {
+    path: "/dashboard",
+    Component: DashboardPage,
+    group: "dashboard",
+    menuLabel: "대시보드",
+    menuOrder: 0,
+    title: "대시보드",
+    screenCode: "DB101",
+    workTabLabel: "대시보드",
+  },
   {
     path: "/creators",
     Component: CreatorListPage,
@@ -290,12 +304,12 @@ export const ADMIN_ROUTE_MANIFEST = [
   {
     path: "/task-runs",
     Component: TaskRunHistoryPage,
-    group: "operations",
-    menuLabel: "실행 이력",
-    menuOrder: 3,
-    title: "작업 실행 이력",
+    group: "notifications",
+    menuLabel: "모니터링",
+    menuOrder: 1,
+    title: "모니터링",
     screenCode: "TR101",
-    workTabLabel: "실행 이력",
+    workTabLabel: "모니터링",
   },
 ] as const satisfies readonly AdminRouteManifestEntry[];
 

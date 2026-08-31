@@ -3,12 +3,12 @@ import { CircleHelp } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
+import { BubbleDialog } from "../../components/ui/BubbleDialog";
 import { Button, Select, Switch, TextInput } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FilterField } from "../../components/ui/FilterField";
 import { FormRow } from "../../components/ui/FormRow";
-import { Modal } from "../../components/ui/Modal";
 import { Pagination } from "../../components/ui/Pagination";
 import { ProfileDetailShell, type ProfileDetailProfile } from "../../components/ui/ProfileDetailShell";
 import { SearchActions } from "../../components/ui/SearchActions";
@@ -50,11 +50,7 @@ const REVIEW_STATUS_OPTIONS = ["전체", "검토 대기", "승인", "반려", "�
 );
 const DEFAULT_REVIEW_STATUS = "검토 대기";
 const APPLICANT_PAGE_SIZE = 20;
-const TEST_APPLICATION_POLL_INTERVAL_MS = 10_000;
-
-function isTestApplicant(applicant: Pick<AdminApplicationIdentity, "hiId">) {
-  return applicant.hiId.startsWith("test_");
-}
+const APPLICATION_POLL_INTERVAL_MS = 10_000;
 
 export function ApplicantTestPage() {
   const navigate = useNavigate();
@@ -373,6 +369,7 @@ export function ApplicantListPage() {
     status: Exclude<ApplicationStatus, "PENDING">;
   } | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(APPLICANT_PAGE_SIZE);
   const [listRequestVersion, setListRequestVersion] = useState(0);
   const listRequestKey = [
     appliedKeyword,
@@ -382,6 +379,7 @@ export function ApplicantListPage() {
     minimumCriteriaOnly ? "minimum" : "all",
     hasAiReportOnly ? "hasAiReport" : "all",
     page,
+    pageSize,
     listRequestVersion,
   ].join("|");
   const [pageData, setPageData] = useState<SpringPage<AdminApplicationSummary> | null>(null);
@@ -409,7 +407,7 @@ export function ApplicantListPage() {
       hasAiReport: hasAiReportOnly || undefined,
       minimumCriteriaOnly: apiMinimumCriteriaOnly(appliedReviewStatus, minimumCriteriaOnly),
       page: page - 1,
-      size: APPLICANT_PAGE_SIZE,
+      size: pageSize,
     }, controller.signal).then((result) => {
       if (!controller.signal.aborted) {
         setPageData(result);
@@ -436,6 +434,7 @@ export function ApplicantListPage() {
     listRequestKey,
     minimumCriteriaOnly,
     page,
+    pageSize,
   ]);
 
   const isListFetching = resolvedListKey !== listRequestKey;
@@ -557,8 +556,12 @@ export function ApplicantListPage() {
           {!loading && !listError ? (
             <Pagination
               onPageChange={setPage}
+              onPageSizeChange={(nextPageSize) => {
+                setPageSize(nextPageSize);
+                setPage(1);
+              }}
               page={page}
-              pageSize={APPLICANT_PAGE_SIZE}
+              pageSize={pageSize}
               totalPages={Math.max(1, pageData?.totalPages ?? 1)}
             />
           ) : null}
@@ -574,20 +577,25 @@ export function ApplicantListPage() {
           onStatusChanged={() => setListRequestVersion((version) => version + 1)}
         />
       ) : null}
-      <Modal
-        actions={<Button onClick={() => setDecisionModal(null)} variant="primary">확인</Button>}
+      <BubbleDialog
+        actions={(
+          <button autoFocus onClick={() => setDecisionModal(null)} type="button">
+            확인
+          </button>
+        )}
+        description={decisionModal ? (
+          <>
+            <strong>{decisionModal.name}</strong>님을{" "}
+            <span className={`fuma-applicant-decision-feedback fuma-applicant-decision-feedback--${decisionModal.status === "APPROVED" ? "approved" : "rejected"}`}>
+              {decisionModal.status === "APPROVED" ? "승인" : "반려"}
+            </span>{" "}
+            처리했습니다.
+          </>
+        ) : ""}
         onClose={() => setDecisionModal(null)}
         open={decisionModal !== null}
-        role="alertdialog"
         title="심사 처리 완료"
-      >
-        {decisionModal ? (
-          <p>
-            <strong>{decisionModal.name}</strong>님을{" "}
-            {decisionModal.status === "APPROVED" ? "승인" : "반려"} 처리했습니다.
-          </p>
-        ) : null}
-      </Modal>
+      />
     </>
   );
 }
@@ -621,6 +629,7 @@ export function ApplicantDetailPage({
   } | null>(null);
   const [aiReport, setAiReport] = useState<{ id: number; report: AdminApplicationAiReport | null } | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<ApplicationStatus | null>(null);
+  const [pendingDecision, setPendingDecision] = useState<Exclude<ApplicationStatus, "PENDING"> | null>(null);
 
   useEffect(() => {
     if (invalidApplicantId) return;
@@ -640,8 +649,8 @@ export function ApplicantDetailPage({
           || applicant.analysisStatus === "IN_PROGRESS";
         const failed = applicant.mediaCollectionStatus === "FAILED"
           || applicant.analysisStatus === "FAILED";
-        if (isTestApplicant(applicant) && pending && !failed) {
-          pollTimeout = window.setTimeout(loadApplication, TEST_APPLICATION_POLL_INTERVAL_MS);
+        if (pending && !failed && applicant.status !== "REJECTED") {
+          pollTimeout = window.setTimeout(loadApplication, APPLICATION_POLL_INTERVAL_MS);
         }
       }).catch((reason: unknown) => {
         if (!controller.signal.aborted) {
@@ -660,23 +669,31 @@ export function ApplicantDetailPage({
     };
   }, [invalidApplicantId, numericApplicantId]);
 
+  const currentDetailState = detailState?.id === numericApplicantId ? detailState : null;
+  const applicant = currentDetailState?.applicant ?? null;
+  const analysisDone = applicant?.analysisStatus === "DONE";
+
   useEffect(() => {
-    if (invalidApplicantId) return;
+    if (invalidApplicantId || !analysisDone) return;
     const controller = new AbortController();
-    const request = getCachedAdminApplicationAiReport(numericApplicantId)
-      ?? getAdminApplicationAiReport(numericApplicantId, controller.signal);
+    const cached = getCachedAdminApplicationAiReport(numericApplicantId);
+    const request = cached
+      ? cached.then((report) => report ?? getAdminApplicationAiReport(numericApplicantId, controller.signal))
+      : getAdminApplicationAiReport(numericApplicantId, controller.signal);
     request.then((report) => {
       if (!controller.signal.aborted) setAiReport({ id: numericApplicantId, report });
     });
     return () => controller.abort();
-  }, [invalidApplicantId, numericApplicantId]);
+  }, [analysisDone, invalidApplicantId, numericApplicantId]);
 
-  const currentDetailState = detailState?.id === numericApplicantId ? detailState : null;
-  const applicant = currentDetailState?.applicant ?? null;
   const currentInitialSummary = initialSummary?.id === numericApplicantId ? initialSummary : null;
   const summarySource = applicant ?? currentInitialSummary;
-  const testApplicant = summarySource ? isTestApplicant(summarySource) : false;
   const effectiveReviewStatus = summarySource ? reviewStatusFor(summarySource) : undefined;
+  const pendingDecisionLabel = pendingDecision === "APPROVED"
+    ? "승인"
+    : pendingDecision === "REJECTED"
+      ? "반려"
+      : "";
   const audienceLabel = summarySource?.snsCode === "INSTAGRAM" ? "팔로워" : "구독자";
   const representativeContents = applicant ? uniqueContentsByPost(applicant.contents) : [];
   const fallbackReviewStatus = currentInitialSummary ? reviewStatusFor(currentInitialSummary) : undefined;
@@ -786,6 +803,7 @@ export function ApplicantDetailPage({
       return;
     }
 
+    setPendingDecision(null);
     invalidateAdminApplicationCache(numericApplicantId);
     onStatusChanged?.();
     onDecisionConfirmed?.(applicant?.applicantName ?? "지원자", status);
@@ -796,7 +814,7 @@ export function ApplicantDetailPage({
     <>
       {embedded ? null : <ApplicantListPage />}
       <ProfileDetailShell
-        actionSection={summarySource?.status === "PENDING" && effectiveReviewStatus && !testApplicant ? (
+        actionSection={summarySource?.status === "PENDING" && effectiveReviewStatus ? (
           <section className="fuma-creator-detail-sidebar__proposal fuma-applicant-detail-actions">
             <div className="fuma-applicant-detail-actions__heading">
               <span>심사 처리</span>
@@ -806,15 +824,15 @@ export function ApplicantDetailPage({
             </div>
             <div className="fuma-applicant-detail-actions__buttons">
               <Button
-                disabled={updatingStatus !== null}
-                onClick={() => updateStatus("APPROVED")}
+                disabled={updatingStatus !== null || pendingDecision !== null}
+                onClick={() => setPendingDecision("APPROVED")}
                 variant="primary"
               >
                 {updatingStatus === "APPROVED" ? "승인 처리 중..." : "승인"}
               </Button>
               <Button
-                disabled={updatingStatus !== null}
-                onClick={() => updateStatus("REJECTED")}
+                disabled={updatingStatus !== null || pendingDecision !== null}
+                onClick={() => setPendingDecision("REJECTED")}
                 variant="danger"
               >
                 {updatingStatus === "REJECTED" ? "반려 처리 중..." : "반려"}
@@ -853,6 +871,35 @@ export function ApplicantDetailPage({
             <span className="hsas-visually-hidden">상세 분석 리포트를 불러오는 중입니다...</span>
           </div>
         ) : null}
+        <BubbleDialog
+          actions={(
+            <>
+              <button
+                autoFocus
+                disabled={updatingStatus !== null}
+                onClick={() => setPendingDecision(null)}
+                type="button"
+              >
+                취소
+              </button>
+              <button
+                disabled={updatingStatus !== null}
+                onClick={() => {
+                  if (pendingDecision) void updateStatus(pendingDecision);
+                }}
+                type="button"
+              >
+                {updatingStatus ? `${pendingDecisionLabel} 처리 중...` : "확인"}
+              </button>
+            </>
+          )}
+          description={pendingDecision
+            ? `${pendingDecisionLabel}하면 ${summarySource?.applicantName ?? "지원자"}님께 ${pendingDecisionLabel} 알림톡이 발송됩니다.`
+            : ""}
+          onClose={updatingStatus === null ? () => setPendingDecision(null) : undefined}
+          open={pendingDecision !== null}
+          title={pendingDecision ? `${pendingDecisionLabel}하시겠습니까?` : ""}
+        />
       </ProfileDetailShell>
     </>
   );

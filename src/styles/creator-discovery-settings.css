@@ -25,6 +25,177 @@
   color: var(--hsas-status-rejected);
 }
 
+.fuma-discovery-coverage {
+  display: none;
+  gap: var(--hsas-space-12);
+  padding: var(--hsas-space-16);
+  border: 1px solid var(--hsas-border);
+  border-radius: 8px;
+  background: var(--hsas-surface);
+}
+
+.fuma-discovery-coverage > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--hsas-space-12);
+}
+
+.fuma-discovery-coverage h3,
+.fuma-discovery-coverage p,
+.fuma-discovery-coverage dl {
+  margin: 0;
+}
+
+.fuma-discovery-coverage header span:not(.hsas-status-pill) {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-9);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.fuma-discovery-coverage h3 {
+  margin-top: var(--hsas-space-4);
+  color: var(--hsas-text);
+  font-size: var(--hsas-font-14);
+}
+
+.fuma-discovery-coverage header p,
+.fuma-discovery-coverage__overview p,
+.fuma-discovery-coverage__note {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-9);
+}
+
+.fuma-discovery-coverage header p {
+  margin-top: var(--hsas-space-4);
+}
+
+.fuma-discovery-coverage__overview {
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr);
+  align-items: center;
+  gap: var(--hsas-space-8) var(--hsas-space-14);
+  padding: var(--hsas-space-12);
+  border-radius: 6px;
+  background: var(--hsas-color-surface-subtle);
+}
+
+.fuma-discovery-coverage__overview > div:first-child {
+  display: grid;
+  min-width: 112px;
+  gap: var(--hsas-space-3);
+}
+
+.fuma-discovery-coverage__overview strong {
+  color: var(--hsas-text);
+  font-size: var(--hsas-font-18);
+}
+
+.fuma-discovery-coverage__overview small {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-9);
+}
+
+.fuma-discovery-coverage__progress {
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--hsas-border);
+}
+
+.fuma-discovery-coverage__progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--hsas-color-black);
+}
+
+.fuma-discovery-coverage__overview > p {
+  grid-column: 2;
+  line-height: 1.5;
+}
+
+.fuma-discovery-coverage__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--hsas-border);
+  border-radius: 6px;
+}
+
+.fuma-discovery-coverage__metrics > div {
+  display: grid;
+  gap: var(--hsas-space-4);
+  padding: var(--hsas-space-10);
+  text-align: center;
+}
+
+.fuma-discovery-coverage__metrics > div + div {
+  border-left: 1px solid var(--hsas-border);
+}
+
+.fuma-discovery-coverage__metrics dt {
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-9);
+}
+
+.fuma-discovery-coverage__metrics dd {
+  color: var(--hsas-text);
+  font-size: var(--hsas-font-14);
+  font-weight: 800;
+}
+
+.fuma-discovery-coverage__metrics dd small {
+  margin-left: var(--hsas-space-3);
+  font-size: var(--hsas-font-9);
+}
+
+.fuma-discovery-coverage__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--hsas-border);
+  border-radius: 6px;
+}
+
+.fuma-discovery-coverage table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--hsas-font-10);
+  text-align: right;
+}
+
+.fuma-discovery-coverage th,
+.fuma-discovery-coverage td {
+  padding: var(--hsas-space-8) var(--hsas-space-10);
+  border-bottom: 1px solid var(--hsas-border);
+  white-space: nowrap;
+}
+
+.fuma-discovery-coverage th {
+  background: var(--hsas-color-surface-subtle);
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-9);
+}
+
+.fuma-discovery-coverage th:first-child,
+.fuma-discovery-coverage td:first-child {
+  text-align: left;
+}
+
+.fuma-discovery-coverage tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.fuma-discovery-coverage td:first-child strong,
+.fuma-discovery-coverage td:first-child small {
+  display: block;
+}
+
+.fuma-discovery-coverage td:first-child small {
+  margin-top: var(--hsas-space-3);
+  color: var(--hsas-text-muted);
+  font-size: var(--hsas-font-9);
+}
+
 .fuma-discovery-settings__workspace {
   display: grid;
   grid-template-columns: minmax(280px, 0.8fr) minmax(400px, 1.2fr);
@@ -377,6 +548,19 @@
 }
 
 @container (max-width: 520px) {
+  .fuma-discovery-coverage__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fuma-discovery-coverage__metrics > div:nth-child(3) {
+    border-left: 0;
+    border-top: 1px solid var(--hsas-border);
+  }
+
+  .fuma-discovery-coverage__metrics > div:nth-child(4) {
+    border-top: 1px solid var(--hsas-border);
+  }
+
   .fuma-discovery-settings__form {
     grid-template-columns: 1fr;
   }

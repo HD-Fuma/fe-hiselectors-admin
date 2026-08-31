@@ -15,6 +15,7 @@ export {
   getSelectorPerformanceTrend,
   getSelectorSalesPerformance,
   getSelectors,
+  resetSelectorTestAccount,
   updateGeneration,
   updateGenerationStatus,
 } from "./api";
@@ -36,6 +37,8 @@ export type {
   SelectorSnsAccount,
   SelectorSnsCode,
   SelectorSummary,
+  SelectorTestResetRequest,
+  SelectorTestResetResult,
   SpringPage,
 } from "./api";
 export { SelectorDetailPanel, snsAccountHref } from "./ui/SelectorDetailPanel";

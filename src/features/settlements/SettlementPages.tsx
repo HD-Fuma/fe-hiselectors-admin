@@ -56,11 +56,11 @@ function currentSettlementMonth(date = new Date()) {
   ].join("-");
 }
 
-function emptySettlementPage(): SpringPage<SettlementEstimate> {
+function emptySettlementPage(pageSize = SETTLEMENT_PAGE_SIZE): SpringPage<SettlementEstimate> {
   return {
     content: [],
     number: 0,
-    size: SETTLEMENT_PAGE_SIZE,
+    size: pageSize,
     totalElements: 0,
     totalPages: 0,
   };
@@ -97,6 +97,14 @@ function formatSettlementRate(rate: number) {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
   })}%`;
+}
+
+function commissionRateAxisRange(rates: readonly number[]) {
+  if (rates.length === 0) return { max: 1, min: 0 };
+  const min = Math.floor(Math.min(...rates));
+  const max = Math.ceil(Math.max(...rates));
+  if (min === max) return { max: min + 1, min };
+  return { max, min };
 }
 
 function formatSignedWon(amount: number) {
@@ -242,7 +250,11 @@ function SettlementTrendChart({
 }: {
   monthlyTrend: readonly SettlementMonthlySummary[];
 }) {
-  const option = useMemo<EChartsOption>(() => ({
+  const option = useMemo<EChartsOption>(() => {
+    const rateAxis = commissionRateAxisRange(
+      monthlyTrend.map((month) => month.commissionToSalesRate),
+    );
+    return {
     animation: false,
     grid: {
       bottom: 34,
@@ -263,7 +275,7 @@ function SettlementTrendChart({
       axisTick: { show: false },
       axisLabel: {
         color: "#666",
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 700,
         margin: 12,
       },
@@ -273,10 +285,10 @@ function SettlementTrendChart({
         type: "value",
         min: 0,
         name: "확정 매출 (원)",
-        nameTextStyle: { color: "#666", fontSize: 9, fontWeight: 700 },
+        nameTextStyle: { color: "#666", fontSize: 12, fontWeight: 700 },
         axisLabel: {
           color: "#777",
-          fontSize: 9,
+          fontSize: 12,
           formatter: (value: number) => `${formatCompactCount(value)}원`,
         },
         axisLine: { show: false },
@@ -285,12 +297,14 @@ function SettlementTrendChart({
       },
       {
         type: "value",
-        min: 0,
+        min: rateAxis.min,
+        max: rateAxis.max,
+        minInterval: 1,
         name: "수수료율 (%)",
-        nameTextStyle: { color: "#1e9d8b", fontSize: 9, fontWeight: 700 },
+        nameTextStyle: { color: "#1e9d8b", fontSize: 12, fontWeight: 700 },
         axisLabel: {
           color: "#1e9d8b",
-          fontSize: 9,
+          fontSize: 12,
           formatter: (value: number) => `${value}%`,
         },
         axisLine: { show: false },
@@ -325,7 +339,8 @@ function SettlementTrendChart({
         },
       },
     ],
-  }), [monthlyTrend]);
+    };
+  }, [monthlyTrend]);
   const accessibleSummary = monthlyTrend.map((month) => (
     `${month.activityMonth} 확정 매출 ${formatWon(month.confirmedSalesAmount)}, 수수료율 ${formatSettlementRate(month.commissionToSalesRate)}`
   )).join(". ");
@@ -532,6 +547,7 @@ export function SettlementManagementPage() {
   const [appliedMonth, setAppliedMonth] = useState(defaultMonth);
   const [selectedStatus, setSelectedStatus] = useState<SettlementStatusFilter | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(SETTLEMENT_PAGE_SIZE);
   const [tableRequestVersion, setTableRequestVersion] = useState(0);
   const [summaryRequestVersion, setSummaryRequestVersion] = useState(0);
   const [settlementPage, setSettlementPage] = useState(emptySettlementPage);
@@ -555,7 +571,7 @@ export function SettlementManagementPage() {
     getSettlementEstimates({
       activityMonth: appliedMonth,
       page: page - 1,
-      size: SETTLEMENT_PAGE_SIZE,
+      size: pageSize,
       statuses: apiStatusesForFilter(selectedStatus),
     }, controller.signal)
       .then((pageResult) => {
@@ -571,7 +587,7 @@ export function SettlementManagementPage() {
           return;
         }
 
-        setSettlementPage(emptySettlementPage());
+        setSettlementPage(emptySettlementPage(pageSize));
         setHasTableError(true);
       })
       .finally(() => {
@@ -579,7 +595,7 @@ export function SettlementManagementPage() {
       });
 
     return () => controller.abort();
-  }, [appliedMonth, page, selectedStatus, tableRequestVersion]);
+  }, [appliedMonth, page, pageSize, selectedStatus, tableRequestVersion]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -676,10 +692,10 @@ export function SettlementManagementPage() {
     });
   };
 
-  const prepareTableRequest = () => {
+  const prepareTableRequest = (nextPageSize = pageSize) => {
     latestTableRequestId.current += 1;
     closeSettlementDetail();
-    setSettlementPage(emptySettlementPage());
+    setSettlementPage(emptySettlementPage(nextPageSize));
     setHasTableError(false);
     setIsTableLoading(true);
     setTableRequestVersion((version) => version + 1);
@@ -722,6 +738,12 @@ export function SettlementManagementPage() {
     prepareTableRequest();
   };
 
+  const changePageSize = (nextPageSize: number) => {
+    setPage(1);
+    setPageSize(nextPageSize);
+    prepareTableRequest(nextPageSize);
+  };
+
   const usingDemoData = !isTableLoading
     && !isSummaryLoading
     && !hasTableError
@@ -733,7 +755,7 @@ export function SettlementManagementPage() {
     ? getDemoSettlementPage({
       activityMonth: appliedMonth,
       page: page - 1,
-      size: SETTLEMENT_PAGE_SIZE,
+      size: pageSize,
       statuses: apiStatusesForFilter(selectedStatus),
     })
     : settlementPage;
@@ -808,6 +830,7 @@ export function SettlementManagementPage() {
         {!isTableLoading && !hasTableError && displayedSettlementPage.totalPages > 0 ? (
           <Pagination
             onPageChange={changePage}
+            onPageSizeChange={changePageSize}
             page={displayedSettlementPage.number + 1}
             pageSize={displayedSettlementPage.size}
             totalPages={displayedSettlementPage.totalPages}

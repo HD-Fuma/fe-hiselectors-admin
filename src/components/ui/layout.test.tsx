@@ -79,14 +79,69 @@ test("renders search fields and actions inside an accessible search landmark", (
   expect(within(search).getByRole("button", { name: "Search" })).toBeInTheDocument();
 });
 
+test("submits a shared search once when Enter is pressed in a field", async () => {
+  const user = userEvent.setup();
+  const onSearch = vi.fn();
+
+  render(
+    <SearchPanel actions={<SearchActions onReset={vi.fn()} onSearch={onSearch} />}>
+      <TextInput aria-label="Search term" />
+    </SearchPanel>,
+  );
+
+  await user.type(screen.getByRole("textbox", { name: "Search term" }), "creator{Enter}");
+
+  expect(onSearch).toHaveBeenCalledOnce();
+});
+
 test("shows the current page, total pages, and page size", () => {
-  render(<Pagination page={2} totalPages={7} pageSize={25} />);
+  render(<Pagination page={2} totalPages={7} pageSize={20} />);
 
   const pagination = screen.getByRole("navigation", { name: "페이지 이동" });
   expect(within(pagination).getByText("2 / 7 페이지")).toBeInTheDocument();
-  expect(within(pagination).getByText("페이지당 25개")).toBeInTheDocument();
   expect(within(pagination).getByRole("button", { name: "이전 페이지" })).toBeDisabled();
   expect(within(pagination).getByRole("button", { name: "다음 페이지" })).toBeDisabled();
+});
+
+test("uses pointer controls for available page moves", () => {
+  const onPageChange = vi.fn();
+  render(
+    <Pagination
+      onPageChange={onPageChange}
+      page={2}
+      pageSize={20}
+      totalPages={3}
+    />,
+  );
+
+  const previous = screen.getByRole("button", { name: "이전 페이지" });
+  const next = screen.getByRole("button", { name: "다음 페이지" });
+  expect(previous).toHaveClass("hsas-pagination__button--interactive");
+  expect(next).toHaveClass("hsas-pagination__button--interactive");
+  fireEvent.click(next);
+  expect(onPageChange).toHaveBeenCalledWith(3);
+});
+
+test("offers the standard page sizes", () => {
+  const onPageSizeChange = vi.fn();
+  render(
+    <Pagination
+      onPageSizeChange={onPageSizeChange}
+      page={1}
+      pageSize={20}
+      totalPages={3}
+    />,
+  );
+
+  const pageSize = screen.getByRole("combobox", { name: "페이지당 표시 개수" });
+  expect(within(pageSize).getAllByRole("option").map((option) => option.textContent)).toEqual([
+    "10개 보기",
+    "20개 보기",
+    "50개 보기",
+    "100개 보기",
+  ]);
+  fireEvent.change(pageSize, { target: { value: "50" } });
+  expect(onPageSizeChange).toHaveBeenCalledWith(50);
 });
 
 test("renders modal content and actions only while open", () => {

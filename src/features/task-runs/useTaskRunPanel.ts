@@ -40,7 +40,6 @@ export function useTaskRunPanel({ enabled = true }: UseTaskRunPanelOptions = {})
     if (!enabled || isTransitionRender) return;
 
     const controller = new AbortController();
-    let pollTimeout: number | undefined;
     let retryTimeout: number | undefined;
     let stopped = false;
     let publishedRuns: readonly TaskRun[] = [];
@@ -169,14 +168,14 @@ export function useTaskRunPanel({ enabled = true }: UseTaskRunPanelOptions = {})
       CONTENT_SYNC_STEPS.forEach((stepKey) => {
         const key = progressKey(run.runId, stepKey);
         const floor = progressFloors.get(key);
-        const polled = stepProgress?.[stepKey];
+        const snapshotProgress = stepProgress?.[stepKey];
         if (!floor) return;
-        if (polled && polled.processedCount >= floor.processedCount) {
+        if (snapshotProgress && snapshotProgress.processedCount >= floor.processedCount) {
           progressFloors.set(key, {
             runId: run.runId,
             stepKey,
-            totalCount: polled.totalCount,
-            processedCount: polled.processedCount,
+            totalCount: snapshotProgress.totalCount,
+            processedCount: snapshotProgress.processedCount,
           });
           return;
         }
@@ -265,11 +264,6 @@ export function useTaskRunPanel({ enabled = true }: UseTaskRunPanelOptions = {})
       });
     }
 
-    const poll = async () => {
-      await fetchAndPublishPanel();
-      if (!stopped) pollTimeout = window.setTimeout(poll, 1000);
-    };
-
     const connectStream = async () => {
       const connectionStartedAt = Date.now();
       let outcome;
@@ -277,6 +271,7 @@ export function useTaskRunPanel({ enabled = true }: UseTaskRunPanelOptions = {})
         outcome = await streamTaskRunProgress(
           (event) => enqueueProgressWork(() => applyProgress(event)),
           controller.signal,
+          reconcilePanel,
         );
       } catch {
         outcome = { type: "retryable" as const, reason: "network" as const };
@@ -298,11 +293,10 @@ export function useTaskRunPanel({ enabled = true }: UseTaskRunPanelOptions = {})
     };
 
     void connectStream();
-    void poll();
+    void fetchAndPublishPanel();
     return () => {
       stopped = true;
       controller.abort();
-      if (pollTimeout !== undefined) window.clearTimeout(pollTimeout);
       if (retryTimeout !== undefined) window.clearTimeout(retryTimeout);
       yieldTimers.forEach((resolve, timer) => {
         window.clearTimeout(timer);

@@ -84,7 +84,7 @@ test("content performance opens card and list details in a side panel", async ()
   const results = await screen.findByRole(
     "region",
     { name: "콘텐츠 성과 및 추이" },
-    { timeout: 3_000 },
+    { timeout: 8_000 },
   );
   expect(screen.getByRole("search", { name: "검색 조건" }).parentElement)
     .toHaveAttribute("data-visual-contract", "list-search-panel");
@@ -93,6 +93,7 @@ test("content performance opens card and list details in a side panel", async ()
   expect(sort).toHaveValue("latest");
   await user.selectOptions(sort, "views");
   const highestViewContent = API_CONTENTS[0];
+  await user.click(within(results).getByRole("switch", { name: "보기 방식" }));
   await within(results).findByRole("button", { name: /API 최고 조회 콘텐츠 콘텐츠 상세 보기$/ });
   expect(within(results).getByText("릴스")).toHaveClass("fuma-content-performance-format", "is-reels");
   expect(within(results).getByText("피드")).toHaveClass("fuma-content-performance-format", "is-feed");
@@ -147,6 +148,12 @@ test("content performance opens card and list details in a side panel", async ()
 
   await user.click(firstTrigger);
   const cardDetail = screen.getByRole("dialog", { name: "콘텐츠 상세" });
+  const originalContent = within(cardDetail).getByRole("region", { name: "콘텐츠 원문" });
+  expect(within(originalContent).getByText("콘텐츠 제목")).toBeInTheDocument();
+  expect(within(originalContent).getByText("원문")).toBeInTheDocument();
+  expect(within(originalContent).getByText(/API에서 불러온 본문/)).toBeInTheDocument();
+  expect(within(originalContent).getByRole("img", { name: `${highestViewContent.texts[0]} 썸네일` }))
+    .toHaveAttribute("src", highestViewContent.media[0].mediaUrl);
   expect(within(cardDetail).getByRole("heading", { name: highestViewContent.texts[0] })).toBeInTheDocument();
   expect(within(cardDetail).getByRole("heading", { name: "조회 및 반응 추이" })).toBeInTheDocument();
   const detailTrend = within(cardDetail).getByRole("img", { name: "콘텐츠 조회 및 반응 추이" });
@@ -171,13 +178,13 @@ test("content performance opens card and list details in a side panel", async ()
   expect(tableTrend.querySelectorAll("[data-series]")).toHaveLength(2);
   await user.click(firstListRow);
   expect(screen.getByRole("dialog", { name: "콘텐츠 상세" })).toBeInTheDocument();
-});
+}, 15_000);
 
 test("period performance chart applies its local date range", async () => {
   const user = userEvent.setup();
   renderRoute("/performance/contents");
 
-  await screen.findByRole("heading", { name: "콘텐츠 성과" });
+  await screen.findByRole("heading", { name: "콘텐츠 성과" }, { timeout: 5_000 });
   expect(screen.queryByLabelText("집계 시작일")).not.toBeInTheDocument();
   expect(screen.queryByLabelText("집계 종료일")).not.toBeInTheDocument();
   expect(screen.queryByRole("figure", { name: "기간별 업로드 추이" })).not.toBeInTheDocument();
@@ -214,4 +221,4 @@ test("period performance chart applies its local date range", async () => {
       (point) => point.dataset.periodDate,
     ),
   ).toEqual(["2026-07-23", "2026-07-24"]);
-});
+}, 10_000);

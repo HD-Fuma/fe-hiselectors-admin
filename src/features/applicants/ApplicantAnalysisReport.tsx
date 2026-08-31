@@ -135,6 +135,12 @@ function representativeBasis(representativeViewCount: number | null, averageView
 
 function qualitativeStatusMessage(aiReport: AdminApplicationAiReport | null | undefined, applicant: AdminApplicationDetail) {
   if (aiReport) return null;
+  if (applicant.mediaCollectionStatus === "FAILED") {
+    return "SNS 콘텐츠 수집에 실패해 AI 분석을 시작하지 못했습니다.";
+  }
+  if (applicant.status === "REJECTED") {
+    return "반려된 지원서는 AI 분석 대상에서 제외됩니다.";
+  }
   if (applicant.analysisStatus === "PENDING" || applicant.analysisStatus === "IN_PROGRESS") {
     return "AI 리포트를 생성하는 중입니다. 잠시 후 다시 확인해주세요.";
   }
@@ -276,12 +282,6 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
             ? `주 ${applicant.metrics.uploadCadence.weeklyAverage.toFixed(1)}회`
             : "-",
         },
-        {
-          label: "최장 게시 공백",
-          value: applicant.metrics.uploadCadence.maximumGapDays === null
-            ? "-"
-            : `${formatNumber(applicant.metrics.uploadCadence.maximumGapDays)}일`,
-        },
         { label: "마지막 게시일", value: dateTime(applicant.metrics.lastPublishedAt).slice(0, 10) },
       ]}
       engagementFunnel={engagementFunnel}
@@ -318,7 +318,6 @@ export function ApplicantAnalysisReport({ aiReport, applicant }: {
       tagGroups={[
         { label: "카테고리", values: aiReport?.category ? [categoryLabel(aiReport.category) ?? aiReport.category] : [] },
         { label: "키워드", values: excludeGenericUiTokens(aiReport?.keywords ?? []).slice(0, MAX_KEYWORDS) },
-        { label: "협업 이력", values: splitCsv(aiReport?.brandHistory) },
         { label: "콘텐츠 유형", values: formatSegments.map((format) => format.label) },
         {
           label: "톤앤매너",

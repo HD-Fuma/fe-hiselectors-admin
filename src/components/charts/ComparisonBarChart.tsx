@@ -65,7 +65,7 @@ export function ComparisonBarChart({
       axisTick: { show: false },
       axisLabel: {
         color: "#4b5752",
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 700,
         hideOverlap: true,
         interval: 0,
@@ -79,7 +79,7 @@ export function ComparisonBarChart({
       axisTick: { show: false },
       axisLabel: {
         color: "#4b5752",
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 700,
         formatter: (value: number) => formatValue(value),
       },

@@ -153,6 +153,17 @@ export function runCreatorDiscovery(test = false) {
   );
 }
 
+export function runCreatorDiscoveryByCategory(categoryId: number) {
+  const requestHeaders = new Headers();
+  requestHeaders.set("Idempotency-Key", crypto.randomUUID());
+  return request<TaskRun>(
+    `/api/admin/discovery/categories/${categoryId}/run`,
+    "카테고리 크리에이터 발굴에 실패했습니다.",
+    undefined,
+    { headers: requestHeaders, method: "POST" },
+  );
+}
+
 export function resetCreatorPool() {
   return request<CreatorPoolResetResult>(
     "/api/admin/creators?confirmation=DELETE_CREATOR_POOL",

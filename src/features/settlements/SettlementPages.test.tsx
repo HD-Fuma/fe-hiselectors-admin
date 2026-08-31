@@ -348,7 +348,7 @@ test("requests and renders the current-month settlement page", async () => {
   expect(within(search).queryByRole("textbox", { name: "ID 또는 이름" })).not.toBeInTheDocument();
 
   const statusFilter = screen.getByRole("navigation", { name: "지급 상태" });
-  for (const status of ["전체", "계산 중", "지급 이월", "지급 대기", "정산 보류", "지급 완료", "지급 만료"]) {
+  for (const status of ["전체", "집계 예정", "지급 이월", "지급 대기", "정산 보류", "지급 완료", "지급 만료"]) {
     expect(within(statusFilter).getByRole("button", { name: status })).toHaveAttribute(
       "type",
       "button",
@@ -371,7 +371,7 @@ test("requests and renders the current-month settlement page", async () => {
   expect(within(summerRow).getByText("2,500,000원")).toBeInTheDocument();
   expect(within(summerRow).getByText("3%")).toBeInTheDocument();
   expect(within(summerRow).getByText("75,000원")).toBeInTheDocument();
-  expect(within(results).getByText("계산 중")).toHaveClass("hsas-status-pill--neutral");
+  expect(within(results).getByText("집계 예정")).toHaveClass("hsas-status-pill--neutral");
   expect(within(results).getByText("지급 이월")).toHaveClass("hsas-status-pill--pending");
   expect(within(results).getByText("지급 대기")).toHaveClass("hsas-status-pill--pending");
   expect(within(results).getAllByText("정산 보류")).toHaveLength(2);
@@ -484,7 +484,7 @@ test("requests and renders the current-month settlement page", async () => {
   expect(within(firstHistoryRow).getByText("2,500,000원")).toBeInTheDocument();
   expect(within(firstHistoryRow).getByText("3%")).toBeInTheDocument();
   expect(within(firstHistoryRow).getByText("75,000원")).toBeInTheDocument();
-  expect(within(firstHistoryRow).getByText("계산 중")).toHaveClass("hsas-status-pill--neutral");
+  expect(within(firstHistoryRow).getByText("집계 예정")).toHaveClass("hsas-status-pill--neutral");
   fireEvent.click(screen.getByRole("button", { name: "상세 패널 닫기" }));
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "셀렉터스 정산 상세" }))
     .not.toBeInTheDocument());

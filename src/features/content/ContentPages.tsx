@@ -1,10 +1,11 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  type KeyboardEvent,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -13,6 +14,8 @@ import {
   Bookmark,
   Captions,
   CheckCircle2,
+  CircleHelp,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Heart,
@@ -31,10 +34,11 @@ import {
   ThumbsUp,
   UserRound,
   Volume2,
+  X,
 } from "lucide-react";
 import "../../styles/content-inspection.css";
 import { PageHeader } from "../../components/shell/PageHeader";
-import { Button, Select, Switch, TextInput } from "../../components/ui/Controls";
+import { Button, Select, TextInput } from "../../components/ui/Controls";
 import { BubbleDialog } from "../../components/ui/BubbleDialog";
 import { ContentCollectionCard } from "../../components/ui/ContentCollectionCard";
 import { contentCollectionFormatKey } from "../../components/ui/contentCollectionFormat";
@@ -53,6 +57,7 @@ import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { SOCIAL_PLATFORM_FILTER_OPTIONS } from "../../components/social/platforms";
 import {
+  CONTENT_VIOLATION_TYPE_OPTIONS,
   INSPECTION_TYPE_LABELS,
   adaptContentInspection,
   adaptContentInspectionDetail,
@@ -65,23 +70,28 @@ import {
   type ContentAnnotation,
   type ContentAnnotationTarget,
   type ContentInspectionFixture,
+  type ContentReportAnalysisInsight,
   type ContentInspectionConfirmationRequest,
   type ContentSnapshot,
   type InspectionStatus,
 } from "../../entities/content";
-import { getSelector, snsAccountHref, type SelectorDetail } from "../../entities/selectors";
+import { getSelector, SelectorDetailPanel, snsAccountHref, type SelectorDetail } from "../../entities/selectors";
 import { getTaskRun } from "../../entities/task-run";
 import { formatCompactCount, formatNumber, formatWon } from "../../lib/formatters";
+import { ContentInspectionStudioTour } from "./ContentInspectionStudioTour";
+import { InstagramReelsCard } from "./InstagramReelsCard";
+import { YouTubeShortsCard } from "./YouTubeShortsCard";
 
 const CONTENT_INSPECTION_PAGE_SIZE = 20;
 const STUDIO_CONTENT_SLIDE_EXIT_MS = 180;
 const STUDIO_CONTENT_SLIDE_ENTER_MS = 260;
+const STUDIO_HELP_TOOLTIP_DURATION_MS = 5_000;
+const STUDIO_HISTORY_HINT_DURATION_MS = 3_000;
 type ContentInspectionCategory =
   | "전체"
-  | "신규 등록"
-  | "수정 감지"
-  | "위반 확정"
-  | "승인 완료";
+  | "신규"
+  | "수정"
+  | "검수완료";
 
 function formatInspectionDate(value: string) {
   const zoned = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value.trim());
@@ -125,16 +135,55 @@ function latestContentVersion(content: ContentInspectionFixture) {
 }
 
 function contentSummaryBullets(content: ContentInspectionFixture) {
+  const overview = content.report.analysis?.overview;
   return [
-    content.aiSummary,
-    content.report.purpose,
-    content.report.flow,
-    content.report.overallAssessment,
+    overview?.summary || content.aiSummary,
+    overview?.purpose || content.report.purpose,
+    overview?.flow || content.report.flow,
+    overview?.overallAssessment || content.report.overallAssessment,
   ].flatMap((value) => {
     const text = value?.trim();
     if (!text || text === "분석 대기" || text === "분석 완료") return [];
     return [text];
   });
+}
+
+function reportInsightRows(insight: ContentReportAnalysisInsight) {
+  const join = (values: readonly string[]) => values.map((value) => value.trim()).filter(Boolean);
+  return [
+    ["스타일", insight.contentStyle],
+    ["강점", join(insight.strengths).join(", ")],
+    ["주의", join(insight.cautions).join(", ")],
+    ["혐오 표현", insight.hateConfirmed ? "확인됨" : ""],
+  ].flatMap(([label, value]) => {
+    const text = value.trim();
+    return text ? [{ label, value: text }] : [];
+  });
+}
+
+function ContentReportInsight({
+  insight,
+  className,
+}: {
+  insight: ContentReportAnalysisInsight | null | undefined;
+  className?: string;
+}) {
+  const rows = insight ? reportInsightRows(insight) : [];
+  if (rows.length === 0) return null;
+
+  return (
+    <section aria-label="상세 분석" className={className}>
+      <span>상세 분석</span>
+      <dl>
+        {rows.map((row) => (
+          <div key={row.label}>
+            <dt>{row.label}</dt>
+            <dd>{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
 }
 
 type InspectionIssueSignal = ContentInspectionFixture["report"]["signals"][number] & {
@@ -159,6 +208,66 @@ function inspectionPassSignals(content: ContentInspectionFixture) {
     signal.tone === "pass"
     && !/미감지|감지되지 않았|감지 항목 없음/.test(`${signal.title}${signal.detail}${signal.evidence}`)
   ));
+}
+
+function inspectionAnalysisData(
+  content: ContentInspectionFixture,
+  issues = inspectionIssueSignals(content),
+) {
+  const openViolationTypes = new Set(
+    issues.flatMap(({ violationType }) => violationType ? [violationType] : []),
+  );
+  const catalogTypes = new Set(
+    CONTENT_VIOLATION_TYPE_OPTIONS.map(({ value }) => value),
+  );
+  const normalViolationTypes = CONTENT_VIOLATION_TYPE_OPTIONS.filter(
+    ({ value }) => !openViolationTypes.has(value),
+  );
+  const passSignals = inspectionPassSignals(content).filter(({ violationType }) => (
+    violationType == null || !catalogTypes.has(violationType)
+  ));
+
+  return {
+    issues,
+    normalItemCount: normalViolationTypes.length + passSignals.length,
+    normalViolationTypes,
+    passSignals,
+    summaryBullets: contentSummaryBullets(content),
+  };
+}
+
+function GuidelineComplianceDetails({
+  analysis,
+}: {
+  analysis: ReturnType<typeof inspectionAnalysisData>;
+}) {
+  if (analysis.normalItemCount === 0) return null;
+
+  return (
+    <details className="fuma-content-inspection-evidence__normal-group" open>
+      <summary>
+        <strong>가이드 준수 항목</strong>
+        <span>{analysis.normalItemCount}건 <ChevronDown aria-hidden="true" size={14} /></span>
+      </summary>
+      <ul>
+        {analysis.normalViolationTypes.map(({ label, value }) => (
+          <li key={value}>
+            <span>{label}</span>
+            <strong>정상</strong>
+          </li>
+        ))}
+        {analysis.passSignals.map((signal, index) => (
+          <li key={`${signal.title}-${index}`}>
+            <span className="fuma-content-inspection-evidence__normal-copy">
+              <span>{signal.title}</span>
+              {signal.evidence ? <small>{signal.evidence}</small> : null}
+            </span>
+            <strong>정상</strong>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
 }
 
 function issueOrdinalLabel(ordinal: number) {
@@ -187,12 +296,6 @@ function showsInspectionGuideline(signal: { guidance?: string; title: string }) 
   return Boolean(signal.guidance && /광고|수수료|경제적 이해/.test(signal.title));
 }
 
-function detectionSourceLabel(source: string) {
-  if (source.includes("OCR")) return "OCR";
-  if (source.includes("STT") || source.includes("음성")) return "STT";
-  return "본문";
-}
-
 interface QueueFilterValues {
   keyword: string;
   platform: string;
@@ -200,35 +303,23 @@ interface QueueFilterValues {
 
 const CONTENT_INSPECTION_CATEGORIES: readonly ContentInspectionCategory[] = [
   "전체",
-  "신규 등록",
-  "수정 감지",
-  "위반 확정",
-  "승인 완료",
+  "신규",
+  "수정",
+  "검수완료",
 ];
 const DEFAULT_CONTENT_INSPECTION_CATEGORY: ContentInspectionCategory = "전체";
 
-function contentInspectionCategory(content: ContentInspectionFixture): Exclude<
-  ContentInspectionCategory,
-  "전체"
-> {
-  if (content.inspectionStatus === "승인") return "승인 완료";
-  if (content.inspectionStatus === "위반") return "위반 확정";
-  if (content.inspectionType !== "NEW") return "수정 감지";
-  return "신규 등록";
-}
-
-function lockedViolationOnly(category: ContentInspectionCategory) {
-  if (category === "위반 확정") return true;
-  if (category === "승인 완료") return false;
-  return null;
+function contentInspectionCategory(content: ContentInspectionFixture): Exclude<ContentInspectionCategory, "전체"> {
+  if (content.inspectionStatus !== "검수 대기") return "검수완료";
+  if (content.inspectionType !== "NEW") return "수정";
+  return "신규";
 }
 
 function contentInspectionCategoryTone(
   category: ContentInspectionCategory,
 ): NonNullable<StatusPillProps["tone"]> {
-  if (category === "승인 완료") return "approved";
-  if (category === "위반 확정") return "rejected";
-  if (category === "수정 감지") return "pending";
+  if (category === "검수완료") return "approved";
+  if (category === "수정") return "pending";
   return "neutral";
 }
 
@@ -261,13 +352,6 @@ function QueueFilters({
     setPlatform("");
     onReset();
   };
-  const applyOnEnter = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      applyFilters();
-    }
-  };
-
   return (
     <ListSearchPanel actions={<SearchActions onReset={resetFilters} onSearch={applyFilters} />}>
       <FilterField htmlFor="content-inspection-keyword" label="콘텐츠/작성자">
@@ -275,7 +359,6 @@ function QueueFilters({
           aria-label="콘텐츠/작성자"
           id="content-inspection-keyword"
           onChange={(event) => setKeyword(event.target.value)}
-          onKeyDown={applyOnEnter}
           placeholder="콘텐츠 ID 또는 작성자"
           value={keyword}
         />
@@ -311,12 +394,11 @@ function CollectionCard({
     ?? (snapshot.youtubeVideoId
       ? `https://i.ytimg.com/vi/${encodeURIComponent(snapshot.youtubeVideoId)}/hqdefault.jpg`
       : undefined);
-  const issueCount = content.report.signals.filter((signal) => signal.tone !== "pass").length;
   const hasVideo = snapshot.mediaKinds[0] === "동영상";
 
   return (
     <button
-      aria-label={`${content.author} ${content.contentTitle} 검수 상세 보기`}
+      aria-label={`${content.author} ${content.contentTitle} 검수 시작`}
       className="fuma-content-collection__card fuma-creator-card"
       data-content-format={contentCollectionFormatKey(content.contentFormat)}
       onClick={() => onSelect(content)}
@@ -329,11 +411,9 @@ function CollectionCard({
         footerEnd={(
           <span
             className="fuma-content-collection__violation-count"
-            data-has-violation={issueCount > 0}
+            data-has-violation="false"
           >
-            {content.aiStatus === "pending"
-              ? "분석 대기"
-              : issueCount ? `위반 항목 ${issueCount}개` : "위반 항목 없음"}
+            {content.aiStatus === "ready" ? "분석 완료" : "분석 대기"}
           </span>
         )}
         footerStart={content.submittedAt.slice(0, 10)}
@@ -343,7 +423,6 @@ function CollectionCard({
         platform={contentPlatform(content.sourcePlatform)}
         profileImageUrl={content.profileImageUrl ?? ""}
         showPlay={hasVideo}
-        snsId={content.accountId}
         status={(
           <StatusPill
             className="fuma-content-collection__inspection-status"
@@ -361,40 +440,28 @@ function CollectionCard({
 function ContentInspectionCollection({
   contents,
   onChangeView,
-  onChangeViolationOnly,
   onSelect,
   totalCount,
-  violationOnly,
-  violationOnlyLocked,
   viewMode,
 }: {
   contents: readonly ContentInspectionFixture[];
   onChangeView: (viewMode: ViewMode) => void;
-  onChangeViolationOnly: (violationOnly: boolean) => void;
   onSelect: (content: ContentInspectionFixture) => void;
   totalCount: number;
-  violationOnly: boolean;
-  violationOnlyLocked: boolean;
   viewMode: ViewMode;
 }) {
   return (
     <section aria-label="수집 콘텐츠 목록" className="fuma-content-collection">
       <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-applicant-result-toolbar fuma-content-inspection-toolbar">
-        <div className="fuma-applicant-minimum-filter">
-          <Switch
-            checked={violationOnly}
-            disabled={violationOnlyLocked}
-            label="위반 항목만"
-            onChange={(event) => onChangeViolationOnly(event.target.checked)}
-          />
-        </div>
         <div className="fuma-settlement-result-meta">
           <span>총 {totalCount}건</span>
         </div>
         <div className="fuma-creator-toolbar fuma-creator-toolbar__controls">
           <span aria-hidden="true" className="fuma-creator-toolbar__divider" />
           <ViewModeToggle
+            autoShowTooltip={false}
             onChange={onChangeView}
+            tooltipPlacement="bottom"
             value={viewMode}
           />
         </div>
@@ -434,9 +501,14 @@ function ContentInspectionCategoryTabs({
 }) {
   const [isCollecting, setIsCollecting] = useState(false);
   const [collectionError, setCollectionError] = useState<string | null>(null);
+  const [showStartTooltip, setShowStartTooltip] = useState(true);
   const collectionRequestRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => collectionRequestRef.current?.abort(), []);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setShowStartTooltip(false), 2000);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const runContentCollection = async () => {
     const controller = new AbortController();
@@ -481,14 +553,20 @@ function ContentInspectionCategoryTabs({
             >
               <RefreshCw aria-hidden="true" className={isCollecting ? "is-spinning" : undefined} size={15} />
             </Button>
-            <Button
-              className="fuma-content-inspection-start-button"
-              disabled={pendingCount === 0}
-              onClick={onStartInspection}
-              variant="primary"
-            >
-              검수 시작
-            </Button>
+            <span className="fuma-content-inspection-start-tooltip">
+              <Button
+                aria-describedby="content-inspection-start-tooltip"
+                className="fuma-content-inspection-start-button"
+                disabled={pendingCount === 0}
+                onClick={onStartInspection}
+                variant="primary"
+              >
+                검수 시작
+              </Button>
+              <Tooltip id="content-inspection-start-tooltip" visible={showStartTooltip}>
+                검수할 항목이 {pendingCount}건 있습니다. 검수 시작 버튼을 눌러 검수를 진행하세요
+              </Tooltip>
+            </span>
           </span>
         )}
         ariaLabel="콘텐츠 처리 구분"
@@ -558,6 +636,7 @@ export function ContentInspectionListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [contents, setContents] = useState<ContentInspectionFixture[]>([]);
+  const [pageSize, setPageSize] = useState(CONTENT_INSPECTION_PAGE_SIZE);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const fetchContents = useCallback(async (signal?: AbortSignal) => (
@@ -588,9 +667,6 @@ export function ContentInspectionListPage() {
   const selectedCategory = CONTENT_INSPECTION_CATEGORIES.find(
     (category) => category === searchParams.get("category"),
   ) ?? DEFAULT_CONTENT_INSPECTION_CATEGORY;
-  const lockedViolationFilter = lockedViolationOnly(selectedCategory);
-  const violationOnlyLocked = lockedViolationFilter !== null;
-  const violationOnly = lockedViolationFilter ?? searchParams.get("issues") === "1";
   const viewMode = searchParams.get("view") === "list" ? "list" : "grid";
   const appliedFilters: QueueFilterValues = {
     keyword: searchParams.get("q") ?? "",
@@ -602,7 +678,6 @@ export function ContentInspectionListPage() {
   const filteredContents = contents.filter((content) => {
     const matchesCategory = selectedCategory === "전체"
       || contentInspectionCategory(content) === selectedCategory;
-    const hasViolation = content.report.signals.some((signal) => signal.tone !== "pass");
     const matchesKeyword = !normalizedKeyword || [
       content.id,
       content.contentTitle,
@@ -611,7 +686,6 @@ export function ContentInspectionListPage() {
     const matchesPlatform = !appliedFilters.platform
       || contentPlatform(content.sourcePlatform) === appliedFilters.platform;
     return matchesCategory
-      && (violationOnlyLocked || !violationOnly || hasViolation)
       && matchesKeyword
       && matchesPlatform;
   });
@@ -619,12 +693,12 @@ export function ContentInspectionListPage() {
   const { currentPage, pagedItems: pageContents, totalPages } = paginate(
     filteredContents,
     requestedPage,
-    CONTENT_INSPECTION_PAGE_SIZE,
+    pageSize,
   );
   const pendingContents = inspectionRequiredContents(contents);
 
   const updateListParam = (
-    key: "category" | "issues" | "page" | "view",
+    key: "category" | "page" | "view",
     value: string,
     defaultValue: string,
     resetPage = false,
@@ -720,23 +794,28 @@ export function ContentInspectionListPage() {
           <ContentInspectionCollection
             contents={pageContents}
             onChangeView={(nextViewMode) => updateListParam("view", nextViewMode, "grid")}
-            onChangeViolationOnly={(nextViolationOnly) => (
-              updateListParam("issues", nextViolationOnly ? "1" : "0", "0", true)
-            )}
             onSelect={(content) => navigate(`/content/inspections/${content.id}`, {
-              state: { content, contents, from: `${location.pathname}${location.search}` },
+              state: {
+                content,
+                contents,
+                from: `${location.pathname}${location.search}`,
+                inspectionSession: true,
+                singleInspection: true,
+              },
             })}
             totalCount={filteredContents.length}
-            violationOnly={violationOnly}
-            violationOnlyLocked={violationOnlyLocked}
             viewMode={viewMode}
           />
         )}
         {!isLoading && !loadError && filteredContents.length > 0 ? (
           <Pagination
             onPageChange={(page) => updateListParam("page", String(page), "1")}
+            onPageSizeChange={(nextPageSize) => {
+              setPageSize(nextPageSize);
+              updateListParam("page", "1", "1");
+            }}
             page={currentPage}
-            pageSize={CONTENT_INSPECTION_PAGE_SIZE}
+            pageSize={pageSize}
             totalPages={totalPages}
           />
         ) : null}
@@ -756,7 +835,9 @@ interface IndexedContentAnnotation extends ContentAnnotation {
 }
 
 function annotationQuote(target: ContentAnnotationTarget) {
-  return target.kind === "text" || target.kind === "media" ? target.quote : null;
+  return target.kind === "text" || target.kind === "text-start" || target.kind === "media"
+    ? target.quote
+    : null;
 }
 
 function annotationMatchesSignal(
@@ -785,7 +866,7 @@ function annotationFromSignal(
   ordinal: number,
 ): IndexedContentAnnotation {
   const startIndex = snapshot.text.indexOf(signal.evidence);
-  const sourceIsText = signal.source.includes("본문") && startIndex >= 0;
+  const sourceIsText = signal.source.includes("본문");
   const timeRange = timeRangeFromSource(signal.source);
 
   return {
@@ -797,7 +878,7 @@ function annotationFromSignal(
     severity: signal.tone === "warning" ? "warning" : "critical",
     source: "자동 감지",
     state: "active",
-    target: sourceIsText
+    target: sourceIsText && startIndex >= 0
       ? {
           endIndex: startIndex + signal.evidence.length,
           kind: "text",
@@ -805,10 +886,12 @@ function annotationFromSignal(
           quote: signal.evidence,
           startIndex,
         }
+      : sourceIsText
+        ? {
+            kind: "text-start",
+            quote: signal.evidence,
+          }
       : {
-          box: timeRange
-            ? { x: 7, y: 70, width: 86, height: 15 }
-            : { x: 14, y: 31, width: 72, height: 18 },
           kind: "media",
           mediaIndex: mediaIndexFromSource(signal.source, snapshot),
           quote: signal.evidence,
@@ -834,12 +917,14 @@ function indexedViolationAnnotations(
     });
 
   if (snapshot === content.currentSnapshot) {
-    candidates.forEach((signal) => {
-      if (signal.locationAvailable !== false
-        && !annotations.some((annotation) => annotationMatchesSignal(annotation, signal))) {
-        annotations.push(annotationFromSignal(signal, snapshot, signal.ordinal));
-      }
-    });
+    candidates
+      .filter((signal) => signal.violationStatus == null || signal.violationStatus === "PENDING")
+      .forEach((signal) => {
+        if (signal.locationAvailable !== false
+          && !annotations.some((annotation) => annotationMatchesSignal(annotation, signal))) {
+          annotations.push(annotationFromSignal(signal, snapshot, signal.ordinal));
+        }
+      });
   }
 
   return annotations.sort((left, right) => left.ordinal - right.ordinal);
@@ -858,22 +943,35 @@ function findQuoteRange(text: string, quote: string, occurrence = 1) {
   return { end: matchedIndex + quote.length, start: matchedIndex };
 }
 
+function renderContentHashtags(text: string, keyPrefix: string) {
+  return text.split(/(#[\p{L}\p{N}_]+)/gu).filter(Boolean).map((part, index) => (
+    part.startsWith("#")
+      ? <span className="fuma-platform-inspection-frame__hashtag" key={`${keyPrefix}-${index}`}>{part}</span>
+      : part
+  ));
+}
+
 function ViolationHighlightedText({
   annotations,
   focusedOrdinal,
   onSelectViolation,
+  showBubbles = true,
   text,
   useStoredIndexes = false,
 }: {
   annotations: readonly IndexedContentAnnotation[];
   focusedOrdinal?: number;
   onSelectViolation?: (ordinal: number) => void;
+  showBubbles?: boolean;
   text: string;
   useStoredIndexes?: boolean;
 }) {
+  const startAnnotations = showBubbles
+    ? annotations.filter(({ target }) => target.kind === "text-start")
+    : [];
   const ranges = annotations.flatMap((annotation) => {
     const target = annotation.target;
-    if (target.kind === "url") return [];
+    if (target.kind === "url" || target.kind === "text-start") return [];
     const storedRange = target.kind === "text"
       && useStoredIndexes
       && target.startIndex !== undefined
@@ -891,18 +989,17 @@ function ViolationHighlightedText({
     return range ? [{ ...range, annotation }] : [];
   }).sort((left, right) => left.start - right.start || left.end - right.end);
 
-  if (ranges.length === 0) return <>{text}</>;
-
   const nodes: ReactNode[] = [];
   let cursor = 0;
   ranges.forEach(({ annotation, end, start }) => {
     if (start < cursor) return;
-    if (start > cursor) nodes.push(text.slice(cursor, start));
+    if (start > cursor) {
+      nodes.push(...renderContentHashtags(text.slice(cursor, start), `text-${cursor}`));
+    }
     nodes.push(
       <mark
         aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
         className="fuma-inspection-text-violation"
-        data-bubble={annotation.title}
         data-focused={focusedOrdinal === annotation.ordinal}
         data-ordinal={annotation.ordinal}
         data-severity={annotation.severity}
@@ -913,36 +1010,300 @@ function ViolationHighlightedText({
         tabIndex={onSelectViolation ? 0 : focusedOrdinal !== undefined ? -1 : undefined}
         title={`${annotation.title}: ${annotation.reason}`}
       >
-        {text.slice(start, end)}
+        <span className="fuma-inspection-text-violation__highlight">
+          {renderContentHashtags(text.slice(start, end), `violation-${annotation.id}-${start}`)}
+        </span>
+        {showBubbles ? (
+          <span
+            aria-hidden="true"
+            className="fuma-inspection-violation-bubble"
+            data-violation-bubble={annotation.ordinal}
+          >
+            <span>{annotation.ordinal}</span>
+            <strong>{annotation.title}</strong>
+          </span>
+        ) : (
+          <span
+            aria-hidden="true"
+            className="fuma-inspection-text-violation__ordinal"
+          >
+            {annotation.ordinal}
+          </span>
+        )}
       </mark>,
     );
     cursor = end;
   });
-  if (cursor < text.length) nodes.push(text.slice(cursor));
+  if (cursor < text.length) {
+    nodes.push(...renderContentHashtags(text.slice(cursor), `text-${cursor}`));
+  }
 
-  return <>{nodes}</>;
+  return (
+    <>
+      {startAnnotations.map((annotation) => {
+        const annotationProperties = {
+          "aria-label": `위반 ${annotation.ordinal}: ${annotation.title}`,
+          className: "fuma-inspection-text-start-violation fuma-inspection-violation-bubble",
+          "data-focused": focusedOrdinal === annotation.ordinal,
+          "data-severity": annotation.severity,
+          "data-violation-bubble": annotation.ordinal,
+          "data-violation-anchor": annotation.ordinal,
+          id: focusedOrdinal !== undefined ? `violation-text-${annotation.ordinal}` : undefined,
+          title: `${annotation.title}: ${annotation.reason}`,
+        };
+        const annotationLabel = (
+          <>
+            <span>{annotation.ordinal}</span>
+            <strong>{annotation.title}</strong>
+          </>
+        );
+        return onSelectViolation ? (
+          <button
+            {...annotationProperties}
+            key={annotation.id}
+            onClick={() => onSelectViolation(annotation.ordinal)}
+            type="button"
+          >
+            {annotationLabel}
+          </button>
+        ) : (
+          <span {...annotationProperties} key={annotation.id}>
+            {annotationLabel}
+          </span>
+        );
+      })}
+      {startAnnotations.length > 0 && text ? " " : null}
+      {nodes}
+    </>
+  );
+}
+
+function StudioViolationBubbleCloud({
+  annotations,
+  focusedOrdinal,
+  onSelectViolation,
+  placement,
+}: {
+  annotations: readonly IndexedContentAnnotation[];
+  focusedOrdinal?: number;
+  onSelectViolation?: (ordinal: number) => void;
+  placement: "left" | "right";
+}) {
+  const cloudRef = useRef<HTMLElement>(null);
+  const bubbleAnnotations = annotations.filter(({ location, target }) => (
+    target.kind === "text" || target.kind === "text-start" || location.startsWith("STT")
+  ));
+  const annotationKey = bubbleAnnotations
+    .map(({ id, ordinal }) => `${id}:${ordinal}`)
+    .join("|");
+
+  useLayoutEffect(() => {
+    const cloud = cloudRef.current;
+    const version = cloud?.closest<HTMLElement>(".fuma-content-inspection-studio__version");
+    if (!cloud || !version) return undefined;
+    let frameId = 0;
+    const positionBubbles = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => {
+        cloud.style.top = "0px";
+        const cloudRect = cloud.getBoundingClientRect();
+
+        const bubbles = Array.from(
+          cloud.querySelectorAll<HTMLElement>("[data-violation-message]"),
+        ).filter((bubble) => bubble.offsetHeight > 0).map((bubble, index) => {
+          const ordinal = bubble.dataset.violationMessage;
+          const transcriptAnchor = ordinal && bubble.dataset.violationSource === "stt"
+            ? version.querySelector<HTMLElement>(
+                `[data-stt-transcript] [data-violation-anchor="${ordinal}"]`,
+              )
+            : null;
+          const descriptionAnchor = ordinal
+            ? version.querySelector<HTMLElement>(
+                `[data-description-transcript] [data-violation-anchor="${ordinal}"]`,
+              )
+            : null;
+          const anchor = transcriptAnchor ?? descriptionAnchor ?? (ordinal
+            ? version.querySelector<HTMLElement>(`[data-violation-anchor="${ordinal}"]`)
+            : null);
+          const anchorRect = anchor?.getBoundingClientRect();
+
+          return {
+            bubble,
+            height: bubble.offsetHeight,
+            top: anchorRect
+              ? anchorRect.top - cloudRect.top + anchorRect.height / 2
+              : cloudRect.height * 0.62 + index * 8,
+          };
+        }).sort((left, right) => left.top - right.top);
+
+        const gap = 8;
+        const requiredHeight = bubbles.reduce((height, bubble) => height + bubble.height, 0)
+          + Math.max(0, bubbles.length - 1) * gap;
+
+        if (requiredHeight <= cloudRect.height) {
+          let previousBottom = 0;
+          bubbles.forEach((bubble) => {
+            bubble.top = Math.max(bubble.top, previousBottom + bubble.height / 2);
+            previousBottom = bubble.top + bubble.height / 2 + gap;
+          });
+
+          let nextTop = cloudRect.height;
+          for (let index = bubbles.length - 1; index >= 0; index -= 1) {
+            const bubble = bubbles[index];
+            bubble.top = Math.min(bubble.top, nextTop - bubble.height / 2);
+            nextTop = bubble.top - bubble.height / 2 - gap;
+          }
+        } else {
+          bubbles.forEach((bubble, index) => {
+            bubble.top = cloudRect.height * ((index + 1) / (bubbles.length + 1));
+          });
+        }
+
+        bubbles.forEach(({ bubble, height, top }) => {
+          const clampedTop = Math.min(
+            Math.max(top, height / 2),
+            Math.max(height / 2, cloudRect.height - height / 2),
+          );
+          bubble.style.setProperty("--violation-bubble-top", `${Math.round(clampedTop)}px`);
+        });
+      });
+    };
+
+    positionBubbles();
+    const card = version.querySelector<HTMLElement>(".fuma-minimal-version-card");
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(positionBubbles);
+    resizeObserver?.observe(version);
+    if (card) resizeObserver?.observe(card);
+
+    const mutationObserver = typeof MutationObserver === "undefined" || !card
+      ? null
+      : new MutationObserver(positionBubbles);
+    if (card) {
+      mutationObserver?.observe(card, {
+        attributeFilter: ["data-description-expanded", "data-stt-expanded"],
+        attributes: true,
+      });
+    }
+    version.addEventListener("scroll", positionBubbles, true);
+    window.addEventListener("resize", positionBubbles);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
+      version.removeEventListener("scroll", positionBubbles, true);
+      window.removeEventListener("resize", positionBubbles);
+    };
+  }, [annotationKey, placement]);
+
+  if (bubbleAnnotations.length === 0) return null;
+
+  return (
+    <aside
+      aria-label="콘텐츠 위반 내역"
+      className="fuma-content-inspection-studio__violation-bubbles"
+      data-placement={placement}
+      ref={cloudRef}
+    >
+      {bubbleAnnotations.map((annotation) => {
+        const content = (
+          <>
+            <span className="fuma-content-inspection-studio__violation-bubble-number">
+              {annotation.ordinal}
+            </span>
+            <strong>{annotation.title}</strong>
+          </>
+        );
+        const properties = {
+          "aria-label": `위반 ${annotation.ordinal}: ${annotation.title}`,
+          className: "fuma-content-inspection-studio__violation-bubble",
+          "data-focused": focusedOrdinal === annotation.ordinal,
+          "data-violation-message": annotation.ordinal,
+          "data-violation-source": annotation.location.startsWith("STT") ? "stt" : "text",
+        };
+
+        return onSelectViolation ? (
+          <button
+            {...properties}
+            key={annotation.id}
+            onClick={() => onSelectViolation(annotation.ordinal)}
+            type="button"
+          >
+            {content}
+          </button>
+        ) : (
+          <span {...properties} key={annotation.id}>{content}</span>
+        );
+      })}
+    </aside>
+  );
+}
+
+function scrollWithinSurface(
+  surface: HTMLElement,
+  target: HTMLElement,
+  block: "center" | "nearest",
+) {
+  const surfaceRect = surface.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const offset = block === "center"
+    ? targetRect.top - surfaceRect.top - (surfaceRect.height - targetRect.height) / 2
+    : targetRect.top < surfaceRect.top
+      ? targetRect.top - surfaceRect.top
+      : targetRect.bottom > surfaceRect.bottom
+        ? targetRect.bottom - surfaceRect.bottom
+        : 0;
+  if (Math.abs(offset) < 1) return;
+  const top = surface.scrollTop + offset;
+  if (typeof surface.scrollTo === "function") {
+    surface.scrollTo({ behavior: "smooth", top });
+    return;
+  }
+  surface.scrollTop = top;
 }
 
 function MinimalVersionCard({
   content,
   focusedViolation,
+  inert = false,
   label,
   onSelectViolation,
   showAnnotations = true,
+  showTextBubbles = true,
   snapshot,
 }: {
   content: ContentInspectionFixture;
   focusedViolation?: { ordinal: number; requestId: number } | null;
+  inert?: boolean;
   label: string;
   onSelectViolation?: (ordinal: number) => void;
   showAnnotations?: boolean;
+  showTextBubbles?: boolean;
   snapshot: ContentSnapshot;
 }) {
   const cardRef = useRef<HTMLElement>(null);
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const handledFocusedViolationRef = useRef<string | null>(null);
+  const [textDataExpanded, setTextDataExpanded] = useState(false);
+  const [descriptionOverflowing, setDescriptionOverflowing] = useState(false);
   const annotations = useMemo(
     () => showAnnotations ? indexedViolationAnnotations(content, snapshot) : [],
     [content, showAnnotations, snapshot],
   );
+  const sttExtracts = content.report.extracts.filter(({ type }) => type === "STT");
+  const sttAnnotations: IndexedContentAnnotation[] = annotations.flatMap((annotation) => {
+    if (annotation.target.kind !== "media" || !annotation.location.startsWith("STT")) return [];
+    return [{
+      ...annotation,
+      target: {
+        kind: "text" as const,
+        occurrence: 1,
+        quote: annotation.target.quote,
+      },
+    }];
+  });
   const firstAnnotatedMediaIndex = annotations.find((annotation) => annotation.target.kind === "media")?.target;
   const [activeMediaIndex, setActiveMediaIndex] = useState(
     firstAnnotatedMediaIndex?.kind === "media" ? firstAnnotatedMediaIndex.mediaIndex ?? 0 : 0,
@@ -959,9 +1320,19 @@ function MinimalVersionCard({
   const activeMedia = mediaItems[visibleIndex];
   const platform = contentPlatform(content.sourcePlatform);
   const isInstagram = platform === "Instagram";
+  const isInstagramReels = content.contentFormat === "인스타 릴스";
+  const isYouTubeShorts = content.contentFormat === "유튜브 쇼츠";
+  const platformCardVariant = contentCollectionFormatKey(content.contentFormat);
+  const platformCardLabel = isInstagram
+    ? "Instagram 콘텐츠 카드"
+    : isYouTubeShorts
+      ? "YouTube Shorts 콘텐츠 카드"
+      : "YouTube 콘텐츠 카드";
   const useCarouselTrack = isInstagram && mediaItems.length > 1;
-  const embedUrl = isInstagram ? null : youtubeEmbedUrl(snapshot.youtubeVideoId);
-  const isVerticalVideo = content.contentFormat === "인스타 릴스" || content.contentFormat === "유튜브 쇼츠";
+  const embedUrl = isInstagram || (isYouTubeShorts && activeMedia?.url)
+    ? null
+    : youtubeEmbedUrl(snapshot.youtubeVideoId);
+  const isVerticalVideo = isInstagramReels || isYouTubeShorts;
   const activeMediaAnnotations = annotations.filter((annotation) => (
     annotation.target.kind === "media" && annotation.target.mediaIndex === visibleIndex
   ));
@@ -977,6 +1348,13 @@ function MinimalVersionCard({
   const avatarUrl = content.profileImageUrl ?? "";
   const [year, month, day] = snapshot.capturedAt.slice(0, 10).split("-");
   const postDate = `${Number(year)}년 ${Number(month)}월 ${Number(day)}일`;
+  const focusedAnnotation = focusedViolation
+    ? annotations.find(({ ordinal }) => ordinal === focusedViolation.ordinal)
+    : undefined;
+  const focusedViolationRequestKey = focusedViolation && focusedAnnotation
+    ? `${content.id}:${snapshot.capturedAt}:${focusedViolation.requestId}:${focusedAnnotation.id}:${JSON.stringify(focusedAnnotation.target)}`
+    : null;
+  const textDataPanelId = `content-text-data-${content.id}-${snapshot.capturedAt.replace(/\W/g, "")}`;
 
   const moveMedia = (direction: -1 | 1) => {
     setActiveMediaIndex((current) => Math.min(
@@ -999,57 +1377,172 @@ function MinimalVersionCard({
   };
 
   useEffect(() => {
-    if (!focusedViolation) return;
-    const annotation = annotations.find(({ ordinal }) => ordinal === focusedViolation.ordinal);
-    if (!annotation) return;
+    setTextDataExpanded(false);
+    setDescriptionOverflowing(false);
+  }, [content.id, snapshot.capturedAt]);
+
+  useEffect(() => {
+    if (textDataExpanded) return;
+    const description = descriptionRef.current;
+    if (!description) return;
+    const measureOverflow = () => {
+      setDescriptionOverflowing(description.scrollHeight > description.clientHeight + 1);
+    };
+    const animationFrame = window.requestAnimationFrame(measureOverflow);
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(measureOverflow);
+    resizeObserver?.observe(description);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      resizeObserver?.disconnect();
+    };
+  }, [snapshot.text, textDataExpanded]);
+
+  useEffect(() => {
+    if (!textDataExpanded) return;
+    const collapseOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setTextDataExpanded(false);
+    };
+    window.addEventListener("keydown", collapseOnEscape, true);
+    return () => window.removeEventListener("keydown", collapseOnEscape, true);
+  }, [textDataExpanded]);
+
+  useEffect(() => {
+    if (!focusedViolation || !focusedAnnotation || !focusedViolationRequestKey) {
+      handledFocusedViolationRef.current = null;
+      return;
+    }
+    if (handledFocusedViolationRef.current === focusedViolationRequestKey) return;
     const animationFrame = window.requestAnimationFrame(() => {
-      if (annotation.target.kind === "media"
-        && annotation.target.mediaIndex !== undefined
-        && visibleIndex !== annotation.target.mediaIndex) {
-        setActiveMediaIndex(annotation.target.mediaIndex);
+      if (focusedAnnotation.target.kind === "media"
+        && focusedAnnotation.target.mediaIndex !== undefined
+        && visibleIndex !== focusedAnnotation.target.mediaIndex) {
+        setActiveMediaIndex(focusedAnnotation.target.mediaIndex);
         return;
       }
       const target = cardRef.current?.querySelector<HTMLElement>(
+        `[data-description-transcript] [data-violation-anchor="${focusedViolation.ordinal}"]`,
+      ) ?? cardRef.current?.querySelector<HTMLElement>(
         `[data-violation-anchor="${focusedViolation.ordinal}"]`,
       );
-      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const scrollSurface = target?.closest<HTMLElement>(
+        ".fuma-platform-inspection-frame__stt-transcript, .fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p, .fuma-platform-inspection-frame__shorts-overlay p",
+      );
+      if (target && scrollSurface) scrollWithinSurface(scrollSurface, target, "center");
       target?.focus({ preventScroll: true });
+      handledFocusedViolationRef.current = focusedViolationRequestKey;
     });
 
     return () => window.cancelAnimationFrame(animationFrame);
-  }, [annotations, focusedViolation, visibleIndex]);
+  }, [focusedAnnotation, focusedViolation, focusedViolationRequestKey, textDataExpanded, visibleIndex]);
+
+  const canToggleDescription = descriptionOverflowing || textDataExpanded;
+  const openDescriptionPanel = (event: MouseEvent<HTMLParagraphElement>) => {
+    if (textDataExpanded || !descriptionOverflowing) return;
+    if (
+      event.target instanceof Element
+      && event.target.closest("mark, button, a, .fuma-platform-inspection-frame__description-toggle")
+    ) {
+      return;
+    }
+    event.stopPropagation();
+    setTextDataExpanded(true);
+  };
+  const descriptionTextProps = {
+    className: "fuma-platform-inspection-frame__description-text",
+    "data-expandable": descriptionOverflowing && !textDataExpanded,
+    "data-studio-tour": inert ? undefined : "description",
+    onClick: openDescriptionPanel,
+    ref: descriptionRef,
+  };
+  const descriptionToggle = (
+    <button
+      aria-controls={textDataPanelId}
+      aria-expanded={textDataExpanded}
+      aria-hidden={!canToggleDescription}
+      className="fuma-platform-inspection-frame__description-toggle"
+      data-visible={canToggleDescription}
+      disabled={!canToggleDescription}
+      onClick={(event) => {
+        event.stopPropagation();
+        setTextDataExpanded((current) => !current);
+      }}
+      tabIndex={canToggleDescription ? undefined : -1}
+      type="button"
+    >
+      {textDataExpanded ? "접기" : "더보기"}
+    </button>
+  );
+  const sttTranscript = sttExtracts.map((extract, index) => (
+    <section key={`${extract.location}-${index}`}>
+      <span>{extract.location}</span>
+      <p>
+        <ViolationHighlightedText
+          annotations={sttAnnotations}
+          focusedOrdinal={focusedViolation?.ordinal}
+          onSelectViolation={onSelectViolation}
+          showBubbles={false}
+          text={extract.text}
+        />
+      </p>
+    </section>
+  ));
 
   return (
     <article
-      className="fuma-minimal-version-card"
-      data-content-format={contentCollectionFormatKey(content.contentFormat)}
+      aria-label={`${label} ${platformCardLabel}`}
+      className="fuma-minimal-version-card fuma-platform-content-card"
+      data-content-format={platformCardVariant}
+      data-description-expanded={textDataExpanded}
+      data-platform-card={platformCardVariant}
       data-platform={platform.toLowerCase()}
+      data-stt-expanded={textDataExpanded}
+      inert={inert}
       ref={cardRef}
     >
       <header>
         <strong>{label}</strong>
-        {headerAnnotations.map((annotation) => (
+        {headerAnnotations.map((annotation) => onSelectViolation ? (
           <button
             aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
             className="fuma-minimal-version-card__media-warning"
             key={annotation.id}
-            onClick={() => onSelectViolation?.(annotation.ordinal)}
+            onClick={() => onSelectViolation(annotation.ordinal)}
             type="button"
           >
             {annotation.ordinal} {annotation.title}
           </button>
+        ) : (
+          <span
+            aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
+            className="fuma-minimal-version-card__media-warning"
+            key={annotation.id}
+          >
+            {annotation.ordinal} {annotation.title}
+          </span>
         ))}
         <time>{snapshot.capturedAt}</time>
       </header>
-      <div className="fuma-platform-inspection-frame">
-        {isInstagram ? (
+      <div className="fuma-platform-inspection-frame" inert={textDataExpanded}>
+        {isInstagram && !isInstagramReels ? (
           <div className="fuma-platform-inspection-frame__instagram-header">
             <span className="fuma-platform-inspection-frame__avatar">
               {avatarUrl
                 ? <CreatorProfilePhoto creatorName={content.author} src={avatarUrl} />
-                : <UserRound aria-label="익명 프로필 이미지" role="img" size={19} />}
+                : (
+                    <UserRound
+                      aria-label={`${content.author} 프로필 이미지 없음`}
+                      role="img"
+                      size={19}
+                    />
+                  )}
             </span>
-            <div><strong>{handle}</strong><small>현대홈쇼핑 셀렉터스 · {content.cohort}</small></div>
+            <div><strong>{handle}</strong></div>
             <button aria-label="게시물 메뉴" type="button"><MoreHorizontal aria-hidden="true" size={20} /></button>
           </div>
         ) : null}
@@ -1058,7 +1551,9 @@ function MinimalVersionCard({
           <div
             className="fuma-platform-inspection-frame__asset-stage"
             data-fit={mediaStageFit}
-            style={mediaStageFit === "fill" ? undefined : { aspectRatio: String(mediaAspectRatio) }}
+            style={isVerticalVideo || useCarouselTrack || mediaStageFit === "fill"
+              ? undefined
+              : { aspectRatio: String(mediaAspectRatio) }}
           >
             {embedUrl ? (
               <iframe
@@ -1111,32 +1606,44 @@ function MinimalVersionCard({
                     : box
                       ? { height: box.height, left: box.x, top: box.y, width: box.width }
                       : null;
-                  return (
-                    <button
-                      aria-current={focusedViolation?.ordinal === annotation.ordinal}
-                      aria-label={`위반 ${annotation.ordinal}: ${annotation.title}`}
-                      className={`fuma-platform-inspection-frame__violation-box${displayedBox ? "" : " is-marker-only"}`}
-                      data-focused={focusedViolation?.ordinal === annotation.ordinal}
-                      data-severity={annotation.severity}
-                      data-violation-anchor={annotation.ordinal}
-                      id={focusedViolation != null ? `${content.id}-violation-${annotation.ordinal}` : undefined}
-                      key={annotation.id}
-                      onClick={() => onSelectViolation?.(annotation.ordinal)}
-                      style={displayedBox ? {
-                        height: `${displayedBox.height}%`,
-                        left: `${displayedBox.left}%`,
-                        top: `${displayedBox.top}%`,
-                        width: `${displayedBox.width}%`,
-                      } : undefined}
-                      type="button"
-                    >
+                  const boxProperties = {
+                    "aria-label": `위반 ${annotation.ordinal}: ${annotation.title}`,
+                    className: `fuma-platform-inspection-frame__violation-box${displayedBox ? "" : " is-marker-only"}`,
+                    "data-focused": focusedViolation?.ordinal === annotation.ordinal,
+                    "data-severity": annotation.severity,
+                    "data-violation-anchor": annotation.ordinal,
+                    id: focusedViolation != null ? `${content.id}-violation-${annotation.ordinal}` : undefined,
+                    style: displayedBox ? {
+                      height: `${displayedBox.height}%`,
+                      left: `${displayedBox.left}%`,
+                      top: `${displayedBox.top}%`,
+                      width: `${displayedBox.width}%`,
+                    } : undefined,
+                  };
+                  const boxLabel = (
+                    <>
                       <span className="fuma-inspection-annotation-pin">{annotation.ordinal}</span>
                       <small>
                         {timeRange
                           ? `${annotation.title} · ${timeRange.start}–${timeRange.end}`
                           : annotation.title}
                       </small>
+                    </>
+                  );
+                  return onSelectViolation ? (
+                    <button
+                      aria-current={focusedViolation?.ordinal === annotation.ordinal}
+                      {...boxProperties}
+                      key={annotation.id}
+                      onClick={() => onSelectViolation(annotation.ordinal)}
+                      type="button"
+                    >
+                      {boxLabel}
                     </button>
+                  ) : (
+                    <span {...boxProperties} key={annotation.id}>
+                      {boxLabel}
+                    </span>
                   );
                 })}
               </div>
@@ -1161,7 +1668,7 @@ function MinimalVersionCard({
               <span className="fuma-platform-inspection-frame__count">{visibleIndex + 1} / {mediaItems.length}</span>
             </>
           ) : null}
-          {!isInstagram && !embedUrl ? (
+          {!isInstagram && !isYouTubeShorts && !embedUrl ? (
             <div className="fuma-platform-inspection-frame__player-controls">
               <div className="fuma-platform-inspection-frame__progress"><span /></div>
               <div>
@@ -1178,9 +1685,24 @@ function MinimalVersionCard({
               </div>
             </div>
           ) : null}
+          {sttExtracts.length > 0 ? (
+            <button
+              aria-controls={textDataPanelId}
+              aria-expanded={textDataExpanded}
+              className="fuma-platform-inspection-frame__stt-trigger"
+              onClick={(event) => {
+                event.stopPropagation();
+                setTextDataExpanded(true);
+              }}
+              type="button"
+            >
+              <Captions aria-hidden="true" size={15} />
+              STT
+            </button>
+          ) : null}
         </div>
 
-        {isInstagram && mediaItems.length > 1 ? (
+        {isInstagram && !isInstagramReels && mediaItems.length > 1 ? (
           <div aria-label="사진 목록" className="fuma-platform-inspection-frame__carousel-dots" role="group">
             {mediaItems.map((media, index) => (
               <button
@@ -1197,7 +1719,25 @@ function MinimalVersionCard({
           </div>
         ) : null}
 
-        {isInstagram ? (
+        {isInstagramReels ? (
+          <InstagramReelsCard
+            avatarUrl={avatarUrl}
+            creatorName={content.author}
+            handle={handle}
+          >
+            <p {...descriptionTextProps}>
+              <ViolationHighlightedText
+                annotations={annotations}
+                focusedOrdinal={focusedViolation?.ordinal}
+                onSelectViolation={onSelectViolation}
+                showBubbles={showTextBubbles}
+                text={snapshot.text}
+                useStoredIndexes
+              />
+            </p>
+            {descriptionToggle}
+          </InstagramReelsCard>
+        ) : isInstagram ? (
           <>
             <div className="fuma-platform-inspection-frame__instagram-actions">
               <span>
@@ -1209,10 +1749,39 @@ function MinimalVersionCard({
               <button aria-label="저장" type="button"><Bookmark aria-hidden="true" size={23} /></button>
             </div>
             <div className="fuma-platform-inspection-frame__instagram-copy">
-              <p><b>{handle}</b>{" "}<ViolationHighlightedText annotations={annotations} focusedOrdinal={focusedViolation?.ordinal} onSelectViolation={onSelectViolation} text={snapshot.text} useStoredIndexes /></p>
+              <p {...descriptionTextProps}>
+                <b>{handle}</b>{" "}
+                <ViolationHighlightedText
+                  annotations={annotations}
+                  focusedOrdinal={focusedViolation?.ordinal}
+                  onSelectViolation={onSelectViolation}
+                  showBubbles={showTextBubbles}
+                  text={snapshot.text}
+                  useStoredIndexes
+                />
+              </p>
+              {descriptionToggle}
               <time>{postDate}</time>
             </div>
           </>
+        ) : isYouTubeShorts ? (
+          <YouTubeShortsCard
+            avatarUrl={avatarUrl}
+            creatorName={content.author}
+            handle={handle}
+          >
+            <p {...descriptionTextProps}>
+              <ViolationHighlightedText
+                annotations={annotations}
+                focusedOrdinal={focusedViolation?.ordinal}
+                onSelectViolation={onSelectViolation}
+                showBubbles={showTextBubbles}
+                text={snapshot.text}
+                useStoredIndexes
+              />
+            </p>
+            {descriptionToggle}
+          </YouTubeShortsCard>
         ) : (
           <div className={`fuma-platform-inspection-frame__youtube-copy${embedUrl ? " is-embedded" : ""}`}>
             <h4>{content.contentTitle}</h4>
@@ -1228,12 +1797,12 @@ function MinimalVersionCard({
                   </strong>
                   <small>{handle}</small>
                 </span>
+              </div>
+              <div className="fuma-platform-inspection-frame__youtube-actions">
                 <span className="fuma-platform-inspection-frame__youtube-subscriptions">
                   <button className="is-membership" type="button">가입</button>
                   <button className="is-subscribe" type="button">구독</button>
                 </span>
-              </div>
-              <div className="fuma-platform-inspection-frame__youtube-actions">
                 <span className="fuma-platform-inspection-frame__youtube-rating">
                   <button type="button"><ThumbsUp aria-hidden="true" size={18} /> 좋아요</button>
                   <button aria-label="싫어요" type="button"><ThumbsDown aria-hidden="true" size={18} /></button>
@@ -1245,11 +1814,73 @@ function MinimalVersionCard({
             </div>
             <div className="fuma-platform-inspection-frame__youtube-description">
               <strong>{postDate}</strong>
-              <p><ViolationHighlightedText annotations={annotations} focusedOrdinal={focusedViolation?.ordinal} onSelectViolation={onSelectViolation} text={snapshot.text} useStoredIndexes /></p>
+              <p {...descriptionTextProps}>
+                <ViolationHighlightedText
+                  annotations={annotations}
+                  focusedOrdinal={focusedViolation?.ordinal}
+                  onSelectViolation={onSelectViolation}
+                  showBubbles={showTextBubbles}
+                  text={snapshot.text}
+                  useStoredIndexes
+                />
+              </p>
+              {descriptionToggle}
             </div>
           </div>
         )}
       </div>
+      {textDataExpanded ? (
+        <section
+          aria-label="텍스트 데이터"
+          aria-modal="true"
+          className="fuma-platform-inspection-frame__stt-panel fuma-platform-inspection-frame__description-panel"
+          id={textDataPanelId}
+          role="dialog"
+        >
+          <header>
+            <span>
+              <strong>텍스트 데이터</strong>
+            </span>
+            <button
+              aria-label="텍스트 데이터 닫기"
+              autoFocus
+              onClick={() => setTextDataExpanded(false)}
+              type="button"
+            >
+              <X aria-hidden="true" size={18} />
+            </button>
+          </header>
+          <div
+            className="fuma-platform-inspection-frame__stt-transcript"
+            data-description-transcript
+          >
+            <section className="fuma-platform-inspection-frame__description-section">
+              <h4>본문</h4>
+              <p>
+                <ViolationHighlightedText
+                  annotations={annotations}
+                  focusedOrdinal={focusedViolation?.ordinal}
+                  onSelectViolation={onSelectViolation}
+                  showBubbles={showTextBubbles}
+                  text={snapshot.text}
+                  useStoredIndexes
+                />
+              </p>
+            </section>
+            {sttTranscript.length > 0 ? (
+              <section className="fuma-platform-inspection-frame__description-section is-stt">
+                <h4>STT 추출물</h4>
+                <div
+                  className="fuma-platform-inspection-frame__description-stt"
+                  data-stt-transcript
+                >
+                  {sttTranscript}
+                </div>
+              </section>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
     </article>
   );
 }
@@ -1264,9 +1895,8 @@ function MinimalAiAnalysis({
   onSelectViolation: (ordinal: number) => void;
 }) {
   const analysisPending = content.aiStatus === "pending";
-  const summaryBullets = analysisPending ? [] : contentSummaryBullets(content);
-  const issues = inspectionIssueSignals(content);
-  const passSignals = inspectionPassSignals(content);
+  const analysis = inspectionAnalysisData(content);
+  const { issues, summaryBullets } = analysis;
   const extracts = content.report.extracts;
   const versionNo = currentDisplayedVersionNo(content);
   const showChanges = versionNo > 1 && content.changeItems.length > 0;
@@ -1294,10 +1924,13 @@ function MinimalAiAnalysis({
                 <p>요약 정보가 없습니다.</p>
               )}
             </section>
-            <section aria-label="검수 근거" className="fuma-content-inspection-evidence">
+            <ContentReportInsight
+              className="fuma-content-analysis-insight"
+              insight={content.report.analysis?.insight}
+            />
+            <section aria-label="위반 내역" className="fuma-content-inspection-evidence">
               <header>
-                <h4>검수 근거</h4>
-                <span>위반 후보 {issues.length}건</span>
+                <h4>위반 내역</h4>
               </header>
               {issues.length > 0 ? (
                 <ul>
@@ -1311,54 +1944,22 @@ function MinimalAiAnalysis({
                         onClick={() => onSelectViolation(issue.ordinal)}
                         type="button"
                       >
-                        <strong>
+                        <span className="fuma-content-inspection-evidence__candidate-label">
                           {issueOrdinalLabel(issue.ordinal)} {issue.title}
-                          {issue.detectorSource ? (
-                            <span className="fuma-content-inspection-evidence__source">
-                              {issue.detectorSource}
-                              {issue.inspectionPolicyId != null
-                                ? ` · 정책 #${issue.inspectionPolicyId}`
-                                : ""}
-                            </span>
-                          ) : null}
-                        </strong>
-                        <p>{issue.detail}</p>
-                        <dl>
-                          <div>
-                            <dt>위치</dt>
-                            <dd>{issue.source}</dd>
-                          </div>
-                          <div>
-                            <dt>{detectionSourceLabel(issue.source)}</dt>
-                            <dd>{issue.evidence.trim() || "검출 문구 없음"}</dd>
-                          </div>
-                        </dl>
+                        </span>
                         {showsInspectionGuideline(issue) ? (
                           <aside>
                             <span>검수 기준</span>
                             <p>{issue.guidance}</p>
                           </aside>
                         ) : null}
+                        <p>{issue.detail}</p>
                       </button>
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p>표시할 위반 근거가 없습니다.</p>
-              )}
-              {passSignals.length > 0 ? (
-                <details>
-                  <summary>정상 항목 {passSignals.length}건</summary>
-                  <ul>
-                    {passSignals.map((signal) => (
-                      <li key={signal.title}>
-                        <strong>{signal.title}</strong>
-                        <span>{signal.detail}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
               ) : null}
+              <GuidelineComplianceDetails analysis={analysis} />
               {extracts.length > 0 ? (
                 <details>
                   <summary>전체 추출 내용 보기</summary>
@@ -1403,14 +2004,21 @@ function MinimalFinalInspection({
   const [confirmationError, setConfirmationError] = useState<string | null>(null);
   const [confirmationFeedback, setConfirmationFeedback] = useState<string | null>(null);
   const [confirmationPending, setConfirmationPending] = useState(false);
+  const persistedDecision = content.inspectionDecision === "APPROVED"
+    ? "승인"
+    : content.inspectionDecision === "REJECTED" ? "반려" : null;
+  const displayedDecision = decision ?? persistedDecision;
   const analysisPending = content.aiStatus === "pending";
   const candidates = readOnly ? [] : pendingInspectionCandidates(content);
+  const inspectionPolicyId = content.report.signals.find(
+    ({ inspectionPolicyId: policyId }) => policyId != null,
+  )?.inspectionPolicyId;
   const [judgments, setJudgments] = useState<Partial<Record<number, InspectionJudgment>>>({});
   const judgedCount = candidates.filter((candidate) => judgments[candidate.ordinal]).length;
   const allJudged = candidates.length === 0 || judgedCount === candidates.length;
   const hasViolationJudgment = candidates.some((candidate) => judgments[candidate.ordinal] === "위반");
-  const approveEnabled = !analysisPending && allJudged && !hasViolationJudgment;
-  const rejectEnabled = !analysisPending && allJudged && hasViolationJudgment;
+  const approveEnabled = allJudged && (analysisPending || !hasViolationJudgment);
+  const rejectEnabled = allJudged && (analysisPending || hasViolationJudgment);
 
   const setJudgment = (ordinal: number, judgment: InspectionJudgment) => {
     setJudgments((current) => {
@@ -1467,8 +2075,12 @@ function MinimalFinalInspection({
         <ShieldCheck aria-hidden="true" size={22} />
       </header>
       <dl>
-        <div><dt>검수 상태</dt><dd>{decision ?? "검수 전"}</dd></div>
-        <div><dt>후보 판정</dt><dd>{judgedCount} / {candidates.length}</dd></div>
+        <div>
+          <dt>검수 정책</dt>
+          <dd>{inspectionPolicyId != null ? `정책 #${inspectionPolicyId}` : "-"}</dd>
+        </div>
+        <div><dt>검수 상태</dt><dd>{displayedDecision ?? "검수 전"}</dd></div>
+        <div><dt>항목 판정</dt><dd>{judgedCount} / {candidates.length}</dd></div>
       </dl>
       <section className="fuma-minimal-final-inspection__candidates">
         <header><strong>위반 여부 판정</strong><span>{judgedCount}/{candidates.length}</span></header>
@@ -1491,7 +2103,7 @@ function MinimalFinalInspection({
                 type="button"
               >
                 <strong>{issueOrdinalLabel(candidate.ordinal)} {candidate.title}</strong>
-                <small>AI 판정 · 위반 후보</small>
+                <small>AI 판정 · 위반 항목</small>
                 <blockquote>“{candidate.evidence}”</blockquote>
                 <small>{candidate.detail || candidate.source}</small>
               </button>
@@ -1515,27 +2127,33 @@ function MinimalFinalInspection({
         }) : (
             <p><CheckCircle2 aria-hidden="true" size={15} /> {readOnly
               ? "과거 버전은 위반 이력 조회만 가능합니다."
-              : "판정할 위반 후보가 없습니다."}</p>
+              : "판정할 위반 항목이 없습니다."}</p>
         )}
       </section>
-      <div className="fuma-minimal-final-inspection__actions">
-        <Button
-          aria-pressed={decision === "반려"}
-          className={decision === "반려" ? "is-rejected" : undefined}
-          disabled={!rejectEnabled || confirmationPending}
-          onClick={() => void submitDecision("반려")}
-        >
-          반려
-        </Button>
-        <Button
-          aria-pressed={decision === "승인"}
-          className={decision === "승인" ? "is-approved" : undefined}
-          disabled={!approveEnabled || confirmationPending}
-          onClick={() => void submitDecision("승인")}
-        >
-          승인
-        </Button>
-      </div>
+      {!readOnly ? (
+        <div className="fuma-minimal-final-inspection__actions">
+          {displayedDecision !== "승인" ? (
+            <Button
+              aria-pressed={displayedDecision === "반려"}
+              className={displayedDecision === "반려" ? "is-rejected" : undefined}
+              disabled={displayedDecision != null || !rejectEnabled || confirmationPending}
+              onClick={() => void submitDecision("반려")}
+            >
+              반려
+            </Button>
+          ) : null}
+          {displayedDecision !== "반려" ? (
+            <Button
+              aria-pressed={displayedDecision === "승인"}
+              className={displayedDecision === "승인" ? "is-approved" : undefined}
+              disabled={displayedDecision != null || !approveEnabled || confirmationPending}
+              onClick={() => void submitDecision("승인")}
+            >
+              승인
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       {analysisPending
         ? <p>분석이 완료된 후 최종 검수를 진행할 수 있습니다.</p>
         : confirmationError ? <p role="alert">{confirmationError}</p>
@@ -1548,14 +2166,18 @@ function MinimalFinalInspection({
 function ContentInspectionDetailContent({
   content,
   nextContent,
-  onBack,
+  onList,
   onNext,
+  onPrevious,
+  previousContent,
   remainingCount,
 }: {
   content: ContentInspectionFixture;
   nextContent?: ContentInspectionFixture;
-  onBack: () => void;
+  onList: () => void;
   onNext: () => void;
+  onPrevious: () => void;
+  previousContent?: ContentInspectionFixture;
   remainingCount: number;
 }) {
   const [focusedViolation, setFocusedViolation] = useState<{
@@ -1655,9 +2277,9 @@ function ContentInspectionDetailContent({
   return (
     <>
       <div className="fuma-detail-toolbar fuma-minimal-inspection-toolbar">
-        <button className="hsas-button fuma-detail-toolbar__link" onClick={onBack} type="button">
+        <button className="hsas-button fuma-detail-toolbar__link" onClick={onList} type="button">
           <ArrowLeft aria-hidden="true" size={14} strokeWidth={1.8} />
-          대기열
+          검수 목록
         </button>
         <div className="fuma-minimal-inspection-toolbar__next">
           <span><strong>{remainingCount}건</strong>의 콘텐츠가 남았습니다.</span>
@@ -1667,6 +2289,13 @@ function ContentInspectionDetailContent({
             variant="secondary"
           >
             {inspectionPending ? "검수 중" : "자동 검수 실행"}
+          </Button>
+          <Button
+            disabled={!previousContent}
+            onClick={onPrevious}
+            variant="secondary"
+          >
+            <ChevronLeft aria-hidden="true" size={14} /> 이전 콘텐츠
           </Button>
           <Button
             className="fuma-content-inspection-next-button"
@@ -1695,19 +2324,16 @@ function ContentInspectionDetailContent({
         <main className="fuma-minimal-inspection-main">
           <section aria-label="셀렉터스 계정" className="fuma-content-inspection-identity">
             <div className="fuma-content-inspection-author">
-              <CreatorProfilePhoto creatorName={content.author} src={content.profileImageUrl ?? ""} />
+              <span className="fuma-content-inspection-author__portrait">
+                <CreatorProfilePhoto creatorName={content.author} src={content.profileImageUrl ?? ""} />
+                <PlatformIcon decorative platform={contentPlatform(content.sourcePlatform)} />
+              </span>
               <div className="fuma-content-inspection-author__copy">
                 <div className="fuma-content-inspection-author__account">
                   <strong>{content.author}</strong>
-                  <div>
-                    <PlatformIcon decorative platform={contentPlatform(content.sourcePlatform)} />
-                  </div>
                   <small>{content.accountId ?? content.author}</small>
                 </div>
                 <p className="fuma-content-inspection-author__title">{displayed.contentTitle}</p>
-                <p className="fuma-content-inspection-author__format">
-                  {displayed.sourcePlatform} · {displayed.contentFormat}
-                </p>
               </div>
             </div>
             <div className="fuma-content-inspection-meta">
@@ -1781,8 +2407,19 @@ function ContentInspectionDetailContent({
 export function ContentInspectionDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [studioHelpTooltipVisible, setStudioHelpTooltipVisible] = useState(() => {
+    const state = location.state as {
+      inspectionSession?: boolean;
+      singleInspection?: boolean;
+    } | null;
+    return Boolean(state?.inspectionSession && !state?.singleInspection);
+  });
+  const [studioTourOpen, setStudioTourOpen] = useState(false);
+  const [studioHistoryHintVisible, setStudioHistoryHintVisible] = useState(false);
   const [studioDecision, setStudioDecision] = useState<"approve" | "reject" | null>(null);
   const [studioSelector, setStudioSelector] = useState<SelectorDetail | null>(null);
+  const [studioSelectorError, setStudioSelectorError] = useState("");
+  const [studioSelectorPanelOpen, setStudioSelectorPanelOpen] = useState(false);
   const [studioHistoricalContents, setStudioHistoricalContents] = useState<ContentInspectionFixture[]>([]);
   const [studioHistoryError, setStudioHistoryError] = useState<string | null>(null);
   const [studioHistoryPending, setStudioHistoryPending] = useState(false);
@@ -1790,16 +2427,23 @@ export function ContentInspectionDetailPage() {
   const [studioActionError, setStudioActionError] = useState<string | null>(null);
   const [studioActionFeedback, setStudioActionFeedback] = useState<string | null>(null);
   const [studioReportRefreshVersionId, setStudioReportRefreshVersionId] = useState<number | null>(null);
+  const [selectedStudioVersionId, setSelectedStudioVersionId] = useState<number | null>(null);
   const [studioViolationJudgments, setStudioViolationJudgments] = useState<
     Array<"violation" | "clear" | null>
   >([]);
   const [focusedStudioViolationIndex, setFocusedStudioViolationIndex] = useState(-1);
+  const [studioViolationLocation, setStudioViolationLocation] = useState<{
+    ordinal: number;
+    requestId: number;
+    snapshotCapturedAt: string;
+    source: "content" | "report";
+  } | null>(null);
   const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
+  const [completionOpen, setCompletionOpen] = useState(false);
   const [studioExiting, setStudioExiting] = useState(false);
   const [studioContentTransition, setStudioContentTransition] = useState<StudioContentTransition>("idle");
   const studioReportRef = useRef<HTMLElement>(null);
   const studioDecisionRef = useRef<HTMLDivElement>(null);
-  const studioVersionsRef = useRef<HTMLElement>(null);
   const studioHistoryRequestRef = useRef<AbortController | null>(null);
   const studioActionRequestRef = useRef<AbortController | null>(null);
   const studioDetailRequestRef = useRef<AbortController | null>(null);
@@ -1815,7 +2459,9 @@ export function ContentInspectionDetailPage() {
     contents?: ContentInspectionFixture[];
     from?: unknown;
     inspectionSession?: boolean;
+    singleInspection?: boolean;
   } | null;
+  const studioSingleInspection = routeState?.singleInspection === true;
   const initialRouteContents = routeState?.contents
     ?? (routeState?.content ? [routeState.content] : []);
   const [detailContents, setDetailContents] = useState<ContentInspectionFixture[]>(
@@ -1835,13 +2481,37 @@ export function ContentInspectionDetailPage() {
         .filter(({ contentVersionId }) => contentVersionId !== studioLatestVersion.contentVersionId)
         .sort((left, right) => left.versionNo - right.versionNo)
     : [];
+  const studioHasHistoricalVersion = (baseContent?.latestVersionNo ?? 1) > 1
+    || studioHistoricalVersionSummaries.length > 0;
   const studioHistoryVersionKey = studioHistoricalVersionSummaries
     .map(({ contentVersionId }) => contentVersionId)
     .join(",");
   const visibleStudioHistoricalContents = studioHistoricalContents
     .filter((item) => item.id === contentId)
     .sort((left, right) => currentDisplayedVersionNo(left) - currentDisplayedVersionNo(right));
+  const selectedStudioHistoricalContent = selectedStudioVersionId == null
+    ? null
+    : visibleStudioHistoricalContents.find(
+        ({ contentVersionId }) => contentVersionId === selectedStudioVersionId,
+      ) ?? null;
+  const displayedStudioHistoricalContent = selectedStudioHistoricalContent
+    ?? visibleStudioHistoricalContents[visibleStudioHistoricalContents.length - 1]
+    ?? null;
+  const displayedStudioHistoricalSelected = selectedStudioVersionId != null
+    && selectedStudioVersionId === displayedStudioHistoricalContent?.contentVersionId;
+  const studioSelectedIsLatest = selectedStudioVersionId === null;
+  const studioReportContent = studioSelectedIsLatest ? content : selectedStudioHistoricalContent;
   const studioReviewReadOnly = content != null && content.inspectionStatus !== "검수 대기";
+  const studioReportAnalysis = useMemo(
+    () => {
+      if (!studioReportContent) return null;
+      const visibleIssues = studioSelectedIsLatest && !studioReviewReadOnly
+        ? pendingInspectionCandidates(studioReportContent)
+        : inspectionIssueSignals(studioReportContent);
+      return inspectionAnalysisData(studioReportContent, visibleIssues);
+    },
+    [studioReportContent, studioReviewReadOnly, studioSelectedIsLatest],
+  );
   const studioViolationSignals = useMemo(
     () => content
       ? studioReviewReadOnly
@@ -1850,23 +2520,54 @@ export function ContentInspectionDetailPage() {
       : [],
     [content, studioReviewReadOnly],
   );
+  const studioReportViolationSignals = useMemo(
+    () => studioReportContent
+      ? studioSelectedIsLatest
+        ? studioViolationSignals
+        : inspectionIssueSignals(studioReportContent)
+      : [],
+    [studioReportContent, studioSelectedIsLatest, studioViolationSignals],
+  );
   const studioReportReady = content?.aiStatus === "ready";
-  const studioViolationReviewComplete = studioReportReady
-    && !studioReviewReadOnly
+  const studioSelectedReportReady = studioReportContent?.aiStatus === "ready";
+  const studioViolationReviewComplete = !studioReviewReadOnly
     && studioReportRefreshVersionId === null
-    && studioViolationJudgments.length === studioViolationSignals.length
-    && studioViolationJudgments.every(Boolean);
-  const studioFinalFocused = studioViolationReviewComplete
+    && (!studioReportReady || (
+      studioViolationJudgments.length === studioViolationSignals.length
+      && studioViolationJudgments.every(Boolean)
+    ));
+  const studioFinalFocused = studioSelectedIsLatest
+    && studioViolationReviewComplete
     && focusedStudioViolationIndex < 0;
-  const studioCardFocusedViolation = useMemo(() => {
+  const studioSelectedCardFocusedViolation = useMemo(() => {
+    if (!studioReportContent) return null;
+    const requestedLocation = studioViolationLocation?.snapshotCapturedAt
+      === studioReportContent.currentSnapshot.capturedAt
+      ? studioViolationLocation
+      : null;
+    if (!studioSelectedIsLatest) {
+      return requestedLocation
+        ? { ordinal: requestedLocation.ordinal, requestId: requestedLocation.requestId }
+        : null;
+    }
     const focused = focusedStudioViolationIndex >= 0
       ? studioViolationSignals[focusedStudioViolationIndex]
       : undefined;
     return focused
-      ? { ordinal: focused.ordinal, requestId: focusedStudioViolationIndex }
+      ? {
+          ordinal: focused.ordinal,
+          requestId: requestedLocation?.ordinal === focused.ordinal
+            ? requestedLocation.requestId
+            : focusedStudioViolationIndex,
+        }
       : null;
-  }, [focusedStudioViolationIndex, studioViolationSignals]);
-  const judgedStudioViolationCount = studioViolationJudgments.filter(Boolean).length;
+  }, [
+    focusedStudioViolationIndex,
+    studioReportContent,
+    studioSelectedIsLatest,
+    studioViolationLocation,
+    studioViolationSignals,
+  ]);
   const hasStudioViolationJudgment = studioViolationJudgments.includes("violation");
   const visibleError = loadError !== null && loadError.id === contentId
     ? loadError.message
@@ -1874,12 +2575,14 @@ export function ContentInspectionDetailPage() {
   const returnPath = routeState?.from;
   const pendingContents = inspectionRequiredContents(detailContents);
   const currentPendingIndex = pendingContents.findIndex((item) => item.id === contentId);
-  const previousContent = currentPendingIndex > 0
+  const previousContent = !studioSingleInspection && currentPendingIndex > 0
     ? pendingContents[currentPendingIndex - 1]
     : undefined;
-  const nextContent = currentPendingIndex >= 0
-    ? pendingContents[currentPendingIndex + 1]
-    : pendingContents[0];
+  const nextContent = studioSingleInspection
+    ? undefined
+    : currentPendingIndex >= 0
+      ? pendingContents[currentPendingIndex + 1]
+      : pendingContents[0];
   const studioInspectionComplete = studioReviewReadOnly
     && currentPendingIndex < 0
     && !nextContent;
@@ -1918,8 +2621,10 @@ export function ContentInspectionDetailPage() {
       setStudioActionError(null);
       setStudioActionFeedback(null);
       setStudioReportRefreshVersionId(null);
+      setSelectedStudioVersionId(null);
       setStudioViolationJudgments([]);
       setFocusedStudioViolationIndex(-1);
+      setStudioViolationLocation(null);
       navigate(`/content/inspections/${target.id}`, {
         state: { ...routeState, content: target, contents, inspectionSession: true },
       });
@@ -1953,6 +2658,7 @@ export function ContentInspectionDetailPage() {
     judgment: "violation" | "clear",
   ) => {
     judgeStudioViolation(index, judgment);
+    setStudioViolationLocation(null);
     setFocusedStudioViolationIndex(
       index + 1 < studioViolationSignals.length ? index + 1 : -1,
     );
@@ -1960,13 +2666,43 @@ export function ContentInspectionDetailPage() {
 
   const selectStudioViolationFromContent = useCallback((ordinal: number) => {
     const index = studioViolationSignals.findIndex((signal) => signal.ordinal === ordinal);
-    if (index >= 0) setFocusedStudioViolationIndex(index);
-  }, [studioViolationSignals]);
+    if (index < 0 || !content) return;
+    setFocusedStudioViolationIndex(index);
+    setStudioViolationLocation((current) => ({
+      ordinal,
+      requestId: (current?.requestId ?? 0) + 1,
+      snapshotCapturedAt: content.currentSnapshot.capturedAt,
+      source: "content",
+    }));
+  }, [content, studioViolationSignals]);
+
+  const selectStudioHistoricalViolationFromContent = useCallback((ordinal: number) => {
+    if (displayedStudioHistoricalContent?.contentVersionId == null) return;
+    setSelectedStudioVersionId(displayedStudioHistoricalContent.contentVersionId);
+    setStudioViolationLocation((current) => ({
+      ordinal,
+      requestId: (current?.requestId ?? 0) + 1,
+      snapshotCapturedAt: displayedStudioHistoricalContent.currentSnapshot.capturedAt,
+      source: "content",
+    }));
+  }, [displayedStudioHistoricalContent]);
+
+  const focusStudioReportViolation = useCallback((index: number, ordinal: number) => {
+    if (!studioReportContent) return;
+    if (studioSelectedIsLatest) setFocusedStudioViolationIndex(index);
+    setStudioViolationLocation((current) => ({
+      ordinal,
+      requestId: (current?.requestId ?? 0) + 1,
+      snapshotCapturedAt: studioReportContent.currentSnapshot.capturedAt,
+      source: "report",
+    }));
+  }, [studioReportContent, studioSelectedIsLatest]);
 
   const generateStudioReport = useCallback(async () => {
     if (
       !baseContent
       || !studioLatestVersion
+      || studioReviewReadOnly
       || studioActionPending
       || studioActionRequestRef.current
     ) return;
@@ -2010,6 +2746,7 @@ export function ContentInspectionDetailPage() {
       setStudioReportRefreshVersionId(null);
       setStudioViolationJudgments(Array(refreshedSignals.length).fill(null));
       setFocusedStudioViolationIndex(refreshedSignals.length > 0 ? 0 : -1);
+      setStudioViolationLocation(null);
       setStudioDecision(null);
       setStudioActionFeedback(versionCreated === true
         ? `v${detail.selectedVersion.versionNo} 리포트를 생성했습니다.`
@@ -2020,9 +2757,12 @@ export function ContentInspectionDetailPage() {
       if (error instanceof Error && error.name === "AbortError") return;
       if (inspectedVersionId != null) {
         setStudioReportRefreshVersionId(inspectedVersionId);
+        const reason = error instanceof Error && error.message.trim()
+          ? error.message
+          : "콘텐츠 상세 조회에 실패했습니다.";
         setStudioActionError(versionCreated == null
-          ? "생성된 리포트를 불러오지 못했습니다. 다시 눌러 불러오세요."
-          : "리포트 생성은 완료됐지만 불러오지 못했습니다. 다시 눌러 불러오세요.");
+          ? `생성된 리포트를 불러오지 못했습니다. 다시 눌러 불러오세요. (${reason})`
+          : `리포트 생성은 완료됐지만 불러오지 못했습니다. 다시 눌러 불러오세요. (${reason})`);
       } else {
         setStudioActionError(error instanceof Error
           ? error.message
@@ -2039,19 +2779,20 @@ export function ContentInspectionDetailPage() {
     studioActionPending,
     studioLatestVersion,
     studioReportRefreshVersionId,
+    studioReviewReadOnly,
   ]);
 
   const submitStudioDecision = useCallback(async (selected: "approve" | "reject") => {
     if (
       !content
-      || !baseContent
       || !content.contentVersionId
       || !studioFinalFocused
       || studioReviewReadOnly
       || studioActionPending
       || studioActionRequestRef.current
     ) return;
-    if (selected === "reject" ? !hasStudioViolationJudgment : hasStudioViolationJudgment) {
+    if (studioReportReady
+      && (selected === "reject" ? !hasStudioViolationJudgment : hasStudioViolationJudgment)) {
       setStudioActionError(hasStudioViolationJudgment
         ? "위반 판정이 있어 최종 반려만 가능합니다."
         : "모든 항목이 위반 아님이므로 최종 승인만 가능합니다.");
@@ -2063,14 +2804,12 @@ export function ContentInspectionDetailPage() {
     }
 
     const contentVersionId = content.contentVersionId;
-    const preferredNextId = nextContent?.id;
     const controller = new AbortController();
     studioActionRequestRef.current = controller;
     setStudioDecision(selected);
     setStudioActionPending("confirmation");
     setStudioActionError(null);
     setStudioActionFeedback(null);
-    let confirmed = false;
     try {
       const result = await confirmContentInspection(
         Number(content.id),
@@ -2086,40 +2825,14 @@ export function ContentInspectionDetailPage() {
         },
         controller.signal,
       );
-      confirmed = true;
-      const [detail, listedContents] = await Promise.all([
-        getContentVersionDetail(Number(content.id), contentVersionId, controller.signal),
-        getCurrentGenerationContents(controller.signal),
-      ]);
-      const refreshedContents = listedContents.map(adaptContentInspection);
-      const adapted = adaptContentInspectionDetail(
-        detail,
-        refreshedContents.find((item) => item.id === content.id) ?? baseContent,
-      );
-      const confirmedContents = refreshedContents.some((item) => item.id === adapted.id)
-        ? refreshedContents.map((item) => item.id === adapted.id ? adapted : item)
-        : [adapted, ...refreshedContents];
-      setDetailContents(confirmedContents);
       setStudioActionFeedback(
         `${selected === "approve" ? "승인" : "반려"} 처리했습니다. 위반 항목 ${result.updatedCount}건을 갱신했습니다.`,
       );
-
-      const remainingContents = inspectionRequiredContents(confirmedContents)
-        .filter((item) => item.id !== content.id);
-      const target = remainingContents.find((item) => item.id === preferredNextId)
-        ?? remainingContents[0];
-      if (target) {
-        navigateStudioContent(target, "next", confirmedContents);
-        return;
-      }
+      if (nextContent) navigateStudioContent(nextContent, "next");
+      else setCompletionOpen(true);
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "AbortError") return;
-      if (confirmed) {
-        setStudioActionFeedback("검수는 완료됐지만 화면 갱신에 실패해 목록으로 돌아갑니다.");
-        setStudioActionPending(null);
-        setStudioExiting(true);
-        return;
-      }
+      setStudioDecision(null);
       setStudioActionError(error instanceof Error
         ? error.message
         : "콘텐츠 검수 확정에 실패했습니다.");
@@ -2130,13 +2843,13 @@ export function ContentInspectionDetailPage() {
       }
     }
   }, [
-    baseContent,
     content,
     hasStudioViolationJudgment,
     navigateStudioContent,
-    nextContent?.id,
+    nextContent,
     studioActionPending,
     studioFinalFocused,
+    studioReportReady,
     studioReviewReadOnly,
     studioViolationJudgments,
     studioViolationSignals,
@@ -2249,21 +2962,14 @@ export function ContentInspectionDetailPage() {
   }, [baseContent, routeState?.inspectionSession, studioHistoryVersionKey]);
 
   useEffect(() => {
-    if (studioHistoryPending || visibleStudioHistoricalContents.length === 0) return undefined;
-    const animationFrame = window.requestAnimationFrame(() => {
-      const versions = studioVersionsRef.current;
-      versions?.scrollTo({ behavior: "auto", left: versions.scrollWidth });
-    });
-    return () => window.cancelAnimationFrame(animationFrame);
-  }, [contentId, studioHistoryPending, visibleStudioHistoricalContents.length]);
-
-  useEffect(() => {
     if (!routeState?.inspectionSession) return undefined;
     const resetFrame = window.requestAnimationFrame(() => {
+      setSelectedStudioVersionId(null);
       setStudioViolationJudgments(Array(studioViolationSignals.length).fill(null));
       setFocusedStudioViolationIndex(
         !studioReviewReadOnly && studioViolationSignals.length > 0 ? 0 : -1,
       );
+      setStudioViolationLocation(null);
       setStudioDecision(null);
     });
 
@@ -2303,18 +3009,65 @@ export function ContentInspectionDetailPage() {
   }, []);
 
   useEffect(() => {
+    if (!routeState?.inspectionSession || !studioHelpTooltipVisible) return undefined;
+    const timeoutId = window.setTimeout(
+      () => setStudioHelpTooltipVisible(false),
+      STUDIO_HELP_TOOLTIP_DURATION_MS,
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [routeState?.inspectionSession, studioHelpTooltipVisible]);
+
+  useEffect(() => {
+    if (!routeState?.inspectionSession || visibleStudioHistoricalContents.length === 0) {
+      setStudioHistoryHintVisible(false);
+      return undefined;
+    }
+    setStudioHistoryHintVisible(true);
+    const timeoutId = window.setTimeout(
+      () => setStudioHistoryHintVisible(false),
+      STUDIO_HISTORY_HINT_DURATION_MS,
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [contentId, routeState?.inspectionSession, visibleStudioHistoricalContents.length]);
+
+  useEffect(() => {
     if (!routeState?.inspectionSession) return undefined;
     const exitSession = (event: globalThis.KeyboardEvent) => {
+      const decisionShortcut = event.code === "Digit1" || event.code === "Numpad1" || event.key === "1"
+        ? "1"
+        : event.code === "Digit2" || event.code === "Numpad2" || event.key === "2"
+          ? "2"
+          : null;
       if (studioExiting) return;
+      if (studioTourOpen) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setStudioTourOpen(false);
+        }
+        return;
+      }
+      if (studioSelectorPanelOpen) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setStudioSelectorPanelOpen(false);
+        }
+        return;
+      }
+      if (event.key === "Escape" && studioSingleInspection && !studioActionPending) {
+        event.preventDefault();
+        setStudioExiting(true);
+        return;
+      }
+      if (completionOpen) {
+        event.preventDefault();
+        return;
+      }
       if (event.target instanceof HTMLSelectElement) return;
       if (studioActionPending) {
         event.preventDefault();
         return;
       }
-      if (event.repeat && (
-        ["0", "1"].includes(event.key)
-        || event.code === "Space"
-      )) {
+      if (event.repeat && decisionShortcut !== null) {
         event.preventDefault();
         return;
       }
@@ -2324,42 +3077,24 @@ export function ContentInspectionDetailPage() {
         return;
       }
       if (exitConfirmationOpen) return;
-      if (event.code === "Space") {
+      if (decisionShortcut) {
         event.preventDefault();
         if (
-          !studioReportReady
+          !studioSelectedIsLatest
           || studioReviewReadOnly
           || studioReportRefreshVersionId !== null
         ) return;
         if (focusedStudioViolationIndex >= 0) {
-          if (!studioViolationJudgments[focusedStudioViolationIndex]) return;
-          setFocusedStudioViolationIndex(
-            focusedStudioViolationIndex + 1 < studioViolationSignals.length
-              ? focusedStudioViolationIndex + 1
-              : -1,
-          );
-          return;
-        }
-        if (studioFinalFocused && studioDecision) {
-          void submitStudioDecision(studioDecision);
-        }
-        return;
-      }
-      if (event.key === "0" || event.key === "1") {
-        event.preventDefault();
-        if (!studioReportReady || studioReviewReadOnly || studioReportRefreshVersionId !== null) return;
-        if (focusedStudioViolationIndex >= 0) {
-          judgeStudioViolation(
+          judgeStudioViolationAndAdvance(
             focusedStudioViolationIndex,
-            event.key === "0" ? "violation" : "clear",
+            decisionShortcut === "1" ? "violation" : "clear",
           );
           return;
         }
         if (studioFinalFocused) {
-          const selected = event.key === "0" ? "reject" : "approve";
-          if ((selected === "reject") !== hasStudioViolationJudgment) return;
-          setStudioActionError(null);
-          setStudioDecision(selected);
+          const selected = decisionShortcut === "1" ? "reject" : "approve";
+          if (studioReportReady && (selected === "reject") !== hasStudioViolationJudgment) return;
+          void submitStudioDecision(selected);
         }
         return;
       }
@@ -2368,18 +3103,22 @@ export function ContentInspectionDetailPage() {
     window.addEventListener("keydown", exitSession);
     return () => window.removeEventListener("keydown", exitSession);
   }, [
+    completionOpen,
     exitConfirmationOpen,
     focusedStudioViolationIndex,
     hasStudioViolationJudgment,
-    judgeStudioViolation,
+    judgeStudioViolationAndAdvance,
     routeState?.inspectionSession,
     studioActionPending,
-    studioDecision,
     studioExiting,
     studioFinalFocused,
     studioReportReady,
     studioReportRefreshVersionId,
     studioReviewReadOnly,
+    studioSelectedIsLatest,
+    studioSelectorPanelOpen,
+    studioSingleInspection,
+    studioTourOpen,
     studioViolationJudgments,
     studioViolationSignals.length,
     submitStudioDecision,
@@ -2398,9 +3137,12 @@ export function ContentInspectionDetailPage() {
     };
 
     const navigateOnWheel = (event: globalThis.WheelEvent) => {
-      if (event.ctrlKey || Math.abs(event.deltaY) < 4) return;
+      if (event.ctrlKey) return;
       if (
         studioExiting
+        || studioTourOpen
+        || studioSelectorPanelOpen
+        || completionOpen
         || exitConfirmationOpen
         || studioActionPending
         || studioContentTransition !== "idle"
@@ -2409,22 +3151,32 @@ export function ContentInspectionDetailPage() {
         return;
       }
 
+      const eventTarget = event.target instanceof Element ? event.target : null;
+      const nativeScrollSurface = eventTarget?.closest<HTMLElement>(
+        ".fuma-content-inspection-studio__report, .fuma-platform-inspection-frame__stt-transcript, .fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p, .fuma-platform-inspection-frame__shorts-overlay p",
+      );
+      if (nativeScrollSurface) return;
+
+      const forwardedScrollSurface = eventTarget
+        ?.closest<HTMLElement>(".fuma-platform-inspection-frame__stt-panel")
+        ?.querySelector<HTMLElement>(".fuma-platform-inspection-frame__stt-transcript")
+        ?? eventTarget
+          ?.closest<HTMLElement>(".fuma-minimal-version-card")
+          ?.querySelector<HTMLElement>(
+            ".fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p, .fuma-platform-inspection-frame__shorts-overlay p",
+          );
+      if (forwardedScrollSurface) {
+        event.preventDefault();
+        forwardedScrollSurface.scrollTop += event.deltaY;
+        return;
+      }
+
+      if (Math.abs(event.deltaY) < 4) return;
+
       if (studioWheelLockedRef.current) {
         event.preventDefault();
         releaseWheelAfterIdle();
         return;
-      }
-
-      const scrollSurface = event.target instanceof Element
-        ? event.target.closest<HTMLElement>(
-            ".fuma-content-inspection-studio__report, .fuma-platform-inspection-frame__instagram-copy p, .fuma-platform-inspection-frame__youtube-description p",
-          )
-        : null;
-      if (scrollSurface) {
-        const canScroll = event.deltaY > 0
-          ? scrollSurface.scrollTop + scrollSurface.clientHeight < scrollSurface.scrollHeight - 1
-          : scrollSurface.scrollTop > 1;
-        if (canScroll) return;
       }
 
       const direction: StudioContentDirection = event.deltaY > 0 ? "next" : "previous";
@@ -2439,6 +3191,7 @@ export function ContentInspectionDetailPage() {
     window.addEventListener("wheel", navigateOnWheel, { passive: false });
     return () => window.removeEventListener("wheel", navigateOnWheel);
   }, [
+    completionOpen,
     exitConfirmationOpen,
     navigateStudioContent,
     nextContent,
@@ -2447,16 +3200,28 @@ export function ContentInspectionDetailPage() {
     studioActionPending,
     studioContentTransition,
     studioExiting,
+    studioSelectorPanelOpen,
+    studioTourOpen,
   ]);
 
   useEffect(() => {
-    if (!routeState?.inspectionSession || !studioReportReady || exitConfirmationOpen) return undefined;
+    if (
+      !routeState?.inspectionSession
+      || !studioSelectedIsLatest
+      || exitConfirmationOpen
+      || completionOpen
+    ) return undefined;
     const focusFrame = window.requestAnimationFrame(() => {
       if (focusedStudioViolationIndex >= 0) {
         const violationItem = studioReportRef.current
           ?.querySelector<HTMLElement>(`[data-violation-index="${focusedStudioViolationIndex}"]`);
-        violationItem?.focus({ preventScroll: true });
-        violationItem?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        const focusTarget = violationItem?.querySelector<HTMLElement>(
+          ".fuma-content-inspection-studio__report-evidence-item",
+        ) ?? violationItem;
+        focusTarget?.focus({ preventScroll: true });
+        if (studioReportRef.current && violationItem) {
+          scrollWithinSurface(studioReportRef.current, violationItem, "nearest");
+        }
         return;
       }
       if (studioViolationReviewComplete) {
@@ -2466,11 +3231,48 @@ export function ContentInspectionDetailPage() {
 
     return () => window.cancelAnimationFrame(focusFrame);
   }, [
+    completionOpen,
     exitConfirmationOpen,
     focusedStudioViolationIndex,
     routeState?.inspectionSession,
-    studioReportReady,
+    studioSelectedIsLatest,
     studioViolationReviewComplete,
+  ]);
+
+  useEffect(() => {
+    if (
+      !routeState?.inspectionSession
+      || studioViolationLocation?.source !== "content"
+      || studioViolationLocation.snapshotCapturedAt
+        !== studioReportContent?.currentSnapshot.capturedAt
+      || exitConfirmationOpen
+      || completionOpen
+    ) return undefined;
+    const violationIndex = studioReportViolationSignals.findIndex(
+      ({ ordinal }) => ordinal === studioViolationLocation.ordinal,
+    );
+    if (violationIndex < 0) return undefined;
+
+    const focusFrame = window.requestAnimationFrame(() => {
+      const violationItem = studioReportRef.current
+        ?.querySelector<HTMLElement>(`[data-violation-index="${violationIndex}"]`);
+      const focusTarget = violationItem?.querySelector<HTMLElement>(
+        ".fuma-content-inspection-studio__report-evidence-item",
+      ) ?? violationItem;
+      focusTarget?.focus({ preventScroll: true });
+      if (studioReportRef.current && violationItem) {
+        scrollWithinSurface(studioReportRef.current, violationItem, "nearest");
+      }
+    });
+
+    return () => window.cancelAnimationFrame(focusFrame);
+  }, [
+    completionOpen,
+    exitConfirmationOpen,
+    routeState?.inspectionSession,
+    studioReportContent,
+    studioReportViolationSignals,
+    studioViolationLocation,
   ]);
 
   useEffect(() => {
@@ -2487,18 +3289,25 @@ export function ContentInspectionDetailPage() {
   useEffect(() => {
     if (!routeState?.inspectionSession || !content?.selectorsId) return undefined;
     const controller = new AbortController();
+    setStudioSelector(null);
+    setStudioSelectorError("");
 
     void getSelector(content.selectorsId, controller.signal)
       .then((selector) => {
         if (!controller.signal.aborted) setStudioSelector(selector);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setStudioSelectorError("셀렉터스 상세 정보를 불러오지 못했습니다.");
+        }
+      });
 
     return () => controller.abort();
   }, [content?.selectorsId, contentId, routeState?.inspectionSession]);
 
   if (routeState?.inspectionSession) {
     const snsAccount = studioSelector?.snsAccount;
+    const selectorNickname = studioSelector?.nickname ?? content?.author ?? "-";
     const accountId = snsAccount?.accountId ?? content?.accountId;
     const snsId = accountId ?? content?.author ?? "-";
     const snsIdLabel = snsId.startsWith("http")
@@ -2509,10 +3318,10 @@ export function ContentInspectionDetailPage() {
       accountId,
     );
     const followerCount = snsAccount?.followerCount;
-    const generationSales = studioSelector?.generations.find(
+    const generationSales = studioSelector?.generations?.find(
       ({ generationName }) => generationName === content?.cohort,
     )?.totalSales;
-    const registeredContentCount = studioSelector?.performance.contentCount == null
+    const registeredContentCount = studioSelector?.performance?.contentCount == null
       ? null
       : Math.max(0, studioSelector.performance.contentCount - 1);
     const inspectionProgress = studioInspectionComplete
@@ -2528,7 +3337,7 @@ export function ContentInspectionDetailPage() {
           || studioHistoryPending
           || studioContentTransition !== "idle"
         }
-        aria-label="집중 검수 스튜디오"
+        aria-label="콘텐츠 검수"
         aria-modal="true"
         className="fuma-content-inspection-studio"
         data-exiting={studioExiting}
@@ -2539,294 +3348,322 @@ export function ContentInspectionDetailPage() {
             aria-keyshortcuts="Escape"
             aria-label="검수 화면 나가기"
             className="fuma-content-inspection-studio__exit-button"
-            disabled={studioActionPending !== null || studioContentTransition !== "idle"}
+            disabled={studioActionPending !== null}
             onClick={() => setExitConfirmationOpen(true)}
             type="button"
           >
             <ArrowLeft aria-hidden="true" size={16} />
             나가기
-            <kbd>ESC</kbd>
           </button>
           <div className="fuma-content-inspection-studio__header-title">
             <span>CONTENT INSPECTION</span>
-            <strong>콘텐츠 집중 검수</strong>
+            <strong>콘텐츠 검수</strong>
           </div>
-          <nav aria-label="검수 콘텐츠 이동" className="fuma-content-inspection-studio__queue">
-            <div className="fuma-content-inspection-studio__queue-progress">
-              <span>검수 진행</span>
-              <strong>
-                {studioInspectionComplete ? (
-                  <b>완료</b>
-                ) : (
-                  <>
-                    <b>{currentPendingIndex >= 0 ? currentPendingIndex + 1 : 0}</b>
-                    <small> / {pendingContents.length}</small>
-                  </>
-                )}
-              </strong>
-              <span aria-hidden="true" className="fuma-content-inspection-studio__queue-track">
-                <i style={{ width: `${inspectionProgress}%` }} />
-              </span>
-            </div>
-            <span className="fuma-content-inspection-studio__queue-actions">
-              <button
-                aria-label="이전 콘텐츠"
-                disabled={
-                  !previousContent
-                  || studioActionPending !== null
-                  || studioContentTransition !== "idle"
-                }
-                onClick={() => navigateStudioContent(previousContent, "previous")}
-                type="button"
+          <div className="fuma-content-inspection-studio__header-tools">
+            {!studioSingleInspection ? (
+              <div className="fuma-content-inspection-studio__session-help-control">
+                <button
+                  aria-label="검수 도움말 보기"
+                  className="fuma-content-inspection-studio__session-help-trigger"
+                  onClick={() => {
+                    setStudioHelpTooltipVisible(false);
+                    setStudioTourOpen(true);
+                  }}
+                  type="button"
+                >
+                  <CircleHelp aria-hidden="true" size={20} />
+                </button>
+                <Tooltip
+                  className="fuma-content-inspection-studio__session-help-tooltip"
+                  placement="bottom"
+                  role="status"
+                  visible={studioHelpTooltipVisible}
+                >
+                  도움말을 확인할 수 있습니다.
+                </Tooltip>
+              </div>
+            ) : null}
+            {!studioSingleInspection ? (
+              <nav
+                aria-label="검수 콘텐츠 이동"
+                className="fuma-content-inspection-studio__queue"
+                data-studio-tour="queue"
               >
-                <ChevronLeft aria-hidden="true" size={20} />
-                <span>이전</span>
-              </button>
-              <button
-                aria-label={studioShowFinish ? "검수 마침" : "다음 콘텐츠"}
-                disabled={
-                  studioActionPending !== null
-                  || studioContentTransition !== "idle"
-                  || (!studioInspectionComplete && !nextContent)
-                }
-                onClick={() => studioInspectionComplete
-                  ? setStudioExiting(true)
-                  : navigateStudioContent(nextContent, "next")}
-                type="button"
-              >
-                <span>{studioShowFinish ? "마침" : "다음"}</span>
-                {studioShowFinish
-                  ? <CheckCircle2 aria-hidden="true" size={19} />
-                  : <ChevronRight aria-hidden="true" size={20} />}
-              </button>
-            </span>
-          </nav>
+                <div className="fuma-content-inspection-studio__queue-progress">
+                  <span>검수 진행</span>
+                  <strong>
+                    {studioInspectionComplete ? (
+                      <b>완료</b>
+                    ) : (
+                      <>
+                        <b>{currentPendingIndex >= 0 ? currentPendingIndex + 1 : 0}</b>
+                        <small> / {pendingContents.length}</small>
+                      </>
+                    )}
+                  </strong>
+                  <span aria-hidden="true" className="fuma-content-inspection-studio__queue-track">
+                    <i style={{ width: `${inspectionProgress}%` }} />
+                  </span>
+                </div>
+                <span className="fuma-content-inspection-studio__queue-actions">
+                  <button
+                    aria-label="이전 콘텐츠"
+                    disabled={!previousContent || studioActionPending !== null}
+                    onClick={() => navigateStudioContent(previousContent, "previous")}
+                    type="button"
+                  >
+                    <ChevronLeft aria-hidden="true" size={20} />
+                    <span>이전</span>
+                  </button>
+                  <button
+                    aria-label={studioShowFinish ? "검수 마침" : "다음 콘텐츠"}
+                    disabled={
+                      studioActionPending !== null
+                      || (!studioInspectionComplete && !nextContent)
+                    }
+                    onClick={() => studioInspectionComplete
+                      ? setCompletionOpen(true)
+                      : navigateStudioContent(nextContent, "next")}
+                    type="button"
+                  >
+                    <span>{studioShowFinish ? "마침" : "다음"}</span>
+                    {studioShowFinish
+                      ? <CheckCircle2 aria-hidden="true" size={19} />
+                      : <ChevronRight aria-hidden="true" size={20} />}
+                  </button>
+                </span>
+              </nav>
+            ) : null}
+          </div>
         </header>
         {content ? (
           <>
-            <aside aria-label="셀렉터스 프로필" className="fuma-content-inspection-studio__profile">
-              <div className="fuma-content-inspection-studio__profile-identity">
-                <span className="fuma-content-inspection-studio__profile-avatar">
-                  {(snsAccount?.profileImageUrl ?? content.profileImageUrl)
-                    ? (
-                        <CreatorProfilePhoto
-                          creatorName={studioSelector?.nickname ?? content.author}
-                          src={snsAccount?.profileImageUrl ?? content.profileImageUrl ?? ""}
-                        />
-                      )
-                    : <UserRound aria-label="익명 프로필 이미지" role="img" size={24} />}
-                </span>
-                <div>
-                  <strong>{studioSelector?.nickname ?? content.author}</strong>
-                  <span className="fuma-content-inspection-studio__profile-meta">
-                    {profileUrl ? (
-                      <a href={profileUrl} rel="noreferrer" target="_blank">
-                        {snsIdLabel}
-                      </a>
-                    ) : <span>{snsIdLabel}</span>}
-                    <PlatformIcon platform={contentPlatform(content.sourcePlatform)} />
+            <div className="fuma-content-inspection-studio__side-rail">
+              <aside
+                aria-label="셀렉터스 프로필"
+                className="fuma-content-inspection-studio__profile"
+                data-studio-tour="profile"
+              >
+                {content.selectorsId ? (
+                  <button
+                    aria-label={`${selectorNickname} 셀렉터스 상세 보기`}
+                    className="fuma-content-inspection-studio__profile-detail-trigger"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setStudioSelectorPanelOpen(true);
+                    }}
+                    type="button"
+                  />
+                ) : null}
+                <div className="fuma-content-inspection-studio__profile-identity">
+                  <span className="fuma-content-inspection-studio__profile-avatar">
+                    {(snsAccount?.profileImageUrl ?? content.profileImageUrl)
+                      ? (
+                          <CreatorProfilePhoto
+                            creatorName={selectorNickname}
+                            src={snsAccount?.profileImageUrl ?? content.profileImageUrl ?? ""}
+                          />
+                        )
+                      : (
+                          <UserRound
+                            aria-label={`${selectorNickname} 프로필 이미지 없음`}
+                            role="img"
+                            size={24}
+                          />
+                        )}
+                  </span>
+                  <div>
+                    <strong>{selectorNickname}</strong>
+                    <span className="fuma-content-inspection-studio__profile-meta">
+                      {profileUrl ? (
+                        <a href={profileUrl} rel="noreferrer" target="_blank">
+                          {snsIdLabel}
+                        </a>
+                      ) : <span>{snsIdLabel}</span>}
+                      <PlatformIcon platform={contentPlatform(content.sourcePlatform)} />
+                    </span>
+                  </div>
+                  <span className="fuma-content-inspection-studio__profile-id">
+                    <small>셀렉터스 ID</small>
+                    <b>{studioSelector?.selectorsCode ?? (content.selectorsId ? `#${content.selectorsId}` : "-")}</b>
                   </span>
                 </div>
-                <span className="fuma-content-inspection-studio__profile-id">
-                  <small>셀렉터스 ID</small>
-                  <b>{studioSelector?.selectorsCode ?? (content.selectorsId ? `#${content.selectorsId}` : "-")}</b>
-                </span>
-              </div>
-              <dl>
-                <div>
-                  <dt>팔로워</dt>
-                  <dd>{followerCount == null ? "-" : `${formatCompactCount(followerCount)}명`}</dd>
-                </div>
-                <div>
-                  <dt>이번 기수 매출</dt>
-                  <dd>{generationSales == null ? "-" : formatWon(generationSales)}</dd>
-                </div>
-                <div>
-                  <dt>등록 콘텐츠 수 (현재 제외)</dt>
-                  <dd>{registeredContentCount == null ? "-" : `${formatNumber(registeredContentCount)}건`}</dd>
-                </div>
-              </dl>
-            </aside>
-            <section
-              aria-label="콘텐츠 버전 비교"
-              className="fuma-content-inspection-studio__versions"
-              data-content-format={contentCollectionFormatKey(content.contentFormat)}
-              data-content-transition={studioContentTransition}
-              data-revised={studioHistoricalVersionSummaries.length > 0}
-              ref={studioVersionsRef}
-            >
-              {studioHistoricalVersionSummaries.length > 0 ? (
-                <div className="fuma-content-inspection-studio__history">
-                  {studioHistoryPending || (!studioHistoryError && visibleStudioHistoricalContents.length === 0) ? (
-                    <p>과거 콘텐츠를 불러오는 중입니다.</p>
-                  ) : studioHistoryError ? (
-                    <p role="alert">{studioHistoryError}</p>
-                  ) : visibleStudioHistoricalContents.map((historicalContent) => (
-                    <div
-                      className="fuma-content-inspection-studio__version"
-                      data-latest="false"
-                      key={historicalContent.contentVersionId}
-                    >
-                      <span className="fuma-content-inspection-studio__version-tag">
-                        v{currentDisplayedVersionNo(historicalContent)} · 과거 콘텐츠
-                      </span>
-                      <MinimalVersionCard
-                        content={historicalContent}
-                        label={`v${currentDisplayedVersionNo(historicalContent)} 과거 콘텐츠`}
-                        showAnnotations={false}
-                        snapshot={historicalContent.currentSnapshot}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-              <div
-                className="fuma-content-inspection-studio__version"
-                data-latest="true"
-              >
-                <span className="fuma-content-inspection-studio__version-tag">
-                  v{currentDisplayedVersionNo(content)} · 최신 콘텐츠
-                </span>
-                <MinimalVersionCard
-                  content={content}
-                  focusedViolation={studioCardFocusedViolation}
-                  label="최신 콘텐츠"
-                  onSelectViolation={selectStudioViolationFromContent}
-                  snapshot={content.currentSnapshot}
-                />
-              </div>
-            </section>
-          </>
-        ) : null}
-        {content ? (
-          <aside
-            aria-label="AI 검수 리포트"
-            className="fuma-content-inspection-studio__report"
-            ref={studioReportRef}
-          >
-            <header>
-              <div>
-                <span>AI ANALYSIS</span>
-                <strong>검수 리포트</strong>
-              </div>
-              <div className="fuma-content-inspection-studio__report-tools">
-                <em
-                  data-clear={studioReportReady && studioViolationSignals.length === 0}
-                  data-loading={!studioReportReady}
+                <dl>
+                  <div>
+                    <dt>팔로워</dt>
+                    <dd>{followerCount == null ? "-" : `${formatCompactCount(followerCount)}명`}</dd>
+                  </div>
+                  <div>
+                    <dt>이번 기수 매출</dt>
+                    <dd>{generationSales == null ? "-" : formatWon(generationSales)}</dd>
+                  </div>
+                  <div>
+                    <dt>등록 콘텐츠</dt>
+                    <dd>{registeredContentCount == null ? "-" : `${formatNumber(registeredContentCount)}건`}</dd>
+                  </div>
+                </dl>
+              </aside>
+              {studioReportContent ? (
+                <aside
+                  aria-label="AI 검수 리포트"
+                  className="fuma-content-inspection-studio__report"
+                  data-read-only={!studioSelectedIsLatest}
+                  data-studio-tour="report"
+                  ref={studioReportRef}
                 >
-                  {!studioReportReady
-                    ? "불러오는 중"
-                    : studioViolationSignals.length > 0
-                      ? `${studioViolationSignals.length}건 감지`
-                      : "이상 없음"}
-                </em>
-                <button
-                  className="fuma-content-inspection-studio__report-generate"
-                  data-pending={studioActionPending === "report"}
-                  disabled={
-                    studioActionPending !== null
-                    || !studioLatestVersion?.contentVersionId
-                  }
-                  onClick={() => void generateStudioReport()}
-                  type="button"
-                >
-                  <RefreshCw aria-hidden="true" size={12} />
-                  {studioActionPending === "report"
-                    ? studioReportRefreshVersionId == null ? "생성 중" : "불러오는 중"
-                    : studioReportRefreshVersionId == null ? "리포트 생성" : "리포트 불러오기"}
-                </button>
-              </div>
-            </header>
-            {studioActionError || visibleError ? (
-              <p
-                className="fuma-content-inspection-studio__report-feedback"
-                data-error="true"
-                role="alert"
-              >
-                {studioActionError ?? visibleError}
-              </p>
-            ) : studioActionFeedback ? (
-              <p className="fuma-content-inspection-studio__report-feedback" role="status">
-                {studioActionFeedback}
-              </p>
-            ) : null}
-            <section
-              aria-label="콘텐츠 정보"
-              className="fuma-content-inspection-studio__content-meta"
-            >
-              <div>
-                <span>최초 등록일</span>
-                <strong>
-                  <time dateTime={content.submittedAt}>
-                    {formatInspectionDate(content.submittedAt)}
-                  </time>
-                </strong>
-              </div>
-              <div>
-                <span>마지막 수정</span>
-                <strong>
-                  <time dateTime={content.currentSnapshot.capturedAt}>
-                    {formatInspectionDate(content.currentSnapshot.capturedAt)}
-                  </time>
-                </strong>
-              </div>
-              <div>
-                <span>콘텐츠 유형</span>
-                <strong>{content.contentFormat}</strong>
-              </div>
-            </section>
-            <section className="fuma-content-inspection-studio__report-summary">
-              <span>콘텐츠 요약</span>
-              <p>{content.aiSummary}</p>
-            </section>
-            <section className="fuma-content-inspection-studio__report-evidence">
-              <div>
-                <span>위반 사항</span>
-                <small>
-                  {studioReviewReadOnly
-                    ? "완료"
-                    : studioReportReady
-                      ? `${judgedStudioViolationCount}/${studioViolationSignals.length}`
-                      : "-"}
-                </small>
-              </div>
-              {!studioReportReady ? (
-                <p className="fuma-content-inspection-studio__report-empty">
-                  위반 사항을 불러오는 중입니다.
-                </p>
-              ) : studioViolationSignals.length > 0 ? (
-                <ul>
-                  {studioViolationSignals.map((signal, index) => {
-                    const judgment = studioViolationJudgments[index];
-                    const focused = focusedStudioViolationIndex === index;
 
-                    return (
-                      <li
-                        data-focused={focused}
-                        data-judgment={judgment ?? "pending"}
-                        data-tone={signal.tone}
-                        data-violation-index={index}
-                        key={`${signal.title}-${signal.source}-${index}`}
-                        tabIndex={-1}
-                      >
-                        <div>
-                          <div>
-                            <strong>{signal.title}</strong>
-                            <small data-judgment={judgment ?? "pending"}>
-                              {judgment === "violation"
-                                ? "위반"
-                                : judgment === "clear" ? "위반 아님" : signal.source}
-                            </small>
-                          </div>
-                          <p>{signal.evidence || signal.detail}</p>
-                          {focused ? (
+              <header>
+                <div>
+                  <span>AI ANALYSIS</span>
+                  <strong>
+                    검수 리포트
+                    {studioSelectedIsLatest ? null : (
+                      <em className="fuma-content-inspection-studio__report-badge">
+                        과거 콘텐츠
+                      </em>
+                    )}
+                  </strong>
+                </div>
+                {studioSelectedIsLatest ? (
+                  <button
+                    className="fuma-content-inspection-studio__report-generate"
+                    data-pending={studioActionPending === "report"}
+                    disabled={
+                      studioActionPending !== null
+                      || studioReviewReadOnly
+                      || !studioLatestVersion?.contentVersionId
+                    }
+                    onClick={() => void generateStudioReport()}
+                    type="button"
+                  >
+                    <RefreshCw aria-hidden="true" size={12} />
+                    {studioActionPending === "report"
+                      ? studioReportRefreshVersionId == null ? "생성 중" : "불러오는 중"
+                      : studioReportRefreshVersionId == null ? "리포트 생성" : "리포트 불러오기"}
+                  </button>
+                ) : null}
+              </header>
+              {(studioSelectedIsLatest ? studioActionError : null) || visibleError ? (
+                <p
+                  className="fuma-content-inspection-studio__report-feedback"
+                  data-error="true"
+                  role="alert"
+                >
+                  {(studioSelectedIsLatest ? studioActionError : null) ?? visibleError}
+                </p>
+              ) : studioSelectedIsLatest && studioActionFeedback ? (
+                <p className="fuma-content-inspection-studio__report-feedback" role="status">
+                  {studioActionFeedback}
+                </p>
+              ) : null}
+              <section
+                aria-label="콘텐츠 정보"
+                className="fuma-content-inspection-studio__content-meta"
+              >
+                <div>
+                  <span>최초 수집 일시</span>
+                  <strong>
+                    <time dateTime={studioReportContent.submittedAt}>
+                      {formatInspectionDate(studioReportContent.submittedAt)}
+                    </time>
+                  </strong>
+                </div>
+                <div>
+                  <span>수집 일시</span>
+                  <strong>
+                    <time dateTime={studioReportContent.currentSnapshot.capturedAt}>
+                      {formatInspectionDate(studioReportContent.currentSnapshot.capturedAt)}
+                    </time>
+                  </strong>
+                </div>
+                <div>
+                  <span>유형</span>
+                  <strong>{studioReportContent.contentFormat}</strong>
+                </div>
+              </section>
+              <section
+                aria-label="콘텐츠 요약"
+                className="fuma-content-inspection-studio__report-summary"
+              >
+                <span>콘텐츠 요약</span>
+                {!studioSelectedReportReady ? (
+                  <p>리포트가 생성되지 않았습니다.</p>
+                ) : studioReportAnalysis && studioReportAnalysis.summaryBullets.length > 0 ? (
+                  <ul>
+                    {studioReportAnalysis.summaryBullets.map((bullet) => (
+                      <li key={bullet}>{bullet}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>요약 정보가 없습니다.</p>
+                )}
+              </section>
+              {studioSelectedReportReady ? (
+                <ContentReportInsight
+                  className="fuma-content-inspection-studio__report-insight"
+                  insight={studioReportContent.report.analysis?.insight}
+                />
+              ) : null}
+              <section
+                aria-label="위반 내역"
+                className="fuma-content-inspection-studio__report-evidence"
+              >
+                <div>
+                  <span>위반 내역</span>
+                </div>
+                {!studioSelectedReportReady ? (
+                  <p className="fuma-content-inspection-studio__report-empty">
+                    리포트가 생성되지 않았습니다.
+                  </p>
+                ) : studioReportViolationSignals.length > 0 ? (
+                  <ul>
+                    {studioReportViolationSignals.map((signal, index) => {
+                      const judgment = studioSelectedIsLatest
+                        ? studioViolationJudgments[index]
+                        : signal.tone === "critical"
+                          ? "violation"
+                          : signal.tone === "pass" ? "clear" : null;
+                      const focused = studioSelectedCardFocusedViolation?.ordinal === signal.ordinal;
+
+                      return (
+                        <li
+                          data-focused={focused}
+                          data-judgment={judgment ?? "pending"}
+                          data-tone={signal.tone}
+                          data-violation-index={index}
+                          key={`${signal.title}-${signal.source}-${index}`}
+                        >
+                          <button
+                            aria-current={focused}
+                            aria-label={`${issueOrdinalLabel(signal.ordinal)} ${signal.title} 위치로 이동`}
+                            className="fuma-content-inspection-studio__report-evidence-item"
+                            data-focused={focused}
+                            onClick={() => focusStudioReportViolation(index, signal.ordinal)}
+                            type="button"
+                          >
+                            <span className="fuma-content-inspection-evidence__candidate-label">
+                              {issueOrdinalLabel(signal.ordinal)} {signal.title}
+                            </span>
+                            {showsInspectionGuideline(signal) ? (
+                              <aside className="fuma-content-inspection-studio__report-guideline">
+                                <span>검수 기준</span>
+                                <p>{signal.guidance}</p>
+                              </aside>
+                            ) : null}
+                            <p>{signal.detail || signal.evidence}</p>
+                          </button>
+                          {studioSelectedIsLatest && !studioReviewReadOnly ? (
                             <div
                               aria-label={`${signal.title} 판정`}
                               className="fuma-content-inspection-studio__report-choices"
+                              onFocus={() => {
+                                setStudioViolationLocation(null);
+                                setFocusedStudioViolationIndex(index);
+                              }}
                               role="group"
                             >
                               <button
-                                aria-keyshortcuts="0"
+                                aria-keyshortcuts="1"
                                 aria-pressed={judgment === "violation"}
                                 disabled={
                                   studioActionPending !== null
@@ -2838,7 +3675,7 @@ export function ContentInspectionDetailPage() {
                                 위반
                               </button>
                               <button
-                                aria-keyshortcuts="1"
+                                aria-keyshortcuts="2"
                                 aria-pressed={judgment === "clear"}
                                 disabled={
                                   studioActionPending !== null
@@ -2849,78 +3686,231 @@ export function ContentInspectionDetailPage() {
                               >
                                 위반 허용
                               </button>
-                              {judgment ? (
-                                <Tooltip
-                                  className="fuma-content-inspection-studio__report-choice-tooltip"
-                                  placement="none"
-                                  role="status"
-                                  visible
-                                >
-                                  <kbd>Space</kbd> 바를 눌러 다음으로 이동하세요
-                                </Tooltip>
-                              ) : null}
                             </div>
                           ) : null}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : <p className="fuma-content-inspection-studio__report-empty">위반 사항이 없습니다.</p>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : <p className="fuma-content-inspection-studio__report-empty">위반 사항이 없습니다.</p>}
+              </section>
+              {studioSelectedReportReady && studioReportAnalysis ? (
+                <GuidelineComplianceDetails analysis={studioReportAnalysis} />
+              ) : null}
+                </aside>
+              ) : null}
+            </div>
+            <section
+              aria-label="콘텐츠 버전 비교"
+              className="fuma-content-inspection-studio__versions"
+              data-content-format={contentCollectionFormatKey(content.contentFormat)}
+              data-content-transition={studioContentTransition}
+              data-revised={studioHasHistoricalVersion}
+              data-studio-tour="versions"
+            >
+              {studioHasHistoricalVersion ? (
+                <div className="fuma-content-inspection-studio__history">
+                  {studioHistoryPending || (!studioHistoryError && visibleStudioHistoricalContents.length === 0) ? (
+                    <p>과거 콘텐츠를 불러오는 중입니다.</p>
+                  ) : studioHistoryError ? (
+                    <p role="alert">{studioHistoryError}</p>
+                  ) : displayedStudioHistoricalContent ? (
+                    <>
+                      <Tooltip
+                        aria-live="polite"
+                        className="fuma-content-inspection-studio__history-tooltip"
+                        role="status"
+                        visible={studioHistoryHintVisible}
+                      >
+                        카드를 눌러 과거 버전의 검수 리포트를 확인할 수 있습니다
+                      </Tooltip>
+                      <div
+                        aria-label="과거 콘텐츠 버전 선택"
+                        className="fuma-content-inspection-studio__history-tabs"
+                        role="group"
+                      >
+                        {visibleStudioHistoricalContents.map((historicalContent) => (
+                          <button
+                            aria-label={`v${currentDisplayedVersionNo(historicalContent)} 과거 콘텐츠 선택`}
+                            aria-pressed={selectedStudioVersionId != null
+                              && selectedStudioVersionId === historicalContent.contentVersionId}
+                            data-preview={displayedStudioHistoricalContent === historicalContent}
+                            key={historicalContent.contentVersionId
+                              ?? currentDisplayedVersionNo(historicalContent)}
+                            onClick={() => setSelectedStudioVersionId(
+                              historicalContent.contentVersionId ?? null,
+                            )}
+                            type="button"
+                          >
+                            v{currentDisplayedVersionNo(historicalContent)}
+                          </button>
+                        ))}
+                      </div>
+                      <div
+                        className="fuma-content-inspection-studio__version"
+                        data-latest="false"
+                        data-selected={displayedStudioHistoricalSelected}
+                        key={displayedStudioHistoricalContent.contentVersionId
+                          ?? currentDisplayedVersionNo(displayedStudioHistoricalContent)}
+                      >
+                        {displayedStudioHistoricalSelected ? null : (
+                          <button
+                            aria-label={`v${currentDisplayedVersionNo(displayedStudioHistoricalContent)} 과거 콘텐츠 선택`}
+                            className="fuma-content-inspection-studio__version-select"
+                            onClick={() => setSelectedStudioVersionId(
+                              displayedStudioHistoricalContent.contentVersionId ?? null,
+                            )}
+                            type="button"
+                          />
+                        )}
+                        <MinimalVersionCard
+                          content={displayedStudioHistoricalContent}
+                          focusedViolation={displayedStudioHistoricalSelected
+                            ? studioSelectedCardFocusedViolation
+                            : null}
+                          inert={!displayedStudioHistoricalSelected}
+                          label={`v${currentDisplayedVersionNo(displayedStudioHistoricalContent)} 과거 콘텐츠`}
+                          onSelectViolation={selectStudioHistoricalViolationFromContent}
+                          showTextBubbles={false}
+                          snapshot={displayedStudioHistoricalContent.currentSnapshot}
+                        />
+                        <StudioViolationBubbleCloud
+                          annotations={indexedViolationAnnotations(
+                            displayedStudioHistoricalContent,
+                            displayedStudioHistoricalContent.currentSnapshot,
+                          )}
+                          focusedOrdinal={displayedStudioHistoricalSelected
+                            ? studioSelectedCardFocusedViolation?.ordinal
+                            : undefined}
+                          onSelectViolation={selectStudioHistoricalViolationFromContent}
+                          placement="left"
+                        />
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
+              <div
+                className="fuma-content-inspection-studio__version"
+                data-latest="true"
+                data-selected={studioSelectedIsLatest}
+              >
+                <span className="fuma-content-inspection-studio__version-tag">
+                  v{currentDisplayedVersionNo(content)} · 최신 콘텐츠
+                </span>
+                {studioSelectedIsLatest ? null : (
+                  <button
+                    aria-label={`v${currentDisplayedVersionNo(content)} 최신 콘텐츠 선택`}
+                    className="fuma-content-inspection-studio__version-select"
+                    onClick={() => setSelectedStudioVersionId(null)}
+                    type="button"
+                  />
+                )}
+                <MinimalVersionCard
+                  content={content}
+                  focusedViolation={studioSelectedIsLatest
+                    ? studioSelectedCardFocusedViolation
+                    : null}
+                  inert={!studioSelectedIsLatest}
+                  label="최신 콘텐츠"
+                  onSelectViolation={selectStudioViolationFromContent}
+                  showTextBubbles={false}
+                  snapshot={content.currentSnapshot}
+                />
+                {studioSelectedIsLatest ? (
+                  <StudioViolationBubbleCloud
+                    annotations={indexedViolationAnnotations(content, content.currentSnapshot)}
+                    focusedOrdinal={studioSelectedCardFocusedViolation?.ordinal}
+                    onSelectViolation={selectStudioViolationFromContent}
+                    placement="right"
+                  />
+                ) : null}
+              </div>
             </section>
-          </aside>
+          </>
         ) : null}
-        <div
+        {studioSelectedIsLatest ? (
+          <div
           aria-label="최종 검수"
           className="fuma-content-inspection-studio__decision"
           data-active={studioFinalFocused}
+          data-studio-tour="decision"
           ref={studioDecisionRef}
           role="group"
           tabIndex={-1}
         >
           <button
+            aria-keyshortcuts="1"
             aria-pressed={studioDecision === "reject"}
             className="is-reject"
             disabled={
               !studioFinalFocused
-              || !hasStudioViolationJudgment
+              || (studioReportReady && !hasStudioViolationJudgment)
               || studioActionPending !== null
             }
             onClick={() => void submitStudioDecision("reject")}
             type="button"
           >
-            <kbd>0</kbd>
+            <kbd>1</kbd>
             {studioActionPending === "confirmation" && studioDecision === "reject"
               ? "반려 처리 중"
               : "최종 반려"}
           </button>
           <button
+            aria-keyshortcuts="2"
             aria-pressed={studioDecision === "approve"}
             className="is-approve"
             disabled={
               !studioFinalFocused
-              || hasStudioViolationJudgment
+              || (studioReportReady && hasStudioViolationJudgment)
               || studioActionPending !== null
             }
             onClick={() => void submitStudioDecision("approve")}
             type="button"
           >
-            <kbd>1</kbd>
+            <kbd>2</kbd>
             {studioActionPending === "confirmation" && studioDecision === "approve"
               ? "승인 처리 중"
               : "최종 승인"}
           </button>
-          {studioFinalFocused && studioDecision && studioActionPending === null ? (
-            <Tooltip
-              className="fuma-content-inspection-studio__report-choice-tooltip"
-              placement="none"
-              role="status"
-              visible
+          </div>
+        ) : null}
+        {studioTourOpen ? (
+          <ContentInspectionStudioTour
+            onClose={() => setStudioTourOpen(false)}
+            singleInspection={studioSingleInspection}
+          />
+        ) : null}
+        {studioSelectorPanelOpen ? (
+          <SelectorDetailPanel
+            onClose={() => setStudioSelectorPanelOpen(false)}
+            selectorDetail={studioSelector}
+            selectorDetailError={studioSelectorError}
+            selectorDetailLoading={
+              Boolean(content?.selectorsId)
+              && studioSelector == null
+              && !studioSelectorError
+            }
+          />
+        ) : null}
+        <BubbleDialog
+          actions={(
+            <button
+              autoFocus
+              onClick={() => {
+                setCompletionOpen(false);
+                setStudioExiting(true);
+              }}
+              type="button"
             >
-              <kbd>Space</kbd> 바를 눌러 검수를 확정하세요
-            </Tooltip>
-          ) : null}
-        </div>
+              확인
+            </button>
+          )}
+          description="검수 목록으로 돌아갑니다."
+          layer="local"
+          open={completionOpen}
+          title="콘텐츠 검수를 완료했습니다."
+        />
         <BubbleDialog
           actions={(
             <>
@@ -2963,10 +3953,17 @@ export function ContentInspectionDetailPage() {
             content={content}
             key={content.id}
             nextContent={nextContent}
-            onBack={() => typeof returnPath === "string" ? navigate(-1) : navigate("/content/inspections")}
+            onList={() => navigate(
+              typeof returnPath === "string" ? returnPath : "/content/inspections",
+            )}
             onNext={() => nextContent && navigate(`/content/inspections/${nextContent.id}`, {
               state: { ...routeState, content: nextContent, contents: detailContents },
             })}
+            onPrevious={() => previousContent && navigate(
+              `/content/inspections/${previousContent.id}`,
+              { state: { ...routeState, content: previousContent, contents: detailContents } },
+            )}
+            previousContent={previousContent}
             remainingCount={remainingCount}
           />
         ) : invalidContentId ? (

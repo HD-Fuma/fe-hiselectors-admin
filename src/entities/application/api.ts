@@ -249,7 +249,7 @@ export function updateAdminApplicationStatus(id: number, status: Exclude<Applica
 const applicationDetailCache = new Map<number, Promise<AdminApplicationDetail>>();
 const applicationAiReportCache = new Map<number, Promise<AdminApplicationAiReport | null>>();
 
-/** 목록에서 행에 마우스를 올렸을 때 상세·AI 리포트를 미리 요청해 캐시해 둔다. 이미 요청 중이거나 캐시돼 있으면 아무 것도 하지 않는다. */
+/** 목록에서 행에 마우스를 올렸을 때 상세·완료된 AI 리포트를 미리 요청해 캐시해 둔다. */
 export function prefetchAdminApplication(id: number) {
   if (!applicationDetailCache.has(id)) {
     const request = getAdminApplication(id).catch((reason: unknown) => {
@@ -258,9 +258,14 @@ export function prefetchAdminApplication(id: number) {
     });
     applicationDetailCache.set(id, request);
   }
-  if (!applicationAiReportCache.has(id)) {
-    applicationAiReportCache.set(id, getAdminApplicationAiReport(id));
-  }
+  applicationDetailCache.get(id)?.then((applicant) => {
+    if (applicant.analysisStatus === "DONE" && !applicationAiReportCache.has(id)) {
+      applicationAiReportCache.set(id, getAdminApplicationAiReport(id).then((report) => {
+        if (report === null) applicationAiReportCache.delete(id);
+        return report;
+      }));
+    }
+  }, () => {});
 }
 
 export function getCachedAdminApplication(id: number) {

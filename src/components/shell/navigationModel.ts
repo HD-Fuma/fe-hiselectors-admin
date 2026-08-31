@@ -1,4 +1,5 @@
 export type NavGroup =
+  | "dashboard"
   | "recruitment"
   | "operations"
   | "performance"

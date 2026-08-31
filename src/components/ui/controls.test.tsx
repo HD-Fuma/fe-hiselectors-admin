@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import adminStyles from "../../styles/admin.css?raw";
@@ -21,6 +21,30 @@ const invalidStatusAlias: StatusPillProps = { status: "approved" };
 void invalidSegmentedAliases;
 void invalidStatusAlias;
 
+function setShowPicker(showPicker?: () => void) {
+  const descriptor = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "showPicker",
+  );
+
+  if (showPicker) {
+    Object.defineProperty(HTMLInputElement.prototype, "showPicker", {
+      configurable: true,
+      value: showPicker,
+    });
+  } else {
+    Reflect.deleteProperty(HTMLInputElement.prototype, "showPicker");
+  }
+
+  return () => {
+    if (descriptor) {
+      Object.defineProperty(HTMLInputElement.prototype, "showPicker", descriptor);
+    } else {
+      Reflect.deleteProperty(HTMLInputElement.prototype, "showPicker");
+    }
+  };
+}
+
 describe("HSAS controls", () => {
   test("changes view mode with the shared sliding toggle", async () => {
     const onChange = vi.fn();
@@ -35,6 +59,19 @@ describe("HSAS controls", () => {
     expect(adminStyles).toMatch(
       /\.hsas-view-mode-toggle-wrap:hover > \.hsas-tooltip\s*\{[^}]*opacity:\s*1;/,
     );
+    expect(adminStyles).toMatch(
+      /\.hsas-view-mode-toggle-wrap\s*\{[^}]*position:\s*relative;/,
+    );
+    expect(adminStyles).toMatch(
+      /\.hsas-view-mode-toggle-wrap > \.hsas-tooltip--top\s*\{[^}]*bottom:\s*calc\(100% \+ 8px\);/,
+    );
+    expect(adminStyles).toMatch(
+      /\.hsas-view-mode-toggle-wrap > \.hsas-tooltip--bottom\s*\{[^}]*top:\s*calc\(100% \+ 8px\);/,
+    );
+    expect(adminStyles).toMatch(
+      /\.hsas-tooltip\s*\{[^}]*white-space:\s*nowrap;/,
+    );
+    expect(screen.getByRole("tooltip")).toHaveClass("hsas-tooltip--top");
 
     await userEvent.click(toggle);
     expect(onChange).toHaveBeenCalledWith("list");
@@ -55,6 +92,21 @@ describe("HSAS controls", () => {
     act(() => vi.advanceTimersByTime(2000));
     expect(screen.getByRole("tooltip")).not.toHaveClass("is-visible");
     vi.useRealTimers();
+  });
+
+  test("keeps content inspection guidance hover-only below the toggle", () => {
+    render(
+      <ViewModeToggle
+        autoShowTooltip={false}
+        onChange={vi.fn()}
+        tooltipPlacement="bottom"
+        value="grid"
+      />,
+    );
+
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip).toHaveClass("hsas-tooltip--bottom");
+    expect(tooltip).not.toHaveClass("is-visible");
   });
 
   test("shares the button class contract with non-button elements", () => {
@@ -79,6 +131,145 @@ describe("HSAS controls", () => {
       "hsas-control",
       "hsas-text-input",
     );
+  });
+
+  test.each(["date", "month"] as const)(
+    "opens the %s picker and blocks direct keyboard editing",
+    async (type) => {
+      const showPicker = vi.fn();
+      const restoreShowPicker = setShowPicker(showPicker);
+      const onSubmit = vi.fn((event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+      });
+      const user = userEvent.setup();
+
+      try {
+        render(
+          <form onSubmit={onSubmit}>
+            <TextInput aria-label={`${type} input`} type={type} />
+            <button type="submit">Submit</button>
+          </form>,
+        );
+
+        const input = screen.getByLabelText(`${type} input`);
+        fireEvent.click(input);
+        expect(showPicker).toHaveBeenCalledTimes(1);
+
+        expect(fireEvent.keyDown(input, { key: " " })).toBe(false);
+        expect(showPicker).toHaveBeenCalledTimes(2);
+
+        for (const key of [
+          "1",
+          "ArrowUp",
+          "ArrowDown",
+          "ArrowLeft",
+          "ArrowRight",
+          "Home",
+          "End",
+          "PageUp",
+          "PageDown",
+          "Delete",
+          "Backspace",
+        ]) {
+          expect(fireEvent.keyDown(input, { key })).toBe(false);
+        }
+
+        for (const [key, modifiers] of [
+          ["r", { ctrlKey: true }],
+          ["f", { metaKey: true }],
+          ["y", { metaKey: true }],
+          ["ArrowDown", { altKey: true }],
+          [" ", { ctrlKey: true }],
+          ["F5", {}],
+          ["F11", {}],
+        ] as const) {
+          expect(fireEvent.keyDown(input, { key, ...modifiers })).toBe(true);
+        }
+
+        for (const [key, modifiers] of [
+          ["v", { ctrlKey: true }],
+          ["x", { metaKey: true }],
+          ["z", { ctrlKey: true, shiftKey: true }],
+          ["y", { ctrlKey: true }],
+          ["Insert", { shiftKey: true }],
+        ] as const) {
+          expect(fireEvent.keyDown(input, { key, ...modifiers })).toBe(false);
+        }
+
+        expect(fireEvent.keyDown(input, { key: "Tab" })).toBe(true);
+        expect(fireEvent.keyDown(input, { key: "Escape" })).toBe(true);
+
+        input.focus();
+        await user.keyboard("{Enter}");
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+      } finally {
+        restoreShowPicker();
+      }
+    },
+  );
+
+  test("composes picker handlers and keeps fallback input behavior", () => {
+    const order: string[] = [];
+    const showPicker = vi.fn(() => order.push("picker"));
+    let restoreShowPicker = setShowPicker(showPicker);
+
+    try {
+      render(
+        <>
+          <TextInput
+            aria-label="composed date"
+            onClick={() => order.push("consumer click")}
+            onKeyDown={() => order.push("consumer keydown")}
+            type="date"
+          />
+          <TextInput
+            aria-label="prevented date"
+            onClick={(event) => event.preventDefault()}
+            onKeyDown={(event) => event.preventDefault()}
+            type="date"
+          />
+          <TextInput aria-label="disabled date" disabled type="date" />
+          <TextInput aria-label="readonly date" readOnly type="date" />
+          <TextInput aria-label="plain text" type="text" />
+        </>,
+      );
+
+      const composed = screen.getByLabelText("composed date");
+      fireEvent.click(composed);
+      expect(order).toEqual(["consumer click", "picker"]);
+
+      order.length = 0;
+      expect(fireEvent.keyDown(composed, { key: " " })).toBe(false);
+      expect(order).toEqual(["consumer keydown", "picker"]);
+
+      showPicker.mockClear();
+      fireEvent.click(screen.getByLabelText("prevented date"));
+      fireEvent.keyDown(screen.getByLabelText("prevented date"), { key: " " });
+      fireEvent.click(screen.getByLabelText("disabled date"));
+      fireEvent.keyDown(screen.getByLabelText("disabled date"), { key: " " });
+      fireEvent.click(screen.getByLabelText("readonly date"));
+      fireEvent.keyDown(screen.getByLabelText("readonly date"), { key: " " });
+      expect(showPicker).not.toHaveBeenCalled();
+
+      const plainText = screen.getByLabelText("plain text");
+      expect(fireEvent.keyDown(plainText, { key: "1" })).toBe(true);
+      fireEvent.click(plainText);
+      expect(showPicker).not.toHaveBeenCalled();
+
+      restoreShowPicker();
+      restoreShowPicker = setShowPicker();
+      expect(fireEvent.click(composed)).toBe(true);
+      expect(fireEvent.keyDown(composed, { key: " " })).toBe(true);
+
+      restoreShowPicker();
+      restoreShowPicker = setShowPicker(() => {
+        throw new DOMException("Picker unavailable");
+      });
+      expect(fireEvent.click(composed)).toBe(true);
+      expect(fireEvent.keyDown(composed, { key: " " })).toBe(true);
+    } finally {
+      restoreShowPicker();
+    }
   });
 
   test("renders a native select control", () => {

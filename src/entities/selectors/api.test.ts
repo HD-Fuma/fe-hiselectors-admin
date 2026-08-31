@@ -6,6 +6,7 @@ import {
   getSelectorPerformanceTrend,
   getSelectorSalesPerformance,
   getSelectors,
+  resetSelectorTestAccount,
   updateGeneration,
   updateGenerationStatus,
 } from "./api";
@@ -154,6 +155,30 @@ describe("selector admin api", () => {
       "/api/admin/selector-performance/trend?",
     );
     expect(String(vi.mocked(fetch).mock.calls[1][0])).toContain("startDate=2026-08-01");
+  });
+
+  test("sends the test account reset as a DELETE with the platform and account", async () => {
+    const result = {
+      snsCode: "INSTAGRAM",
+      accountId: "hiselectors_test",
+      selectorsIds: [7],
+      applicationIds: [11],
+      deletedRowCount: 23,
+      deletedRowCounts: { selectors: 1, application: 1 },
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(result)));
+
+    await expect(resetSelectorTestAccount({
+      snsCode: "INSTAGRAM",
+      accountId: "@hiselectors_test",
+    })).resolves.toEqual(result);
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toContain("/api/admin/selectors/test-reset?");
+    expect(String(url)).toContain("snsCode=INSTAGRAM");
+    expect(String(url)).toContain("accountId=%40hiselectors_test");
+    expect(init?.method).toBe("DELETE");
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer token");
   });
 
   test("uses the backend error message", async () => {

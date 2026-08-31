@@ -46,7 +46,7 @@ export function PeriodComboChart({
       axisTick: { show: false },
       axisLabel: {
         color: "#4b5752",
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 700,
         hideOverlap: true,
       },
@@ -63,7 +63,7 @@ export function PeriodComboChart({
     const lineSeries = series.find((item) => item.type === "line");
     const axisNameStyle = {
       color: "#4b5752",
-      fontSize: 9,
+      fontSize: 12,
       fontWeight: 700,
     };
 
@@ -114,7 +114,7 @@ export function PeriodComboChart({
               handleStyle: { color: "#238b78" },
               height: 16,
               bottom: 8,
-              textStyle: { color: "#4b5752", fontSize: 9 },
+              textStyle: { color: "#4b5752", fontSize: 12 },
             },
           ]
         : undefined,
@@ -126,7 +126,7 @@ export function PeriodComboChart({
         axisTick: { show: false },
         axisLabel: {
           color: "#4b5752",
-          fontSize: 9,
+          fontSize: 12,
           fontWeight: 700,
           hideOverlap: true,
           margin: 10,

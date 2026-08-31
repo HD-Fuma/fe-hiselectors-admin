@@ -96,7 +96,7 @@ test("shows fetched contents newest first while keeping inspection start oldest 
     return Promise.resolve(pageResponse([
       contentItem(303, "2026-08-18T12:00:00"),
       contentItem(202, "2026-08-18T11:00:00"),
-      contentItem(101, "2026-08-18T10:00:00"),
+      { ...contentItem(101, "2026-08-18T10:00:00"), latestVersionNo: 2 },
     ]));
   }));
   const { router } = renderRoute("/content/inspections?view=list");
@@ -115,4 +115,8 @@ test("shows fetched contents newest first while keeping inspection start oldest 
   await waitFor(() => {
     expect(router.state.location.pathname).toBe("/content/inspections/101");
   });
+  expect(router.state.location.state).toEqual(expect.objectContaining({ inspectionSession: true }));
+  expect(router.state.location.state).not.toEqual(expect.objectContaining({ singleInspection: true }));
+  expect(await screen.findByRole("navigation", { name: "검수 콘텐츠 이동" }))
+    .toHaveTextContent("검수 진행");
 });

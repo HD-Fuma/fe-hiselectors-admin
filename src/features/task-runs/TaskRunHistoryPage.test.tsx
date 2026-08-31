@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { getRecentTaskRuns, type SpringPage, type TaskRun } from "../../entities/task-run";
 import { TaskRunHistoryPage } from "./TaskRunHistoryPage";
@@ -58,6 +58,7 @@ test("shows the exact loading and empty history states", async () => {
 
   renderPage();
 
+  expect(screen.getByRole("heading", { name: "모니터링" })).toBeInTheDocument();
   expect(screen.getByRole("status")).toHaveTextContent(
     "작업 실행 이력을 불러오는 중입니다.",
   );
@@ -96,7 +97,7 @@ test("renders the completed history contract and safe execution subjects", async
 
   renderPage();
 
-  const history = await screen.findByRole("region", { name: "작업 실행 이력" });
+  const history = await screen.findByRole("region", { name: "모니터링" });
   expect(within(history).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual([
     "종료 시각",
     "시작 시각",
@@ -113,6 +114,22 @@ test("renders the completed history contract and safe execution subjects", async
   expect(within(history).getByText("정산 계산")).toBeInTheDocument();
   expect(within(history).getAllByText("완료")).toHaveLength(5);
   expect(within(history).getAllByText("-").length).toBeGreaterThan(0);
+});
+
+test("reloads the first page with the selected page size", async () => {
+  vi.mocked(getRecentTaskRuns).mockResolvedValue(page([taskRun()]));
+
+  renderPage();
+  await screen.findByRole("region", { name: "모니터링" });
+  fireEvent.change(screen.getByRole("combobox", { name: "페이지당 표시 개수" }), {
+    target: { value: "50" },
+  });
+
+  await waitFor(() => expect(getRecentTaskRuns).toHaveBeenLastCalledWith(
+    1,
+    50,
+    expect.any(AbortSignal),
+  ));
 });
 
 test("falls back from a blank non-creator progress message to the count summary", async () => {
@@ -146,10 +163,10 @@ test("requests UI pages as one-based values and moves through Spring results", a
   renderPage();
 
   expect(await screen.findByText("1 / 2 페이지")).toBeInTheDocument();
-  expect(getRecentTaskRuns).toHaveBeenNthCalledWith(1, 1, expect.any(AbortSignal));
+  expect(getRecentTaskRuns).toHaveBeenNthCalledWith(1, 1, 20, expect.any(AbortSignal));
 
   fireEvent.click(screen.getByRole("button", { name: "다음 페이지" }));
 
   expect(await screen.findByText("2 / 2 페이지")).toBeInTheDocument();
-  expect(getRecentTaskRuns).toHaveBeenNthCalledWith(2, 2, expect.any(AbortSignal));
+  expect(getRecentTaskRuns).toHaveBeenNthCalledWith(2, 2, 20, expect.any(AbortSignal));
 });

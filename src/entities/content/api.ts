@@ -1,5 +1,6 @@
 import { adminFetch } from "../../lib/adminAuthentication";
 import { API_BASE_URL } from "../../lib/apiBaseUrl";
+import { getFastMode } from "../../lib/fastMode";
 import type { TaskRun } from "../task-run";
 
 const AUTH_STORAGE_KEY = "selectors-auth";
@@ -141,11 +142,37 @@ export interface ContentVersionMedia {
   text: string | null;
 }
 
+export interface ContentReportAnalysisOverview {
+  flow: string;
+  overallAssessment: string;
+  purpose: string;
+  summary: string;
+}
+
+export interface ContentReportAnalysisInsight {
+  cautions: string[];
+  collabBrands: string[];
+  contentStyle: string;
+  hateConfirmed: boolean;
+  risks: string[];
+  strengths: string[];
+  tone: string;
+}
+
+export interface ContentReportAnalysis {
+  insight: ContentReportAnalysisInsight;
+  overview: ContentReportAnalysisOverview;
+}
+
 export interface ContentReport {
+  analysis?: ContentReportAnalysis | null;
   contentReportId: number;
+  executionMetadata?: Record<string, unknown>;
   flow: string | null;
+  inspectionPolicyId?: number | null;
   overallAssessment: string | null;
   purpose: string | null;
+  reportSchemaVersion?: string | null;
   summary: string | null;
 }
 
@@ -188,6 +215,11 @@ export interface ContentInspectionConfirmationResponse {
   updatedCount: number;
 }
 
+export interface ContentInspectionResetResponse {
+  resetVersionCount: number;
+  resetViolationCount: number;
+}
+
 export interface ContentDetail {
   contentId: number;
   contentType: CollectedContentType;
@@ -228,13 +260,14 @@ function authorizationHeader() {
   }
 }
 
-export async function runContentBatch(): Promise<ContentBatchRunResponse> {
+export async function runContentBatch(fastMode = getFastMode()): Promise<ContentBatchRunResponse> {
   const headers = new Headers();
   const authorization = authorizationHeader();
   if (authorization) headers.set("Authorization", authorization);
   headers.set("Idempotency-Key", crypto.randomUUID());
 
-  const response = await adminFetch(`${API_BASE_URL}/api/admin/content-batch/run`, {
+  const query = fastMode ? "?fastMode=true" : "";
+  const response = await adminFetch(`${API_BASE_URL}/api/admin/content-batch/run${query}`, {
     headers,
     method: "POST",
   });
@@ -250,6 +283,25 @@ export async function runContentBatch(): Promise<ContentBatchRunResponse> {
     throw new Error(result.message || "콘텐츠 배치 실행에 실패했습니다.");
   }
 
+  return result.data;
+}
+
+export async function resetContentInspections(): Promise<ContentInspectionResetResponse> {
+  const headers = new Headers();
+  const authorization = authorizationHeader();
+  if (authorization) headers.set("Authorization", authorization);
+  const confirmation = encodeURIComponent("RESET_CONTENT_INSPECTIONS");
+  const response = await adminFetch(
+    `${API_BASE_URL}/api/admin/contents/inspection-decisions?confirmation=${confirmation}`,
+    { headers, method: "DELETE" },
+  );
+  if (!response.ok) {
+    throw new Error(await errorMessage(response, "검수 상태 초기화에 실패했습니다."));
+  }
+  const result = await response.json() as ApiResult<ContentInspectionResetResponse>;
+  if (!result.success || !result.data) {
+    throw new Error(result.message || "검수 상태 초기화에 실패했습니다.");
+  }
   return result.data;
 }
 

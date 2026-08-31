@@ -54,10 +54,17 @@ const CAMPAIGN_OPTIONS = [
   })),
 ];
 
+const PLATFORM_OPTIONS = [
+  { label: "전체", value: "" },
+  { label: "Instagram", value: "Instagram" },
+  { label: "YouTube", value: "YouTube" },
+];
+
 interface PerformanceFilterValues {
   campaign: string;
   cohort: string;
   keyword: string;
+  platform: string;
   periodEnd: string;
   periodStart: string;
 }
@@ -66,6 +73,7 @@ const EMPTY_PERFORMANCE_FILTERS: PerformanceFilterValues = {
   campaign: "",
   cohort: "",
   keyword: "",
+  platform: "",
   periodEnd: "",
   periodStart: "",
 };
@@ -115,6 +123,7 @@ function PerformanceFilters({
   showCampaign = true,
   showCohort = true,
   showPeriod = true,
+  showPlatform = false,
   values,
 }: {
   cohortOptions?: readonly { label: string; value: string }[];
@@ -128,6 +137,7 @@ function PerformanceFilters({
   showCampaign?: boolean;
   showCohort?: boolean;
   showPeriod?: boolean;
+  showPlatform?: boolean;
   values: PerformanceFilterValues;
 }) {
   return (
@@ -162,6 +172,17 @@ function PerformanceFilters({
             onChange={(event) => onChange("campaign", event.target.value)}
             options={CAMPAIGN_OPTIONS}
             value={values.campaign}
+          />
+        </FilterField>
+      ) : null}
+      {showPlatform ? (
+        <FilterField htmlFor="performance-platform" label="플랫폼">
+          <Select
+            aria-label="플랫폼"
+            id="performance-platform"
+            onChange={(event) => onChange("platform", event.target.value)}
+            options={PLATFORM_OPTIONS}
+            value={values.platform}
           />
         </FilterField>
       ) : null}
@@ -383,6 +404,7 @@ function contentPerformanceForFilters(filters: PerformanceFilterValues) {
   return CONTENT_INFLUENCE.filter((content) => (
     (!filters.campaign || content.campaignId === filters.campaign)
     && (!filters.cohort || selectorCohortById(content.selectorId) === filters.cohort)
+    && (!filters.platform || content.platform === filters.platform)
     && isWithinPeriod(content.publishedAt, filters.periodStart, filters.periodEnd)
     && includesKeyword(
       [content.id, content.title, creatorNameById(content.creatorId)],
@@ -398,6 +420,7 @@ function apiContentPerformanceForFilters(
   return contents.filter((content) => (
     !filters.campaign
     && (!filters.cohort || content.cohort === filters.cohort)
+    && (!filters.platform || content.platform === filters.platform)
     && includesKeyword(
       [content.id, content.title, content.authorName ?? ""],
       filters.keyword,
@@ -477,7 +500,10 @@ export function ContentPerformancePage() {
               onChange={updateDraftFilter}
               onReset={resetAndResetPage}
               onSearch={applyAndResetPage}
+              showCampaign={false}
+              showCohort={false}
               showPeriod={false}
+              showPlatform
               values={draftFilters}
             />
           )}

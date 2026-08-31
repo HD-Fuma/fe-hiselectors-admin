@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { renderRoute } from "../../test/renderRoute";
 
 function contentItem(overrides: Record<string, unknown> = {}) {
@@ -123,7 +123,7 @@ function requestPathname(input: RequestInfo | URL) {
 
 function mockContentApis(
   contents: ReturnType<typeof contentItem>[],
-  detail: Response | (() => Response) = () => detailResponse(),
+  detail: Response | ((contentId: number) => Response) = () => detailResponse(),
   versionDetail?: Response | ((contentVersionId: number) => Response),
   inspection?: Response | (() => Response),
   confirmation?: Response | (() => Response),
@@ -149,7 +149,8 @@ function mockContentApis(
       );
     }
     if (/\/api\/admin\/contents\/\d+$/.test(pathname)) {
-      return Promise.resolve(typeof detail === "function" ? detail() : detail);
+      const contentId = Number(pathname.split("/").at(-1));
+      return Promise.resolve(typeof detail === "function" ? detail(contentId) : detail);
     }
     return Promise.resolve(pageResponse(contents));
   });
@@ -221,7 +222,7 @@ test("shows a YouTube thumbnail when the video has no direct media URL", async (
 test("loads a direct detail route and keeps pending analysis and decisions honest", async () => {
   const fetchMock = mockContentApis([contentItem()]);
 
-  renderRoute("/content/inspections/901");
+  const { router } = renderRoute("/content/inspections/901");
 
   await waitFor(
     () => expect(screen.getByRole("heading", { name: "콘텐츠 원문" })).toBeInTheDocument(),
@@ -247,10 +248,268 @@ test("loads a direct detail route and keeps pending analysis and decisions hones
 
   const finalInspection = screen.getByRole("region", { name: "최종 검수" });
   expect(within(finalInspection).getByText("위반 정보 없음")).toBeInTheDocument();
-  expect(within(finalInspection).getByRole("button", { name: "승인" })).toBeDisabled();
-  expect(within(finalInspection).getByRole("button", { name: "반려" })).toBeDisabled();
+  expect(within(finalInspection).getByRole("button", { name: "승인" })).toBeEnabled();
+  expect(within(finalInspection).getByRole("button", { name: "반려" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "이전 콘텐츠" })).toBeDisabled();
   expect(screen.queryByText(/좋아요 [\d,]+개/)).not.toBeInTheDocument();
   expect(screen.queryByText(/조회수 [\d,]+회/)).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "검수 목록" }));
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content/inspections"));
+});
+
+test("moves to the previous pending content from the detail toolbar", async () => {
+  const contents = [
+    contentItem({ contentId: 900, latestVersionId: 9000, snsContentId: "api-900" }),
+    contentItem(),
+    contentItem({ contentId: 902, latestVersionId: 9020, snsContentId: "api-902" }),
+  ];
+  mockContentApis(contents, (contentId) => detailResponse({ contentId }));
+
+  const { router } = renderRoute("/content/inspections/901");
+
+  const previous = await screen.findByRole("button", { name: "이전 콘텐츠" }, {
+    timeout: 3_000,
+  });
+  await waitFor(() => expect(previous).toBeEnabled());
+  expect(screen.getByRole("button", { name: "다음 콘텐츠" })).toBeEnabled();
+
+  fireEvent.click(previous);
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content/inspections/902"));
+});
+
+test("shows completion dialog after confirming the final content", async () => {
+  const confirmationResponse = new Response(JSON.stringify({
+    code: "OK",
+    data: { updatedCount: 0 },
+    message: null,
+    success: true,
+  }), { headers: { "Content-Type": "application/json" }, status: 200 });
+  mockContentApis([
+    contentItem({
+      contentId: 902,
+      latestVersionId: 9020,
+      selectorsId: 91,
+      snsContentId: "api-902",
+      storedAt: "2026-08-18T03:00:00.847815Z",
+      texts: ["다른 수정 콘텐츠"],
+    }),
+    contentItem(),
+  ], detailResponse(), undefined, undefined, confirmationResponse);
+  const { router } = renderRoute("/content/inspections?category=수정");
+
+  const card = await screen.findByRole(
+    "button",
+    { name: /API 수정 콘텐츠 검수 시작/ },
+    { timeout: 3_000 },
+  );
+  fireEvent.click(card);
+  expect(router.state.location.state).toEqual(expect.objectContaining({
+    inspectionSession: true,
+    singleInspection: true,
+  }));
+  expect(screen.queryByRole("navigation", { name: "검수 콘텐츠 이동" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "검수 도움말 보기" })).not.toBeInTheDocument();
+  fireEvent.wheel(window, { deltaY: 20 });
+  expect(router.state.location.pathname).toBe("/content/inspections/901");
+  const approve = await screen.findByRole("button", { name: /최종 승인/ }, { timeout: 3_000 });
+  await waitFor(() => expect(approve).toBeEnabled());
+  fireEvent.keyDown(window, { code: "Digit2", key: "2" });
+
+  const completion = await screen.findByRole("alertdialog", {
+    name: "콘텐츠 검수를 완료했습니다.",
+  });
+  expect(completion).toHaveTextContent("검수 목록으로 돌아갑니다.");
+  fireEvent.click(within(completion).getByRole("button", { name: "확인" }));
+  await waitFor(() => expect(router.state.location.pathname).toBe("/content/inspections"));
+});
+
+test("switches studio version cards and keeps the latest judgment state", async () => {
+  const versions = [
+    {
+      contentVersionId: 9001,
+      creationReason: "INITIAL",
+      createdAt: "2026-08-17T09:00:00",
+      inspectedAt: "2026-08-17T09:10:00",
+      inspectionStatus: "COMPLETED",
+      versionNo: 1,
+    },
+    {
+      contentVersionId: 9010,
+      creationReason: "SOURCE_CHANGE",
+      createdAt: "2026-08-18T11:05:00",
+      inspectedAt: "2026-08-18T11:06:00",
+      inspectionStatus: "COMPLETED",
+      versionNo: 2,
+    },
+  ];
+  const latestViolation = {
+    evidence: {
+      confidence: 0.9,
+      locations: [{
+        bbox: null,
+        contentMediaId: 90999,
+        endIndex: null,
+        endTime: null,
+        excerpt: null,
+        mediaType: "IMAGE",
+        startIndex: null,
+        startTime: null,
+      }],
+      reason: "최신 버전의 비교 근거를 확인해야 합니다.",
+      source: "AI",
+    },
+    currentStatus: "PENDING",
+    detectedAt: "2026-08-18T11:06:00",
+    inspectionPolicyId: 9,
+    violationEvidenceHistoryId: 31,
+    violationItemId: 21,
+    violationType: "FALSE_EXAGGERATED_CLAIM",
+    violationTypeDescription: "허위·과장 표현",
+  };
+  const latestDetail = detailResponse({
+    selectedVersion: {
+      contentReport: {
+        contentReportId: 11,
+        flow: "최신 버전 전개",
+        overallAssessment: "최신 버전 평가",
+        purpose: "최신 버전 목적",
+        summary: "최신 버전 요약",
+      },
+      contentVersionId: 9010,
+      creationReason: "SOURCE_CHANGE",
+      createdAt: "2026-08-18T11:05:00",
+      inspectedAt: "2026-08-18T11:06:00",
+      inspectionStatus: "COMPLETED",
+      media: versionMedia(["최신 버전 본문"]),
+      violations: [latestViolation],
+      versionNo: 2,
+    },
+    versions,
+  });
+  mockContentApis([contentItem()], latestDetail, (contentVersionId) => {
+    expect(contentVersionId).toBe(9001);
+    return detailResponse({
+      selectedVersion: {
+        contentReport: {
+          contentReportId: 10,
+          flow: "과거 버전 전개",
+          overallAssessment: "과거 버전 평가",
+          purpose: "과거 버전 목적",
+          summary: "과거 버전 요약",
+        },
+        contentVersionId: 9001,
+        creationReason: "INITIAL",
+        createdAt: "2026-08-17T09:00:00",
+        inspectedAt: "2026-08-17T09:10:00",
+        inspectionStatus: "COMPLETED",
+        media: versionMedia(["과거 버전 본문"]),
+        violations: [latestViolation],
+        versionNo: 1,
+      },
+      versions,
+    });
+  });
+
+  renderRoute("/content/inspections");
+
+  const start = await screen.findByRole("button", { name: "검수 시작" }, { timeout: 3_000 });
+  await waitFor(() => expect(start).toBeEnabled());
+  fireEvent.click(start);
+  fireEvent.pointerDown(window);
+
+  const historicalSelection = await screen.findByRole("button", {
+    name: "v1 과거 콘텐츠 선택",
+  });
+  const historicalCard = historicalSelection.closest<HTMLElement>(
+    ".fuma-content-inspection-studio__version",
+  );
+  const latestCard = document.querySelector<HTMLElement>(
+    '.fuma-content-inspection-studio__version[data-latest="true"]',
+  );
+  const historicalVersionCard = historicalCard?.querySelector(
+    ".fuma-minimal-version-card",
+  );
+  const latestVersionCard = latestCard?.querySelector(".fuma-minimal-version-card");
+  expect(historicalVersionCard).toHaveClass("fuma-platform-content-card");
+  expect(historicalVersionCard).toHaveAttribute("data-platform-card", "instagram-feed");
+  expect(latestCard).toHaveAttribute("data-selected", "true");
+  expect(historicalVersionCard).toHaveAttribute("inert");
+  expect(latestVersionCard).not.toHaveAttribute("inert");
+  const report = screen.getByRole("complementary", { name: "AI 검수 리포트" });
+  expect(within(report).getByText("최신 버전 요약")).toBeInTheDocument();
+
+  const latestJudgment = await within(report).findByRole("group", { name: "허위·과장 표현 판정" });
+  const allowLatestViolation = within(latestJudgment).getByRole("button", { name: "위반 허용" });
+  fireEvent.click(allowLatestViolation);
+  expect(allowLatestViolation).toHaveAttribute("aria-pressed", "true");
+  const initialFinalInspection = screen.getByRole("group", { name: "최종 검수" });
+  await waitFor(() => expect(document.activeElement).toBe(initialFinalInspection));
+
+  const historicalViolationBubble = within(historicalCard as HTMLElement).getByRole("button", {
+    name: "위반 1: 허위·과장 표현",
+  });
+  fireEvent.click(historicalViolationBubble);
+  await waitFor(() => expect(within(report).getByText("과거 버전 요약")).toBeInTheDocument());
+  expect(historicalCard).toHaveAttribute("data-selected", "true");
+  expect(historicalVersionCard).not.toHaveAttribute("inert");
+  expect(latestVersionCard).toHaveAttribute("inert");
+  const historicalReportViolation = within(report).getByRole("button", {
+    name: "① 허위·과장 표현 위치로 이동",
+  });
+  await waitFor(() => expect(document.activeElement).toBe(historicalReportViolation));
+  expect(historicalViolationBubble).toHaveAttribute("data-focused", "true");
+  expect(historicalReportViolation).toHaveAttribute("aria-current", "true");
+  fireEvent.click(historicalReportViolation);
+  expect(historicalViolationBubble).toHaveAttribute("data-focused", "true");
+  expect(within(report).queryByRole("button", { name: "리포트 생성" })).not.toBeInTheDocument();
+  expect(within(report).queryByRole("group", { name: /판정/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole("group", { name: "최종 검수" })).not.toBeInTheDocument();
+  const latestSelection = within(latestCard as HTMLElement).getByRole("button", {
+    name: "v2 최신 콘텐츠 선택",
+  });
+  const historicalMenu = within(historicalCard as HTMLElement).getByRole("button", {
+    name: "게시물 메뉴",
+  });
+  historicalMenu.focus();
+  fireEvent.click(historicalMenu);
+  expect(historicalCard).toHaveAttribute("data-selected", "true");
+  expect(document.activeElement).toBe(historicalMenu);
+  expect(within(historicalCard as HTMLElement).getByRole("button", { name: "좋아요" }))
+    .toBeVisible();
+
+  fireEvent.click(latestSelection);
+  await waitFor(() => expect(within(report).getByText("최신 버전 요약")).toBeInTheDocument());
+  expect(latestCard).toHaveAttribute("data-selected", "true");
+  expect(await within(historicalCard as HTMLElement).findByRole("button", {
+    name: "v1 과거 콘텐츠 선택",
+  })).toBeInTheDocument();
+  expect(within(report).getByRole("button", { name: "위반 허용" }))
+    .toHaveAttribute("aria-pressed", "true");
+  const finalInspection = screen.getByRole("group", { name: "최종 검수" });
+  await waitFor(() => expect(document.activeElement).toBe(finalInspection));
+  expect(within(latestCard as HTMLElement).queryByRole("button", {
+    name: "v2 최신 콘텐츠 선택",
+  })).not.toBeInTheDocument();
+  expect(within(latestCard as HTMLElement).getByText("v2 · 최신 콘텐츠").tagName)
+    .toBe("SPAN");
+
+  const historicalSelectionAgain = within(historicalCard as HTMLElement).getByRole("button", {
+    name: "v1 과거 콘텐츠 선택",
+  });
+  fireEvent.click(historicalSelectionAgain);
+  await waitFor(() => expect(within(report).getByText("과거 버전 요약")).toBeInTheDocument());
+  expect(within(historicalCard as HTMLElement).queryByRole("button", {
+    name: "v1 과거 콘텐츠 선택",
+  })).not.toBeInTheDocument();
+  expect(within(historicalCard as HTMLElement).getByText("v1 · 과거 콘텐츠").tagName)
+    .toBe("SPAN");
+  fireEvent.click(within(latestCard as HTMLElement).getByRole("button", {
+    name: "v2 최신 콘텐츠 선택",
+  }));
+  await waitFor(() => expect(within(report).getByText("최신 버전 요약")).toBeInTheDocument());
+  fireEvent.click(within(latestCard as HTMLElement).getByRole("button", { name: "게시물 메뉴" }));
+  expect(latestCard).toHaveAttribute("data-selected", "true");
 });
 
 test("loads violations and submits the final judgment in one request", async () => {
@@ -274,11 +533,11 @@ test("loads violations and submits the final judgment in one request", async () 
           locations: [{
             bbox: null,
             contentMediaId: 90101,
-            endIndex: 11,
+            endIndex: 103,
             endTime: null,
             excerpt: "가장 저렴한",
             mediaType: "TEXT",
-            startIndex: 3,
+            startIndex: 100,
             startTime: null,
           }],
           reason: "비교 근거 없이 최저가를 단정했습니다.",
@@ -326,16 +585,34 @@ test("loads violations and submits the final judgment in one request", async () 
   ))).toBe(true);
   expect(screen.getAllByText("상품 소개").length).toBeGreaterThan(0);
   expect(screen.getAllByText("본문에서 상품을 소개한 뒤 링크를 안내합니다.").length).toBeGreaterThan(0);
-  expect(screen.getAllByText("과장 표현 수정 후 재검수가 필요합니다.").length).toBeGreaterThan(0);
+  expect(screen.queryByText("과장 표현 수정 후 재검수가 필요합니다.")).not.toBeInTheDocument();
 
   const report = screen.getByRole("region", { name: "AI 분석" });
   expect(within(report).getByText("광고 표기는 확인됐고 최저가 단정 표현이 있습니다.")).toBeInTheDocument();
-  expect(within(report).getByRole("heading", { name: "검수 근거" })).toBeInTheDocument();
+  expect(within(report).getByRole("heading", { name: "위반 내역" })).toBeInTheDocument();
   expect(within(report).getByText("① 허위·과장 표현")).toBeInTheDocument();
+  expect(within(report).queryByText("게시물 본문(TEXT)")).not.toBeInTheDocument();
+  expect(within(report).getByText("광고 수수료 안내문구 표시")).toBeInTheDocument();
+  expect(within(report).getByText("제휴링크 누락·불일치")).toBeInTheDocument();
+  expect(within(report).getByText("욕설/비속어")).toBeInTheDocument();
+  expect(within(report).queryByText("허위/과장 표현")).not.toBeInTheDocument();
+  const compliantItemsLabel = within(report).getByText("가이드 준수 항목");
+  const compliantItems = compliantItemsLabel.closest("details");
+  expect(compliantItems).toHaveAttribute("open");
+  expect(within(report).getAllByText("정상")).toHaveLength(9);
   expect(within(report).queryByText("분석 대기")).not.toBeInTheDocument();
   expect(within(report).queryByText("2026-08-18T11:06:00")).not.toBeInTheDocument();
 
+  const textStartMarker = screen.getByRole("button", { name: "위반 1: 허위·과장 표현" });
+  expect(textStartMarker).toHaveClass("fuma-inspection-violation-bubble");
+  expect(within(textStartMarker).getByText("허위·과장 표현")).toBeInTheDocument();
+  expect(textStartMarker.parentElement).toHaveTextContent("지금 가장 저렴한 가격 #광고");
+  expect(textStartMarker.parentElement?.tagName).toBe("P");
+
   const finalInspection = screen.getByRole("region", { name: "최종 검수" });
+  expect(within(finalInspection).getByText("검수 정책")).toBeInTheDocument();
+  expect(within(finalInspection).getByText("정책 #9")).toBeInTheDocument();
+  expect(within(finalInspection).queryByText("AI")).not.toBeInTheDocument();
   expect(within(finalInspection).getByText("① 허위·과장 표현")).toBeInTheDocument();
   expect(within(finalInspection).getByText("“가장 저렴한”")).toBeInTheDocument();
   const markViolation = within(finalInspection).getByRole("button", { name: "위반" });
@@ -354,6 +631,7 @@ test("loads violations and submits the final judgment in one request", async () 
 
   fireEvent.click(markViolation);
   expect(markViolation).toHaveAttribute("aria-pressed", "true");
+  expect(markViolation).toHaveClass("hsas-button--secondary");
   expect(within(finalInspection).getByText("1 / 1")).toBeInTheDocument();
   expect(approve).toBeDisabled();
   expect(reject).toBeEnabled();
@@ -375,6 +653,9 @@ test("loads violations and submits the final judgment in one request", async () 
 
   await waitFor(() => expect(within(finalInspection).getByRole("status"))
     .toHaveTextContent("반려 처리했습니다. 위반 항목 1건을 갱신했습니다."));
+  expect(within(finalInspection).getByRole("button", { name: "반려" })).toBeDisabled();
+  expect(within(finalInspection).queryByRole("button", { name: "승인" }))
+    .not.toBeInTheDocument();
   expect(within(finalInspection).queryByText("① 허위·과장 표현")).not.toBeInTheDocument();
   expect(within(report).getByText("① 허위·과장 표현")).toBeInTheDocument();
   const confirmationCall = fetchMock.mock.calls.find(([input]) => (
@@ -385,6 +666,105 @@ test("loads violations and submits the final judgment in one request", async () 
     decision: "REJECTED",
     violations: [{ status: "VIOLATION_CONFIRMED", violationItemId: 21 }],
   });
+});
+
+test("keeps the inspection viewport fixed when the media carousel moves", async () => {
+  const scrollIntoView = vi.fn();
+  const originalScrollIntoView = Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView = scrollIntoView;
+  const carouselMedia = [
+    {
+      contentMediaId: 90991,
+      mediaType: "IMAGE",
+      mediaUrl: "https://cdn.example.com/api-901-1.jpg",
+      sequenceNo: 0,
+      snsMediaId: "image-901-1",
+      text: null,
+    },
+    {
+      contentMediaId: 90992,
+      mediaType: "IMAGE",
+      mediaUrl: "https://cdn.example.com/api-901-2.jpg",
+      sequenceNo: 1,
+      snsMediaId: "image-901-2",
+      text: null,
+    },
+  ];
+  const selectedVersion = {
+    contentReport: {
+      contentReportId: 11,
+      flow: "이미지 순서대로 상품을 소개합니다.",
+      overallAssessment: "첫 이미지에 위반 후보가 있습니다.",
+      purpose: "상품 소개",
+      summary: "캐러셀 검수",
+    },
+    contentVersionId: 9010,
+    creationReason: "SOURCE_CHANGE",
+    createdAt: "2026-08-18T11:05:00",
+    inspectedAt: "2026-08-18T11:06:00",
+    inspectionStatus: "COMPLETED",
+    media: carouselMedia,
+    violations: [{
+      evidence: {
+        confidence: 0.9,
+        locations: [{
+          bbox: { height: 20, width: 20, x: 10, y: 10 },
+          contentMediaId: 90991,
+          endIndex: null,
+          endTime: null,
+          excerpt: null,
+          mediaType: "IMAGE",
+          startIndex: null,
+          startTime: null,
+        }],
+        reason: "첫 이미지 위반 후보",
+        source: "AI",
+      },
+      currentStatus: "PENDING",
+      detectedAt: "2026-08-18T11:06:00",
+      inspectionPolicyId: 9,
+      violationEvidenceHistoryId: 31,
+      violationItemId: 21,
+      violationType: "FALSE_EXAGGERATED_CLAIM",
+      violationTypeDescription: "허위·과장 표현",
+    }],
+    versionNo: 2,
+  };
+
+  try {
+    mockContentApis([contentItem()], detailResponse({ selectedVersion }));
+    renderRoute("/content/inspections/901");
+
+    const nextPhoto = await screen.findByRole("button", { name: "다음 사진" }, {
+      timeout: 3_000,
+    });
+    const carouselStage = document.querySelector(
+      ".fuma-platform-inspection-frame__carousel-track",
+    )?.closest<HTMLElement>(".fuma-platform-inspection-frame__asset-stage");
+    expect(carouselStage).toBeDefined();
+    expect(carouselStage?.style.aspectRatio).toBe("");
+    const report = screen.getByRole("region", { name: "AI 분석" });
+    fireEvent.click(within(report).getByRole("button", { name: /① 허위·과장 표현/ }));
+    await waitFor(() => expect(
+      document.querySelector('[data-violation-anchor="1"][data-focused="true"]'),
+    ).not.toBeNull());
+    await waitFor(() => expect(document.activeElement).toHaveAttribute(
+      "data-violation-anchor",
+      "1",
+    ));
+    scrollIntoView.mockClear();
+
+    fireEvent.click(nextPhoto);
+
+    await waitFor(() => expect(screen.getByText("2 / 2")).toBeInTheDocument());
+    await act(async () => new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+    }));
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  } finally {
+    Element.prototype.scrollIntoView = originalScrollIntoView;
+  }
 });
 
 test("shows an accessible fallback when a fetched detail has no profile image", async () => {
@@ -430,6 +810,7 @@ test("loads a past content version when the version select changes", async () =>
       contentVersionId: 9010,
       createdAt: "2026-08-18T11:05:00",
       inspectedAt: "2026-08-18T11:06:00",
+      inspectionDecision: "APPROVED",
       inspectionStatus: "COMPLETED",
       media: versionMedia(["지금 가장 저렴한 가격 #광고"]),
       violations: [],
@@ -469,6 +850,12 @@ test("loads a past content version when the version select changes", async () =>
   );
   const versionSelect = screen.getByRole("combobox", { name: "버전" });
   expect(versionSelect).toHaveDisplayValue("v2 · 콘텐츠 수정 · 최신 버전");
+  const finalInspection = screen.getByRole("region", { name: "최종 검수" });
+  expect(within(finalInspection).getByText("검수 상태").nextElementSibling)
+    .toHaveTextContent("승인");
+  expect(within(finalInspection).getByRole("button", { name: "승인" })).toBeDisabled();
+  expect(within(finalInspection).queryByRole("button", { name: "반려" }))
+    .not.toBeInTheDocument();
 
   fireEvent.change(versionSelect, { target: { value: "9001" } });
 
@@ -477,12 +864,21 @@ test("loads a past content version when the version select changes", async () =>
   expect(screen.getByText("26.08.17 09:00")).toBeInTheDocument();
   expect(versionSelect).toHaveDisplayValue("v1");
   expect(screen.queryByText("지금 가장 저렴한 가격 #광고")).not.toBeInTheDocument();
+  const historicalFinalInspection = screen.getByRole("region", { name: "최종 검수" });
+  expect(within(historicalFinalInspection).queryByRole("button", { name: "반려" }))
+    .not.toBeInTheDocument();
+  expect(within(historicalFinalInspection).queryByRole("button", { name: "승인" }))
+    .not.toBeInTheDocument();
   expect(fetchMock.mock.calls.map(([input]) => requestPathname(input))).toEqual(
     expect.arrayContaining(["/api/admin/contents/901/versions/9001"]),
   );
 
   fireEvent.change(versionSelect, { target: { value: "9010" } });
   expect(screen.getAllByText("지금 가장 저렴한 가격 #광고").length).toBeGreaterThan(0);
+  const latestFinalInspection = screen.getByRole("region", { name: "최종 검수" });
+  expect(within(latestFinalInspection).queryByRole("button", { name: "반려" }))
+    .not.toBeInTheDocument();
+  expect(within(latestFinalInspection).getByRole("button", { name: "승인" })).toBeDisabled();
   expect(fetchMock.mock.calls.filter(([input]) => (
     requestPathname(input) === "/api/admin/contents/901/versions/9001"
   ))).toHaveLength(1);

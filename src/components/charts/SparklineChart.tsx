@@ -64,7 +64,7 @@ export function SparklineChart({
           return "";
         },
         color: labelColor,
-        fontSize: 8,
+        fontSize: 12,
         fontWeight: 700,
         margin: 4,
       },

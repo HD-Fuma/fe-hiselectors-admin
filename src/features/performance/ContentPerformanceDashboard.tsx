@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { Images } from "lucide-react";
 import { AnalysisFormatBreakdown } from "../../components/charts/AnalysisFormatBreakdown";
 import type { AnalysisFormatSegment } from "../../components/charts/AnalysisFormatDonut";
 import { PeriodLineChart } from "../../components/charts/PeriodLineChart";
@@ -83,6 +84,10 @@ function contentMediaFor(content: ContentInfluence) {
     return savedMedia;
   }
 
+  if (!content.id.startsWith("ct-")) {
+    return { thumbnail: "", creatorImage: "" };
+  }
+
   const selectorNumber = Number(content.selectorId.replace(/\D/g, "")) || 1;
   const creatorNumber = ((selectorNumber - 1) % 4) + 1;
   const imageNumber = ((selectorNumber - 1) % 3) + 1;
@@ -101,6 +106,14 @@ function trendDateLabel(recordedAt: string | undefined) {
 
   const [, month, day] = recordedAt.split("-");
   return month && day ? `${month}.${day}` : recordedAt;
+}
+
+function dateInputValue(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 
 function ContentTableTrendChart({ content }: { content: ContentInfluence }) {
@@ -258,9 +271,11 @@ function ContentOverview({
   uploadSummaryLoading?: boolean;
 }) {
   const [cohortChartMode, setCohortChartMode] = useState<CohortChartMode>("all");
-  const sortedContentDates = [...contents].map((content) => content.publishedAt).sort();
-  const defaultPeriodStart = sortedContentDates[0] ?? "";
-  const defaultPeriodEnd = sortedContentDates.at(-1) ?? "";
+  const defaultPeriodEndDate = new Date();
+  const defaultPeriodStartDate = new Date(defaultPeriodEndDate);
+  defaultPeriodStartDate.setDate(defaultPeriodStartDate.getDate() - 13);
+  const defaultPeriodStart = dateInputValue(defaultPeriodStartDate);
+  const defaultPeriodEnd = dateInputValue(defaultPeriodEndDate);
   const [periodStart, setPeriodStart] = useState(defaultPeriodStart);
   const [periodEnd, setPeriodEnd] = useState(defaultPeriodEnd);
   const [appliedPeriod, setAppliedPeriod] = useState({
@@ -659,23 +674,51 @@ function ContentPerformanceDetailPanel({
   return (
     <SidePanel onClose={onClose} title="콘텐츠 상세">
       <div className="fuma-detail-panel__content fuma-content-performance-detail">
-        <section aria-label="콘텐츠 기본 정보" className="fuma-content-performance-detail__overview">
-          <img alt={`${content.title} 썸네일`} src={assetUrl(media.thumbnail)} />
-          <div>
-            <div className="fuma-content-performance-detail__badges">
-              <StatusPill tone="neutral">{contentCohort(content)}</StatusPill>
-              <StatusPill className={`fuma-content-performance-format ${formatTag.className}`} tone="neutral">
-                {formatTag.label}
-              </StatusPill>
+        <section
+          aria-labelledby="content-performance-detail-source"
+          className="fuma-content-analysis-report fuma-content-performance-detail__source"
+        >
+          <header className="fuma-content-analysis-report__header fuma-content-performance-detail__source-header">
+            <div>
+              <span>CONTENT</span>
+              <h3 id="content-performance-detail-source">콘텐츠 원문</h3>
             </div>
-            <h3>{content.title}</h3>
-            <p>{content.caption}</p>
-            <dl>
-              <div><dt>콘텐츠 ID</dt><dd>{content.id}</dd></div>
-              <div><dt>작성자</dt><dd>{author}</dd></div>
-              <div><dt>플랫폼</dt><dd>{content.platform}</dd></div>
-              <div><dt>게시일</dt><dd>{content.publishedAt}</dd></div>
-            </dl>
+          </header>
+          <div className="fuma-creator-analysis-report__content">
+            <div className="fuma-content-performance-detail__overview">
+              <div className="fuma-content-performance-detail__media">
+                {media.thumbnail ? (
+                  <img alt={`${content.title} 썸네일`} src={assetUrl(media.thumbnail)} />
+                ) : (
+                  <span>
+                    <Images aria-hidden="true" size={26} />
+                    미디어 없음
+                  </span>
+                )}
+              </div>
+              <div className="fuma-content-performance-detail__copy">
+                <div className="fuma-content-performance-detail__badges">
+                  <StatusPill tone="neutral">{contentCohort(content)}</StatusPill>
+                  <StatusPill className={`fuma-content-performance-format ${formatTag.className}`} tone="neutral">
+                    {formatTag.label}
+                  </StatusPill>
+                </div>
+                <div className="fuma-content-performance-detail__text">
+                  <span>콘텐츠 제목</span>
+                  <h4>{content.title}</h4>
+                </div>
+                <div className="fuma-content-performance-detail__text">
+                  <span>원문</span>
+                  <p>{content.caption}</p>
+                </div>
+                <dl>
+                  <div><dt>콘텐츠 ID</dt><dd>{content.id}</dd></div>
+                  <div><dt>작성자</dt><dd>{author}</dd></div>
+                  <div><dt>플랫폼</dt><dd>{content.platform}</dd></div>
+                  <div><dt>게시일</dt><dd>{content.publishedAt}</dd></div>
+                </dl>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -855,15 +898,16 @@ function ContentPerformanceResults({
   onPageChange: (page: number) => void;
   page: number;
 }) {
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [sortBy, setSortBy] = useState<ContentPerformanceSort>("latest");
   const [selectedContent, setSelectedContent] = useState<ContentInfluence | null>(null);
+  const [pageSize, setPageSize] = useState(CONTENT_PERFORMANCE_PAGE_SIZE);
   const sortedContents = sortContentPerformance(contents, sortBy);
   const {
     currentPage,
     pagedItems: pagedContents,
     totalPages,
-  } = paginate(sortedContents, page, CONTENT_PERFORMANCE_PAGE_SIZE);
+  } = paginate(sortedContents, page, pageSize);
   const changeView = (nextView: ViewMode) => {
     setViewMode(nextView);
     onPageChange(1);
@@ -935,8 +979,12 @@ function ContentPerformanceResults({
       )}
       <Pagination
         onPageChange={onPageChange}
+        onPageSizeChange={(nextPageSize) => {
+          setPageSize(nextPageSize);
+          onPageChange(1);
+        }}
         page={currentPage}
-        pageSize={CONTENT_PERFORMANCE_PAGE_SIZE}
+        pageSize={pageSize}
         totalPages={totalPages}
       />
       {selectedContent ? (

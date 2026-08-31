@@ -94,20 +94,20 @@ describe("task run panel api", () => {
     const page = {
       content: [taskRun],
       number: 2,
-      size: 20,
+      size: 50,
       totalElements: 41,
       totalPages: 3,
     };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(page)));
     const controller = new AbortController();
 
-    await expect(getRecentTaskRuns(3, controller.signal)).resolves.toEqual(page);
+    await expect(getRecentTaskRuns(3, 50, controller.signal)).resolves.toEqual(page);
 
     const [request, init] = vi.mocked(fetch).mock.calls[0];
     const url = new URL(String(request));
     expect(url.pathname).toBe("/api/admin/task-runs/recent");
     expect(url.searchParams.get("page")).toBe("2");
-    expect(url.searchParams.get("size")).toBe("20");
+    expect(url.searchParams.get("size")).toBe("50");
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer admin.jwt");
     expect(init?.signal).toBe(controller.signal);
   });
@@ -230,6 +230,24 @@ describe("task run progress stream api", () => {
 
     expect(onEvent).toHaveBeenCalledOnce();
     expect(onEvent).toHaveBeenCalledWith(event);
+  });
+
+  test("reports task lifecycle changes separately from progress", async () => {
+    const runId = "33333333-3333-4333-8333-333333333333";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(eventStream([
+      `event: task-run-changed\ndata: ${runId}\n\n`,
+    ])));
+    const onProgress = vi.fn();
+    const onChanged = vi.fn();
+
+    await streamTaskRunProgress(
+      onProgress,
+      new AbortController().signal,
+      onChanged,
+    );
+
+    expect(onProgress).not.toHaveBeenCalled();
+    expect(onChanged).toHaveBeenCalledOnce();
   });
 
   test("isolates unrelated and invalid frames while preserving later valid progress", async () => {

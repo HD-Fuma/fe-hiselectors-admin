@@ -21,11 +21,21 @@ export const COHORT_SERIES_COLORS = {
   soldQuantity: "#9bc6bd",
 } as const;
 
+export const ECHARTS_FONT_FAMILY =
+  '"Pretendard Variable", Pretendard, "Apple SD Gothic Neo", Arial, sans-serif';
+
+/** Axis/legend label size — below body (13) and table (14), readable for demos. */
+export const ECHARTS_LABEL_FONT_SIZE = 12;
+
 export const ECHARTS_TOOLTIP_STYLE = {
   backgroundColor: "#303030",
   borderColor: "#303030",
   borderRadius: 7,
-  textStyle: { color: "#fff" },
+  textStyle: {
+    color: "#fff",
+    fontFamily: ECHARTS_FONT_FAMILY,
+    fontSize: ECHARTS_LABEL_FONT_SIZE,
+  },
 } as const;
 
 export type CohortSeriesColorKey = keyof typeof COHORT_SERIES_COLORS;

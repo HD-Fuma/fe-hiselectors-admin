@@ -181,8 +181,10 @@ describe("selector api pages", () => {
     const search = await screen.findByRole("search", { name: "검색 조건" }, { timeout: 3000 });
 
     expect(await screen.findByRole("img", { name: "셀렉터스 발견 풀" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "활동 상태" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("switch", { name: "보기 방식" }));
 
+    expect(screen.getByRole("navigation", { name: "활동 상태" })).toBeInTheDocument();
     expect(await screen.findByText("SEL0007")).toBeInTheDocument();
     const list = screen.getByRole("region", { name: "셀렉터스 목록" });
     expect(within(list).queryByRole("columnheader", { name: "닉네임" })).not.toBeInTheDocument();
@@ -210,7 +212,16 @@ describe("selector api pages", () => {
       expect.stringMatching(/roleId=ACTIVE.*generationId=3.*nickname=.*snsCode=INSTAGRAM/),
       expect.anything(),
     ));
-    expect(screen.getByText("총 2건")).toBeInTheDocument();
+    expect(screen.queryByText("총 2건")).not.toBeInTheDocument();
+
+    fireEvent.change(within(search).getByRole("textbox", { name: "셀렉터스명" }), {
+      target: { value: "홍길동" },
+    });
+    fireEvent.click(within(search).getByRole("button", { name: "조회" }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/nickname=%ED%99%8D%EA%B8%B8%EB%8F%99/),
+      expect.anything(),
+    ));
 
     fireEvent.change(within(search).getByRole("textbox", { name: "셀렉터스명" }), {
       target: { value: "홍길동" },
@@ -226,7 +237,7 @@ describe("selector api pages", () => {
       expect.stringMatching(/roleId=BLACKLIST.*generationId=3.*nickname=.*snsCode=INSTAGRAM/),
       expect.anything(),
     ));
-    expect(screen.getByText("블랙리스트 목록")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "블랙리스트 목록" })).toBeInTheDocument();
   }, 15000);
 
   test("renders enhanced selector detail and settlement information", async () => {
@@ -250,7 +261,6 @@ describe("selector api pages", () => {
     expect(within(panel).getByText("총 1건")).toBeInTheDocument();
     expect(within(panel).getByLabelText("셀렉터스 기수")).toHaveTextContent("3기");
     expect(within(panel).getByText("셀렉터스 코드").parentElement).toHaveTextContent("SEL0007");
-    expect(within(panel).getByText("셀렉터스명").parentElement).toHaveTextContent("홍길동");
     expect(within(panel).getByText("누적 구매수").parentElement).toHaveTextContent("12건");
     expect(within(panel).getByText("누적 매출").parentElement).toHaveTextContent("1,500,000원");
     const consent = within(panel).getByRole("region", { name: "셀렉터스 동의 및 수신 정보" });
@@ -360,6 +370,8 @@ describe("selector api pages", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "기수 생성" }));
     const modal = await screen.findByRole("dialog", { name: "새 기수 생성" });
+    expect(modal).toHaveAttribute("data-visual-contract", "detail-side-panel");
+    expect(screen.getByRole("region", { name: "기수 목록", hidden: true })).toBeInTheDocument();
     fireEvent.change(within(modal).getByRole("textbox", { name: "기수명" }), { target: { value: "4기" } });
     fireEvent.change(within(modal).getByRole("group", { name: /모집 시작일/ }).querySelector("input")!, { target: { value: "2026-09-01" } });
     fireEvent.change(within(modal).getByRole("group", { name: /모집 종료일/ }).querySelector("input")!, { target: { value: "2026-09-30" } });
