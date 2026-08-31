@@ -22,11 +22,13 @@ import {
 import {
   getGenerations,
   getSelector,
+  getSelectorPerformanceBreakdown,
   getSelectorPerformanceSummary,
   getSelectorPerformanceTrend,
   SelectorDetailPanel,
   type Generation,
   type SelectorDetail,
+  type SelectorPerformanceBreakdown,
 } from "../../entities/selectors";
 import { ContentPerformanceDashboard } from "./ContentPerformanceDashboard";
 import { SelectorPerformanceDashboard } from "./SelectorPerformanceDashboard";
@@ -228,6 +230,11 @@ export function SelectorPerformancePage() {
     detail: SelectorDetail | null;
     error: string;
   } | null>(null);
+  const [breakdownState, setBreakdownState] = useState<{
+    id: number;
+    breakdown: SelectorPerformanceBreakdown | null;
+    error: string;
+  } | null>(null);
   const [summary, setSummary] = useState(EMPTY_SELECTOR_DASHBOARD_SUMMARY);
   const [trend, setTrend] = useState<SelectorDashboardTrendPoint[]>([]);
   const [generations, setGenerations] = useState<Generation[]>([]);
@@ -324,11 +331,40 @@ export function SelectorPerformancePage() {
     return () => controller.abort();
   }, [selectedSelectorId]);
 
+  useEffect(() => {
+    if (selectedSelectorId === null) return;
+
+    const controller = new AbortController();
+    const id = selectedSelectorId;
+    const range = {
+      endDate: appliedFilters.periodEnd || undefined,
+      startDate: appliedFilters.periodStart || undefined,
+    };
+    void getSelectorPerformanceBreakdown(id, range, controller.signal)
+      .then((breakdown) => {
+        setBreakdownState({ id, breakdown, error: "" });
+      })
+      .catch((reason: unknown) => {
+        if (controller.signal.aborted) return;
+        setBreakdownState({
+          id,
+          breakdown: null,
+          error: reason instanceof Error
+            ? reason.message
+            : "상품·캠페인 성과 조회에 실패했습니다.",
+        });
+      });
+
+    return () => controller.abort();
+  }, [appliedFilters.periodEnd, appliedFilters.periodStart, selectedSelectorId]);
+
   const currentSelectorDetail = selectorDetailState?.id === selectedSelectorId
     ? selectorDetailState
     : null;
+  const currentBreakdown = breakdownState?.id === selectedSelectorId ? breakdownState : null;
   const openSelectorDetail = (selectorId: number) => {
     setSelectorDetailState(null);
+    setBreakdownState(null);
     setSelectedSelectorId(selectorId);
   };
 
@@ -378,7 +414,10 @@ export function SelectorPerformancePage() {
           onClose={() => {
             setSelectedSelectorId(null);
             setSelectorDetailState(null);
+            setBreakdownState(null);
           }}
+          performanceBreakdown={currentBreakdown?.breakdown ?? null}
+          performanceBreakdownError={currentBreakdown?.error}
           selectorDetail={currentSelectorDetail?.detail}
           selectorDetailError={currentSelectorDetail?.error}
           selectorDetailLoading={currentSelectorDetail === null}

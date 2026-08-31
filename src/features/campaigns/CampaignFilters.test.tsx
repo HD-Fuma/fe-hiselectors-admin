@@ -38,6 +38,7 @@ beforeEach(() => {
     if (url.endsWith("/api/admin/campaigns") && init?.method === "POST") {
       return json({ ...campaign, thumbnailUrl: "https://media.example.com/campaigns/uploaded.webp" }, 201);
     }
+    if (url.includes("/api/admin/selector-matching")) return json([]);
     if (url.includes("/participants")) return json({ content: [{ selectorId: 7, nickname: "셀렉터", platform: "INSTAGRAM", accountId: "selector", followerCount: 100 }], number: 0, size: 20, totalElements: 1, totalPages: 1 });
     if (url.includes("/api/admin/products")) return json({ content: campaign.products, number: 0, size: 20, totalElements: 1, totalPages: 1 });
     if (/\/campaigns\/3(?:\?|$)/.test(url)) return json({ ...campaign, status: campaignStatus });
@@ -170,6 +171,7 @@ describe("campaign filter behavior", () => {
     const expandedCampaign = { ...campaign, productIds: products.map(({ id }) => id), products };
     vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
+      if (url.includes("/api/admin/selector-matching")) return json([]);
       if (url.includes("/participants")) {
         const page = Number(new URL(url, "http://localhost").searchParams.get("page") ?? 0);
         return json({

@@ -28,6 +28,7 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { ViewModeToggle, type ViewMode } from "../../components/ui/ViewModeToggle";
+import { SelectorMatchingSection } from "./SelectorMatchingSection";
 import { assetUrl } from "../../lib/assetUrl";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import {
@@ -982,6 +983,8 @@ export function CampaignDetailPage({
                 </div>
               ) : null}
             </section>
+
+            <SelectorMatchingSection campaign={campaign} />
           </div>
         ) : (
           <EmptyState
