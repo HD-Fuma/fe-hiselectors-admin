@@ -3,7 +3,7 @@ import {
   getDemoSettlementSummary,
   type SettlementEstimate,
 } from "../../entities/settlement";
-import { renderRoute } from "../../test/renderRoute";
+import { getTaskRunPanelApiMock, renderRoute } from "../../test/renderRoute";
 
 const SETTLEMENTS = [
   {
@@ -161,6 +161,23 @@ function pageResponse({
   }), {
     headers: { "Content-Type": "application/json" },
     status: 200,
+  });
+}
+
+function recalculationResponse() {
+  return new Response(JSON.stringify({
+    code: "OK",
+    data: {
+      runId: "settlement-recalculation-1",
+      status: "QUEUED",
+      taskType: "SETTLEMENT_CALCULATION",
+      triggerType: "ADMIN_TRIGGERED",
+    },
+    message: null,
+    success: true,
+  }), {
+    headers: { "Content-Type": "application/json" },
+    status: 202,
   });
 }
 
@@ -326,6 +343,10 @@ beforeEach(() => {
     role: "ADMIN",
     tokenType: "Bearer",
   }));
+  getTaskRunPanelApiMock().getTaskRun.mockClear().mockResolvedValue({
+    runId: "settlement-recalculation-1",
+    status: "SUCCEEDED",
+  });
 });
 
 afterEach(() => {
@@ -488,6 +509,54 @@ test("requests and renders the current-month settlement page", async () => {
   fireEvent.click(screen.getByRole("button", { name: "상세 패널 닫기" }));
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "셀렉터스 정산 상세" }))
     .not.toBeInTheDocument());
+});
+
+test("recalculates all settlements from the status tabs and reloads the page", async () => {
+  const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = new URL(String(input));
+    if (
+      url.pathname === "/api/admin/settlements/estimates/recalculate"
+      && init?.method === "POST"
+    ) {
+      return Promise.resolve(recalculationResponse());
+    }
+    return Promise.resolve(settlementFetchResponse(input));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+
+  renderRoute("/settlements");
+
+  const statusFilter = await screen.findByRole("navigation", { name: "지급 상태" });
+  await within(screen.getByRole("region", { name: "정산 지급 목록" })).findByText("SEL-0007");
+  const refreshButton = within(statusFilter).getByRole("button", {
+    name: "전체 정산 내역 새로고침",
+  });
+  expect(refreshButton).toHaveClass("fuma-content-inspection-refresh-button");
+
+  fireEvent.click(refreshButton);
+
+  await waitFor(() => expect(getTaskRunPanelApiMock().getTaskRun).toHaveBeenCalledWith(
+    "settlement-recalculation-1",
+    expect.any(AbortSignal),
+  ));
+  await waitFor(() => expect(fetchMock.mock.calls.filter(([input]) => (
+    new URL(String(input)).pathname === "/api/admin/settlements/estimates"
+  ))).toHaveLength(2));
+  expect(refreshButton).toBeEnabled();
+
+  const recalculationCall = fetchMock.mock.calls.find(([input]) => (
+    new URL(String(input)).pathname === "/api/admin/settlements/estimates/recalculate"
+  ));
+  expect(recalculationCall).toBeDefined();
+  if (!recalculationCall) return;
+  const [input, init] = recalculationCall;
+  const url = new URL(String(input));
+  expect(url.search).toBe("");
+  expect(init).toEqual(expect.objectContaining({ method: "POST" }));
+  const headers = new Headers((init as RequestInit).headers);
+  expect(headers.get("Authorization")).toBe("Bearer admin.jwt");
+  expect(headers.get("Idempotency-Key")).toMatch(/^[0-9a-f-]{36}$/);
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
 test("fills only missing previous months while keeping current real data", async () => {

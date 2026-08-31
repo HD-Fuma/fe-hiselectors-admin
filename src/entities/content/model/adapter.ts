@@ -354,6 +354,7 @@ export function adaptContentInspection(content: CollectedContent): ContentInspec
       label: contentFormat,
       mediaCount: media.length,
       mediaKinds: media.map(({ mediaType }) => mediaType === "VIDEO" ? "동영상" : "이미지"),
+      mediaThumbnailUrls: media.map(({ thumbnailUrl }) => thumbnailUrl ?? ""),
       mediaUrls: media.map(({ mediaUrl }) => mediaUrl ?? ""),
       text: texts.join("\n"),
       urls: content.contentUrl ? [content.contentUrl] : [],

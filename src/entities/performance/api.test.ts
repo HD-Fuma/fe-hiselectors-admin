@@ -14,7 +14,13 @@ const API_ITEM: ContentPerformanceApiItem = {
   followerCount: 12000,
   generationName: "1기",
   likeCount: 30,
-  media: [{ mediaType: "VIDEO", mediaUrl: "https://cdn.example.com/10.jpg", sequenceNo: 0, snsMediaId: "10" }],
+  media: [{
+    mediaType: "VIDEO",
+    mediaUrl: "https://cdn.example.com/10.mp4",
+    sequenceNo: 0,
+    snsMediaId: "10",
+    thumbnailUrl: "https://cdn.example.com/10.jpg",
+  }],
   profileImageUrl: "https://cdn.example.com/profile.jpg",
   publishedAt: "2026-08-18T09:00:00",
   selectorsId: 11,
@@ -74,6 +80,8 @@ test("adapts API metrics, media, author and trend for the dashboard", () => {
     contentFormat: "인스타 릴스",
     followers: 12000,
     likes: 30,
+    mediaType: "VIDEO",
+    mediaUrl: "https://cdn.example.com/10.mp4",
     publishedAt: "2026-08-18",
     thumbnailUrl: "https://cdn.example.com/10.jpg",
     title: "콘텐츠 제목",
@@ -96,6 +104,39 @@ test("uses the YouTube media id when the API has no thumbnail URL", () => {
 
   expect(content.thumbnailUrl)
     .toBe("https://i.ytimg.com/vi/youtube-video-10/hqdefault.jpg");
+  expect(content.mediaUrl).toBeNull();
+});
+
+test("uses the image thumbnail URL and falls back to its media URL", () => {
+  const thumbnailContent = adaptContentPerformance({
+    ...API_ITEM,
+    contentType: "FEED",
+    media: [{
+      mediaType: "IMAGE",
+      mediaUrl: "https://cdn.example.com/image-original.jpg",
+      sequenceNo: 0,
+      snsMediaId: "image-10",
+      thumbnailUrl: "https://cdn.example.com/image-thumbnail.jpg",
+    }],
+  });
+  const legacyContent = adaptContentPerformance({
+    ...API_ITEM,
+    contentType: "FEED",
+    media: [{
+      mediaType: "IMAGE",
+      mediaUrl: "https://cdn.example.com/image-original.jpg",
+      sequenceNo: 0,
+      snsMediaId: "image-10",
+      thumbnailUrl: null,
+    }],
+  });
+
+  expect(thumbnailContent).toMatchObject({
+    mediaType: "IMAGE",
+    mediaUrl: null,
+    thumbnailUrl: "https://cdn.example.com/image-thumbnail.jpg",
+  });
+  expect(legacyContent.thumbnailUrl).toBe("https://cdn.example.com/image-original.jpg");
 });
 
 test("loads upload and content format summary", async () => {

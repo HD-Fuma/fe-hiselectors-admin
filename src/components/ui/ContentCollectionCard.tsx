@@ -12,6 +12,7 @@ interface ContentCollectionCardBaseProps {
   mediaCount?: number;
   mediaFallbackUrl?: string;
   mediaOverlay?: ReactNode;
+  mediaType?: "IMAGE" | "VIDEO";
   mediaUrl?: string;
   showPlay?: boolean;
   status?: ReactNode;
@@ -46,6 +47,7 @@ export function ContentCollectionCard(props: ContentCollectionCardProps) {
     mediaCount = 1,
     mediaFallbackUrl,
     mediaOverlay,
+    mediaType = "IMAGE",
     mediaUrl,
     showPlay = false,
     status,
@@ -64,7 +66,15 @@ export function ContentCollectionCard(props: ContentCollectionCardProps) {
       )}
       {status}
       <div className="fuma-content-collection__media">
-        {mediaUrl ? (
+        {mediaUrl && mediaType === "VIDEO" ? (
+          <video
+            aria-label={mediaAlt}
+            muted
+            playsInline
+            preload="metadata"
+            src={assetUrl(mediaUrl)}
+          />
+        ) : mediaUrl ? (
           <img
             alt={mediaAlt}
             onError={mediaFallbackUrl ? (event) => {

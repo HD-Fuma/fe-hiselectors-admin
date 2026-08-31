@@ -193,6 +193,61 @@ export interface SettlementSelectorDetail {
   settlementSummary: SettlementSummary;
 }
 
+export type PurchaseHistoryStatus =
+  | "PURCHASED"
+  | "PURCHASE_CONFIRMED"
+  | "CANCEL_REQUESTED"
+  | "RETURN_REQUESTED"
+  | "CANCELED"
+  | "RETURNED";
+
+export interface SettlementPurchaseHistory {
+  confirmedAt: string | null;
+  orderNo: string;
+  paidAmount: number;
+  productCode: string;
+  purchaseHistoryId: number;
+  purchasedAt: string;
+  quantity: number;
+  selectorsCode: string;
+  selectorsId: number;
+  selectorsNickname: string;
+  status: PurchaseHistoryStatus;
+  userHiId: string;
+  userId: number;
+}
+
+export interface SettlementPurchaseHistoryRequest {
+  allMonths: boolean;
+  month?: string;
+  page: number;
+  selectorsId?: number;
+  size: number;
+}
+
+const PURCHASE_HISTORY_STATUS_LABELS: Record<PurchaseHistoryStatus, string> = {
+  CANCELED: "취소 완료",
+  CANCEL_REQUESTED: "취소 요청",
+  PURCHASED: "구매 완료",
+  PURCHASE_CONFIRMED: "구매 확정",
+  RETURNED: "반품 완료",
+  RETURN_REQUESTED: "반품 요청",
+};
+
+export function purchaseHistoryStatusLabel(status: PurchaseHistoryStatus) {
+  return PURCHASE_HISTORY_STATUS_LABELS[status] ?? status;
+}
+
+export function purchaseHistoryStatusTone(
+  status: PurchaseHistoryStatus,
+): SettlementStatusTone {
+  if (status === "PURCHASE_CONFIRMED") return "approved";
+  if (status === "PURCHASED"
+    || status === "CANCEL_REQUESTED"
+    || status === "RETURN_REQUESTED") return "pending";
+  return "rejected";
+}
+
 /** @deprecated 셀렉터스 상세 화면의 기존 정산 이력 fixture 전용 모델입니다. */
 export type SettlementPaymentStatus = "대기" | "확정" | "지급 완료";
 
