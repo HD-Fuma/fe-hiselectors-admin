@@ -962,7 +962,7 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(
 .fuma-content-performance-detail__source-header h3 { margin: 0; }
 .fuma-content-performance-detail__overview { display: grid; grid-template-columns: minmax(180px, 240px) minmax(0, 1fr); align-items: start; gap: var(--hsas-space-18); }
 .fuma-content-performance-detail__media { display: grid; width: 100%; aspect-ratio: 4 / 5; place-items: center; overflow: hidden; border-radius: 8px; color: #d3dbd7; background: #111714; }
-.fuma-content-performance-detail__media > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.fuma-content-performance-detail__media > :is(img, video) { display: block; width: 100%; height: 100%; object-fit: contain; }
 .fuma-content-performance-detail__media > span { display: grid; place-items: center; gap: var(--hsas-space-6); color: #a9b4af; font-size: var(--hsas-font-13); }
 .fuma-content-performance-detail__copy { min-width: 0; }
 .fuma-content-performance-detail__badges { display: flex; flex-wrap: wrap; gap: var(--hsas-space-6); margin-bottom: var(--hsas-space-10); }
@@ -1000,7 +1000,8 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(
   min-width: 0;
 }
 
-.fuma-content-reaction-table__content > img {
+.fuma-content-reaction-table__content > :is(img, video) {
+  display: block;
   width: 52px;
   height: 52px;
   flex: 0 0 52px;

@@ -21,6 +21,30 @@
   --hsas-text-muted: color-mix(in srgb, var(--hsas-color-black) 48%, var(--hsas-color-white));
 }
 
+.fuma-settlement-refresh-feedback {
+  margin: var(--hsas-space-8) 0 0;
+  color: var(--hsas-color-danger);
+  font-size: var(--hsas-font-12);
+}
+
+.fuma-order-detail-search .hsas-search-panel__fields {
+  grid-template-columns: minmax(180px, 0.8fr) minmax(210px, 1fr) minmax(170px, 0.7fr);
+}
+
+.fuma-order-detail-search .fuma-filter-field,
+.fuma-order-detail-search .fuma-filter-field:nth-child(2) {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--hsas-space-8);
+}
+
+.fuma-order-detail-list {
+  min-width: 0;
+}
+
+.fuma-order-detail-list .hsas-dense-table {
+  min-width: 1370px;
+}
+
 .fuma-settlement-dashboard {
   overflow: hidden;
   border: 1px solid var(--hsas-color-line-300);

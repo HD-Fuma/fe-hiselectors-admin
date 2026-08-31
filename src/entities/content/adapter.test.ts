@@ -65,6 +65,7 @@ test("adapts collected backend content without inventing analysis or violation r
         mediaUrl: "https://cdn.example.com/image.jpg",
         sequenceNo: 3,
         snsMediaId: "image-42",
+        thumbnailUrl: "https://cdn.example.com/image-thumbnail.jpg",
       },
       {
         mediaType: "VIDEO",
@@ -105,6 +106,7 @@ test("adapts collected backend content without inventing analysis or violation r
   expect(inspection.currentSnapshot).toMatchObject({
     capturedAt: "2026-08-18T10:05:00",
     mediaKinds: ["동영상", "이미지"],
+    mediaThumbnailUrls: ["", "https://cdn.example.com/image-thumbnail.jpg"],
     mediaUrls: ["", "https://cdn.example.com/image.jpg"],
     text: "YouTube 제목\n영상 본문",
     youtubeVideoId: "video-42",

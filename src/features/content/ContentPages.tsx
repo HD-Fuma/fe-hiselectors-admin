@@ -390,11 +390,15 @@ function CollectionCard({
   onSelect: (content: ContentInspectionFixture) => void;
 }) {
   const snapshot = content.currentSnapshot;
-  const mainMedia = snapshot.mediaUrls.find(Boolean)
-    ?? (snapshot.youtubeVideoId
-      ? `https://i.ytimg.com/vi/${encodeURIComponent(snapshot.youtubeVideoId)}/hqdefault.jpg`
-      : undefined);
   const hasVideo = snapshot.mediaKinds[0] === "동영상";
+  const primaryMediaUrl = snapshot.mediaUrls[0] || undefined;
+  const youtubeThumbnailUrl = snapshot.youtubeVideoId
+    ? `https://i.ytimg.com/vi/${encodeURIComponent(snapshot.youtubeVideoId)}/hqdefault.jpg`
+    : undefined;
+  const mainMedia = hasVideo
+    ? primaryMediaUrl ?? youtubeThumbnailUrl
+    : snapshot.mediaThumbnailUrls?.[0] || primaryMediaUrl;
+  const mediaType = hasVideo && primaryMediaUrl ? "VIDEO" : "IMAGE";
 
   return (
     <button
@@ -419,6 +423,7 @@ function CollectionCard({
         footerStart={content.submittedAt.slice(0, 10)}
         mediaAlt={`${content.contentTitle} 썸네일`}
         mediaCount={snapshot.mediaCount}
+        mediaType={mediaType}
         mediaUrl={mainMedia}
         platform={contentPlatform(content.sourcePlatform)}
         profileImageUrl={content.profileImageUrl ?? ""}

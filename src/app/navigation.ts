@@ -67,6 +67,11 @@ const SettlementManagementPage = lazyPage(() =>
     (module) => module.SettlementManagementPage,
   ),
 );
+const SettlementOrderDetailPage = lazyPage(() =>
+  import("../features/settlements/SettlementOrderDetailPage").then(
+    (module) => module.SettlementOrderDetailPage,
+  ),
+);
 const NotificationHistoryPage = lazyPage(() =>
   import("../features/notifications/NotificationPages").then(
     (module) => module.NotificationHistoryPage,
@@ -281,6 +286,16 @@ export const ADMIN_ROUTE_MANIFEST = [
     title: "정산 관리",
     screenCode: "ST101",
     workTabLabel: "정산 관리",
+  },
+  {
+    path: "/settlements/orders",
+    Component: SettlementOrderDetailPage,
+    group: "performance",
+    menuLabel: "주문 상세",
+    menuOrder: 3,
+    title: "주문 상세",
+    screenCode: "ST102",
+    workTabLabel: "주문 상세",
   },
   {
     path: "/notifications",

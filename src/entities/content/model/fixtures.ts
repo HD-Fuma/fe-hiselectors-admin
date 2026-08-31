@@ -66,6 +66,7 @@ export interface ContentSnapshot {
   mediaCount: number;
   mediaKinds: string[];
   mediaUrls: string[];
+  mediaThumbnailUrls?: string[];
   contentMediaIds?: number[];
   youtubeVideoId?: string;
   capturedAt: string;
