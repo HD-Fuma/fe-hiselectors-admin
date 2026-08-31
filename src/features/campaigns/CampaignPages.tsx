@@ -626,6 +626,8 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
         </div>
       </section>
 
+      {products.length > 0 ? <SelectorMatchingSection products={products} /> : null}
+
       {isProductModalOpen ? (
         <ProductSearchModal
           currentProducts={products}
@@ -984,7 +986,7 @@ export function CampaignDetailPage({
               ) : null}
             </section>
 
-            <SelectorMatchingSection campaign={campaign} />
+            <SelectorMatchingSection campaignId={campaign.id} products={campaign.products} />
           </div>
         ) : (
           <EmptyState

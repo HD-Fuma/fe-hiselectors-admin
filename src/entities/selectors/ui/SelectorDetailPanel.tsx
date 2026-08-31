@@ -794,9 +794,10 @@ function SelectorBreakdownCharts({
               label: product.productName || `상품 ${product.productId}`,
               value: product.confirmedSales,
             }))}
+            formatDetailValue={formatWon}
             formatValue={breakdownWon}
             name="확정 매출"
-            showValueLabels={false}
+            valueLabel="hover"
           />
         ) : <p className="fuma-selector-breakdown__empty">집계된 상품이 없습니다.</p>}
       </div>
@@ -810,9 +811,10 @@ function SelectorBreakdownCharts({
               label: campaign.title || `캠페인 ${campaign.campaignId}`,
               value: campaign.confirmedSales,
             }))}
+            formatDetailValue={formatWon}
             formatValue={breakdownWon}
             name="확정 매출"
-            showValueLabels={false}
+            valueLabel="hover"
           />
         ) : <p className="fuma-selector-breakdown__empty">집계된 캠페인이 없습니다.</p>}
       </div>

@@ -303,6 +303,7 @@ describe("campaign filter behavior", () => {
   test("keeps the final deletion staged after deleting, selecting, and deleting again", async () => {
     vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
+      if (url.includes("/api/admin/selector-matching")) return json([]);
       if (url.includes("/api/admin/products")) {
         return json({ content: campaign.products, number: 0, size: 20, totalElements: 1, totalPages: 1 });
       }
@@ -357,6 +358,7 @@ describe("campaign filter behavior", () => {
   test("replaces an existing thumbnail and releases local previews in order", async () => {
     vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
+      if (url.includes("/api/admin/selector-matching")) return json([]);
       if (url.includes("/api/admin/uploads/campaign-thumbnails")) {
         return json({ url: "https://media.example.com/campaigns/replacement.webp" }, 201);
       }
@@ -406,6 +408,7 @@ describe("campaign filter behavior", () => {
   test("discards a staged thumbnail deletion when editing is canceled", async () => {
     vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
       const url = String(input);
+      if (url.includes("/api/admin/selector-matching")) return json([]);
       if (url.includes("/api/admin/products")) {
         return json({ content: campaign.products, number: 0, size: 20, totalElements: 1, totalPages: 1 });
       }

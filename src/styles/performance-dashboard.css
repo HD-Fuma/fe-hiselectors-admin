@@ -871,15 +871,25 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(
 .fuma-content-cohort-chart > p { margin: var(--hsas-space-24) 0; color: #8b9691; font-size: var(--hsas-font-13); text-align: center; }
 
 .fuma-content-upload-status__formats .fuma-analysis-format-breakdown {
-  grid-template-columns: 150px minmax(0, 1fr);
-  gap: var(--hsas-space-16);
-  margin-top: var(--hsas-space-10);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--hsas-space-14);
+  margin-top: var(--hsas-space-12);
   min-width: 0;
 }
 
+/* 지시선이 원 밖으로 나가므로 원형 클리핑을 푼다. */
 .fuma-content-upload-status__formats .fuma-analysis-format-breakdown__donut {
-  width: 150px;
-  max-width: 150px;
+  width: 100%;
+  max-width: none;
+  height: 300px;
+  aspect-ratio: auto;
+  overflow: visible;
+  border-radius: 0;
+}
+
+.fuma-content-upload-status__formats .fuma-analysis-format-breakdown__legend {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--hsas-space-14);
 }
 
 .fuma-content-upload-status__formats .fuma-analysis-format-breakdown__legend {

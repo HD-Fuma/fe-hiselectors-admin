@@ -14,18 +14,22 @@ interface CategoryBarChartProps {
   formatValue?: (value: number) => string;
   height?: number;
   name?: string;
-  /** 막대 위 값 표시를 끈다. 값은 tooltip으로 확인한다. */
-  showValueLabels?: boolean;
+  /** 축 라벨과 달리 값을 그대로 보여 줄 형식. tooltip과 hover 라벨에 쓴다. */
+  formatDetailValue?: (value: number) => string;
+  /** "hover"면 막대 위 값을 마우스를 올렸을 때만 보여 준다. */
+  valueLabel?: "always" | "hover";
 }
 
 export function CategoryBarChart({
   ariaLabel,
   bars,
+  formatDetailValue,
   formatValue = (value) => value.toLocaleString("ko-KR"),
   height = 200,
   name = "인원",
-  showValueLabels = true,
+  valueLabel = "always",
 }: CategoryBarChartProps) {
+  const formatDetail = formatDetailValue ?? formatValue;
   const option = useMemo<EChartsOption>(() => ({
     animation: false,
     grid: {
@@ -44,7 +48,7 @@ export function CategoryBarChart({
           name?: string;
           value?: unknown;
         };
-        return `${item.name}<br/>${name} ${formatValue(Number(item.value ?? 0))}`;
+        return `${item.name}<br/>${name} ${formatDetail(Number(item.value ?? 0))}`;
       },
     },
     xAxis: {
@@ -90,17 +94,27 @@ export function CategoryBarChart({
           },
         })),
         label: {
-          show: showValueLabels,
+          show: valueLabel === "always",
           position: "top" as const,
           color: "#65716c",
           fontSize: 12,
           fontWeight: 700,
           formatter: ({ value }: { value: unknown }) => formatValue(Number(value ?? 0)),
         },
-        emphasis: { focus: "series" as const },
+        emphasis: {
+          focus: "series" as const,
+          label: {
+            show: true,
+            position: "top" as const,
+            color: "#34423d",
+            fontSize: 12,
+            fontWeight: 700,
+            formatter: ({ value }: { value: unknown }) => formatDetail(Number(value ?? 0)),
+          },
+        },
       },
     ],
-  }), [bars, formatValue, name, showValueLabels]);
+  }), [bars, formatDetail, formatValue, name, valueLabel]);
 
   return (
     <div

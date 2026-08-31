@@ -4,8 +4,9 @@ import { CreatorProfilePhoto } from "../../components/ui/CreatorProfilePhoto";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { FormRow } from "../../components/ui/FormRow";
 import { Modal } from "../../components/ui/Modal";
+import { Pagination } from "../../components/ui/Pagination";
 import { StatusPill } from "../../components/ui/StatusPill";
-import type { Campaign } from "../../entities/campaign";
+import type { CampaignProduct } from "../../entities/campaign";
 import {
   getSelectorMatching,
   sendSelectorProposals,
@@ -13,7 +14,8 @@ import {
 } from "../../entities/selectors";
 import { formatNumber, formatWon } from "../../lib/formatters";
 
-const MATCHING_LIMIT = 20;
+const MATCHING_LIMIT = 50;
+const MATCHING_PAGE_SIZE = 10;
 const DEFAULT_SUBJECT = "[더현대Hi 셀렉터스] 새 기획전에 함께할 셀렉터스를 찾고 있어요";
 const DEFAULT_BODY = `안녕하세요, \${recipientName}님.
 더현대Hi 셀렉터스 운영팀입니다.
@@ -91,10 +93,19 @@ function matchColumns(
   ];
 }
 
-/** 캠페인·상품에 맞는 셀렉터스를 추천하고, 선택한 대상에게 제안 메일을 보낸다. */
-export function SelectorMatchingSection({ campaign }: { campaign: Campaign }) {
-  const [open, setOpen] = useState(false);
+/**
+ * 캠페인·상품에 맞는 셀렉터스를 추천하고, 선택한 대상에게 제안 메일을 보낸다.
+ * 저장 전 캠페인 등록 화면에서는 campaignId가 없어 선택한 상품 기준으로 추천한다.
+ */
+export function SelectorMatchingSection({
+  campaignId,
+  products,
+}: {
+  campaignId?: number;
+  products: readonly CampaignProduct[];
+}) {
   const [target, setTarget] = useState("campaign");
+  const [page, setPage] = useState(1);
   const [matches, setMatches] = useState<SelectorMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -108,21 +119,36 @@ export function SelectorMatchingSection({ campaign }: { campaign: Campaign }) {
   // 재시도해도 중복 발송되지 않도록 발송 시도마다 같은 키를 유지한다.
   const idempotencyKey = useRef(crypto.randomUUID());
 
+  const targetOptions = [
+    ...(campaignId === undefined
+      ? []
+      : [{ label: "캠페인 전체 상품 기준", value: "campaign" }]),
+    ...products.map((product) => ({
+      label: product.productName || `상품 ${product.id}`,
+      value: String(product.id),
+    })),
+  ];
+  // 상품 선택이 바뀌어 사라진 대상을 고르고 있으면 첫 대상으로 되돌린다.
+  const activeTarget = targetOptions.some((option) => option.value === target)
+    ? target
+    : targetOptions[0]?.value ?? "";
+
   const changeTarget = (value: string) => {
     setTarget(value);
+    setPage(1);
     setLoading(true);
     setError("");
     setSelected(new Set());
   };
 
   useEffect(() => {
-    if (!open) return;
+    if (!activeTarget) return;
 
     const controller = new AbortController();
-    const productId = target === "campaign" ? undefined : Number(target);
+    const productId = activeTarget === "campaign" ? undefined : Number(activeTarget);
     void getSelectorMatching(
       {
-        campaignId: productId === undefined ? campaign.id : undefined,
+        campaignId: productId === undefined ? campaignId : undefined,
         limit: MATCHING_LIMIT,
         productId,
       },
@@ -142,7 +168,7 @@ export function SelectorMatchingSection({ campaign }: { campaign: Campaign }) {
       });
 
     return () => controller.abort();
-  }, [campaign.id, open, target]);
+  }, [activeTarget, campaignId]);
 
   const toggle = (selectorId: number) => {
     setSelected((current) => {
@@ -152,10 +178,13 @@ export function SelectorMatchingSection({ campaign }: { campaign: Campaign }) {
     });
   };
 
+  const visibleMatches = error ? [] : matches;
+  const totalPages = Math.max(1, Math.ceil(visibleMatches.length / MATCHING_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const allSelected = visibleMatches.length > 0 && selected.size === visibleMatches.length;
+
   const toggleAll = () => {
-    setSelected((current) => (
-      current.size === matches.length ? new Set() : new Set(matches.map((match) => match.selectorId))
-    ));
+    setSelected(allSelected ? new Set() : new Set(visibleMatches.map((match) => match.selectorId)));
   };
 
   const send = async () => {
@@ -186,30 +215,19 @@ export function SelectorMatchingSection({ campaign }: { campaign: Campaign }) {
     <section aria-labelledby="campaign-matching-title" className="fuma-campaign-detail-list-section">
       <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar">
         <strong id="campaign-matching-title">연관 셀렉터스</strong>
-        <div className="fuma-settlement-result-meta fuma-selector-matching__toolbar">
-          <Button aria-expanded={open} onClick={() => setOpen(!open)}>
-            {open ? "접기" : "연관 셀렉터스 보기"}
-          </Button>
+        <div className="fuma-settlement-result-meta">
+          <span>총 {visibleMatches.length}명</span>
         </div>
       </div>
-      {!open ? null : (
-      <>
       <div className="fuma-selector-matching__toolbar">
         <Select
           aria-label="추천 기준"
           onChange={(event) => changeTarget(event.target.value)}
-          options={[
-            { label: "캠페인 전체 상품 기준", value: "campaign" },
-            ...campaign.products.map((product) => ({
-              label: product.productName || `상품 ${product.id}`,
-              value: String(product.id),
-            })),
-          ]}
-          value={target}
+          options={targetOptions}
+          value={activeTarget}
         />
-        <span>총 {matches.length}명</span>
-        <Button disabled={matches.length === 0} onClick={toggleAll}>
-          {selected.size === matches.length && matches.length > 0 ? "선택 해제" : "전체 선택"}
+        <Button disabled={visibleMatches.length === 0} onClick={toggleAll}>
+          {allSelected ? "선택 해제" : "전체 선택"}
         </Button>
         <Button
           disabled={selected.size === 0}
@@ -228,11 +246,17 @@ export function SelectorMatchingSection({ campaign }: { campaign: Campaign }) {
           columns={matchColumns(selected, toggle)}
           emptyMessage={loading ? "추천 셀렉터스를 불러오는 중입니다." : "추천할 셀렉터스가 없습니다."}
           rowKey={(match) => match.selectorId}
-          rows={error ? [] : matches}
+          rows={visibleMatches.slice((currentPage - 1) * MATCHING_PAGE_SIZE, currentPage * MATCHING_PAGE_SIZE)}
         />
       </div>
-      </>
-      )}
+      {totalPages > 1 ? (
+        <Pagination
+          onPageChange={setPage}
+          page={currentPage}
+          pageSize={MATCHING_PAGE_SIZE}
+          totalPages={totalPages}
+        />
+      ) : null}
 
       {composeOpen ? (
         <Modal

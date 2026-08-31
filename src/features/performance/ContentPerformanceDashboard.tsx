@@ -482,6 +482,7 @@ function ContentOverview({
           <AnalysisFormatBreakdown
             animated
             segments={formatSegments}
+            showSegmentLabels
             showTotal={false}
             total={uploadSummary?.totalContentCount ?? 0}
           />

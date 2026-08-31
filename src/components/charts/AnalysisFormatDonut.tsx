@@ -13,6 +13,8 @@ export interface AnalysisFormatSegment {
 export interface AnalysisFormatDonutProps {
   animated?: boolean;
   segments: readonly AnalysisFormatSegment[];
+  /** 조각마다 지시선을 뽑아 형식 이름과 비율을 적는다. 도넛에 여백이 있을 때만 켠다. */
+  showSegmentLabels?: boolean;
   showTotal?: boolean;
   total: number | null;
   totalLabel?: string;
@@ -21,6 +23,7 @@ export interface AnalysisFormatDonutProps {
 export function AnalysisFormatDonut({
   animated = false,
   segments,
+  showSegmentLabels = false,
   showTotal = true,
   total,
   totalLabel = "전체 콘텐츠",
@@ -47,12 +50,23 @@ export function AnalysisFormatDonut({
     series: [
       {
         type: "pie",
-        radius: ["62%", "86%"],
+        radius: showSegmentLabels ? ["44%", "62%"] : ["62%", "86%"],
         center: ["50%", "50%"],
         startAngle: 90,
         silent: false,
-        label: { show: false },
-        labelLine: { show: false },
+        label: showSegmentLabels
+          ? {
+            show: true,
+            color: "#4b5752",
+            fontSize: 12,
+            fontWeight: 700,
+            formatter: "{b}\n{d}%",
+            lineHeight: 16,
+          }
+          : { show: false },
+        labelLine: showSegmentLabels
+          ? { show: true, length: 12, length2: 12, lineStyle: { color: "#c6d0cc" } }
+          : { show: false },
         emphasis: {
           scale: false,
         },
@@ -66,7 +80,7 @@ export function AnalysisFormatDonut({
         })),
       },
     ],
-  }), [animated, segments]);
+  }), [animated, segments, showSegmentLabels]);
 
   return (
     <div
