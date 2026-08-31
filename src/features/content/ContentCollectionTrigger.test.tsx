@@ -109,10 +109,10 @@ test("requests one content collection run with idempotency and hides the accepte
     { timeout: 3_000 },
   );
   const categoryTabs = await screen.findByRole("navigation", { name: "콘텐츠 처리 구분" });
-  expect(within(categoryTabs).getByRole("button", { name: "신규" })).toHaveAttribute("aria-pressed", "true");
+  expect(within(categoryTabs).getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
+  expect(within(categoryTabs).getByRole("button", { name: "신규" })).toBeInTheDocument();
   expect(within(categoryTabs).getByRole("button", { name: "수정" })).toBeInTheDocument();
   expect(within(categoryTabs).getByRole("button", { name: "검수완료" })).toBeInTheDocument();
-  expect(within(categoryTabs).queryByRole("button", { name: "전체" })).not.toBeInTheDocument();
   expect(within(categoryTabs).queryByRole("button", { name: "위반 확정" })).not.toBeInTheDocument();
   expect(screen.queryByRole("checkbox", { name: "위반 항목만" })).not.toBeInTheDocument();
   const refreshButton = within(categoryTabs).getByRole("button", { name: "콘텐츠 새로고침" });
@@ -170,6 +170,44 @@ test("requests a scoped content collection run when fast mode is enabled", async
   const request = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
   expect(request).toBeDefined();
   expect(new URL(String(request?.[0])).searchParams.get("fastMode")).toBe("true");
+});
+
+test("shows every collected content on the all tab from the existing list API", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(contentsResponse([
+    contentItem(1, "신규 콘텐츠"),
+    {
+      ...contentItem(2, "수정 콘텐츠"),
+      latestVersionNo: 2,
+    },
+    {
+      ...contentItem(3, "승인된 콘텐츠"),
+      inspectedAt: "2026-08-18T11:00:00",
+      inspectionStatus: "APPROVED",
+    },
+  ]));
+  vi.stubGlobal("fetch", fetchMock);
+
+  const { router } = renderRoute("/content/inspections");
+  const categoryTabs = await screen.findByRole("navigation", { name: "콘텐츠 처리 구분" });
+
+  expect(await screen.findByRole("button", { name: /신규 콘텐츠 검수 시작/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /수정 콘텐츠 검수 시작/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /승인된 콘텐츠 검수 시작/ })).toBeInTheDocument();
+  expect(within(categoryTabs).getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
+  expect(new URLSearchParams(router.state.location.search).get("category")).toBeNull();
+  expect(screen.getByText("총 3건")).toBeInTheDocument();
+
+  fireEvent.click(within(categoryTabs).getByRole("button", { name: "신규" }));
+
+  expect(within(categoryTabs).getByRole("button", { name: "신규" })).toHaveAttribute("aria-pressed", "true");
+  expect(new URLSearchParams(router.state.location.search).get("category")).toBe("신규");
+  expect(screen.getByRole("button", { name: /신규 콘텐츠 검수 시작/ })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /수정 콘텐츠 검수 시작/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /승인된 콘텐츠 검수 시작/ })).not.toBeInTheDocument();
+  expect(screen.getByText("총 1건")).toBeInTheDocument();
+  expect(fetchMock.mock.calls.filter(([input]) => (
+    new URL(String(input)).pathname === "/api/admin/contents"
+  ))).toHaveLength(1);
 });
 
 test("keeps backend-provided completed content without a local violation filter", async () => {

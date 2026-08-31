@@ -313,6 +313,10 @@ export function SelectorPerformanceDashboard({
           tone="discovery"
         />
       </div>
+      <p className="fuma-selector-dashboard__footnote">
+        등락은 기수 활동 시작일부터 선택한 집계 시작 전일까지의 매출 순위입니다. 이전 기간 매출이 없으면
+        NEW, 변동이 없으면 - 입니다. 클릭·발생 수수료·유형은 집계 API 연동 전 미리보기입니다.
+      </p>
     </section>
   );
 }

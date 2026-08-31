@@ -88,6 +88,7 @@ const STUDIO_CONTENT_SLIDE_ENTER_MS = 260;
 const STUDIO_HELP_TOOLTIP_DURATION_MS = 5_000;
 const STUDIO_HISTORY_HINT_DURATION_MS = 3_000;
 type ContentInspectionCategory =
+  | "전체"
   | "신규"
   | "수정"
   | "검수완료";
@@ -301,13 +302,14 @@ interface QueueFilterValues {
 }
 
 const CONTENT_INSPECTION_CATEGORIES: readonly ContentInspectionCategory[] = [
+  "전체",
   "신규",
   "수정",
   "검수완료",
 ];
-const DEFAULT_CONTENT_INSPECTION_CATEGORY: ContentInspectionCategory = "신규";
+const DEFAULT_CONTENT_INSPECTION_CATEGORY: ContentInspectionCategory = "전체";
 
-function contentInspectionCategory(content: ContentInspectionFixture): ContentInspectionCategory {
+function contentInspectionCategory(content: ContentInspectionFixture): Exclude<ContentInspectionCategory, "전체"> {
   if (content.inspectionStatus !== "검수 대기") return "검수완료";
   if (content.inspectionType !== "NEW") return "수정";
   return "신규";
@@ -674,7 +676,8 @@ export function ContentInspectionListPage() {
   };
   const normalizedKeyword = appliedFilters.keyword.trim().toLocaleLowerCase("ko-KR");
   const filteredContents = contents.filter((content) => {
-    const matchesCategory = contentInspectionCategory(content) === selectedCategory;
+    const matchesCategory = selectedCategory === "전체"
+      || contentInspectionCategory(content) === selectedCategory;
     const matchesKeyword = !normalizedKeyword || [
       content.id,
       content.contentTitle,

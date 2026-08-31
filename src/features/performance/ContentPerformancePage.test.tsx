@@ -93,6 +93,7 @@ test("content performance opens card and list details in a side panel", async ()
   expect(sort).toHaveValue("latest");
   await user.selectOptions(sort, "views");
   const highestViewContent = API_CONTENTS[0];
+  await user.click(within(results).getByRole("switch", { name: "보기 방식" }));
   await within(results).findByRole("button", { name: /API 최고 조회 콘텐츠 콘텐츠 상세 보기$/ });
   expect(within(results).getByText("릴스")).toHaveClass("fuma-content-performance-format", "is-reels");
   expect(within(results).getByText("피드")).toHaveClass("fuma-content-performance-format", "is-feed");

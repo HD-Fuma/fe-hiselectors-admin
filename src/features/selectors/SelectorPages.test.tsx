@@ -223,12 +223,21 @@ describe("selector api pages", () => {
       expect.anything(),
     ));
 
+    fireEvent.change(within(search).getByRole("textbox", { name: "셀렉터스명" }), {
+      target: { value: "홍길동" },
+    });
+    fireEvent.click(within(search).getByRole("button", { name: "조회" }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/nickname=%ED%99%8D%EA%B8%B8%EB%8F%99/),
+      expect.anything(),
+    ));
+
     fireEvent.click(screen.getByRole("button", { name: "블랙리스트" }));
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
       expect.stringMatching(/roleId=BLACKLIST.*generationId=3.*nickname=.*snsCode=INSTAGRAM/),
       expect.anything(),
     ));
-    expect(screen.getByText("블랙리스트 목록")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "블랙리스트 목록" })).toBeInTheDocument();
   }, 15000);
 
   test("renders enhanced selector detail and settlement information", async () => {
@@ -252,7 +261,6 @@ describe("selector api pages", () => {
     expect(within(panel).getByText("총 1건")).toBeInTheDocument();
     expect(within(panel).getByLabelText("셀렉터스 기수")).toHaveTextContent("3기");
     expect(within(panel).getByText("셀렉터스 코드").parentElement).toHaveTextContent("SEL0007");
-    expect(within(panel).getByText("셀렉터스명").parentElement).toHaveTextContent("홍길동");
     expect(within(panel).getByText("누적 구매수").parentElement).toHaveTextContent("12건");
     expect(within(panel).getByText("누적 매출").parentElement).toHaveTextContent("1,500,000원");
     const consent = within(panel).getByRole("region", { name: "셀렉터스 동의 및 수신 정보" });

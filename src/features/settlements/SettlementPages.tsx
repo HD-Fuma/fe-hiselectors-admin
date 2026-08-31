@@ -99,6 +99,14 @@ function formatSettlementRate(rate: number) {
   })}%`;
 }
 
+function commissionRateAxisRange(rates: readonly number[]) {
+  if (rates.length === 0) return { max: 1, min: 0 };
+  const min = Math.floor(Math.min(...rates));
+  const max = Math.ceil(Math.max(...rates));
+  if (min === max) return { max: min + 1, min };
+  return { max, min };
+}
+
 function formatSignedWon(amount: number) {
   return `${amount > 0 ? "+" : ""}${formatWon(amount)}`;
 }
@@ -242,7 +250,11 @@ function SettlementTrendChart({
 }: {
   monthlyTrend: readonly SettlementMonthlySummary[];
 }) {
-  const option = useMemo<EChartsOption>(() => ({
+  const option = useMemo<EChartsOption>(() => {
+    const rateAxis = commissionRateAxisRange(
+      monthlyTrend.map((month) => month.commissionToSalesRate),
+    );
+    return {
     animation: false,
     grid: {
       bottom: 34,
@@ -285,7 +297,9 @@ function SettlementTrendChart({
       },
       {
         type: "value",
-        min: 0,
+        min: rateAxis.min,
+        max: rateAxis.max,
+        minInterval: 1,
         name: "수수료율 (%)",
         nameTextStyle: { color: "#1e9d8b", fontSize: 12, fontWeight: 700 },
         axisLabel: {
@@ -325,7 +339,8 @@ function SettlementTrendChart({
         },
       },
     ],
-  }), [monthlyTrend]);
+    };
+  }, [monthlyTrend]);
   const accessibleSummary = monthlyTrend.map((month) => (
     `${month.activityMonth} 확정 매출 ${formatWon(month.confirmedSalesAmount)}, 수수료율 ${formatSettlementRate(month.commissionToSalesRate)}`
   )).join(". ");

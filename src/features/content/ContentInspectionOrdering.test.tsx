@@ -109,7 +109,7 @@ test("shows fetched contents newest first while keeping inspection start oldest 
   const visibleIds = within(list).getAllByRole("row").slice(1, 6).map((row) => (
     within(row).getAllByRole("cell")[0].textContent
   ));
-  expect(visibleIds).toEqual(["303", "202"]);
+  expect(visibleIds).toEqual(["303", "202", "101"]);
 
   fireEvent.click(screen.getByRole("button", { name: "검수 시작" }));
   await waitFor(() => {
