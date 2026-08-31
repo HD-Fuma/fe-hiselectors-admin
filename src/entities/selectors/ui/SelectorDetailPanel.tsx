@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { CategoryBarChart } from "../../../components/charts/CategoryBarChart";
 import { PlatformIcon } from "../../../components/social/PlatformIcon";
 import { CreatorProfilePhoto } from "../../../components/ui/CreatorProfilePhoto";
 import { DenseTable, type DenseTableColumn } from "../../../components/ui/DenseTable";
@@ -19,8 +20,23 @@ import type {
   SelectorContent,
   SelectorDetail,
   SelectorGeneration,
+  SelectorPerformanceBreakdown,
   SelectorSnsCode,
 } from "../api";
+
+const BREAKDOWN_COLORS = [
+  "var(--fuma-content-format-1)",
+  "var(--fuma-content-format-2)",
+  "var(--fuma-content-format-3)",
+  "var(--fuma-content-format-4)",
+  "var(--fuma-content-format-5)",
+] as const;
+const BREAKDOWN_TOP_COUNT = 5;
+
+/** 축과 tooltip이 길어지지 않도록 만 단위로 줄인 금액. */
+function breakdownWon(value: number) {
+  return `${formatCompactCount(value)}원`;
+}
 
 function selectorStatusTone(
   status: SelectorFixture["status"],
@@ -753,10 +769,65 @@ function SelectorDetailListSection({
   );
 }
 
+/** 상품별·캠페인별 확정 매출 막대. 어느 상품·캠페인에서 두각을 냈는지 본다. */
+function SelectorBreakdownCharts({
+  breakdown,
+}: {
+  breakdown: SelectorPerformanceBreakdown;
+}) {
+  const products = breakdown.products.slice(0, BREAKDOWN_TOP_COUNT);
+  const campaigns = breakdown.campaigns.slice(0, BREAKDOWN_TOP_COUNT);
+
+  if (products.length === 0 && campaigns.length === 0) {
+    return <p className="fuma-selector-breakdown__empty">확정 매출이 집계된 상품·캠페인이 없습니다.</p>;
+  }
+
+  return (
+    <div className="fuma-selector-breakdown">
+      <div className="fuma-selector-breakdown__chart">
+        <strong>상품별 확정 매출</strong>
+        {products.length > 0 ? (
+          <CategoryBarChart
+            ariaLabel="상품별 확정 매출"
+            bars={products.map((product, index) => ({
+              color: BREAKDOWN_COLORS[index % BREAKDOWN_COLORS.length],
+              label: product.productName || `상품 ${product.productId}`,
+              value: product.confirmedSales,
+            }))}
+            formatDetailValue={formatWon}
+            formatValue={breakdownWon}
+            name="확정 매출"
+            valueLabel="hover"
+          />
+        ) : <p className="fuma-selector-breakdown__empty">집계된 상품이 없습니다.</p>}
+      </div>
+      <div className="fuma-selector-breakdown__chart">
+        <strong>캠페인별 확정 매출</strong>
+        {campaigns.length > 0 ? (
+          <CategoryBarChart
+            ariaLabel="캠페인별 확정 매출"
+            bars={campaigns.map((campaign, index) => ({
+              color: BREAKDOWN_COLORS[index % BREAKDOWN_COLORS.length],
+              label: campaign.title || `캠페인 ${campaign.campaignId}`,
+              value: campaign.confirmedSales,
+            }))}
+            formatDetailValue={formatWon}
+            formatValue={breakdownWon}
+            name="확정 매출"
+            valueLabel="hover"
+          />
+        ) : <p className="fuma-selector-breakdown__empty">집계된 캠페인이 없습니다.</p>}
+      </div>
+    </div>
+  );
+}
+
 function SelectorApiDetailContent({
   contentView = "table",
   detail,
   hideSettlement = false,
+  performanceBreakdown,
+  performanceBreakdownError,
   settlementEmptyMessage,
   settlementOnly = false,
   settlementRows,
@@ -765,6 +836,8 @@ function SelectorApiDetailContent({
   contentView?: "table" | "gallery";
   detail: SelectorDetail;
   hideSettlement?: boolean;
+  performanceBreakdown?: SelectorPerformanceBreakdown | null;
+  performanceBreakdownError?: string;
   settlementEmptyMessage: ReactNode;
   settlementOnly?: boolean;
   settlementRows: SelectorSettlementTableRow[];
@@ -868,6 +941,18 @@ function SelectorApiDetailContent({
       </SelectorDetailListSection>
       )}
 
+      {settlementOnly || (performanceBreakdown === undefined && !performanceBreakdownError) ? null : (
+      <SelectorDetailListSection title="상품·캠페인 성과" titleId="selector-breakdown-title">
+        {performanceBreakdownError ? (
+          <p className="fuma-selector-breakdown__empty" role="alert">{performanceBreakdownError}</p>
+        ) : performanceBreakdown ? (
+          <SelectorBreakdownCharts breakdown={performanceBreakdown} />
+        ) : (
+          <p className="fuma-selector-breakdown__empty" role="status">상품·캠페인 성과를 불러오는 중입니다.</p>
+        )}
+      </SelectorDetailListSection>
+      )}
+
       {contentView === "gallery" && !settlementOnly ? (
         <SelectorDetailListSection title="콘텐츠 성과" titleId="selector-trend-title">
           <SelectorPerformancePanel detail={detail} />
@@ -962,6 +1047,8 @@ function SelectorApiDetailContent({
 export function SelectorDetailPanel({
   hideSettlement = false,
   onClose,
+  performanceBreakdown,
+  performanceBreakdownError = "",
   presentation = "side",
   selector,
   selectorDetail,
@@ -975,6 +1062,9 @@ export function SelectorDetailPanel({
   /** 정산 정보를 숨긴다(버블 뷰 모달처럼 정산이 필요 없는 곳). */
   hideSettlement?: boolean;
   onClose: () => void;
+  /** 넘기면 상품·캠페인 성과 섹션을 띄운다. null은 로딩 중. */
+  performanceBreakdown?: SelectorPerformanceBreakdown | null;
+  performanceBreakdownError?: string;
   /** 사이드 패널 대신 가운데 모달로 띄운다. */
   presentation?: "side" | "modal";
   selector?: SelectorFixture;
@@ -1053,6 +1143,8 @@ export function SelectorDetailPanel({
           contentView={presentation === "modal" ? "gallery" : "table"}
           detail={selectorDetail}
           hideSettlement={hideSettlement}
+          performanceBreakdown={performanceBreakdown}
+          performanceBreakdownError={performanceBreakdownError}
           settlementEmptyMessage={settlementEmptyMessage}
           settlementOnly={settlementOnly}
           settlementRows={settlementRows}

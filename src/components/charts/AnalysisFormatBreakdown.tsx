@@ -7,6 +7,7 @@ import {
 interface AnalysisFormatBreakdownProps {
   animated?: boolean;
   segments: readonly AnalysisFormatSegment[];
+  showSegmentLabels?: boolean;
   showTotal?: boolean;
   total: number | null;
   totalLabel?: string;
@@ -15,6 +16,7 @@ interface AnalysisFormatBreakdownProps {
 export function AnalysisFormatBreakdown({
   animated = false,
   segments,
+  showSegmentLabels = false,
   showTotal = true,
   total,
   totalLabel,
@@ -24,6 +26,7 @@ export function AnalysisFormatBreakdown({
       <AnalysisFormatDonut
         animated={animated}
         segments={segments}
+        showSegmentLabels={showSegmentLabels}
         showTotal={showTotal}
         total={total}
         totalLabel={totalLabel}

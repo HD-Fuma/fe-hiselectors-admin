@@ -1,5 +1,6 @@
 import { adminFetch } from "../../lib/adminAuthentication";
 import { API_BASE_URL } from "../../lib/apiBaseUrl";
+import type { TaskRun } from "../task-run";
 
 export type SelectorSnsCode = "INSTAGRAM" | "YOUTUBE";
 
@@ -409,5 +410,97 @@ export function getSelectorPerformanceTrend(
     `/api/admin/selector-performance/trend${search ? `?${search}` : ""}`,
     "셀렉터스 성과 추이 조회에 실패했습니다.",
     { signal },
+  );
+}
+
+export interface SelectorBreakdownProduct {
+  productId: number;
+  productName: string | null;
+  brandName: string | null;
+  thumbnailUrl: string | null;
+  category: string | null;
+  confirmedSales: number;
+  confirmedOrderCount: number;
+  soldQuantity: number;
+}
+
+export interface SelectorBreakdownCampaign {
+  campaignId: number;
+  title: string | null;
+  confirmedSales: number;
+  confirmedOrderCount: number;
+  soldQuantity: number;
+}
+
+export interface SelectorPerformanceBreakdown {
+  selectorId: number;
+  selectorsCode: string;
+  nickname: string;
+  category: string | null;
+  products: SelectorBreakdownProduct[];
+  campaigns: SelectorBreakdownCampaign[];
+}
+
+/** 상품별·캠페인별 확정 매출. 기간을 생략하면 전체 기간. */
+export function getSelectorPerformanceBreakdown(
+  selectorId: number,
+  input: { endDate?: string; startDate?: string } = {},
+  signal?: AbortSignal,
+) {
+  const search = query({ endDate: input.endDate, startDate: input.startDate });
+  return request<SelectorPerformanceBreakdown>(
+    `/api/admin/selector-performance/${selectorId}/breakdown${search ? `?${search}` : ""}`,
+    "셀렉터스 상세 성과 조회에 실패했습니다.",
+    { signal },
+  );
+}
+
+export interface SelectorMatch {
+  selectorId: number;
+  selectorsCode: string;
+  nickname: string;
+  category: string | null;
+  profileImageUrl: string | null;
+  categorySales: number;
+  categoryOrderCount: number;
+  representativeMatch: boolean;
+  matchReason: string;
+}
+
+/** category·productId·campaignId 중 하나는 반드시 지정한다. 셋 다 없으면 서버가 400을 반환한다. */
+export interface SelectorMatchingRequest {
+  campaignId?: number;
+  category?: string;
+  endDate?: string;
+  limit?: number;
+  productId?: number;
+  startDate?: string;
+}
+
+export function getSelectorMatching(input: SelectorMatchingRequest, signal?: AbortSignal) {
+  return request<SelectorMatch[]>(
+    `/api/admin/selector-matching?${query({ ...input })}`,
+    "적합 셀렉터스 추천 조회에 실패했습니다.",
+    { signal },
+  );
+}
+
+export interface SelectorProposalRequest {
+  selectorIds: number[];
+  subject?: string;
+  body?: string;
+}
+
+/** 재시도할 때는 같은 idempotencyKey를 넘겨 중복 발송을 막는다. */
+export function sendSelectorProposals(
+  input: SelectorProposalRequest,
+  idempotencyKey: string = crypto.randomUUID(),
+) {
+  const requestHeaders = headers(true);
+  requestHeaders.set("Idempotency-Key", idempotencyKey);
+  return request<TaskRun>(
+    "/api/admin/selector-proposals",
+    "셀렉터스 제안 메일 발송 요청에 실패했습니다.",
+    { body: JSON.stringify(input), headers: requestHeaders, method: "POST" },
   );
 }

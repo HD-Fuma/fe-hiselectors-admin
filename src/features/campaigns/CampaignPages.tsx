@@ -28,6 +28,7 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill, type StatusPillProps } from "../../components/ui/StatusPill";
 import { ViewModeToggle, type ViewMode } from "../../components/ui/ViewModeToggle";
+import { SelectorMatchingSection } from "./SelectorMatchingSection";
 import { assetUrl } from "../../lib/assetUrl";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import {
@@ -625,6 +626,8 @@ function CampaignForm({ campaign, formId, mode, onSubmit }: CampaignFormProps) {
         </div>
       </section>
 
+      {products.length > 0 ? <SelectorMatchingSection products={products} /> : null}
+
       {isProductModalOpen ? (
         <ProductSearchModal
           currentProducts={products}
@@ -982,6 +985,8 @@ export function CampaignDetailPage({
                 </div>
               ) : null}
             </section>
+
+            <SelectorMatchingSection campaignId={campaign.id} products={campaign.products} />
           </div>
         ) : (
           <EmptyState
