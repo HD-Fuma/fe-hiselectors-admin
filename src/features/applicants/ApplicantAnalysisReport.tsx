@@ -135,6 +135,12 @@ function representativeBasis(representativeViewCount: number | null, averageView
 
 function qualitativeStatusMessage(aiReport: AdminApplicationAiReport | null | undefined, applicant: AdminApplicationDetail) {
   if (aiReport) return null;
+  if (applicant.mediaCollectionStatus === "FAILED") {
+    return "SNS 콘텐츠 수집에 실패해 AI 분석을 시작하지 못했습니다.";
+  }
+  if (applicant.status === "REJECTED") {
+    return "반려된 지원서는 AI 분석 대상에서 제외됩니다.";
+  }
   if (applicant.analysisStatus === "PENDING" || applicant.analysisStatus === "IN_PROGRESS") {
     return "AI 리포트를 생성하는 중입니다. 잠시 후 다시 확인해주세요.";
   }

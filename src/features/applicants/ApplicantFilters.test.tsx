@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import { prefetchAdminApplication } from "../../entities/application";
 import { ApplicantListPage } from "./ApplicantPages";
 
 const applicants = [
@@ -80,6 +81,7 @@ const applicants = [
 
 const applicantDetail = {
   ...applicants[0],
+  analysisStatus: "DONE",
   profileImageUrl: "https://cdn.example.com/minji-profile.jpg",
   metrics: {
     analysisWindowDays: 90,
@@ -149,6 +151,7 @@ const youtubeApplicantDetail = {
 
 const pendingApplicantDetail = {
   ...applicantDetail,
+  analysisStatus: "PENDING",
   mediaCollectionStatus: "PENDING",
   mediaCollectedAt: null,
   metrics: {
@@ -443,7 +446,7 @@ describe("applicant api pages", () => {
     renderApplicantPage("/applicants?detail=1");
     const panel = await screen.findByRole("dialog", { name: "지원자 상세" });
     const analysisReport = await within(panel).findByRole("region", { name: "지원자 분석 리포트" });
-    const representativeContent = within(analysisReport).getByRole("region", { name: "대표 콘텐츠" });
+    const representativeContent = await within(analysisReport).findByRole("region", { name: "대표 콘텐츠" });
     const thumbnailLink = within(representativeContent).getByRole("link", {
       name: "김민지 대표 콘텐츠 원본 열기",
     });
@@ -509,56 +512,69 @@ describe("applicant api pages", () => {
       .toHaveLength(5);
   });
 
-  test("polls a pending test applicant and keeps review actions available", async () => {
+  test.each([
+    { status: "PENDING", analysisStatus: "DONE", message: applicantAiReport.summary },
+    { status: "PENDING", analysisStatus: "FAILED", message: "AI 리포트 생성에 실패했습니다." },
+    { status: "REJECTED", analysisStatus: "PENDING", message: "반려된 지원서는 AI 분석 대상에서 제외됩니다." },
+  ] as const)("refreshes a pending applicant after a cached missing report and stops at $status/$analysisStatus", async ({ status, analysisStatus, message }) => {
     vi.useFakeTimers();
-    const pendingTestApplicant = {
-      ...pendingApplicantDetail,
-      analysisStatus: "PENDING",
-      hiId: "test_polling",
-    };
-    const completedTestApplicant = {
-      ...applicantDetail,
-      analysisStatus: "DONE",
-      hiId: "test_polling",
-    };
+    let finished = false;
     let detailRequests = 0;
+    let reportRequests = 0;
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
       const path = new URL(String(input)).pathname;
       if (path.endsWith("/api/admin/generations")) return json([]);
       if (path.endsWith("/api/admin/applications/1/ai-report")) {
-        return new Promise<Response>(() => {});
+        reportRequests += 1;
+        return finished && analysisStatus === "DONE" ? json(applicantAiReport) : json(null, 404);
       }
       if (path.endsWith("/api/admin/applications/1")) {
         detailRequests += 1;
-        return json(detailRequests === 1 ? pendingTestApplicant : completedTestApplicant);
+        return json({
+          ...applicantDetail,
+          status: finished ? status : "PENDING",
+          analysisStatus: finished ? analysisStatus : "PENDING",
+        });
       }
       return json(page(applicants));
     }));
 
     try {
+      await act(async () => {
+        prefetchAdminApplication(1);
+        await vi.advanceTimersByTimeAsync(0);
+      });
       renderApplicantPage("/applicants?detail=1");
       await act(async () => { await vi.advanceTimersByTimeAsync(0); });
       const panel = screen.getByRole("dialog", { name: "지원자 상세" });
-      expect(within(panel).getByText("SNS 정량 지표 수집을 기다리고 있습니다."))
+      expect(within(panel).getByText("AI 리포트를 생성하는 중입니다. 잠시 후 다시 확인해주세요."))
         .toBeInTheDocument();
       expect(within(panel).getByRole("button", { name: "승인" })).toBeEnabled();
       expect(within(panel).getByRole("button", { name: "반려" })).toBeEnabled();
+      expect(reportRequests).toBe(1);
 
+      finished = true;
       await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
 
       expect(detailRequests).toBe(2);
-      expect(within(panel).getByText("최근 90일 콘텐츠 3건의 공개 정량 지표입니다."))
-        .toBeInTheDocument();
+      expect(within(panel).getByText(message)).toBeInTheDocument();
+      await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+      expect(detailRequests).toBe(2);
+      expect(reportRequests).toBe(analysisStatus === "DONE" ? 2 : 1);
     } finally {
       vi.useRealTimers();
     }
   });
 
   test.each([
-    ["PENDING", "SNS 정량 지표 수집을 기다리고 있습니다."],
-    ["FAILED", "SNS 정량 지표를 수집하지 못했습니다."],
-  ] as const)("renders a %s detail without zero samples", async (mediaCollectionStatus, summary) => {
-    const uncollectedDetail = { ...pendingApplicantDetail, mediaCollectionStatus };
+    ["PENDING", "SNS 정량 지표 수집을 기다리고 있습니다.", "AI 리포트를 생성하는 중입니다. 잠시 후 다시 확인해주세요."],
+    ["FAILED", "SNS 정량 지표를 수집하지 못했습니다.", "SNS 콘텐츠 수집에 실패해 AI 분석을 시작하지 못했습니다."],
+  ] as const)("renders a %s detail without zero samples", async (mediaCollectionStatus, summary, qualitativeStatus) => {
+    const uncollectedDetail = {
+      ...pendingApplicantDetail,
+      mediaCollectionStatus,
+      contents: mediaCollectionStatus === "FAILED" ? applicantDetail.contents : [],
+    };
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
       const path = new URL(String(input)).pathname;
       if (path.endsWith("/api/admin/generations")) return json([]);
@@ -570,6 +586,7 @@ describe("applicant api pages", () => {
     const report = await within(panel).findByRole("region", { name: "지원자 분석 리포트" });
 
     expect(within(report).getByText(summary)).toBeInTheDocument();
+    expect(within(report).getByText(qualitativeStatus)).toBeInTheDocument();
     expect(within(report).getByText("업로드 주기").parentElement)
       .toHaveTextContent("-");
     expect(report).not.toHaveTextContent("표본 0건");

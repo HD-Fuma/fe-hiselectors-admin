@@ -259,7 +259,10 @@ export function prefetchAdminApplication(id: number) {
     applicationDetailCache.set(id, request);
   }
   if (!applicationAiReportCache.has(id)) {
-    applicationAiReportCache.set(id, getAdminApplicationAiReport(id));
+    applicationAiReportCache.set(id, getAdminApplicationAiReport(id).then((report) => {
+      if (report === null) applicationAiReportCache.delete(id);
+      return report;
+    }));
   }
 }
 

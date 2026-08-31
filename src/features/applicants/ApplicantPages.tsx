@@ -50,11 +50,7 @@ const REVIEW_STATUS_OPTIONS = ["전체", "검토 대기", "승인", "반려", "�
 );
 const DEFAULT_REVIEW_STATUS = "검토 대기";
 const APPLICANT_PAGE_SIZE = 20;
-const TEST_APPLICATION_POLL_INTERVAL_MS = 10_000;
-
-function isTestApplicant(applicant: Pick<AdminApplicationIdentity, "hiId">) {
-  return applicant.hiId.startsWith("test_");
-}
+const APPLICATION_POLL_INTERVAL_MS = 10_000;
 
 export function ApplicantTestPage() {
   const navigate = useNavigate();
@@ -653,8 +649,8 @@ export function ApplicantDetailPage({
           || applicant.analysisStatus === "IN_PROGRESS";
         const failed = applicant.mediaCollectionStatus === "FAILED"
           || applicant.analysisStatus === "FAILED";
-        if (isTestApplicant(applicant) && pending && !failed) {
-          pollTimeout = window.setTimeout(loadApplication, TEST_APPLICATION_POLL_INTERVAL_MS);
+        if (pending && !failed && applicant.status !== "REJECTED") {
+          pollTimeout = window.setTimeout(loadApplication, APPLICATION_POLL_INTERVAL_MS);
         }
       }).catch((reason: unknown) => {
         if (!controller.signal.aborted) {
@@ -673,19 +669,23 @@ export function ApplicantDetailPage({
     };
   }, [invalidApplicantId, numericApplicantId]);
 
+  const currentDetailState = detailState?.id === numericApplicantId ? detailState : null;
+  const applicant = currentDetailState?.applicant ?? null;
+  const analysisDone = applicant?.analysisStatus === "DONE";
+
   useEffect(() => {
-    if (invalidApplicantId) return;
+    if (invalidApplicantId || !analysisDone) return;
     const controller = new AbortController();
-    const request = getCachedAdminApplicationAiReport(numericApplicantId)
-      ?? getAdminApplicationAiReport(numericApplicantId, controller.signal);
+    const cached = getCachedAdminApplicationAiReport(numericApplicantId);
+    const request = cached
+      ? cached.then((report) => report ?? getAdminApplicationAiReport(numericApplicantId, controller.signal))
+      : getAdminApplicationAiReport(numericApplicantId, controller.signal);
     request.then((report) => {
       if (!controller.signal.aborted) setAiReport({ id: numericApplicantId, report });
     });
     return () => controller.abort();
-  }, [invalidApplicantId, numericApplicantId]);
+  }, [analysisDone, invalidApplicantId, numericApplicantId]);
 
-  const currentDetailState = detailState?.id === numericApplicantId ? detailState : null;
-  const applicant = currentDetailState?.applicant ?? null;
   const currentInitialSummary = initialSummary?.id === numericApplicantId ? initialSummary : null;
   const summarySource = applicant ?? currentInitialSummary;
   const effectiveReviewStatus = summarySource ? reviewStatusFor(summarySource) : undefined;
