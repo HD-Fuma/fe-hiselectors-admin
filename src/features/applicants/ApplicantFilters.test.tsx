@@ -236,6 +236,7 @@ function mockApi() {
     if (/\/api\/admin\/applications\/1$/.test(url.pathname)) return json(applicantDetail);
     if (/\/api\/admin\/applications\/2$/.test(url.pathname)) return json(youtubeApplicantDetail);
     if (url.searchParams.get("minimumCriteriaOnly") === "true") return json(page([applicants[2]]));
+    if (url.searchParams.get("minimumCriteriaOnly") === "false") return json(page(applicants.slice(0, 2)));
     if (url.searchParams.get("keyword") === "하린") return json(page([applicants[1]]));
     return json(page(applicants));
   }));
@@ -283,7 +284,7 @@ describe("applicant api pages", () => {
     expect(panel).not.toHaveTextContent("UC1111111111111111111111");
   });
 
-  test("uses the server minimum-criteria query and derives automatic rejection", async () => {
+  test("filters out applicants below the minimum criteria when enabled", async () => {
     mockApi();
     const user = userEvent.setup();
     renderApplicantPage();
@@ -291,16 +292,15 @@ describe("applicant api pages", () => {
 
     await user.click(screen.getByRole("checkbox", { name: "최저 기준 필터링" }));
 
-    expect(await screen.findByText("윤소라")).toBeInTheDocument();
-    expect(within(screen.getByRole("region", { name: "지원자 목록" }))
-      .getByText("자동 반려")).toBeInTheDocument();
+    expect(await screen.findByText("김민지")).toBeInTheDocument();
+    expect(screen.queryByText("윤소라")).not.toBeInTheDocument();
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining("minimumCriteriaOnly=true"),
+      expect.stringContaining("minimumCriteriaOnly=false"),
       expect.anything(),
     ));
     const minimumCriteriaRequest = vi.mocked(fetch).mock.calls
       .map(([input]) => new URL(String(input)))
-      .find((url) => url.searchParams.get("minimumCriteriaOnly") === "true");
+      .find((url) => url.searchParams.get("minimumCriteriaOnly") === "false");
     expect(minimumCriteriaRequest?.searchParams.get("status")).toBe("PENDING");
   });
 
@@ -347,7 +347,7 @@ describe("applicant api pages", () => {
     await waitFor(() => expect(vi.mocked(fetch).mock.calls
       .map(([input]) => new URL(String(input)))
       .some((url) => url.searchParams.get("status") === "PENDING"
-        && url.searchParams.get("minimumCriteriaOnly") === "true"))
+        && url.searchParams.get("minimumCriteriaOnly") === "false"))
       .toBe(true));
   });
 

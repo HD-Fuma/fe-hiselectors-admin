@@ -153,7 +153,8 @@ function apiStatusFor(status: string): ApplicationStatus | undefined {
 }
 
 function apiMinimumCriteriaOnly(status: string, minimumCriteriaOnly: boolean) {
-  if (minimumCriteriaOnly || status === "자동 반려") return true;
+  if (status === "자동 반려") return true;
+  if (minimumCriteriaOnly) return false;
   return undefined;
 }
 
