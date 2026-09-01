@@ -326,7 +326,7 @@ describe("applicant api pages", () => {
     });
   });
 
-  test("defaults to pending applications outside the minimum criteria unless the toolbar overrides it", async () => {
+  test("leaves pending applications unfiltered until minimum-criteria filtering is enabled", async () => {
     mockApi();
     const user = userEvent.setup();
     renderApplicantPage();
@@ -339,7 +339,7 @@ describe("applicant api pages", () => {
     await waitFor(() => expect(vi.mocked(fetch).mock.calls
       .map(([input]) => new URL(String(input)))
       .some((url) => url.searchParams.get("status") === "PENDING"
-        && url.searchParams.get("minimumCriteriaOnly") === "false"))
+        && !url.searchParams.has("minimumCriteriaOnly")))
       .toBe(true));
 
     await user.click(screen.getByRole("checkbox", { name: "최저 기준 필터링" }));
