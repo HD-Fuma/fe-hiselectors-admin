@@ -273,7 +273,7 @@ test("opens and closes environment settings only when the icon is clicked", () =
   expect(trigger).toHaveAttribute("aria-expanded", "false");
 });
 
-test("toggles and persists fast mode from environment settings", () => {
+test("confirms fast mode before persisting the scoped content batch setting", () => {
   renderRoute("/content/inspections");
   fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
   const settings = screen.getByRole("group", { name: "환경설정" });
@@ -282,6 +282,22 @@ test("toggles and persists fast mode from environment settings", () => {
   expect(fastMode).not.toBeChecked();
   fireEvent.click(fastMode);
 
+  const confirmation = screen.getByRole("alertdialog", { name: "FAST 모드를 켤까요?" });
+  expect(confirmation).toHaveTextContent("DB에 등록된 테스트 계정만 대상으로 실행됩니다.");
+  expect(fastMode).not.toBeChecked();
+  expect(localStorage.getItem("selectors-content-fast-mode")).toBeNull();
+
+  fireEvent.click(within(confirmation).getByRole("button", { name: "취소" }));
+
+  expect(screen.queryByRole("alertdialog", { name: "FAST 모드를 켤까요?" })).not.toBeInTheDocument();
+  expect(fastMode).not.toBeChecked();
+  expect(localStorage.getItem("selectors-content-fast-mode")).toBeNull();
+
+  fireEvent.click(fastMode);
+  const secondConfirmation = screen.getByRole("alertdialog", { name: "FAST 모드를 켤까요?" });
+  fireEvent.click(within(secondConfirmation).getByRole("button", { name: "FAST 모드 켜기" }));
+
+  expect(screen.queryByRole("alertdialog", { name: "FAST 모드를 켤까요?" })).not.toBeInTheDocument();
   expect(fastMode).toBeChecked();
   expect(localStorage.getItem("selectors-content-fast-mode")).toBe("true");
 

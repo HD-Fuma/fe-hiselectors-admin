@@ -13,6 +13,7 @@ import {
   Sun,
   UserRoundX,
   UsersRound,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
@@ -117,6 +118,7 @@ export function AdminSidebar({
   const [testResetError, setTestResetError] = useState("");
   const [theme, setTheme] = useState(getTheme);
   const [fastMode, setFastMode] = useState(getFastMode);
+  const [isFastModeConfirmOpen, setFastModeConfirmOpen] = useState(false);
   const creatorResetDescriptionId = useId();
   const testResetDescriptionId = useId();
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -131,7 +133,9 @@ export function AdminSidebar({
     if (!isSettingsOpen) return undefined;
 
     // 모달이 떠 있는 동안은 팝오버를 살려 둔다. 모달을 닫으면 다시 여기로 돌아온다.
-    const isModalOpen = isCreatorResetDialogOpen || isTestResetDialogOpen;
+    const isModalOpen = isCreatorResetDialogOpen
+      || isTestResetDialogOpen
+      || isFastModeConfirmOpen;
     const closeOnPointerDown = (event: PointerEvent) => {
       if (isModalOpen) return;
       if (event.target instanceof Node && !settingsRef.current?.contains(event.target)) {
@@ -153,7 +157,7 @@ export function AdminSidebar({
       document.removeEventListener("pointerdown", closeOnPointerDown);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [isCreatorResetDialogOpen, isSettingsOpen, isTestResetDialogOpen]);
+  }, [isCreatorResetDialogOpen, isFastModeConfirmOpen, isSettingsOpen, isTestResetDialogOpen]);
 
   const toggleGroup = (groupId: NavGroup) => {
     setExpandedGroups((current) => {
@@ -183,6 +187,21 @@ export function AdminSidebar({
     } finally {
       setResetting(false);
     }
+  };
+
+  const changeFastMode = (enabled: boolean) => {
+    if (enabled) {
+      setFastModeConfirmOpen(true);
+      return;
+    }
+    setFastMode(false);
+    saveFastMode(false);
+  };
+
+  const confirmFastMode = () => {
+    setFastMode(true);
+    saveFastMode(true);
+    setFastModeConfirmOpen(false);
   };
 
   const closeCreatorReset = () => {
@@ -453,12 +472,14 @@ export function AdminSidebar({
                   <Switch
                     checked={fastMode}
                     className="hsas-theme-settings__fast-mode"
-                    label="FAST 모드"
-                    onChange={(event) => {
-                      setFastMode(event.currentTarget.checked);
-                      saveFastMode(event.currentTarget.checked);
-                    }}
-                    title="수동 콘텐츠 배치에서 지정된 YouTube·Instagram 계정만 확인합니다."
+                    label={(
+                      <>
+                        <Zap aria-hidden="true" className="hsas-theme-settings__fast-mode-icon" />
+                        <span>FAST 모드</span>
+                      </>
+                    )}
+                    onChange={(event) => changeFastMode(event.currentTarget.checked)}
+                    title="수동 콘텐츠 배치에서 DB에 등록된 테스트 계정만 확인합니다."
                   />
                   <button
                     className="hsas-theme-settings__item hsas-theme-settings__item--danger"
@@ -525,6 +546,18 @@ export function AdminSidebar({
               )}
               open={isResetDialogOpen}
               title="검수 상태를 초기화할까요?"
+            />
+            <BubbleDialog
+              actions={(
+                <>
+                  <Button onClick={() => setFastModeConfirmOpen(false)}>취소</Button>
+                  <Button onClick={confirmFastMode} variant="primary">FAST 모드 켜기</Button>
+                </>
+              )}
+              description="FAST 모드에서는 수동 콘텐츠 배치가 DB에 등록된 테스트 계정만 대상으로 실행됩니다."
+              onClose={() => setFastModeConfirmOpen(false)}
+              open={isFastModeConfirmOpen}
+              title="FAST 모드를 켤까요?"
             />
             <Modal
               actions={(

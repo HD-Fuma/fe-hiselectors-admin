@@ -150,14 +150,22 @@
 
 .hsas-theme-settings__fast-mode .hsas-switch__label {
   order: 1;
+  display: inline-flex;
   flex: 1;
-  font-size: var(--hsas-font-12);
-  font-weight: 800;
-  letter-spacing: 0.03em;
+  align-items: center;
+  gap: var(--hsas-space-8);
+  font-size: var(--hsas-font-11);
+  font-weight: 600;
 }
 
 .hsas-theme-settings__fast-mode .hsas-switch__track {
   order: 2;
+}
+
+.hsas-theme-settings__fast-mode-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--hsas-sidebar-heading);
 }
 
 .hsas-theme-settings__feedback {
