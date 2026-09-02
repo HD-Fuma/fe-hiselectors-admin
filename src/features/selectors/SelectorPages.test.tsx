@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import type { SelectorDetail } from "../../entities/selectors";
+import type { SelectorDetail, SelectorSummary } from "../../entities/selectors";
 import type { SettlementSelectorDetail } from "../../entities/settlement";
 import { renderRoute } from "../../test/renderRoute";
 import { selectorsForPool } from "./SelectorPoolCanvas";
@@ -16,7 +16,7 @@ const summary = {
   followerCount: 12345,
   profileImageUrl: null,
   createdAt: "2026-08-19T10:00:00",
-};
+} satisfies SelectorSummary;
 
 const youtubeSummary = {
   ...summary,
@@ -26,7 +26,7 @@ const youtubeSummary = {
   snsCode: "YOUTUBE",
   snsAccountId: "UC1111111111111111111111",
   snsDisplayName: "하린의 생활연구소",
-};
+} satisfies SelectorSummary;
 
 const detail = {
   id: 7,
@@ -251,7 +251,7 @@ describe("selector api pages", () => {
       roleName: "블랙리스트",
       snsAccountId: "blocked.selector",
       snsDisplayName: "blocked.selector",
-    };
+    } satisfies SelectorSummary;
 
     expect(selectorsForPool([summary, youtubeSummary, blacklist]).map((selector) => selector.id))
       .toEqual([7, 8]);
