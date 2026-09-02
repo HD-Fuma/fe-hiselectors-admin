@@ -142,22 +142,25 @@ export async function getCreators(input: CreatorSearchRequest, signal?: AbortSig
   return body.data;
 }
 
-export function runCreatorDiscovery(test = false) {
+export function runCreatorDiscovery(test = false, currentMonthOnly = false) {
   const requestHeaders = new Headers();
   requestHeaders.set("Idempotency-Key", crypto.randomUUID());
+  const params = new URLSearchParams();
+  if (test) params.set("test", "true");
+  if (currentMonthOnly) params.set("currentMonthOnly", "true");
   return request<TaskRun>(
-    `/api/admin/discovery/youtube/run${test ? "?test=true" : ""}`,
+    `/api/admin/discovery/youtube/run${params.size ? `?${params}` : ""}`,
     "크리에이터 풀 구축에 실패했습니다.",
     undefined,
     { headers: requestHeaders, method: "POST" },
   );
 }
 
-export function runCreatorDiscoveryByCategory(categoryId: number) {
+export function runCreatorDiscoveryByCategory(categoryId: number, currentMonthOnly = false) {
   const requestHeaders = new Headers();
   requestHeaders.set("Idempotency-Key", crypto.randomUUID());
   return request<TaskRun>(
-    `/api/admin/discovery/categories/${categoryId}/run`,
+    `/api/admin/discovery/categories/${categoryId}/run${currentMonthOnly ? "?currentMonthOnly=true" : ""}`,
     "카테고리 크리에이터 발굴에 실패했습니다.",
     undefined,
     { headers: requestHeaders, method: "POST" },

@@ -45,6 +45,8 @@ const fashionCoverage = {
   }],
 };
 
+afterEach(() => localStorage.clear());
+
 function ok(data: unknown, status = 200) {
   return new Response(JSON.stringify({ success: true, code: "OK", message: null, data }), { status });
 }
@@ -147,6 +149,7 @@ test("starts discovery for only the selected category", async () => {
 
   await user.click(screen.getByRole("button", { name: "발굴 설정" }));
   const panel = await screen.findByRole("dialog", { name: "크리에이터 발굴 키워드 설정" });
+  await user.selectOptions(within(panel).getByLabelText("인기 영상 업로드 기간"), "current-month");
   await user.click(within(panel).getByRole("button", { name: "패션만 발굴" }));
 
   expect(await within(panel).findByRole("status")).toHaveTextContent(
@@ -155,6 +158,7 @@ test("starts discovery for only the selected category", async () => {
   const discoveryCall = vi.mocked(fetch).mock.calls.find(([input]) => (
     new URL(String(input)).pathname === "/api/admin/discovery/categories/1/run"
   ));
+  expect(new URL(String(discoveryCall?.[0])).searchParams.get("currentMonthOnly")).toBe("true");
   expect(discoveryCall?.[1]).toMatchObject({ method: "POST" });
   expect(new Headers(discoveryCall?.[1]?.headers).get("Idempotency-Key")).toBe(idempotencyKey);
 });

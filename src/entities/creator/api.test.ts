@@ -39,16 +39,18 @@ describe("creator discovery api", () => {
   });
 
   test.each([
-    { mode: "normal", test: false, search: "" },
-    { mode: "test", test: true, search: "?test=true" },
-  ])("runs one $mode YouTube discovery task with an idempotency key", async ({ test, search }) => {
+    { currentMonthOnly: false, mode: "normal", test: false, search: "" },
+    { currentMonthOnly: false, mode: "test", test: true, search: "?test=true" },
+    { currentMonthOnly: true, mode: "current-month", test: false, search: "?currentMonthOnly=true" },
+    { currentMonthOnly: true, mode: "test current-month", test: true, search: "?test=true&currentMonthOnly=true" },
+  ])("runs one $mode YouTube discovery task with an idempotency key", async ({ currentMonthOnly, test, search }) => {
     const idempotencyKey = test
       ? "00000000-0000-4000-8000-000000000002"
       : "00000000-0000-4000-8000-000000000001";
     vi.spyOn(crypto, "randomUUID").mockReturnValue(idempotencyKey);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(TASK_RUN)));
 
-    await expect(runCreatorDiscovery(test)).resolves.toEqual(TASK_RUN);
+    await expect(runCreatorDiscovery(test, currentMonthOnly)).resolves.toEqual(TASK_RUN);
 
     expect(fetch).toHaveBeenCalledTimes(1);
     const [input, init] = vi.mocked(fetch).mock.calls[0];
