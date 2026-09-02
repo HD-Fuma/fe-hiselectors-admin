@@ -21,6 +21,7 @@ import { SocialAccountCell } from "../../components/ui/SocialAccountCell";
 import { Tooltip } from "../../components/ui/Tooltip";
 import { formatNumber } from "../../lib/formatters";
 import { CREATOR_POOL_RESET_EVENT } from "../../lib/creatorPoolEvents";
+import { getCreatorDiscoveryCurrentMonthOnly } from "../../lib/creatorDiscoveryPeriod";
 import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { DiscoverySettingsPanel } from "./DiscoverySettingsPanel";
@@ -495,7 +496,7 @@ export function CreatorTestPage() {
     setIsRunning(true);
     setError("");
     try {
-      await runCreatorDiscovery(true);
+      await runCreatorDiscovery(true, getCreatorDiscoveryCurrentMonthOnly());
       navigate("/creators");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "테스트 크리에이터 풀 구축에 실패했습니다.");
@@ -643,7 +644,7 @@ export function CreatorListPage() {
     setDiscoveryRunning(true);
     setDiscoveryStatus("크리에이터 풀을 구축하는 중입니다.");
     try {
-      await runCreatorDiscovery();
+      await runCreatorDiscovery(false, getCreatorDiscoveryCurrentMonthOnly());
       setDiscoveryStatus("크리에이터 풀 구축을 완료했습니다.");
       setAppliedFilters((current) => ({ ...current }));
     } catch (reason: unknown) {
@@ -844,10 +845,12 @@ export function CreatorListPage() {
       </div>
     </section>
     {discoverySettingsOpen ? (
-      <DiscoverySettingsPanel onClose={() => {
-        setDiscoverySettingsOpen(false);
-        refreshCategoryOptions().catch(() => undefined);
-      }} />
+      <DiscoverySettingsPanel
+        onClose={() => {
+          setDiscoverySettingsOpen(false);
+          refreshCategoryOptions().catch(() => undefined);
+        }}
+      />
     ) : null}
     {proposalPanelOpen ? (
       <BatchProposalPanel

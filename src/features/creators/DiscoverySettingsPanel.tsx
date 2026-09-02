@@ -17,6 +17,7 @@ import {
   type DiscoveryKeyword,
 } from "../../entities/discovery-category";
 import { runCreatorDiscoveryByCategory } from "../../entities/creator";
+import { getCreatorDiscoveryCurrentMonthOnly } from "../../lib/creatorDiscoveryPeriod";
 
 interface CategoryDraft {
   id: number;
@@ -46,7 +47,11 @@ const COVERAGE_STATUS: Record<DiscoveryCoverageStatus, { label: string; tone: "a
   SATURATING: { label: "포화 예상", tone: "approved" },
 };
 
-export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
+export function DiscoverySettingsPanel({
+  onClose,
+}: {
+  onClose: () => void;
+}) {
   const [categories, setCategories] = useState<DiscoveryCategory[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [categoryDraft, setCategoryDraft] = useState<CategoryDraft | null>(null);
@@ -261,7 +266,7 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
     setError("");
     setNotice("");
     try {
-      await runCreatorDiscoveryByCategory(category.id);
+      await runCreatorDiscoveryByCategory(category.id, getCreatorDiscoveryCurrentMonthOnly());
       setNotice(`${category.name} 발굴 작업을 시작했습니다. 완료 여부는 알림센터에서 확인하세요.`);
     } catch (reason) {
       setError(reasonMessage(reason, "카테고리 크리에이터 발굴에 실패했습니다."));
