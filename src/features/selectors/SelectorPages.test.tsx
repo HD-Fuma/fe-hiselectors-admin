@@ -315,9 +315,9 @@ describe("selector api pages", () => {
     expect(performance).toHaveTextContent("320,000원");
     expect(performance).toHaveTextContent("2026-08-01 ~ 2026-10-31");
     const contents = within(panel).getByRole("region", { name: "셀렉터스 콘텐츠" });
-    expect(within(contents).getByText("REELS")).toHaveClass("hsas-status-pill");
+    expect(within(contents).getByText("릴스")).toHaveClass("hsas-status-pill");
     expect(within(contents).getByRole("link", { name: /여름 스타일링 추천/ }))
-      .toHaveAttribute("title", "여름 스타일링 추천");
+      .toHaveAttribute("href", "https://www.instagram.com/p/example");
     expect(within(panel).getByText("최근 1건 · 전체 1건")).toBeInTheDocument();
     expect(within(panel).getByText("마지막 갱신 2026-08-21 10:00")).toBeInTheDocument();
     const settlements = within(panel).getByRole("region", { name: "셀렉터스 정산 내역" });
