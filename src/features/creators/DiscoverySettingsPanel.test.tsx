@@ -158,3 +158,31 @@ test("starts discovery for only the selected category", async () => {
   expect(discoveryCall?.[1]).toMatchObject({ method: "POST" });
   expect(new Headers(discoveryCall?.[1]?.headers).get("Idempotency-Key")).toBe(idempotencyKey);
 });
+
+test("deletes a discovery keyword", async () => {
+  const user = userEvent.setup();
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  vi.stubGlobal("fetch", vi.fn()
+    .mockResolvedValueOnce(ok(creatorPage))
+    .mockResolvedValueOnce(ok([fashion]))
+    .mockResolvedValueOnce(ok([fashion]))
+    .mockResolvedValueOnce(ok([fashionCoverage]))
+    .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    .mockResolvedValueOnce(ok([{ ...fashion, keywords: [] }]))
+    .mockResolvedValueOnce(ok([])));
+
+  render(
+    <MemoryRouter initialEntries={["/creators"]}>
+      <CreatorListPage />
+    </MemoryRouter>,
+  );
+
+  await user.click(screen.getByRole("button", { name: "발굴 설정" }));
+  const panel = await screen.findByRole("dialog", { name: "크리에이터 발굴 키워드 설정" });
+  await user.click(within(panel).getByRole("button", { name: "데일리룩 키워드 삭제" }));
+
+  expect(window.confirm).toHaveBeenCalledWith("'데일리룩' 키워드를 삭제할까요?");
+  expect(await within(panel).findByText("키워드를 삭제했습니다.")).toBeInTheDocument();
+  const deleteCall = vi.mocked(fetch).mock.calls.find(([, init]) => init?.method === "DELETE");
+  expect(new URL(String(deleteCall?.[0])).pathname).toBe("/api/admin/categories/1/keywords/10");
+});

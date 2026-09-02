@@ -213,6 +213,15 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
     }
   }
 
+  async function removeKeyword(keyword: DiscoveryKeyword) {
+    if (!selectedCategory || !window.confirm(`'${keyword.keyword}' 키워드를 삭제할까요?`)) return;
+    await mutate(
+      () => deleteDiscoveryKeyword(selectedCategory.id, keyword.id),
+      selectedCategory.id,
+      "키워드를 삭제했습니다.",
+    );
+  }
+
   async function reorderKeywords(targetId: number) {
     if (!selectedCategory || draggedKeywordId === null || draggedKeywordId === targetId) return;
     const original = selectedCategory.keywords;
@@ -463,6 +472,16 @@ export function DiscoverySettingsPanel({ onClose }: { onClose: () => void }) {
                           value={keywordEdits[keyword.id] ?? keyword.keyword}
                         />
                         {!keyword.enabled ? <StatusPill tone="neutral">비활성</StatusPill> : null}
+                        <div className="fuma-discovery-settings__row-actions">
+                          <Button
+                            aria-label={`${keyword.keyword} 키워드 삭제`}
+                            disabled={saving}
+                            onClick={() => void removeKeyword(keyword)}
+                            variant="danger"
+                          >
+                            삭제
+                          </Button>
+                        </div>
                       </div>
                     </li>
                   ))}
