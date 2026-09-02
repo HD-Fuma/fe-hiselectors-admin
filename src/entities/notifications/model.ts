@@ -54,6 +54,7 @@ export const NOTIFICATION_PURPOSES = [
   { value: "CONTENT_EDIT_DONE", label: "콘텐츠 수정 완료" },
   { value: "CONTENT_EDIT_REQUEST", label: "콘텐츠 수정 요청" },
   { value: "DEAD_LINK_NOTICE", label: "링크 오류 안내" },
+  { value: "PENALTY_RELEASE", label: "패널티 해제" },
   { value: "SELECTION_APPROVED", label: "선정 승인" },
   { value: "SELECTION_REJECTED", label: "선정 반려" },
   { value: "SETTLEMENT_MISSING", label: "정산 정보 안내" },

@@ -1,5 +1,6 @@
 import {
   createGeneration,
+  getDashboardSalesSettlementTrend,
   getSelector,
   getSelectorFilterGenerations,
   getSelectorMatching,
@@ -158,6 +159,25 @@ describe("selector admin api", () => {
       "/api/admin/selector-performance/trend?",
     );
     expect(String(vi.mocked(fetch).mock.calls[1][0])).toContain("startDate=2026-08-01");
+  });
+
+  test("loads the dashboard sales and settlement trend for one period", async () => {
+    const trend = {
+      endDate: "2026-08-27",
+      points: [],
+      startDate: "2026-08-21",
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(json(trend)));
+
+    await expect(getDashboardSalesSettlementTrend({
+      startDate: "2026-08-21",
+      endDate: "2026-08-27",
+    })).resolves.toEqual(trend);
+
+    const url = new URL(String(vi.mocked(fetch).mock.calls[0][0]), "http://localhost");
+    expect(url.pathname).toBe("/api/admin/dashboard/sales-settlement-trend");
+    expect(url.searchParams.get("startDate")).toBe("2026-08-21");
+    expect(url.searchParams.get("endDate")).toBe("2026-08-27");
   });
 
   test("sends the test account reset as a DELETE with the platform and account", async () => {

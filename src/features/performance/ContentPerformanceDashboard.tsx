@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Images } from "lucide-react";
 import { AnalysisFormatBreakdown } from "../../components/charts/AnalysisFormatBreakdown";
 import type { AnalysisFormatSegment } from "../../components/charts/AnalysisFormatDonut";
@@ -7,7 +7,7 @@ import { SparklineChart } from "../../components/charts/SparklineChart";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { ContentCollectionCard } from "../../components/ui/ContentCollectionCard";
 import { contentCollectionFormatKey } from "../../components/ui/contentCollectionFormat";
-import { Button, SegmentedControl, Select, TextInput } from "../../components/ui/Controls";
+import { SegmentedControl, Select } from "../../components/ui/Controls";
 import { DenseTable, type DenseTableColumn } from "../../components/ui/DenseTable";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Pagination } from "../../components/ui/Pagination";
@@ -140,14 +140,6 @@ function trendDateLabel(recordedAt: string | undefined) {
 
   const [, month, day] = recordedAt.split("-");
   return month && day ? `${month}.${day}` : recordedAt;
-}
-
-function dateInputValue(date: Date) {
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
 }
 
 function ContentTableTrendChart({ content }: { content: ContentInfluence }) {
@@ -305,17 +297,6 @@ function ContentOverview({
   uploadSummaryLoading?: boolean;
 }) {
   const [cohortChartMode, setCohortChartMode] = useState<CohortChartMode>("all");
-  const defaultPeriodEndDate = new Date();
-  const defaultPeriodStartDate = new Date(defaultPeriodEndDate);
-  defaultPeriodStartDate.setDate(defaultPeriodStartDate.getDate() - 13);
-  const defaultPeriodStart = dateInputValue(defaultPeriodStartDate);
-  const defaultPeriodEnd = dateInputValue(defaultPeriodEndDate);
-  const [periodStart, setPeriodStart] = useState(defaultPeriodStart);
-  const [periodEnd, setPeriodEnd] = useState(defaultPeriodEnd);
-  const [appliedPeriod, setAppliedPeriod] = useState({
-    start: defaultPeriodStart,
-    end: defaultPeriodEnd,
-  });
   const chartScrollRef = useRef<HTMLDivElement>(null);
   const chartEdgeScrollRef = useRef({ animationFrame: 0, speed: 0, targetSpeed: 0 });
   const chartDragRef = useRef({
@@ -465,10 +446,6 @@ function ContentOverview({
     views: number;
   }>();
   contents
-    .filter((content) => (
-      (!appliedPeriod.start || content.publishedAt >= appliedPeriod.start)
-      && (!appliedPeriod.end || content.publishedAt <= appliedPeriod.end)
-    ))
     .forEach((content) => {
       const current = dailyMetrics.get(content.publishedAt) ?? {
         comments: 0,
@@ -534,32 +511,6 @@ function ContentOverview({
             <span>TREND</span>
             <h2>기간별 콘텐츠 성과</h2>
           </div>
-          <form
-            aria-label="콘텐츠 성과 기간 검색"
-            className="fuma-content-period-chart__period"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setAppliedPeriod({ start: periodStart, end: periodEnd });
-            }}
-          >
-            <strong>기간</strong>
-            <TextInput
-              aria-label="성과 시작일"
-              max={periodEnd || undefined}
-              onChange={(event) => setPeriodStart(event.target.value)}
-              type="date"
-              value={periodStart}
-            />
-            <span>~</span>
-            <TextInput
-              aria-label="성과 종료일"
-              min={periodStart || undefined}
-              onChange={(event) => setPeriodEnd(event.target.value)}
-              type="date"
-              value={periodEnd}
-            />
-            <Button type="submit" variant="primary">조회</Button>
-          </form>
         </header>
         <div className="fuma-content-period-chart__toolbar">
           <SegmentedControl
@@ -928,14 +879,12 @@ function contentPerformanceColumns(
 function ContentPerformanceResults({
   contents,
   errorMessage,
-  filters,
   loading,
   onPageChange,
   page,
 }: {
   contents: readonly ContentInfluence[];
   errorMessage?: string;
-  filters?: ReactNode;
   loading?: boolean;
   onPageChange: (page: number) => void;
   page: number;
@@ -987,7 +936,6 @@ function ContentPerformanceResults({
         meta={<span>총 {contents.length}건</span>}
         title="콘텐츠 성과 및 추이"
       />
-      {filters}
       {loading ? (
         <EmptyState description="잠시만 기다려 주세요." title="콘텐츠 성과를 불러오는 중입니다." />
       ) : errorMessage ? (
@@ -1041,7 +989,6 @@ function ContentPerformanceResults({
 
 export function ContentPerformanceDashboard({
   contents,
-  filters,
   onPageChange,
   page,
   resultContents = contents,
@@ -1052,7 +999,6 @@ export function ContentPerformanceDashboard({
   uploadSummaryLoading = false,
 }: {
   contents: readonly ContentInfluence[];
-  filters?: ReactNode;
   onPageChange: (page: number) => void;
   page: number;
   resultContents?: readonly ContentInfluence[];
@@ -1073,7 +1019,6 @@ export function ContentPerformanceDashboard({
       <ContentPerformanceResults
         contents={resultContents}
         errorMessage={resultErrorMessage}
-        filters={filters}
         loading={resultLoading}
         onPageChange={onPageChange}
         page={page}

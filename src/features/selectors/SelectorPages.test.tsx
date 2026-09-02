@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import type { SelectorDetail } from "../../entities/selectors";
 import type { SettlementSelectorDetail } from "../../entities/settlement";
 import { renderRoute } from "../../test/renderRoute";
+import { selectorsForPool } from "./SelectorPoolCanvas";
 
 const summary = {
   id: 7,
@@ -239,6 +240,44 @@ describe("selector api pages", () => {
     ));
     expect(screen.getByRole("region", { name: "블랙리스트 목록" })).toBeInTheDocument();
   }, 15000);
+
+  test("hides blacklisted selectors from the bubble view but keeps them in the full list", async () => {
+    const blacklist = {
+      ...summary,
+      id: 9,
+      selectorsCode: "SEL0009",
+      nickname: "차단된셀렉터스",
+      roleId: "BLACKLIST",
+      roleName: "블랙리스트",
+      snsAccountId: "blocked.selector",
+      snsDisplayName: "blocked.selector",
+    };
+
+    expect(selectorsForPool([summary, youtubeSummary, blacklist]).map((selector) => selector.id))
+      .toEqual([7, 8]);
+
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/admin/generations")) return json([generation]);
+      return json({
+        content: [summary, youtubeSummary, blacklist],
+        number: 0,
+        size: 20,
+        totalElements: 3,
+        totalPages: 1,
+      });
+    }));
+
+    renderRoute("/selectors");
+    expect(await screen.findByRole("img", { name: "셀렉터스 발견 풀" })).toBeInTheDocument();
+    expect(screen.queryByText("차단된셀렉터스")).not.toBeInTheDocument();
+    expect(screen.queryByText("SEL0009")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("switch", { name: "보기 방식" }));
+    const list = await screen.findByRole("region", { name: "셀렉터스 목록" });
+    expect(within(list).getByText("SEL0009")).toBeInTheDocument();
+    expect(within(list).getByText("blocked.selector")).toBeInTheDocument();
+  });
 
   test("renders enhanced selector detail and settlement information", async () => {
     renderRoute("/selectors/7");

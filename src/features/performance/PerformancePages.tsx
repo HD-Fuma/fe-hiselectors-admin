@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Select, TextInput } from "../../components/ui/Controls";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -35,6 +35,7 @@ import { SelectorPerformanceDashboard } from "./SelectorPerformanceDashboard";
 import {
   adaptSelectorPerformanceSummary,
   adaptSelectorPerformanceTrend,
+  defaultSelectorPerformancePeriod,
   EMPTY_SELECTOR_DASHBOARD_SUMMARY,
   type SelectorDashboardTrendPoint,
   type WatchlistKey,
@@ -81,6 +82,7 @@ const EMPTY_PERFORMANCE_FILTERS: PerformanceFilterValues = {
 };
 
 function usePerformanceFilterState(initialValues = EMPTY_PERFORMANCE_FILTERS) {
+  const defaultsRef = useRef(initialValues);
   const [draftFilters, setDraftFilters] = useState<PerformanceFilterValues>(() => ({
     ...initialValues,
   }));
@@ -96,15 +98,21 @@ function usePerformanceFilterState(initialValues = EMPTY_PERFORMANCE_FILTERS) {
   };
 
   const applyFilters = () => setAppliedFilters({ ...draftFilters });
+  const replaceDefaults = useCallback((values: PerformanceFilterValues) => {
+    defaultsRef.current = values;
+    setDraftFilters({ ...values });
+    setAppliedFilters({ ...values });
+  }, []);
   const resetFilters = () => {
-    setDraftFilters({ ...EMPTY_PERFORMANCE_FILTERS });
-    setAppliedFilters({ ...EMPTY_PERFORMANCE_FILTERS });
+    setDraftFilters({ ...defaultsRef.current });
+    setAppliedFilters({ ...defaultsRef.current });
   };
 
   return {
     appliedFilters,
     applyFilters,
     draftFilters,
+    replaceDefaults,
     resetFilters,
     updateDraftFilter,
   };
@@ -245,6 +253,7 @@ export function SelectorPerformancePage() {
     appliedFilters,
     applyFilters,
     draftFilters,
+    replaceDefaults,
     resetFilters,
     updateDraftFilter,
   } = usePerformanceFilterState();
@@ -258,8 +267,11 @@ export function SelectorPerformancePage() {
       value: String(generation.id),
     })),
   ];
+  const periodReady = Boolean(appliedFilters.periodStart && appliedFilters.periodEnd);
 
   useEffect(() => {
+    if (!periodReady) return;
+
     const controller = new AbortController();
     const query = {
       endDate: appliedFilters.periodEnd || undefined,
@@ -292,6 +304,7 @@ export function SelectorPerformancePage() {
     appliedFilters.periodEnd,
     appliedFilters.periodStart,
     generationId,
+    periodReady,
     requestVersion,
   ]);
 
@@ -299,14 +312,24 @@ export function SelectorPerformancePage() {
     const controller = new AbortController();
     void getGenerations(controller.signal)
       .then((items) => {
-        if (!controller.signal.aborted) setGenerations(items);
+        if (controller.signal.aborted) return;
+        setGenerations(items);
+        replaceDefaults({
+          ...EMPTY_PERFORMANCE_FILTERS,
+          ...defaultSelectorPerformancePeriod(items),
+        });
       })
       .catch(() => {
-        if (!controller.signal.aborted) setGenerations([]);
+        if (controller.signal.aborted) return;
+        setGenerations([]);
+        replaceDefaults({
+          ...EMPTY_PERFORMANCE_FILTERS,
+          ...defaultSelectorPerformancePeriod([]),
+        });
       });
 
     return () => controller.abort();
-  }, []);
+  }, [replaceDefaults]);
 
   useEffect(() => {
     if (selectedSelectorId === null) return;
@@ -460,6 +483,7 @@ function apiContentPerformanceForFilters(
     !filters.campaign
     && (!filters.cohort || content.cohort === filters.cohort)
     && (!filters.platform || content.platform === filters.platform)
+    && isWithinPeriod(content.publishedAt, filters.periodStart, filters.periodEnd)
     && includesKeyword(
       [content.id, content.title, content.authorName ?? ""],
       filters.keyword,
@@ -527,25 +551,24 @@ export function ContentPerformancePage() {
     <section className="fuma-page fuma-performance-page fuma-content-performance-page">
       <PageHeader title="콘텐츠 성과" />
       <div className="fuma-page__body">
+        <div className="fuma-performance-top-filter">
+          <PerformanceFilters
+            keyword={{
+              id: "performance-content-keyword",
+              label: "콘텐츠/작성자",
+              placeholder: "콘텐츠 ID, 제목 또는 작성자 검색",
+            }}
+            onChange={updateDraftFilter}
+            onReset={resetAndResetPage}
+            onSearch={applyAndResetPage}
+            showCampaign={false}
+            showCohort={false}
+            showPlatform
+            values={draftFilters}
+          />
+        </div>
         <ContentPerformanceDashboard
           contents={contents}
-          filters={(
-            <PerformanceFilters
-              keyword={{
-                id: "performance-content-keyword",
-                label: "콘텐츠/작성자",
-                placeholder: "콘텐츠 ID, 제목 또는 작성자 검색",
-              }}
-              onChange={updateDraftFilter}
-              onReset={resetAndResetPage}
-              onSearch={applyAndResetPage}
-              showCampaign={false}
-              showCohort={false}
-              showPeriod={false}
-              showPlatform
-              values={draftFilters}
-            />
-          )}
           key={JSON.stringify(appliedFilters)}
           onPageChange={setPage}
           page={page}

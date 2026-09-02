@@ -3,6 +3,7 @@ import {
   boxplotFromValues,
   buildSelectorTrend,
   concentrationShare,
+  defaultSelectorPerformancePeriod,
   enrichSelectorSales,
   filterSelectorUniverse,
   filterWatchlistRows,
@@ -53,10 +54,15 @@ const ROWS: SelectorSalesPerformance[] = [
   },
 ];
 
-function generation(name: string, status: Generation["status"], id: number): Generation {
+function generation(
+  name: string,
+  status: Generation["status"],
+  id: number,
+  activityStartDate = "2026-04-01T00:00:00",
+): Generation {
   return {
     activityEndDate: "2026-06-30T23:59:59",
-    activityStartDate: "2026-04-01T00:00:00",
+    activityStartDate,
     endDate: "2026-03-31T23:59:59",
     generationName: name,
     id,
@@ -64,6 +70,29 @@ function generation(name: string, status: Generation["status"], id: number): Gen
     status,
   };
 }
+
+test("defaults the query period to the active generation activity start through today", () => {
+  const now = new Date(2026, 8, 3);
+
+  expect(defaultSelectorPerformancePeriod([
+    generation("5기", "ACTIVE", 5, "2026-08-01T00:00:00"),
+    generation("2기", "INACTIVE", 2, "2026-01-01T00:00:00"),
+  ], now)).toEqual({
+    periodEnd: "2026-09-03",
+    periodStart: "2026-08-01",
+  });
+});
+
+test("falls back to six months when there is no active generation", () => {
+  const now = new Date(2026, 8, 3);
+
+  expect(defaultSelectorPerformancePeriod([
+    generation("2기", "INACTIVE", 2, "2026-01-01T00:00:00"),
+  ], now)).toEqual({
+    periodEnd: "2026-09-03",
+    periodStart: "2026-04-01",
+  });
+});
 
 test("keeps the median below the average when sales are concentrated", () => {
   expect(medianSales([0, 180_000, 700_000])).toBe(180_000);

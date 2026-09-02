@@ -35,7 +35,6 @@ const expectedSidebarLinks = [
   ["셀렉터스 성과", "/performance/selectors"],
   ["콘텐츠 성과", "/performance/contents"],
   ["정산 관리", "/settlements"],
-  ["주문 상세", "/settlements/orders"],
   ["발송 내역", "/notifications"],
   ["모니터링", "/task-runs"],
 ] as const;
@@ -733,14 +732,6 @@ const routeCases = [
     menuLabel: "정산 관리",
     title: "정산 지급 관리",
     screenCode: "ST101",
-    routeIsExact: true,
-  },
-  {
-    path: "/settlements/orders",
-    group: "performance",
-    menuLabel: "주문 상세",
-    title: "주문 상세",
-    screenCode: "ST102",
     routeIsExact: true,
   },
   {

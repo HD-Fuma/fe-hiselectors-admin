@@ -1,7 +1,6 @@
 export {
   getSettlementEstimates,
   getSettlementEstimateSummary,
-  getSettlementPurchaseHistories,
   getSettlementSelectorDetail,
   recalculateAllSettlementEstimates,
 } from "./api";
@@ -18,8 +17,6 @@ export {
   SETTLEMENT_STATUS_FILTERS,
   apiStatusesForFilter,
   primarySettlementPaymentStatus,
-  purchaseHistoryStatusLabel,
-  purchaseHistoryStatusTone,
   settlementHoldReason,
   settlementStatusLabel,
   settlementStatusTone,
@@ -29,8 +26,6 @@ export {
   type SettlementEstimateSummary,
   type SettlementEstimateSummaryRequest,
   type SettlementMonthlySummary,
-  type SettlementPurchaseHistory,
-  type SettlementPurchaseHistoryRequest,
   type SettlementSelectorDetail,
   type SettlementSelectorProfile,
   type SettlementSnsCode,
@@ -43,7 +38,6 @@ export {
   type SettlementStatusDistribution,
   type SettlementStatusFilter,
   type SettlementTableRow,
-  type PurchaseHistoryStatus,
   type SpringPage,
 } from "./model";
 export { SettlementTable } from "./SettlementTable";

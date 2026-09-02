@@ -333,7 +333,17 @@ export interface SelectorPoolCanvasProps {
   selectors: SelectorSummary[];
 }
 
-export function SelectorPoolCanvas({ onPrefetch, onSelect, selectors }: SelectorPoolCanvasProps) {
+/** 버블 뷰 전체 목록에서는 블랙리스트를 보여 주지 않는다. */
+export function selectorsForPool(selectors: readonly SelectorSummary[]) {
+  return selectors.filter((selector) => selector.roleId !== "BLACKLIST");
+}
+
+export function SelectorPoolCanvas({
+  onPrefetch,
+  onSelect,
+  selectors: allSelectors,
+}: SelectorPoolCanvasProps) {
+  const selectors = useMemo(() => selectorsForPool(allSelectors), [allSelectors]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const selectRef = useRef(onSelect);
   const prefetchRef = useRef(onPrefetch);

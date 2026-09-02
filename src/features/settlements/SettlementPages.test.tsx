@@ -606,16 +606,17 @@ test("fills only missing previous months while keeping current real data", async
 
   const results = await screen.findByRole("region", { name: "정산 지급 목록" });
   expect(await within(results).findByText("SEL-0007")).toBeInTheDocument();
-  expect(screen.getByText("이전 월 샘플 포함 · 현재 월은 실제 데이터")).toBeInTheDocument();
-  expect(screen.getByText("이전 월 샘플 포함")).toBeInTheDocument();
+  expect(screen.getByText("지급 상태 필터와 무관한 월 전체 기준")).toBeInTheDocument();
   expect(screen.queryByText("샘플 데이터")).not.toBeInTheDocument();
+  expect(screen.queryByText("이전 월 샘플 포함")).not.toBeInTheDocument();
 
   const summary = screen.getByRole("region", { name: "정산 요약" });
   expect(within(summary).getByRole("article", { name: "예상 정산액" })).toHaveTextContent(
     "3,584원",
   );
-  expect(within(summary).getByText(/샘플 전월 대비/)).toBeInTheDocument();
-  expect(within(summary).getByText(/전월 샘플/)).toBeInTheDocument();
+  expect(within(summary).getByText(/전월 대비/)).toBeInTheDocument();
+  expect(within(summary).getByText(/^전월 [\d,]+원$/)).toBeInTheDocument();
+  expect(within(summary).queryByText(/샘플/)).not.toBeInTheDocument();
   const trend = within(summary).getByRole("img", {
     name: /최근 6개월 확정 매출 및 수수료율 추이/,
   });
@@ -729,9 +730,9 @@ test("shows loading, demo fallback, and error states", async () => {
   }));
   const results = await screen.findByRole("region", { name: "정산 지급 목록" });
   const demoRow = await within(results).findByRole("row", { name: /SEL-0001/ });
-  expect(screen.getByText("샘플 데이터 · 실제 지급과 무관")).toBeInTheDocument();
-  expect(screen.getByText("샘플 데이터")).toBeInTheDocument();
   expect(screen.getByText("총 44건")).toBeInTheDocument();
+  expect(screen.queryByText("샘플 데이터")).not.toBeInTheDocument();
+  expect(screen.queryByText("샘플 데이터 · 실제 지급과 무관")).not.toBeInTheDocument();
   expect(screen.getByRole("img", { name: /최근 6개월 확정 매출 및 수수료율 추이/ }))
     .toBeInTheDocument();
   expect(screen.getByRole("navigation", { name: "페이지 이동" })).toBeInTheDocument();
@@ -803,7 +804,7 @@ test("keeps aggregate KPIs when a rollback summary omits dashboard arrays", asyn
   expect(within(summary).getByRole("img", {
     name: /최근 6개월 확정 매출 및 수수료율 추이/,
   })).toBeInTheDocument();
-  expect(within(summary).getByText("이전 월 샘플 포함 · 현재 월은 실제 데이터"))
+  expect(within(summary).getByText("지급 상태 필터와 무관한 월 전체 기준"))
     .toBeInTheDocument();
   expect(within(summary).getByText("표시할 지급 상태 데이터가 없습니다.")).toBeInTheDocument();
 });

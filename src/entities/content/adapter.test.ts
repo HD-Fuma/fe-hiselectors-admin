@@ -457,6 +457,88 @@ test("synthesizes a text-start pin when absence violations have no locations", (
   ]);
 });
 
+test("keeps a confirmed ad-disclosure pin at the body start when evidence only points to video", () => {
+  const adaptContentInspectionDetail = (
+    contentEntity as unknown as { adaptContentInspectionDetail?: AdaptContentInspectionDetail }
+  ).adaptContentInspectionDetail;
+  expect(adaptContentInspectionDetail).toBeTypeOf("function");
+  if (!adaptContentInspectionDetail) return;
+
+  const inspection = adaptContentInspectionDetail({
+    contentId: 43,
+    contentType: "LONG_FORM",
+    contentUrl: "https://youtube.com/watch?v=abcdefghijk",
+    selectedVersion: {
+      contentReport: null,
+      contentVersionId: 430,
+      creationReason: "INITIAL",
+      createdAt: "2026-09-02T10:05:00",
+      inspectedAt: "2026-09-02T10:06:00",
+      inspectionStatus: "COMPLETED",
+      media: [{
+        contentMediaId: 4301,
+        mediaType: "TEXT",
+        mediaUrl: null,
+        sequenceNo: 0,
+        snsMediaId: null,
+        text: "광고 안내가 없는 게시물 본문입니다.",
+      }, {
+        contentMediaId: 4302,
+        mediaType: "VIDEO",
+        mediaUrl: "https://youtube.com/watch?v=abcdefghijk",
+        sequenceNo: 1,
+        snsMediaId: "abcdefghijk",
+        text: null,
+      }],
+      violations: [{
+        evidence: {
+          confidence: 1,
+          locations: [{
+            bbox: null,
+            contentMediaId: 4302,
+            endIndex: null,
+            endTime: 5,
+            excerpt: null,
+            mediaType: "VIDEO",
+            startIndex: null,
+            startTime: 0,
+          }],
+          reason: "본문 첫 줄과 영상에서 광고·수수료 안내 문구를 확인할 수 없습니다.",
+          source: "RULE",
+        },
+        currentStatus: "VIOLATION_CONFIRMED",
+        detectedAt: "2026-09-02T10:06:00",
+        inspectionPolicyId: 7,
+        violationEvidenceHistoryId: 13,
+        violationItemId: 23,
+        violationType: "AD_DISCLOSURE_INVALID",
+        violationTypeDescription: "광고·수수료 안내 문구 확인 필요",
+      }],
+      versionNo: 1,
+    },
+    selectorsId: 7,
+    snsCode: "YOUTUBE",
+    snsContentId: "abcdefghijk",
+    storedAt: "2026-09-02T10:00:00",
+    versions: [],
+  });
+
+  expect(inspection.currentSnapshot.annotations).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      location: "게시물 본문(TEXT)",
+      target: {
+        kind: "text-start",
+        quote: "광고·수수료 안내 문구 확인 필요",
+      },
+      title: "광고·수수료 안내 문구 확인 필요",
+    }),
+    expect.objectContaining({
+      target: expect.objectContaining({ kind: "media", mediaIndex: 0 }),
+      title: "광고·수수료 안내 문구 확인 필요",
+    }),
+  ]));
+});
+
 test("maps approved and rejected decisions to separate inspection statuses", () => {
   const adaptContentInspection = (
     contentEntity as unknown as { adaptContentInspection?: AdaptContentInspection }

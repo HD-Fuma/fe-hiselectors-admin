@@ -211,6 +211,14 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(
   grid-template-columns: 42px minmax(0, 1fr);
 }
 
+.fuma-content-performance-page .fuma-performance-top-filter .hsas-search-panel__fields {
+  grid-template-columns: minmax(240px, 1.1fr) minmax(160px, 0.7fr) minmax(380px, 1.2fr);
+}
+
+.fuma-content-performance-page .fuma-performance-top-filter .fuma-filter-field:first-child {
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+
 .fuma-campaign-overview {
   overflow: hidden;
   border: 1px solid #dce6e2;
@@ -1583,7 +1591,10 @@ html[data-theme='dark'] .fuma-content-performance-detail :is(
   .fuma-content-upload-status__formats .fuma-analysis-format-breakdown { grid-template-columns: minmax(0, 1fr); justify-items: center; }
   .fuma-content-upload-status__formats .fuma-analysis-format-breakdown__legend { width: 100%; }
   .fuma-content-period-chart__period { flex-wrap: wrap; }
-  .fuma-performance-top-filter .hsas-search-panel__fields { grid-template-columns: minmax(0, 1fr); }
+  .fuma-performance-top-filter .hsas-search-panel__fields,
+  .fuma-content-performance-page .fuma-performance-top-filter .hsas-search-panel__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .fuma-content-period-chart__toolbar { align-items: flex-start; flex-direction: column; }
   .fuma-content-period-chart__toolbar .fuma-content-cohort-chart__legend { margin-left: 0; }
 

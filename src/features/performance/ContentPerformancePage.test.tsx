@@ -94,6 +94,9 @@ test("content performance opens card and list details in a side panel", async ()
   );
   expect(screen.getByRole("search", { name: "검색 조건" }).parentElement)
     .toHaveAttribute("data-visual-contract", "list-search-panel");
+  expect(screen.getByRole("search", { name: "검색 조건" }).closest(".fuma-performance-top-filter"))
+    .not.toBeNull();
+  expect(within(results).queryByRole("search", { name: "검색 조건" })).not.toBeInTheDocument();
   expect(within(results).getByText("콘텐츠 성과 및 추이")).toBeInTheDocument();
   const sort = within(results).getByRole("combobox", { name: "콘텐츠 성과 정렬" });
   expect(sort).toHaveValue("latest");
@@ -117,14 +120,9 @@ test("content performance opens card and list details in a side panel", async ()
   expect(within(uploadStatus!).getByText("8건")).toBeInTheDocument();
   expect(within(uploadStatus!).getByText("+60.0%")).toBeInTheDocument();
   expect(screen.getByText("기간별 콘텐츠 성과")).toBeInTheDocument();
-  const periodSearch = screen.getByRole("form", { name: "콘텐츠 성과 기간 검색" });
-  fireEvent.change(within(periodSearch).getByLabelText("성과 시작일"), {
-    target: { value: "2026-08-18" },
-  });
-  fireEvent.change(within(periodSearch).getByLabelText("성과 종료일"), {
-    target: { value: "2026-08-19" },
-  });
-  fireEvent.click(within(periodSearch).getByRole("button", { name: "조회" }));
+  expect(screen.queryByRole("form", { name: "콘텐츠 성과 기간 검색" })).not.toBeInTheDocument();
+  expect(screen.getByLabelText("집계 시작일")).toBeInTheDocument();
+  expect(screen.getByLabelText("집계 종료일")).toBeInTheDocument();
   const chartScroll = await screen.findByRole(
     "region",
     { name: "기간별 콘텐츠 성과 그래프 좌우 이동" },
@@ -199,23 +197,27 @@ test("content performance opens card and list details in a side panel", async ()
   expect(screen.getByRole("dialog", { name: "콘텐츠 상세" })).toBeInTheDocument();
 }, 15_000);
 
-test("period performance chart applies its local date range", async () => {
+test("period performance chart follows the top search period", async () => {
   const user = userEvent.setup();
   renderRoute("/performance/contents");
 
   await screen.findByRole("heading", { name: "콘텐츠 성과" }, { timeout: 5_000 });
-  expect(screen.queryByLabelText("집계 시작일")).not.toBeInTheDocument();
-  expect(screen.queryByLabelText("집계 종료일")).not.toBeInTheDocument();
+  expect(screen.getByLabelText("집계 시작일")).toBeInTheDocument();
+  expect(screen.getByLabelText("집계 종료일")).toBeInTheDocument();
+  expect(screen.queryByRole("form", { name: "콘텐츠 성과 기간 검색" })).not.toBeInTheDocument();
   expect(screen.queryByRole("figure", { name: "기간별 업로드 추이" })).not.toBeInTheDocument();
 
-  const chart = screen.getByRole("article", { name: "기간별 콘텐츠 성과" });
-  fireEvent.change(within(chart).getByLabelText("성과 시작일"), {
+  const search = screen.getByRole("search", { name: "검색 조건" });
+  fireEvent.change(within(search).getByLabelText("집계 시작일"), {
     target: { value: "2026-07-22" },
   });
-  fireEvent.change(within(chart).getByLabelText("성과 종료일"), {
+  fireEvent.change(within(search).getByLabelText("집계 종료일"), {
     target: { value: "2026-07-24" },
   });
-  await user.click(within(chart).getByRole("button", { name: "조회" }));
+  await user.click(within(search).getByRole("button", { name: "조회" }));
+
+  const chart = screen.getByRole("article", { name: "기간별 콘텐츠 성과" });
+  expect(within(chart).queryByLabelText("성과 시작일")).not.toBeInTheDocument();
 
   expect(
     [...chart.querySelectorAll<HTMLElement>("[data-period-date]")].map(
@@ -231,12 +233,13 @@ test("period performance chart applies its local date range", async () => {
       .map((point) => Number(point.dataset.metricValue)),
   ).toEqual(expectedDailyCounts);
 
-  fireEvent.change(within(chart).getByLabelText("성과 시작일"), {
+  fireEvent.change(within(search).getByLabelText("집계 시작일"), {
     target: { value: "2026-07-23" },
   });
-  await user.click(within(chart).getByRole("button", { name: "조회" }));
+  await user.click(within(search).getByRole("button", { name: "조회" }));
+  const updatedChart = screen.getByRole("article", { name: "기간별 콘텐츠 성과" });
   expect(
-    [...chart.querySelectorAll<HTMLElement>("[data-period-date]")].map(
+    [...updatedChart.querySelectorAll<HTMLElement>("[data-period-date]")].map(
       (point) => point.dataset.periodDate,
     ),
   ).toEqual(["2026-07-23", "2026-07-24"]);
