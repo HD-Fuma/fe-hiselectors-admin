@@ -195,6 +195,23 @@ test("uses request wording when resend fails without an Error", async () => {
     .toHaveTextContent("메시지 재발송 요청에 실패했습니다.");
 });
 
+test("shows PENALTY_RELEASE purpose as 패널티 해제", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(historyResponse([{
+    ...HISTORY_ITEM,
+    purposeCode: "PENALTY_RELEASE",
+  }])));
+
+  renderRoute("/notifications");
+
+  const results = await screen.findByRole("region", { name: "알림 및 메시지 발송 내역" });
+  expect(within(results).getByText("패널티 해제")).toBeInTheDocument();
+  expect(within(results).queryByText("PENALTY_RELEASE")).not.toBeInTheDocument();
+  expect(
+    within(within(screen.getByRole("search", { name: "검색 조건" })).getByLabelText("발송 목적"))
+      .getByRole("option", { name: "패널티 해제" }),
+  ).toHaveValue("PENALTY_RELEASE");
+});
+
 test("filters loaded history by channel tab without calling the API again", async () => {
   const fetchMock = vi.fn().mockResolvedValue(historyResponse([HISTORY_ITEM, EMAIL_ITEM]));
   vi.stubGlobal("fetch", fetchMock);

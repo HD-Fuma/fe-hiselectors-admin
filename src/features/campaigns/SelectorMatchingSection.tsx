@@ -231,6 +231,7 @@ export function SelectorMatchingSection({
           {allSelected ? "선택 해제" : "전체 선택"}
         </Button>
         <Button
+          className="fuma-selector-matching__send"
           disabled={selected.size === 0}
           onClick={() => {
             setSendError("");

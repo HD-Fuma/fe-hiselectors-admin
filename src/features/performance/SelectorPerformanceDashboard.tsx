@@ -175,7 +175,7 @@ export function SelectorPerformanceDashboard({
             <h2>성과 TOP 5</h2>
           </header>
           <p className="fuma-selector-dashboard__note">
-            이번 기간 매출 순위입니다. 등락은 기수 활동 시작일부터 집계 시작 전일까지와 비교합니다.
+            이번 기간 매출 순위입니다. 등락은 동일한 길이의 직전 기간과 비교합니다.
           </p>
           {summary.top5.length === 0 ? (
             <p className="fuma-selector-dashboard__note">표시할 셀렉터스가 없습니다.</p>
@@ -314,7 +314,7 @@ export function SelectorPerformanceDashboard({
         />
       </div>
       <p className="fuma-selector-dashboard__footnote">
-        등락은 기수 활동 시작일부터 선택한 집계 시작 전일까지의 매출 순위입니다. 이전 기간 매출이 없으면
+        등락은 선택한 기간과 동일한 길이의 직전 기간 매출 순위입니다. 이전 기간 매출이 없으면
         NEW, 변동이 없으면 - 입니다. 클릭·발생 수수료·유형은 집계 API 연동 전 미리보기입니다.
       </p>
     </section>

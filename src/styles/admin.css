@@ -2461,6 +2461,10 @@
   align-items: center;
 }
 
+.fuma-selector-matching__send {
+  margin-left: auto;
+}
+
 .fuma-selector-matching__toolbar .hsas-select {
   width: auto;
   min-width: 180px;

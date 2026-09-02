@@ -216,7 +216,7 @@ function applicantToListRow(
     lastPublishedAt: applicant.lastPublishedAt?.slice(0, 10) ?? "-",
     followerCount: applicant.followerCount,
     engagementRate: applicant.engagementRate,
-    appliedAt: dateTime(applicant.appliedAt),
+    appliedAt: applicant.appliedAt?.slice(0, 10) ?? "-",
     reviewStatus: reviewStatusFor(applicant, autoRejectionEnabled),
   };
 }
@@ -336,7 +336,7 @@ function applicantListColumns(
     {
       key: "appliedAt",
       header: "신청일",
-      width: 125,
+      width: 105,
       align: "center",
     },
     {

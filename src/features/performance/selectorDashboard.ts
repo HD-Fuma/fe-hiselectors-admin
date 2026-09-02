@@ -255,6 +255,22 @@ export function adaptSelectorPerformanceTrend(
   });
 }
 
+export function defaultSelectorPerformancePeriod(
+  generations: readonly Generation[],
+  now = new Date(),
+) {
+  const periodEnd = formatIsoDate(now);
+  const cohortStart = earliestActivityStart(
+    generations.filter((generation) => generation.status === "ACTIVE"),
+  );
+  return {
+    periodEnd,
+    periodStart: cohortStart && cohortStart <= periodEnd
+      ? cohortStart
+      : formatIsoDate(addMonths(now, -5)),
+  };
+}
+
 export function previousPerformanceRange(input: {
   generations: readonly Generation[];
   periodStart: string;
@@ -268,11 +284,15 @@ export function previousPerformanceRange(input: {
     ))
     : input.generations.filter((generation) => generation.status === "ACTIVE");
   if (targets.length === 0) return null;
-  const startDate = [...targets]
-    .map((generation) => generation.activityStartDate.slice(0, 10))
-    .sort()[0];
+  const startDate = earliestActivityStart(targets);
   if (!startDate || previousEnd < startDate) return null;
   return { endDate: previousEnd, startDate };
+}
+
+function earliestActivityStart(generations: readonly Generation[]) {
+  return [...generations]
+    .map((generation) => generation.activityStartDate.slice(0, 10))
+    .sort()[0];
 }
 
 export function withPreviousPeriodSales(
@@ -478,7 +498,7 @@ export function summarizeSelectorDashboard(
     types: typePerformances(rows),
     watchlists: {
       discovery: [
-        watchlist("salesRise", "전월 대비 매출 100% 이상 증가", rows.filter((row) => (
+        watchlist("salesRise", "직전 동일 기간 대비 매출 100% 이상 증가", rows.filter((row) => (
           matchesWatchlist(row, "salesRise")
         )).length),
         watchlist("newTop10", "신규 TOP 10 진입", newTop10.length),
@@ -493,7 +513,7 @@ export function summarizeSelectorDashboard(
         watchlist("clicksNoPurchase", "클릭 있으나 구매 없음", rows.filter((row) => (
           matchesWatchlist(row, "clicksNoPurchase")
         )).length),
-        watchlist("salesDrop", "전월 대비 매출 50% 이상 감소", rows.filter((row) => (
+        watchlist("salesDrop", "직전 동일 기간 대비 매출 50% 이상 감소", rows.filter((row) => (
           matchesWatchlist(row, "salesDrop")
         )).length),
       ],
@@ -621,7 +641,11 @@ function watchlistsFromApi(watchlistCounts: {
 }): SelectorDashboardSummary["watchlists"] {
   return {
     discovery: [
-      watchlist("salesRise", "전월 대비 매출 100% 이상 증가", asNumber(watchlistCounts.salesSurge)),
+      watchlist(
+        "salesRise",
+        "직전 동일 기간 대비 매출 100% 이상 증가",
+        asNumber(watchlistCounts.salesSurge),
+      ),
       watchlist("newTop10", "신규 TOP 10 진입", asNumber(watchlistCounts.newTop10)),
     ],
     manage: [
@@ -632,7 +656,11 @@ function watchlistsFromApi(watchlistCounts: {
         "클릭 있으나 구매 없음",
         asNumber(watchlistCounts.clicksWithoutPurchase),
       ),
-      watchlist("salesDrop", "전월 대비 매출 50% 이상 감소", asNumber(watchlistCounts.salesDrop)),
+      watchlist(
+        "salesDrop",
+        "직전 동일 기간 대비 매출 50% 이상 감소",
+        asNumber(watchlistCounts.salesDrop),
+      ),
     ],
   };
 }

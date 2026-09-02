@@ -8,6 +8,7 @@ export type {
 } from "./model/fixtures";
 export {
   createGeneration,
+  getDashboardSalesSettlementTrend,
   getGenerations,
   getSelector,
   getSelectorFilterGenerations,
@@ -23,6 +24,8 @@ export {
   updateGenerationStatus,
 } from "./api";
 export type {
+  DashboardSalesSettlementTrend,
+  DashboardSalesSettlementTrendPoint,
   Generation,
   GenerationSaveRequest,
   GenerationStatus,

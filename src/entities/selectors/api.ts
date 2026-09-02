@@ -150,6 +150,18 @@ export interface SelectorPerformanceTrend {
   startDate: string;
 }
 
+export interface DashboardSalesSettlementTrendPoint {
+  date: string;
+  salesAmount: number;
+  settlementAmount: number;
+}
+
+export interface DashboardSalesSettlementTrend {
+  endDate: string;
+  points: readonly DashboardSalesSettlementTrendPoint[];
+  startDate: string;
+}
+
 export interface SelectorPerformanceSummaryKpis {
   accruedCommissionAmount: number;
   accruedCommissionChangeRate: number | null;
@@ -409,6 +421,18 @@ export function getSelectorPerformanceTrend(
   return request<SelectorPerformanceTrend>(
     `/api/admin/selector-performance/trend${search ? `?${search}` : ""}`,
     "셀렉터스 성과 추이 조회에 실패했습니다.",
+    { signal },
+  );
+}
+
+export function getDashboardSalesSettlementTrend(
+  input: Pick<SelectorPerformanceQuery, "startDate" | "endDate">,
+  signal?: AbortSignal,
+) {
+  const search = query({ endDate: input.endDate, startDate: input.startDate });
+  return request<DashboardSalesSettlementTrend>(
+    `/api/admin/dashboard/sales-settlement-trend${search ? `?${search}` : ""}`,
+    "대시보드 매출·정산 추이 조회에 실패했습니다.",
     { signal },
   );
 }

@@ -127,9 +127,23 @@ function signalTone(status: ContentViolationItemStatus): InspectionSignalTone {
   return "critical";
 }
 
+function annotationState(
+  status: ContentViolationItemStatus,
+  showHistoricalEvidence: boolean,
+): ContentAnnotation["state"] {
+  return !showHistoricalEvidence && CLOSED_VIOLATION_STATUSES.has(status)
+    ? "resolved"
+    : "active";
+}
+
 function isAbsenceViolation(violation: ContentViolation) {
   return ABSENCE_VIOLATION_TYPES.has(violation.violationType)
     && (violation.evidence?.locations.length ?? 0) === 0;
+}
+
+function needsDisclosureTextStartPin(violation: ContentViolation) {
+  return violation.violationType === "AD_DISCLOSURE_INVALID"
+    && !(violation.evidence?.locations ?? []).some((location) => location.mediaType === "TEXT");
 }
 
 function signalsFromViolations(
@@ -184,10 +198,7 @@ function annotationsFromViolations(
         reason: violation.evidence?.reason?.trim() || violation.violationTypeDescription,
         severity: signalTone(violation.currentStatus) === "warning" ? "warning" : "critical",
         source: "자동 감지" as const,
-          state: !showHistoricalEvidence && violation.currentStatus != null
-            && violation.currentStatus !== "PENDING"
-            ? "resolved" as const
-            : "active" as const,
+          state: annotationState(violation.currentStatus, showHistoricalEvidence),
         target: textMedia
           ? { kind: "text-start" as const, quote }
           : {
@@ -198,8 +209,8 @@ function annotationsFromViolations(
         title: violation.violationTypeDescription,
       }];
     }
-    return locations
-      .flatMap((location, locationIndex) => {
+    const locationAnnotations: ContentAnnotation[] = locations
+      .flatMap((location, locationIndex): ContentAnnotation[] => {
         const sourceMedia = location.contentMediaId == null
           ? undefined
           : mediaById.get(location.contentMediaId);
@@ -229,10 +240,7 @@ function annotationsFromViolations(
           reason: violation.evidence?.reason?.trim() || violation.violationTypeDescription,
           severity: signalTone(violation.currentStatus) === "warning" ? "warning" : "critical",
           source: "자동 감지" as const,
-          state: !showHistoricalEvidence && violation.currentStatus != null
-            && violation.currentStatus !== "PENDING"
-            ? "resolved" as const
-            : "active" as const,
+          state: annotationState(violation.currentStatus, showHistoricalEvidence),
           target: useTextTarget
             ? {
                 endIndex: offset + (location.endIndex ?? 0),
@@ -261,6 +269,28 @@ function annotationsFromViolations(
           title: violation.violationTypeDescription,
         }];
       });
+
+    if (needsDisclosureTextStartPin(violation)) {
+      const textMedia = media.find((item) => item.mediaType === "TEXT");
+      if (textMedia) {
+        locationAnnotations.unshift({
+          guidance: violation.evidence?.reason?.trim() || "본문 첫 줄의 광고·수수료 안내 문구를 확인해 주세요.",
+          id: `violation-history-${violation.violationEvidenceHistoryId}-disclosure-text-start`,
+          location: "게시물 본문(TEXT)",
+          reason: violation.evidence?.reason?.trim() || violation.violationTypeDescription,
+          severity: signalTone(violation.currentStatus) === "warning" ? "warning" : "critical",
+          source: "자동 감지" as const,
+          state: annotationState(violation.currentStatus, showHistoricalEvidence),
+          target: {
+            kind: "text-start" as const,
+            quote: violation.violationTypeDescription,
+          },
+          title: violation.violationTypeDescription,
+        });
+      }
+    }
+
+    return locationAnnotations;
   });
 }
 

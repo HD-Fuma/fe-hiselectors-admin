@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, vi } from "vitest";
 import { renderRoute } from "../../test/renderRoute";
@@ -70,35 +70,35 @@ const SELECTOR_PERFORMANCE_TREND = {
   bucket: "DAY",
   endDate: "2026-08-03",
   points: [
-    { confirmedOrderCount: 1, date: "2026-08-01", totalSales: 100 },
-    { confirmedOrderCount: 2, date: "2026-08-02", totalSales: 200 },
-    { confirmedOrderCount: 3, date: "2026-08-03", totalSales: 300 },
+    { accruedCommissionAmount: 5, confirmedOrderCount: 1, date: "2026-08-01", totalSales: 100 },
+    { accruedCommissionAmount: 10, confirmedOrderCount: 2, date: "2026-08-02", totalSales: 200 },
+    { accruedCommissionAmount: 15, confirmedOrderCount: 3, date: "2026-08-03", totalSales: 300 },
   ],
   startDate: "2026-08-01",
 } as const;
 
 const GENERATIONS = [
   {
-    activityEndDate: "2026-06-30T23:59:59",
-    activityStartDate: "2026-04-01T00:00:00",
-    endDate: "2026-03-31T23:59:59",
+    activityEndDate: "2026-10-31T23:59:59",
+    activityStartDate: "2026-08-01T00:00:00",
+    endDate: "2026-07-31T23:59:59",
     generationName: "5기",
     id: 5,
-    startDate: "2026-01-01T00:00:00",
+    startDate: "2026-07-01T00:00:00",
     status: "ACTIVE",
   },
   {
-    activityEndDate: "2026-06-30T23:59:59",
-    activityStartDate: "2026-04-01T00:00:00",
-    endDate: "2026-03-31T23:59:59",
+    activityEndDate: "2026-10-31T23:59:59",
+    activityStartDate: "2026-08-01T00:00:00",
+    endDate: "2026-07-31T23:59:59",
     generationName: "3기",
     id: 3,
-    startDate: "2026-01-01T00:00:00",
+    startDate: "2026-07-01T00:00:00",
     status: "ACTIVE",
   },
   {
     activityEndDate: "2026-06-30T23:59:59",
-    activityStartDate: "2026-04-01T00:00:00",
+    activityStartDate: "2026-01-01T00:00:00",
     endDate: "2026-03-31T23:59:59",
     generationName: "2기",
     id: 2,
@@ -106,6 +106,14 @@ const GENERATIONS = [
     status: "INACTIVE",
   },
 ] as const;
+
+function localDateKey(date = new Date()) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
 
 function json(data: unknown) {
   return Promise.resolve(new Response(JSON.stringify({
@@ -155,9 +163,22 @@ test("shows the cohort dashboard without a ranked sales list", async () => {
   expect(searches[0].parentElement).toHaveAttribute("data-visual-contract", "list-search-panel");
   expect(searches[0].closest(".fuma-performance-top-filter")).not.toBeNull();
   expect(within(searches[0]).getByRole("combobox", { name: "기수" })).toBeInTheDocument();
-  expect(within(searches[0]).getByLabelText("집계 시작일")).toBeInTheDocument();
-  expect(within(searches[0]).getByLabelText("집계 종료일")).toBeInTheDocument();
+  expect(await within(searches[0]).findByLabelText("집계 시작일")).toHaveValue("2026-08-01");
+  expect(within(searches[0]).getByLabelText("집계 종료일")).toHaveValue(localDateKey());
   expect(within(searches[0]).queryByLabelText("셀렉터스명")).not.toBeInTheDocument();
+
+  const performanceUrls = await waitFor(() => {
+    const urls = vi.mocked(fetch).mock.calls
+      .map(([input]) => new URL(String(input), "http://localhost"))
+      .filter((url) => (
+        url.pathname === "/api/admin/selector-performance/summary"
+        || url.pathname === "/api/admin/selector-performance/trend"
+      ));
+    expect(urls).toHaveLength(2);
+    return urls;
+  });
+  expect(performanceUrls.every((url) => url.searchParams.get("startDate") === "2026-08-01")).toBe(true);
+  expect(performanceUrls.every((url) => url.searchParams.get("endDate") === localDateKey())).toBe(true);
 });
 
 test("opens selector detail from the top 5 table without navigating away", async () => {
@@ -202,7 +223,9 @@ test("shows the cohort dashboard and keeps watchlist selection on the summary", 
   expect(within(overview).queryByText("업로드 현황")).not.toBeInTheDocument();
   expect(within(overview).queryByText("중간매출")).not.toBeInTheDocument();
 
-  const rise = within(overview).getByRole("button", { name: /전월 대비 매출 100% 이상 증가/ });
+  const rise = within(overview).getByRole("button", {
+    name: /직전 동일 기간 대비 매출 100% 이상 증가/,
+  });
   await user.click(rise);
   expect(rise).toHaveAttribute("aria-pressed", "true");
   expect(screen.queryByRole("region", { name: "전체 셀렉터스 성과 목록" })).not.toBeInTheDocument();

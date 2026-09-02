@@ -7,8 +7,6 @@ import type {
   SettlementEstimateRequest,
   SettlementEstimateSummary,
   SettlementEstimateSummaryRequest,
-  SettlementPurchaseHistory,
-  SettlementPurchaseHistoryRequest,
   SettlementSelectorDetail,
   SettlementStatus,
   SpringPage,
@@ -207,37 +205,6 @@ export async function recalculateAllSettlementEstimates(
     throw new Error(result.message || "전체 정산 내역 새로고침에 실패했습니다.");
   }
 
-  return result.data;
-}
-
-export async function getSettlementPurchaseHistories(
-  request: SettlementPurchaseHistoryRequest,
-  signal?: AbortSignal,
-): Promise<SpringPage<SettlementPurchaseHistory>> {
-  const searchParams = new URLSearchParams({
-    allMonths: String(request.allMonths),
-    page: String(request.page),
-    size: String(request.size),
-  });
-  if (!request.allMonths && request.month) searchParams.set("month", request.month);
-  if (request.selectorsId !== undefined) {
-    searchParams.set("selectorsId", String(request.selectorsId));
-  }
-  searchParams.append("sort", "purchasedAt,desc");
-  searchParams.append("sort", "id,desc");
-
-  const response = await adminFetch(
-    `${API_BASE_URL}/api/admin/settlements/purchase-histories?${searchParams.toString()}`,
-    { headers: authorizationHeaders(), signal },
-  );
-  if (!response.ok) {
-    throw new Error(await errorMessage(response, "주문 상세 내역 조회에 실패했습니다."));
-  }
-
-  const result = await response.json() as ApiResult<SpringPage<SettlementPurchaseHistory>>;
-  if (!result.success || !result.data) {
-    throw new Error(result.message || "주문 상세 내역 조회에 실패했습니다.");
-  }
   return result.data;
 }
 

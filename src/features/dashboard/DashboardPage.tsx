@@ -8,7 +8,7 @@ import {
   getCurrentGenerationContents,
   type ContentInspectionFixture,
 } from "../../entities/content";
-import { getSelectorPerformanceSummary } from "../../entities/selectors";
+import { getDashboardSalesSettlementTrend } from "../../entities/selectors";
 import { getAdministratorSession } from "../../lib/adminAuthentication";
 import { formatCompactCount, formatNumber, formatWon } from "../../lib/formatters";
 import "../../styles/dashboard.css";
@@ -322,17 +322,20 @@ export function DashboardPage() {
     const controller = new AbortController();
     const today = localDateKey();
     const revenueDates = recentDateKeys();
-    const revenueTrend = Promise.all(revenueDates.map(async (date) => {
-      const summary = await getSelectorPerformanceSummary({
-        endDate: date,
-        startDate: date,
-      }, controller.signal);
-      return {
-        date,
-        salesAmount: summary.kpis.totalSales,
-        settlementAmount: summary.kpis.accruedCommissionAmount,
-      };
-    }));
+    const revenueTrend = getDashboardSalesSettlementTrend({
+      endDate: revenueDates[revenueDates.length - 1],
+      startDate: revenueDates[0],
+    }, controller.signal).then((trend) => {
+      const pointsByDate = new Map(trend.points.map((point) => [point.date, point]));
+      return revenueDates.map((date) => {
+        const point = pointsByDate.get(date);
+        return {
+          date,
+          salesAmount: point?.salesAmount ?? 0,
+          settlementAmount: point?.settlementAmount ?? 0,
+        };
+      });
+    });
 
     void Promise.allSettled([
       getCurrentGenerationContents(controller.signal),

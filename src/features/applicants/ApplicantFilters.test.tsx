@@ -273,6 +273,8 @@ describe("applicant api pages", () => {
     expect(within(applicantList).getByRole("link", { name: "정하린 SNS 계정 열기 (새 창)" }))
       .toHaveAttribute("href", "https://www.youtube.com/channel/UC1111111111111111111111");
     expect(within(applicantList).getByText("2026-08-01")).toBeInTheDocument();
+    expect(within(applicantList).getByText("2026-08-02")).toBeInTheDocument();
+    expect(within(applicantList).queryByText("2026.08.02 16:40")).not.toBeInTheDocument();
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
       expect.stringMatching(/keyword=.*snsCode=YOUTUBE.*status=APPROVED.*generationId=3.*page=0.*size=20/),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
