@@ -10,6 +10,7 @@ import { getTaskRunPanelApiMock, renderRoute } from "../../test/renderRoute";
 function resetTheme() {
   localStorage.removeItem("selectors-theme");
   localStorage.removeItem("selectors-content-fast-mode");
+  localStorage.removeItem("selectors-applicant-auto-rejection");
   document.documentElement.removeAttribute("data-theme");
   document.documentElement.removeAttribute("data-sidebar-theme");
   document.documentElement.style.removeProperty("color-scheme");
@@ -304,6 +305,18 @@ test("confirms fast mode before persisting the scoped content batch setting", ()
   fireEvent.click(fastMode);
   expect(fastMode).not.toBeChecked();
   expect(localStorage.getItem("selectors-content-fast-mode")).toBeNull();
+});
+
+test("toggles applicant automatic rejection in environment settings", () => {
+  renderRoute("/applicants");
+  fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
+  const settings = screen.getByRole("group", { name: "환경설정" });
+  const toggle = within(settings).getByRole("checkbox", { name: "지원자 자동 반려" });
+
+  expect(toggle).toBeChecked();
+  fireEvent.click(toggle);
+  expect(toggle).not.toBeChecked();
+  expect(localStorage.getItem("selectors-applicant-auto-rejection")).toBe("false");
 });
 
 test("resets the creator pool from environment settings after typed confirmation", async () => {

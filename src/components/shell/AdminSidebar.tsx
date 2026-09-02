@@ -16,10 +16,15 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link, matchPath, useNavigate } from "react-router-dom";
 import { CREATOR_POOL_RESET_EVENT } from "../../lib/creatorPoolEvents";
 import { getFastMode, saveFastMode } from "../../lib/fastMode";
+import {
+  getAutoRejectionEnabled,
+  saveAutoRejectionEnabled,
+  subscribeAutoRejection,
+} from "../../lib/autoRejection";
 import { applyTheme, getTheme, saveTheme } from "../../lib/theme";
 import { resetContentInspections } from "../../entities/content";
 import { resetCreatorPool } from "../../entities/creator";
@@ -118,6 +123,11 @@ export function AdminSidebar({
   const [testResetError, setTestResetError] = useState("");
   const [theme, setTheme] = useState(getTheme);
   const [fastMode, setFastMode] = useState(getFastMode);
+  const autoRejectionEnabled = useSyncExternalStore(
+    subscribeAutoRejection,
+    getAutoRejectionEnabled,
+    () => true,
+  );
   const [isFastModeConfirmOpen, setFastModeConfirmOpen] = useState(false);
   const creatorResetDescriptionId = useId();
   const testResetDescriptionId = useId();
@@ -480,6 +490,18 @@ export function AdminSidebar({
                     )}
                     onChange={(event) => changeFastMode(event.currentTarget.checked)}
                     title="수동 콘텐츠 배치에서 DB에 등록된 테스트 계정만 확인합니다."
+                  />
+                  <Switch
+                    checked={autoRejectionEnabled}
+                    className="hsas-theme-settings__fast-mode"
+                    label={(
+                      <>
+                        <UserRoundX aria-hidden="true" className="hsas-theme-settings__fast-mode-icon" />
+                        <span>지원자 자동 반려</span>
+                      </>
+                    )}
+                    onChange={(event) => saveAutoRejectionEnabled(event.currentTarget.checked)}
+                    title="팔로워·구독자 500명 이하 또는 최근 90일 콘텐츠 3건 이하인 지원자를 자동 반려로 분류합니다."
                   />
                   <button
                     className="hsas-theme-settings__item hsas-theme-settings__item--danger"

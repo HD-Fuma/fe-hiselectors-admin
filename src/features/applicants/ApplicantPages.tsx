@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
 import { CircleHelp } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
@@ -40,6 +40,7 @@ import {
   type SelectorFilterGeneration,
 } from "../../entities/selectors";
 import { formatNumber } from "../../lib/formatters";
+import { getAutoRejectionEnabled, subscribeAutoRejection } from "../../lib/autoRejection";
 import { ApplicantAnalysisReport } from "./ApplicantAnalysisReport";
 
 type ReviewStatus = "검토 대기" | "승인" | "반려" | "자동 반려";
@@ -137,10 +138,11 @@ function meetsMinimumCriteria(applicant: AdminApplicationSummary | AdminApplicat
 
 function reviewStatusFor(
   applicant: AdminApplicationSummary | AdminApplicationDetail,
+  autoRejectionEnabled: boolean,
 ): ReviewStatus {
   if (applicant.status === "APPROVED") return "승인";
   if (applicant.status === "REJECTED") return "반려";
-  if (meetsMinimumCriteria(applicant)) return "자동 반려";
+  if (autoRejectionEnabled && meetsMinimumCriteria(applicant)) return "자동 반려";
   return "검토 대기";
 }
 
@@ -201,6 +203,7 @@ interface ApplicantListRow {
 
 function applicantToListRow(
   applicant: AdminApplicationSummary,
+  autoRejectionEnabled: boolean,
 ): ApplicantListRow {
   return {
     id: applicant.id,
@@ -214,7 +217,7 @@ function applicantToListRow(
     followerCount: applicant.followerCount,
     engagementRate: applicant.engagementRate,
     appliedAt: dateTime(applicant.appliedAt),
-    reviewStatus: reviewStatusFor(applicant),
+    reviewStatus: reviewStatusFor(applicant, autoRejectionEnabled),
   };
 }
 
@@ -353,6 +356,11 @@ function applicantListColumns(
 export function ApplicantListPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const autoRejectionEnabled = useSyncExternalStore(
+    subscribeAutoRejection,
+    getAutoRejectionEnabled,
+    () => true,
+  );
   const detailApplicantId = searchParams.get("detail");
   const [keyword, setKeyword] = useState("");
   const [platform, setPlatform] = useState("");
@@ -386,6 +394,18 @@ export function ApplicantListPage() {
   const [listError, setListError] = useState("");
   const [resolvedListKey, setResolvedListKey] = useState<string | null>(null);
   const [generations, setGenerations] = useState<SelectorFilterGeneration[]>([]);
+
+  useEffect(() => {
+    if (autoRejectionEnabled) return;
+    if (reviewStatus === "자동 반려") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- external setting removed this option.
+      setReviewStatus(DEFAULT_REVIEW_STATUS);
+    }
+    if (appliedReviewStatus === "자동 반려") {
+      setAppliedReviewStatus(DEFAULT_REVIEW_STATUS);
+      setPage(1);
+    }
+  }, [appliedReviewStatus, autoRejectionEnabled, reviewStatus]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -438,7 +458,9 @@ export function ApplicantListPage() {
   ]);
 
   const isListFetching = resolvedListKey !== listRequestKey;
-  const applicants = (pageData?.content ?? []).map(applicantToListRow);
+  const applicants = (pageData?.content ?? []).map((applicant) => (
+    applicantToListRow(applicant, autoRejectionEnabled)
+  ));
   const openApplicant = (applicant: ApplicantListRow) => navigate(`/applicants?detail=${applicant.id}`);
   const applySearch = () => {
     setAppliedKeyword(keyword.trim());
@@ -494,7 +516,9 @@ export function ApplicantListPage() {
                   id="applicant-review-status"
                   name="reviewStatus"
                   onChange={(event) => setReviewStatus(event.target.value)}
-                  options={REVIEW_STATUS_OPTIONS}
+                  options={autoRejectionEnabled
+                    ? REVIEW_STATUS_OPTIONS
+                    : REVIEW_STATUS_OPTIONS.filter((option) => option.value !== "자동 반려")}
                   value={reviewStatus}
                 />
               </FilterField>
@@ -619,6 +643,11 @@ export function ApplicantDetailPage({
 }: ApplicantDetailPageProps = {}) {
   const { applicantId: routeApplicantId } = useParams();
   const navigate = useNavigate();
+  const autoRejectionEnabled = useSyncExternalStore(
+    subscribeAutoRejection,
+    getAutoRejectionEnabled,
+    () => true,
+  );
   const applicantId = applicantIdOverride ?? routeApplicantId;
   const numericApplicantId = Number(applicantId);
   const invalidApplicantId = !Number.isSafeInteger(numericApplicantId) || numericApplicantId <= 0;
@@ -688,7 +717,9 @@ export function ApplicantDetailPage({
 
   const currentInitialSummary = initialSummary?.id === numericApplicantId ? initialSummary : null;
   const summarySource = applicant ?? currentInitialSummary;
-  const effectiveReviewStatus = summarySource ? reviewStatusFor(summarySource) : undefined;
+  const effectiveReviewStatus = summarySource
+    ? reviewStatusFor(summarySource, autoRejectionEnabled)
+    : undefined;
   const pendingDecisionLabel = pendingDecision === "APPROVED"
     ? "승인"
     : pendingDecision === "REJECTED"
@@ -696,7 +727,9 @@ export function ApplicantDetailPage({
       : "";
   const audienceLabel = summarySource?.snsCode === "INSTAGRAM" ? "팔로워" : "구독자";
   const representativeContents = applicant ? uniqueContentsByPost(applicant.contents) : [];
-  const fallbackReviewStatus = currentInitialSummary ? reviewStatusFor(currentInitialSummary) : undefined;
+  const fallbackReviewStatus = currentInitialSummary
+    ? reviewStatusFor(currentInitialSummary, autoRejectionEnabled)
+    : undefined;
   const fallbackProfile: ProfileDetailProfile | undefined = !applicant && currentInitialSummary && fallbackReviewStatus ? {
     audienceLabel: currentInitialSummary.snsCode === "INSTAGRAM" ? "팔로워" : "구독자",
     audienceValue: currentInitialSummary.followerCount === null ? "-" : formatNumber(currentInitialSummary.followerCount),

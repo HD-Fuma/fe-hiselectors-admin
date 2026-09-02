@@ -2,7 +2,10 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { prefetchAdminApplication } from "../../entities/application";
+import { saveAutoRejectionEnabled } from "../../lib/autoRejection";
 import { ApplicantListPage } from "./ApplicantPages";
+
+afterEach(() => localStorage.removeItem("selectors-applicant-auto-rejection"));
 
 const applicants = [
   {
@@ -324,6 +327,21 @@ describe("applicant api pages", () => {
         .find((url) => url.searchParams.get("minimumCriteriaOnly") === "true");
       expect(automaticRejectionRequest?.searchParams.get("status")).toBe("PENDING");
     });
+  });
+
+  test("shows minimum-criteria applicants as pending when automatic rejection is off", async () => {
+    mockApi();
+    renderApplicantPage();
+    const region = screen.getByRole("region", { name: "지원자 목록" });
+    const sora = await within(region).findByText("윤소라");
+    const row = sora.closest("tr");
+
+    expect(row).not.toBeNull();
+    expect(within(row as HTMLTableRowElement).getByText("자동 반려")).toBeInTheDocument();
+    act(() => saveAutoRejectionEnabled(false));
+    expect(within(row as HTMLTableRowElement).getByText("검토 대기")).toBeInTheDocument();
+    expect(within(screen.getByRole("search", { name: "검색 조건" }))
+      .queryByRole("option", { name: "자동 반려" })).not.toBeInTheDocument();
   });
 
   test("leaves pending applications unfiltered until minimum-criteria filtering is enabled", async () => {
