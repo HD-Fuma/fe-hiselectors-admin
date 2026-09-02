@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Eye, Pencil, RefreshCw } from "lucide-react";
 import { getAdministratorSession } from "../../lib/adminAuthentication";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/shell/PageHeader";
 import { Button, Select, Switch, TextInput } from "../../components/ui/Controls";
 import { BubbleDialog } from "../../components/ui/BubbleDialog";
@@ -19,11 +19,13 @@ import { SearchPanel } from "../../components/ui/SearchPanel";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { SocialAccountCell } from "../../components/ui/SocialAccountCell";
 import { Tooltip } from "../../components/ui/Tooltip";
+import { ViewModeToggle } from "../../components/ui/ViewModeToggle";
 import { formatNumber } from "../../lib/formatters";
 import { CREATOR_POOL_RESET_EVENT } from "../../lib/creatorPoolEvents";
 import { getCreatorDiscoveryCurrentMonthOnly } from "../../lib/creatorDiscoveryPeriod";
 import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
+import { CreatorBubblePool } from "./CreatorBubblePool";
 import { DiscoverySettingsPanel } from "./DiscoverySettingsPanel";
 import "../../styles/creator-discovery-settings.css";
 import { getDiscoveryCategories } from "../../entities/discovery-category";
@@ -42,6 +44,7 @@ import {
 const PROPOSAL_PAGE_SIZE = 20;
 const PROPOSAL_LIST_FETCH_SIZE = 100;
 const CREATOR_LIST_PAGE_SIZE = 20;
+const CREATOR_POOL_SIZE = 200;
 const DEFAULT_PROPOSAL_SUBJECT = "[셀렉터스 지원 제안] ${creatorName}님께 지원을 제안드립니다";
 const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
 더현대Hi 셀렉터스 운영팀입니다.
@@ -540,6 +543,8 @@ export function CreatorTestPage() {
 
 export function CreatorListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = searchParams.get("view") === "table" ? "table" : "pool";
   const buildPoolTooltipId = useId();
   const discoverySettingsTooltipId = useId();
   const [filters, setFilters] = useState(EMPTY_CREATOR_FILTERS);
@@ -547,7 +552,11 @@ export function CreatorListPage() {
   const [selectedCreators, setSelectedCreators] = useState<Map<number, CreatorSummary>>(new Map());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(CREATOR_LIST_PAGE_SIZE);
-  const [pageData, setPageData] = useState<Awaited<ReturnType<typeof getCreators>> | null>(null);
+  const [pageDataByView, setPageDataByView] = useState<
+    Record<typeof view, Awaited<ReturnType<typeof getCreators>> | null>
+  >({ pool: null, table: null });
+  const pageData = pageDataByView[view];
+  const creatorRequestRevision = useRef(0);
   const [error, setError] = useState("");
   const [discoveryRunning, setDiscoveryRunning] = useState(false);
   const [discoveryStatus, setDiscoveryStatus] = useState("");
@@ -577,6 +586,7 @@ export function CreatorListPage() {
 
   useEffect(() => {
     const controller = new AbortController();
+    const revision = ++creatorRequestRevision.current;
     getCreators({
       keyword: appliedFilters.keyword || undefined,
       snsCode: appliedFilters.snsCode || undefined,
@@ -584,18 +594,19 @@ export function CreatorListPage() {
       minFollower: numericFilter(appliedFilters.minFollower),
       maxFollower: numericFilter(appliedFilters.maxFollower),
       maxBrandScore: appliedFilters.excludeBrands ? 1 : undefined,
-      page: page - 1,
-      size: pageSize,
+      page: view === "pool" ? 0 : page - 1,
+      size: view === "pool" ? CREATOR_POOL_SIZE : pageSize,
     }, controller.signal).then((result) => {
-      setPageData(result);
+      if (revision !== creatorRequestRevision.current) return;
+      setPageDataByView((current) => ({ ...current, [view]: result }));
       setError("");
     }).catch((reason: unknown) => {
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && revision === creatorRequestRevision.current) {
         setError(reason instanceof Error ? reason.message : "크리에이터 목록 조회에 실패했습니다.");
       }
     });
     return () => controller.abort();
-  }, [appliedFilters, page, pageSize]);
+  }, [appliedFilters, page, pageSize, view]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -605,7 +616,8 @@ export function CreatorListPage() {
 
   useEffect(() => {
     const refreshCreatorPool = () => {
-      setPageData(null);
+      creatorRequestRevision.current += 1;
+      setPageDataByView({ pool: null, table: null });
       setSelectedCreators(new Map());
       setPage(1);
       setAppliedFilters((current) => ({ ...current }));
@@ -613,6 +625,11 @@ export function CreatorListPage() {
     window.addEventListener(CREATOR_POOL_RESET_EVENT, refreshCreatorPool);
     return () => window.removeEventListener(CREATOR_POOL_RESET_EVENT, refreshCreatorPool);
   }, []);
+
+  const clearCreatorResults = () => {
+    creatorRequestRevision.current += 1;
+    setPageDataByView({ pool: null, table: null });
+  };
 
   const applySearch = () => {
     const minFollower = numericFilter(filters.minFollower);
@@ -624,17 +641,20 @@ export function CreatorListPage() {
       return;
     }
     setError("");
+    clearCreatorResults();
     setAppliedFilters({ ...filters, keyword: filters.keyword.trim() });
     setSelectedCreators(new Map());
     setPage(1);
   };
   const resetSearch = () => {
+    clearCreatorResults();
     setFilters(EMPTY_CREATOR_FILTERS);
     setAppliedFilters(EMPTY_CREATOR_FILTERS);
     setSelectedCreators(new Map());
     setPage(1);
   };
   const changeExcludeBrands = (excludeBrands: boolean) => {
+    clearCreatorResults();
     setFilters((current) => ({ ...current, excludeBrands }));
     setAppliedFilters((current) => ({ ...current, excludeBrands }));
     setSelectedCreators(new Map());
@@ -646,6 +666,7 @@ export function CreatorListPage() {
     try {
       await runCreatorDiscovery(false, getCreatorDiscoveryCurrentMonthOnly());
       setDiscoveryStatus("크리에이터 풀 구축을 완료했습니다.");
+      clearCreatorResults();
       setAppliedFilters((current) => ({ ...current }));
     } catch (reason: unknown) {
       setDiscoveryStatus(
@@ -656,6 +677,7 @@ export function CreatorListPage() {
     }
   };
   const selectCategory = (categoryCode: string) => {
+    clearCreatorResults();
     setFilters((current) => ({ ...current, categoryCode }));
     setAppliedFilters((current) => ({ ...current, categoryCode }));
     setSelectedCreators(new Map());
@@ -742,6 +764,22 @@ export function CreatorListPage() {
           </SearchPanel>
         </div>
         <ChoiceTabs
+          actions={(
+            <ViewModeToggle
+              gridLabel="버블"
+              listLabel="목록"
+              onChange={(mode) => {
+                creatorRequestRevision.current += 1;
+                const nextParams = new URLSearchParams(searchParams);
+                if (mode === "grid") nextParams.delete("view");
+                else nextParams.set("view", "table");
+                setSearchParams(nextParams, { replace: true });
+                setError("");
+                setPage(1);
+              }}
+              value={view === "pool" ? "grid" : "list"}
+            />
+          )}
           ariaLabel="크리에이터 카테고리"
           emptyOption={{ label: "전체", onSelect: () => selectCategory("") }}
           onChange={selectCategory}
@@ -819,10 +857,18 @@ export function CreatorListPage() {
           meta={<span>총 {pageData?.totalElements ?? 0}건</span>}
           title={null}
         />
-        <div aria-label="크리에이터 목록" className="fuma-wide-table fuma-settlement-table" role="region">
-          {error ? (
-            <EmptyState description={error} title="목록을 불러오지 못했습니다" />
-          ) : (
+        {error ? (
+          <EmptyState description={error} title="목록을 불러오지 못했습니다" />
+        ) : view === "pool" ? (
+          <CreatorBubblePool
+            categoryOptions={categoryOptions}
+            creators={listedCreators}
+            emptyMessage={pageData ? "검색 결과가 없습니다." : "크리에이터를 불러오는 중입니다."}
+            onToggle={toggleSelected}
+            selectedCreatorIds={new Set(selectedCreators.keys())}
+          />
+        ) : (
+          <div aria-label="크리에이터 목록" className="fuma-wide-table fuma-settlement-table" role="region">
             <DenseTable
               columns={columns}
               emptyMessage={pageData ? "검색 결과가 없습니다." : "크리에이터를 불러오는 중입니다."}
@@ -830,18 +876,26 @@ export function CreatorListPage() {
               rows={listedCreators}
               selectedRowKeys={[...selectedCreators.keys()]}
             />
-          )}
-        </div>
-        <Pagination
-          onPageChange={setPage}
-          onPageSizeChange={(nextPageSize) => {
-            setPageSize(nextPageSize);
-            setPage(1);
-          }}
-          page={page}
-          pageSize={pageSize}
-          totalPages={Math.max(1, pageData?.totalPages ?? 1)}
-        />
+          </div>
+        )}
+        {view === "table" ? (
+          <Pagination
+            onPageChange={(nextPage) => {
+              creatorRequestRevision.current += 1;
+              setPageDataByView((current) => ({ ...current, table: null }));
+              setPage(nextPage);
+            }}
+            onPageSizeChange={(nextPageSize) => {
+              creatorRequestRevision.current += 1;
+              setPageDataByView((current) => ({ ...current, table: null }));
+              setPageSize(nextPageSize);
+              setPage(1);
+            }}
+            page={page}
+            pageSize={pageSize}
+            totalPages={Math.max(1, pageData?.totalPages ?? 1)}
+          />
+        ) : null}
       </div>
     </section>
     {discoverySettingsOpen ? (
