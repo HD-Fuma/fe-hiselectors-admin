@@ -133,6 +133,7 @@ test("closes a successful edit form even when the following reload fails", async
 test("starts discovery for only the selected category", async () => {
   const user = userEvent.setup();
   const idempotencyKey = "00000000-0000-4000-8000-000000000010";
+  localStorage.setItem("creator-discovery-current-month-only", "true");
   vi.spyOn(crypto, "randomUUID").mockReturnValue(idempotencyKey);
   vi.stubGlobal("fetch", vi.fn()
     .mockResolvedValueOnce(ok(creatorPage))
@@ -149,7 +150,7 @@ test("starts discovery for only the selected category", async () => {
 
   await user.click(screen.getByRole("button", { name: "발굴 설정" }));
   const panel = await screen.findByRole("dialog", { name: "크리에이터 발굴 키워드 설정" });
-  await user.selectOptions(within(panel).getByLabelText("인기 영상 업로드 기간"), "current-month");
+  expect(within(panel).queryByLabelText("인기 영상 업로드 기간")).not.toBeInTheDocument();
   await user.click(within(panel).getByRole("button", { name: "패션만 발굴" }));
 
   expect(await within(panel).findByRole("status")).toHaveTextContent(

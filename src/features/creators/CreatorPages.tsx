@@ -21,6 +21,7 @@ import { SocialAccountCell } from "../../components/ui/SocialAccountCell";
 import { Tooltip } from "../../components/ui/Tooltip";
 import { formatNumber } from "../../lib/formatters";
 import { CREATOR_POOL_RESET_EVENT } from "../../lib/creatorPoolEvents";
+import { getCreatorDiscoveryCurrentMonthOnly } from "../../lib/creatorDiscoveryPeriod";
 import { paginate } from "../../lib/pagination";
 import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { DiscoverySettingsPanel } from "./DiscoverySettingsPanel";
@@ -41,7 +42,6 @@ import {
 const PROPOSAL_PAGE_SIZE = 20;
 const PROPOSAL_LIST_FETCH_SIZE = 100;
 const CREATOR_LIST_PAGE_SIZE = 20;
-const CREATOR_DISCOVERY_CURRENT_MONTH_KEY = "creator-discovery-current-month-only";
 const DEFAULT_PROPOSAL_SUBJECT = "[셀렉터스 지원 제안] ${creatorName}님께 지원을 제안드립니다";
 const DEFAULT_PROPOSAL_MESSAGE = `안녕하세요, \${creatorName}님.
 더현대Hi 셀렉터스 운영팀입니다.
@@ -72,10 +72,6 @@ const CREATOR_PLATFORM_TABS = CREATOR_PLATFORM_OPTIONS.filter(
   (option): option is Exclude<(typeof CREATOR_PLATFORM_OPTIONS)[number], { value: "" }> =>
     option.value !== "",
 );
-
-function currentMonthDiscoveryEnabled() {
-  return localStorage.getItem(CREATOR_DISCOVERY_CURRENT_MONTH_KEY) === "true";
-}
 
 const EMPTY_CREATOR_FILTERS = {
   keyword: "",
@@ -500,7 +496,7 @@ export function CreatorTestPage() {
     setIsRunning(true);
     setError("");
     try {
-      await runCreatorDiscovery(true, currentMonthDiscoveryEnabled());
+      await runCreatorDiscovery(true, getCreatorDiscoveryCurrentMonthOnly());
       navigate("/creators");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "테스트 크리에이터 풀 구축에 실패했습니다.");
@@ -556,7 +552,6 @@ export function CreatorListPage() {
   const [discoveryRunning, setDiscoveryRunning] = useState(false);
   const [discoveryStatus, setDiscoveryStatus] = useState("");
   const [discoverySettingsOpen, setDiscoverySettingsOpen] = useState(false);
-  const [currentMonthOnly, setCurrentMonthOnly] = useState(currentMonthDiscoveryEnabled);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
   const [proposalRequestedCount, setProposalRequestedCount] = useState(0);
   const [discoverySettingsTooltipInitial, setDiscoverySettingsTooltipInitial] = useState(true);
@@ -649,7 +644,7 @@ export function CreatorListPage() {
     setDiscoveryRunning(true);
     setDiscoveryStatus("크리에이터 풀을 구축하는 중입니다.");
     try {
-      await runCreatorDiscovery(false, currentMonthOnly);
+      await runCreatorDiscovery(false, getCreatorDiscoveryCurrentMonthOnly());
       setDiscoveryStatus("크리에이터 풀 구축을 완료했습니다.");
       setAppliedFilters((current) => ({ ...current }));
     } catch (reason: unknown) {
@@ -851,14 +846,9 @@ export function CreatorListPage() {
     </section>
     {discoverySettingsOpen ? (
       <DiscoverySettingsPanel
-        currentMonthOnly={currentMonthOnly}
         onClose={() => {
           setDiscoverySettingsOpen(false);
           refreshCategoryOptions().catch(() => undefined);
-        }}
-        onCurrentMonthOnlyChange={(value) => {
-          setCurrentMonthOnly(value);
-          localStorage.setItem(CREATOR_DISCOVERY_CURRENT_MONTH_KEY, String(value));
         }}
       />
     ) : null}

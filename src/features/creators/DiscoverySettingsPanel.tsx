@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { GripVertical, MoreHorizontal, Plus } from "lucide-react";
-import { Button, Checkbox, Select, TextInput } from "../../components/ui/Controls";
+import { Button, Checkbox, TextInput } from "../../components/ui/Controls";
 import { SidePanel } from "../../components/ui/SidePanel";
 import { StatusPill } from "../../components/ui/StatusPill";
 import {
@@ -17,6 +17,7 @@ import {
   type DiscoveryKeyword,
 } from "../../entities/discovery-category";
 import { runCreatorDiscoveryByCategory } from "../../entities/creator";
+import { getCreatorDiscoveryCurrentMonthOnly } from "../../lib/creatorDiscoveryPeriod";
 
 interface CategoryDraft {
   id: number;
@@ -47,13 +48,9 @@ const COVERAGE_STATUS: Record<DiscoveryCoverageStatus, { label: string; tone: "a
 };
 
 export function DiscoverySettingsPanel({
-  currentMonthOnly,
   onClose,
-  onCurrentMonthOnlyChange,
 }: {
-  currentMonthOnly: boolean;
   onClose: () => void;
-  onCurrentMonthOnlyChange: (value: boolean) => void;
 }) {
   const [categories, setCategories] = useState<DiscoveryCategory[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -269,7 +266,7 @@ export function DiscoverySettingsPanel({
     setError("");
     setNotice("");
     try {
-      await runCreatorDiscoveryByCategory(category.id, currentMonthOnly);
+      await runCreatorDiscoveryByCategory(category.id, getCreatorDiscoveryCurrentMonthOnly());
       setNotice(`${category.name} 발굴 작업을 시작했습니다. 완료 여부는 알림센터에서 확인하세요.`);
     } catch (reason) {
       setError(reasonMessage(reason, "카테고리 크리에이터 발굴에 실패했습니다."));
@@ -283,27 +280,6 @@ export function DiscoverySettingsPanel({
       <div className="fuma-detail-panel__content fuma-discovery-settings">
         {error ? <p className="fuma-discovery-settings__message fuma-discovery-settings__message--error" role="alert">{error}</p> : null}
         {notice ? <p className="fuma-discovery-settings__message" role="status">{notice}</p> : null}
-
-        <section
-          aria-label="인기 영상 검색 설정"
-          className="fuma-discovery-settings__section fuma-discovery-settings__section--period"
-        >
-          <header>
-            <div className="fuma-discovery-settings__section-copy">
-              <h3>인기 영상 업로드 기간</h3>
-              <p>키워드별 인기 영상을 찾을 때 적용합니다.</p>
-            </div>
-            <Select
-              aria-label="인기 영상 업로드 기간"
-              onChange={(event) => onCurrentMonthOnlyChange(event.target.value === "current-month")}
-              options={[
-                { label: "전체 기간", value: "all" },
-                { label: "이번 달", value: "current-month" },
-              ]}
-              value={currentMonthOnly ? "current-month" : "all"}
-            />
-          </header>
-        </section>
 
         {selectedCategory ? (
           <DiscoveryCoverageCard

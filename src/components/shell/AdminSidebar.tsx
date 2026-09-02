@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Bell,
+  CalendarDays,
   Check,
   ChevronDown,
   ChevronRight,
@@ -19,6 +20,10 @@ import {
 import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link, matchPath, useNavigate } from "react-router-dom";
 import { CREATOR_POOL_RESET_EVENT } from "../../lib/creatorPoolEvents";
+import {
+  getCreatorDiscoveryCurrentMonthOnly,
+  saveCreatorDiscoveryCurrentMonthOnly,
+} from "../../lib/creatorDiscoveryPeriod";
 import { getFastMode, saveFastMode } from "../../lib/fastMode";
 import {
   getAutoRejectionEnabled,
@@ -123,6 +128,9 @@ export function AdminSidebar({
   const [testResetError, setTestResetError] = useState("");
   const [theme, setTheme] = useState(getTheme);
   const [fastMode, setFastMode] = useState(getFastMode);
+  const [creatorDiscoveryCurrentMonthOnly, setCreatorDiscoveryCurrentMonthOnly] = useState(
+    getCreatorDiscoveryCurrentMonthOnly,
+  );
   const autoRejectionEnabled = useSyncExternalStore(
     subscribeAutoRejection,
     getAutoRejectionEnabled,
@@ -502,6 +510,22 @@ export function AdminSidebar({
                     )}
                     onChange={(event) => saveAutoRejectionEnabled(event.currentTarget.checked)}
                     title="팔로워·구독자 500명 이하 또는 최근 90일 콘텐츠 3건 이하인 지원자를 자동 반려로 분류합니다."
+                  />
+                  <Switch
+                    checked={creatorDiscoveryCurrentMonthOnly}
+                    className="hsas-theme-settings__fast-mode"
+                    label={(
+                      <>
+                        <CalendarDays aria-hidden="true" className="hsas-theme-settings__fast-mode-icon" />
+                        <span>이번 달 영상만 발굴</span>
+                      </>
+                    )}
+                    onChange={(event) => {
+                      const enabled = event.currentTarget.checked;
+                      setCreatorDiscoveryCurrentMonthOnly(enabled);
+                      saveCreatorDiscoveryCurrentMonthOnly(enabled);
+                    }}
+                    title="키워드별 인기 영상을 이번 달 업로드로 제한합니다."
                   />
                   <button
                     className="hsas-theme-settings__item hsas-theme-settings__item--danger"

@@ -223,12 +223,6 @@
   grid-template-columns: auto minmax(0, 1fr);
 }
 
-.fuma-discovery-settings__section--period > header {
-  grid-template-columns: minmax(0, 1fr) 160px;
-  align-items: center;
-  margin-bottom: 0;
-}
-
 .fuma-discovery-settings__step {
   display: grid;
   width: 24px;

@@ -11,6 +11,7 @@ function resetTheme() {
   localStorage.removeItem("selectors-theme");
   localStorage.removeItem("selectors-content-fast-mode");
   localStorage.removeItem("selectors-applicant-auto-rejection");
+  localStorage.removeItem("creator-discovery-current-month-only");
   document.documentElement.removeAttribute("data-theme");
   document.documentElement.removeAttribute("data-sidebar-theme");
   document.documentElement.style.removeProperty("color-scheme");
@@ -317,6 +318,22 @@ test("toggles applicant automatic rejection in environment settings", () => {
   fireEvent.click(toggle);
   expect(toggle).not.toBeChecked();
   expect(localStorage.getItem("selectors-applicant-auto-rejection")).toBe("false");
+});
+
+test("limits creator discovery to videos uploaded this month from environment settings", () => {
+  renderRoute("/creators");
+  fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
+  const settings = screen.getByRole("group", { name: "환경설정" });
+  const toggle = within(settings).getByRole("checkbox", { name: "이번 달 영상만 발굴" });
+
+  expect(toggle).not.toBeChecked();
+  fireEvent.click(toggle);
+  expect(toggle).toBeChecked();
+  expect(localStorage.getItem("creator-discovery-current-month-only")).toBe("true");
+
+  fireEvent.click(toggle);
+  expect(toggle).not.toBeChecked();
+  expect(localStorage.getItem("creator-discovery-current-month-only")).toBeNull();
 });
 
 test("resets the creator pool from environment settings after typed confirmation", async () => {
