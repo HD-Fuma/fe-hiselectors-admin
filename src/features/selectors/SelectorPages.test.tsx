@@ -4,7 +4,7 @@ import type { SettlementSelectorDetail } from "../../entities/settlement";
 import { renderRoute } from "../../test/renderRoute";
 import { selectorsForPool } from "./SelectorPoolCanvas";
 
-const summary = {
+const summary: SelectorSummary = {
   id: 7,
   selectorsCode: "SEL0007",
   nickname: "홍길동",
@@ -16,9 +16,9 @@ const summary = {
   followerCount: 12345,
   profileImageUrl: null,
   createdAt: "2026-08-19T10:00:00",
-} satisfies SelectorSummary;
+};
 
-const youtubeSummary = {
+const youtubeSummary: SelectorSummary = {
   ...summary,
   id: 8,
   selectorsCode: "SEL0008",
@@ -26,7 +26,7 @@ const youtubeSummary = {
   snsCode: "YOUTUBE",
   snsAccountId: "UC1111111111111111111111",
   snsDisplayName: "하린의 생활연구소",
-} satisfies SelectorSummary;
+};
 
 const detail = {
   id: 7,
@@ -242,7 +242,7 @@ describe("selector api pages", () => {
   }, 15000);
 
   test("hides blacklisted selectors from the bubble view but keeps them in the full list", async () => {
-    const blacklist = {
+    const blacklist: SelectorSummary = {
       ...summary,
       id: 9,
       selectorsCode: "SEL0009",
@@ -251,7 +251,7 @@ describe("selector api pages", () => {
       roleName: "블랙리스트",
       snsAccountId: "blocked.selector",
       snsDisplayName: "blocked.selector",
-    } satisfies SelectorSummary;
+    };
 
     expect(selectorsForPool([summary, youtubeSummary, blacklist]).map((selector) => selector.id))
       .toEqual([7, 8]);
