@@ -59,9 +59,10 @@ function generation(
   status: Generation["status"],
   id: number,
   activityStartDate = "2026-04-01T00:00:00",
+  activityEndDate = "2026-06-30T23:59:59",
 ): Generation {
   return {
-    activityEndDate: "2026-06-30T23:59:59",
+    activityEndDate,
     activityStartDate,
     endDate: "2026-03-31T23:59:59",
     generationName: name,
@@ -71,24 +72,40 @@ function generation(
   };
 }
 
-test("defaults the query period to the active generation activity start through today", () => {
+test("defaults the query to the current generation activity start through today", () => {
   const now = new Date(2026, 8, 3);
 
   expect(defaultSelectorPerformancePeriod([
-    generation("5기", "ACTIVE", 5, "2026-08-01T00:00:00"),
+    generation("5기", "ACTIVE", 5, "2026-08-01T00:00:00", "2026-10-31T23:59:59"),
+    generation("3기", "ACTIVE", 3, "2026-04-01T00:00:00", "2026-07-31T23:59:59"),
     generation("2기", "INACTIVE", 2, "2026-01-01T00:00:00"),
   ], now)).toEqual({
+    cohort: "5",
     periodEnd: "2026-09-03",
     periodStart: "2026-08-01",
   });
 });
 
-test("falls back to six months when there is no active generation", () => {
+test("picks the latest current generation when two activity windows overlap", () => {
+  const now = new Date(2026, 8, 3);
+
+  expect(defaultSelectorPerformancePeriod([
+    generation("3기", "ACTIVE", 3, "2026-08-01T00:00:00", "2026-10-31T23:59:59"),
+    generation("5기", "ACTIVE", 5, "2026-08-01T00:00:00", "2026-10-31T23:59:59"),
+  ], now)).toEqual({
+    cohort: "5",
+    periodEnd: "2026-09-03",
+    periodStart: "2026-08-01",
+  });
+});
+
+test("falls back to six months when there is no current generation", () => {
   const now = new Date(2026, 8, 3);
 
   expect(defaultSelectorPerformancePeriod([
     generation("2기", "INACTIVE", 2, "2026-01-01T00:00:00"),
   ], now)).toEqual({
+    cohort: "",
     periodEnd: "2026-09-03",
     periodStart: "2026-04-01",
   });

@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { useRef, useState } from "react";
 import type { TaskRun } from "../../entities/task-run";
 import { TaskRunCard } from "./TaskRunCard";
@@ -102,6 +102,20 @@ export function TaskRunFloatingPanel({
     });
   };
 
+  const closePanel = () => {
+    const ids = visibleRuns.map((run) => run.runId);
+    if (ids.length === 0) return;
+    ids.forEach((id) => acceptedRunIdsRef.current.delete(id));
+    setDismissedRunIds((current) => {
+      const next = new Set(current);
+      ids.forEach((id) => next.add(id));
+      return next;
+    });
+    setExpanded(true);
+    setAnnouncement("작업 진행상황을 닫았습니다");
+    focusFallback();
+  };
+
   return (
     <>
       <span
@@ -127,17 +141,27 @@ export function TaskRunFloatingPanel({
             <span className="fuma-task-run-panel__count">
               {visibleRuns.length}개
             </span>
-            <button
-              aria-controls={TASK_RUN_LIST_VIEWPORT_ID}
-              aria-expanded={expanded}
-              aria-label={expanded ? "작업 패널 접기" : "작업 패널 펼치기"}
-              className="fuma-task-run-panel__collapse"
-              onClick={() => setExpanded((current) => !current)}
-              ref={collapseButtonRef}
-              type="button"
-            >
-              <ChevronDown aria-hidden="true" />
-            </button>
+            <div className="fuma-task-run-panel__controls">
+              <button
+                aria-controls={TASK_RUN_LIST_VIEWPORT_ID}
+                aria-expanded={expanded}
+                aria-label={expanded ? "작업 패널 접기" : "작업 패널 펼치기"}
+                className="fuma-task-run-panel__collapse"
+                onClick={() => setExpanded((current) => !current)}
+                ref={collapseButtonRef}
+                type="button"
+              >
+                <ChevronDown aria-hidden="true" />
+              </button>
+              <button
+                aria-label="작업 진행상황 닫기"
+                className="fuma-task-run-panel__close"
+                onClick={closePanel}
+                type="button"
+              >
+                <X aria-hidden="true" />
+              </button>
+            </div>
           </header>
 
           <div

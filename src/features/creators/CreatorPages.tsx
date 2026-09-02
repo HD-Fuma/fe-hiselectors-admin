@@ -38,6 +38,7 @@ import {
   type CreatorSummary,
   type ProposalHistoryEntry,
 } from "../../entities/creator";
+import { snsAccountHref } from "../../entities/selectors";
 
 const PROPOSAL_PAGE_SIZE = 20;
 const PROPOSAL_LIST_FETCH_SIZE = 100;
@@ -137,12 +138,13 @@ function instagramUsernameFor(creator: CreatorIdentity) {
 }
 
 function creatorProfileUrl(creator: CreatorIdentity) {
+  if (creator.snsCode === "YOUTUBE") {
+    return snsAccountHref("YouTube", creator.accountId);
+  }
   const instagramUsername = instagramUsernameFor(creator);
-  return creator.snsCode === "YOUTUBE"
-    ? `https://www.youtube.com/channel/${encodeURIComponent(creator.accountId)}`
-    : instagramUsername
-      ? `https://www.instagram.com/${encodeURIComponent(instagramUsername)}`
-      : null;
+  return instagramUsername
+    ? `https://www.instagram.com/${encodeURIComponent(instagramUsername)}`
+    : null;
 }
 
 function creatorDisplayName(creator: CreatorIdentity) {

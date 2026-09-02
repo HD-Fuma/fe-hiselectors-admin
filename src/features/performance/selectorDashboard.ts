@@ -260,15 +260,41 @@ export function defaultSelectorPerformancePeriod(
   now = new Date(),
 ) {
   const periodEnd = formatIsoDate(now);
-  const cohortStart = earliestActivityStart(
-    generations.filter((generation) => generation.status === "ACTIVE"),
-  );
+  const current = currentSelectorGeneration(generations, now);
+  const cohortStart = current
+    ? current.activityStartDate.slice(0, 10)
+    : undefined;
   return {
+    cohort: current ? String(current.id) : "",
     periodEnd,
     periodStart: cohortStart && cohortStart <= periodEnd
       ? cohortStart
       : formatIsoDate(addMonths(now, -5)),
   };
+}
+
+function currentSelectorGeneration(
+  generations: readonly Generation[],
+  now: Date,
+) {
+  const today = formatIsoDate(now);
+  const inWindow = generations.filter((generation) => (
+    generation.activityStartDate.slice(0, 10) <= today
+    && today <= generation.activityEndDate.slice(0, 10)
+  ));
+  const inWindowActive = inWindow.filter((generation) => generation.status === "ACTIVE");
+  const active = generations.filter((generation) => generation.status === "ACTIVE");
+  const pool = inWindowActive.length > 0
+    ? inWindowActive
+    : inWindow.length > 0
+      ? inWindow
+      : active;
+  return [...pool].sort((left, right) => {
+    const start = right.activityStartDate.slice(0, 10)
+      .localeCompare(left.activityStartDate.slice(0, 10));
+    if (start !== 0) return start;
+    return right.id - left.id;
+  })[0];
 }
 
 export function previousPerformanceRange(input: {

@@ -532,6 +532,7 @@ test("recalculates all settlements from the status tabs and reloads the page", a
     name: "전체 정산 내역 새로고침",
   });
   expect(refreshButton).toHaveClass("fuma-content-inspection-refresh-button");
+  expect(refreshButton.parentElement).toHaveClass("fuma-content-collection-run-actions");
 
   fireEvent.click(refreshButton);
 
@@ -688,6 +689,8 @@ test("applies the month on search and requests status and pages immediately", as
   expect(summaryCalls.every((call) => !requestedUrl(call).searchParams.has("status"))).toBe(true);
 
   fireEvent.click(screen.getByRole("button", { name: "지급 이월" }));
+  expect(screen.queryByText("정산 내역을 불러오는 중입니다.")).not.toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "정산 지급 목록" })).toHaveTextContent("SEL-0007");
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(7));
   const carryoverUrl = requestedUrl(fetchMock.mock.calls[6]);
   expect(carryoverUrl.searchParams.get("status")).toBe("PAYMENT_CARRYOVER");

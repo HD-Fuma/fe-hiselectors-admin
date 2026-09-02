@@ -127,7 +127,7 @@ describe("campaign filter behavior", () => {
     const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
 
     const productList = within(detail).getByRole("region", { name: "포함 상품" });
-    const participantList = await within(detail).findByRole("region", { name: "참여 셀렉터스" });
+    const participantList = await within(detail).findByRole("region", { name: "참여중인 셀렉터스" });
     expect(productList).toBeInTheDocument();
     expect(participantList).toBeInTheDocument();
     expect(within(productList).getByRole("img", { name: "골프 재킷 썸네일" })).toBeInTheDocument();
@@ -189,7 +189,7 @@ describe("campaign filter behavior", () => {
     renderRoute("/campaigns/3");
     const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
     const productList = within(detail).getByRole("region", { name: "포함 상품" });
-    const participantList = await within(detail).findByRole("region", { name: "참여 셀렉터스" });
+    const participantList = await within(detail).findByRole("region", { name: "참여중인 셀렉터스" });
 
     expect(within(productList).queryByText("상품 11")).not.toBeInTheDocument();
     fireEvent.click(within(detail).getByRole("button", { name: "포함 상품 더보기" }));
@@ -199,6 +199,60 @@ describe("campaign filter behavior", () => {
     fireEvent.click(within(detail).getByRole("button", { name: "참여 셀렉터스 더보기" }));
     expect(await within(participantList).findByText("셀렉터 21")).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining("page=1&size=20"), expect.anything());
+  });
+
+  test("selects recommended selectors from the table header checkbox", async () => {
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/admin/selector-matching")) {
+        return json([
+          {
+            selectorId: 7,
+            selectorsCode: "SEL0007",
+            nickname: "홍길동",
+            category: "패션",
+            profileImageUrl: null,
+            categorySales: 100000,
+            categoryOrderCount: 2,
+            representativeMatch: true,
+            matchReason: "패션 카테고리 성과",
+          },
+          {
+            selectorId: 8,
+            selectorsCode: "SEL0008",
+            nickname: "정하린",
+            category: "뷰티",
+            profileImageUrl: null,
+            categorySales: 50000,
+            categoryOrderCount: 1,
+            representativeMatch: false,
+            matchReason: "유사 캠페인 성과",
+          },
+        ]);
+      }
+      if (url.includes("/participants")) {
+        return json({
+          content: [{ selectorId: 7, nickname: "셀렉터", platform: "INSTAGRAM", accountId: "selector", followerCount: 100 }],
+          number: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1,
+        });
+      }
+      if (/\/campaigns\/3(?:\?|$)/.test(url)) return json(campaign);
+      return json({ content: [campaign], number: 0, size: 20, totalElements: 1, totalPages: 1 });
+    });
+
+    renderRoute("/campaigns/3");
+    const detail = await screen.findByRole("dialog", { name: "캠페인 상세" });
+    const recommended = await within(detail).findByRole("region", { name: "추천 셀렉터스" });
+
+    expect(within(detail).queryByRole("button", { name: "전체 선택" })).not.toBeInTheDocument();
+    expect(within(recommended).getByText("총 2명")).toBeInTheDocument();
+    fireEvent.click(within(recommended).getByRole("checkbox", { name: "현재 페이지 전체 선택" }));
+    expect(within(recommended).getByRole("checkbox", { name: "홍길동 선택" })).toBeChecked();
+    expect(within(recommended).getByRole("checkbox", { name: "정하린 선택" })).toBeChecked();
+    expect(within(recommended).getByRole("button", { name: "선택 2명에게 제안 발송" })).toBeEnabled();
   });
 
   test("transitions from campaign detail to editing without replaying the panel animation", async () => {
