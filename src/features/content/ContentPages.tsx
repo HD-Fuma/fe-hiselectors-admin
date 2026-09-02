@@ -91,7 +91,7 @@ type ContentInspectionCategory =
   | "전체"
   | "신규"
   | "수정"
-  | "검수완료";
+  | "위반";
 
 function formatInspectionDate(value: string) {
   const zoned = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value.trim());
@@ -305,12 +305,12 @@ const CONTENT_INSPECTION_CATEGORIES: readonly ContentInspectionCategory[] = [
   "전체",
   "신규",
   "수정",
-  "검수완료",
+  "위반",
 ];
 const DEFAULT_CONTENT_INSPECTION_CATEGORY: ContentInspectionCategory = "전체";
 
 function contentInspectionCategory(content: ContentInspectionFixture): Exclude<ContentInspectionCategory, "전체"> {
-  if (content.inspectionStatus !== "검수 대기") return "검수완료";
+  if (content.inspectionStatus !== "검수 대기") return "위반";
   if (content.inspectionType !== "NEW") return "수정";
   return "신규";
 }
@@ -318,7 +318,7 @@ function contentInspectionCategory(content: ContentInspectionFixture): Exclude<C
 function contentInspectionCategoryTone(
   category: ContentInspectionCategory,
 ): NonNullable<StatusPillProps["tone"]> {
-  if (category === "검수완료") return "approved";
+  if (category === "위반") return "rejected";
   if (category === "수정") return "pending";
   return "neutral";
 }
@@ -681,8 +681,10 @@ export function ContentInspectionListPage() {
   };
   const normalizedKeyword = appliedFilters.keyword.trim().toLocaleLowerCase("ko-KR");
   const filteredContents = contents.filter((content) => {
+    const category = contentInspectionCategory(content);
     const matchesCategory = selectedCategory === "전체"
-      || contentInspectionCategory(content) === selectedCategory;
+      ? category === "신규" || category === "수정"
+      : category === selectedCategory;
     const matchesKeyword = !normalizedKeyword || [
       content.id,
       content.contentTitle,

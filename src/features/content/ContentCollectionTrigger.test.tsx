@@ -112,7 +112,7 @@ test("requests one content collection run with idempotency and hides the accepte
   expect(within(categoryTabs).getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
   expect(within(categoryTabs).getByRole("button", { name: "신규" })).toBeInTheDocument();
   expect(within(categoryTabs).getByRole("button", { name: "수정" })).toBeInTheDocument();
-  expect(within(categoryTabs).getByRole("button", { name: "검수완료" })).toBeInTheDocument();
+  expect(within(categoryTabs).getByRole("button", { name: "위반" })).toBeInTheDocument();
   expect(within(categoryTabs).queryByRole("button", { name: "위반 확정" })).not.toBeInTheDocument();
   expect(screen.queryByRole("checkbox", { name: "위반 항목만" })).not.toBeInTheDocument();
   const refreshButton = within(categoryTabs).getByRole("button", { name: "콘텐츠 새로고침" });
@@ -172,7 +172,7 @@ test("requests a scoped content collection run when fast mode is enabled", async
   expect(new URL(String(request?.[0])).searchParams.get("fastMode")).toBe("true");
 });
 
-test("shows every collected content on the all tab from the existing list API", async () => {
+test("shows only new and modified content on the all tab from the existing list API", async () => {
   const fetchMock = vi.fn().mockResolvedValue(contentsResponse([
     contentItem(1, "신규 콘텐츠"),
     {
@@ -192,10 +192,10 @@ test("shows every collected content on the all tab from the existing list API", 
 
   expect(await screen.findByRole("button", { name: /신규 콘텐츠 검수 시작/ })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /수정 콘텐츠 검수 시작/ })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: /승인된 콘텐츠 검수 시작/ })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /승인된 콘텐츠 검수 시작/ })).not.toBeInTheDocument();
   expect(within(categoryTabs).getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
   expect(new URLSearchParams(router.state.location.search).get("category")).toBeNull();
-  expect(screen.getByText("총 3건")).toBeInTheDocument();
+  expect(screen.getByText("총 2건")).toBeInTheDocument();
 
   fireEvent.click(within(categoryTabs).getByRole("button", { name: "신규" }));
 
@@ -210,7 +210,7 @@ test("shows every collected content on the all tab from the existing list API", 
   ))).toHaveLength(1);
 });
 
-test("keeps backend-provided completed content without a local violation filter", async () => {
+test("shows backend-provided completed content on the violation tab", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(contentsResponse([{
     ...contentItem(2, "승인된 콘텐츠"),
     inspectedAt: "2026-08-18T11:00:00",
@@ -220,7 +220,7 @@ test("keeps backend-provided completed content without a local violation filter"
   renderRoute("/content/inspections");
 
   const categoryTabs = await screen.findByRole("navigation", { name: "콘텐츠 처리 구분" });
-  fireEvent.click(within(categoryTabs).getByRole("button", { name: "검수완료" }));
+  fireEvent.click(within(categoryTabs).getByRole("button", { name: "위반" }));
 
   expect(await screen.findAllByText("승인된 콘텐츠")).not.toHaveLength(0);
 });
