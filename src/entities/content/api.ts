@@ -92,6 +92,11 @@ export type ContentViolationItemStatus =
 
 export type ContentEvidenceMediaType = "TEXT" | "IMAGE" | "VIDEO";
 export type ContentEvidenceSource = "RULE" | "AI";
+export type ContentEvidenceTargetKind =
+  | "TEXT_BODY"
+  | "STT_SEGMENT"
+  | "OCR_SEGMENT"
+  | "MEDIA";
 
 export interface ContentBoundingBox {
   x: number;
@@ -102,13 +107,19 @@ export interface ContentBoundingBox {
 
 export interface ContentEvidenceLocation {
   bbox: ContentBoundingBox | null;
+  bboxCoordinateSpace?: "NORMALIZED" | null;
   contentMediaId: number | null;
+  coordinateSpace?: string | null;
   endIndex: number | null;
-  endTime: number | null;
+  endMs?: number | null;
+  endTime?: number | null;
   excerpt: string | null;
   mediaType: ContentEvidenceMediaType;
+  segmentId?: string | null;
   startIndex: number | null;
-  startTime: number | null;
+  startMs?: number | null;
+  startTime?: number | null;
+  targetKind?: ContentEvidenceTargetKind | null;
 }
 
 export interface ContentViolationEvidence {
@@ -123,6 +134,7 @@ export interface ContentViolation {
   detectedAt: string;
   evidence: ContentViolationEvidence | null;
   inspectionPolicyId: number;
+  resolvedLocations?: ContentEvidenceLocation[];
   violationEvidenceHistoryId: number;
   violationItemId: number;
   violationType: ContentViolationType;

@@ -96,14 +96,72 @@ function clockTime(seconds: number) {
   return `${minutes}:${remainder}`;
 }
 
+function playbackRange(location: ContentEvidenceLocation) {
+  if (location.startMs != null && location.endMs != null && location.endMs > location.startMs) {
+    return { endMs: location.endMs, startMs: location.startMs };
+  }
+  if (location.startTime != null && location.endTime != null
+      && location.endTime > location.startTime) {
+    return {
+      endMs: Math.round(location.endTime * 1000),
+      startMs: Math.round(location.startTime * 1000),
+    };
+  }
+  return null;
+}
+
+function timeRangeFromLocation(location: ContentEvidenceLocation) {
+  const range = playbackRange(location);
+  return range
+    ? {
+        end: clockTime(range.endMs / 1000),
+        endMs: range.endMs,
+        start: clockTime(range.startMs / 1000),
+        startMs: range.startMs,
+      }
+    : undefined;
+}
+
+function mediaBoxFromLocation(location: ContentEvidenceLocation) {
+  const bbox = location.bbox;
+  if (!bbox) return {};
+  const normalized = location.bboxCoordinateSpace === "NORMALIZED"
+    || (bbox.x <= 1 && bbox.y <= 1 && bbox.width <= 1 && bbox.height <= 1);
+  return {
+    box: normalized
+      ? {
+          height: bbox.height * 100,
+          width: bbox.width * 100,
+          x: bbox.x * 100,
+          y: bbox.y * 100,
+        }
+      : bbox,
+    boxUnit: (normalized ? "percent" : "pixel") as "percent" | "pixel",
+  };
+}
+
+function violationLocations(violation: ContentViolation) {
+  const resolved = violation.resolvedLocations;
+  if (resolved && resolved.length > 0) return resolved;
+  return violation.evidence?.locations ?? [];
+}
+
 function locationSource(location: ContentEvidenceLocation | undefined) {
   if (!location) return "콘텐츠 전체";
-  if (location.mediaType === "TEXT") return "게시물 본문(TEXT)";
-  if (location.mediaType === "IMAGE") return "OCR";
-  if (location.startTime != null && location.endTime != null) {
-    return `STT · ${clockTime(location.startTime)}–${clockTime(location.endTime)}`;
+  if (location.mediaType === "TEXT" || location.targetKind === "TEXT_BODY") {
+    return "게시물 본문(TEXT)";
   }
-  return "STT";
+  if (location.targetKind === "OCR_SEGMENT" || location.mediaType === "IMAGE") {
+    return "OCR";
+  }
+  const range = playbackRange(location);
+  if (range) {
+    return `STT · ${clockTime(range.startMs / 1000)}–${clockTime(range.endMs / 1000)}`;
+  }
+  if (location.targetKind === "STT_SEGMENT" || location.mediaType === "VIDEO") {
+    return "STT";
+  }
+  return "콘텐츠 전체";
 }
 
 function locationQuote(location: ContentEvidenceLocation | undefined, text: string) {
@@ -138,12 +196,12 @@ function annotationState(
 
 function isAbsenceViolation(violation: ContentViolation) {
   return ABSENCE_VIOLATION_TYPES.has(violation.violationType)
-    && (violation.evidence?.locations.length ?? 0) === 0;
+    && violationLocations(violation).length === 0;
 }
 
 function needsDisclosureTextStartPin(violation: ContentViolation) {
   return violation.violationType === "AD_DISCLOSURE_INVALID"
-    && !(violation.evidence?.locations ?? []).some((location) => location.mediaType === "TEXT");
+    && !violationLocations(violation).some((location) => location.mediaType === "TEXT");
 }
 
 function signalsFromViolations(
@@ -151,7 +209,7 @@ function signalsFromViolations(
   mediaTextById: ReadonlyMap<number, string>,
 ): ContentInspectionSignal[] {
   return violations.map((violation) => {
-    const location = violation.evidence?.locations[0];
+    const location = violationLocations(violation)[0];
     const locationText = location?.contentMediaId == null
       ? ""
       : mediaTextById.get(location.contentMediaId) ?? "";
@@ -182,7 +240,7 @@ function annotationsFromViolations(
   const mediaById = new Map(media.map((item) => [item.contentMediaId, item]));
   const visualMedia = media.filter((item) => item.mediaType !== "TEXT");
   return violations.flatMap((violation) => {
-    const locations = violation.evidence?.locations ?? [];
+    const locations = violationLocations(violation);
     if (locations.length === 0 && isAbsenceViolation(violation)) {
       const textMedia = media.find((item) => item.mediaType === "TEXT");
       const visualIndex = textMedia
@@ -229,7 +287,9 @@ function annotationsFromViolations(
         const useTextTarget = sourceMedia.mediaType === "TEXT" && hasMatchingRange
           && offset !== undefined
           && location.startTime == null
+          && location.startMs == null
           && location.bbox == null;
+        const timeRange = timeRangeFromLocation(location);
         const visualIndex = visualMedia.findIndex(
           (item) => item.contentMediaId === sourceMedia.contentMediaId,
         );
@@ -255,16 +315,11 @@ function annotationsFromViolations(
                   quote,
                 }
             : {
-                ...(location.bbox ? { box: location.bbox, boxUnit: "pixel" as const } : {}),
+                ...mediaBoxFromLocation(location),
                 kind: "media" as const,
                 ...(visualIndex >= 0 ? { mediaIndex: visualIndex } : {}),
                 quote,
-                ...(location.startTime != null && location.endTime != null
-                  ? { timeRange: {
-                      end: clockTime(location.endTime),
-                      start: clockTime(location.startTime),
-                    } }
-                  : {}),
+                ...(timeRange ? { timeRange } : {}),
               },
           title: violation.violationTypeDescription,
         }];

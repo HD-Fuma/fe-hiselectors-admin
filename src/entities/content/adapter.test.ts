@@ -539,6 +539,128 @@ test("keeps a confirmed ad-disclosure pin at the body start when evidence only p
   ]));
 });
 
+test("maps resolved STT playback range and normalized OCR bbox from detail locations", () => {
+  const adaptContentInspectionDetail = (
+    contentEntity as unknown as { adaptContentInspectionDetail?: AdaptContentInspectionDetail }
+  ).adaptContentInspectionDetail;
+  expect(adaptContentInspectionDetail).toBeTypeOf("function");
+  if (!adaptContentInspectionDetail) return;
+
+  const inspection = adaptContentInspectionDetail({
+    contentId: 25,
+    contentType: "SHORTS",
+    contentUrl: "https://www.youtube.com/watch?v=rTVC0ZAylbI",
+    selectedVersion: {
+      contentReport: null,
+      contentVersionId: 33,
+      creationReason: "INITIAL",
+      createdAt: "2026-09-03T20:24:17",
+      inspectedAt: "2026-09-03T20:31:00",
+      inspectionStatus: "COMPLETED",
+      media: [{
+        contentMediaId: 98,
+        mediaType: "VIDEO",
+        mediaUrl: null,
+        sequenceNo: 0,
+        snsMediaId: "rTVC0ZAylbI",
+        text: null,
+      }],
+      violations: [{
+        evidence: {
+          confidence: 0.9,
+          locations: [],
+          reason: "당도 100%의 이것만 먹어도 살이 쪽쪽 빠져요.",
+          source: "AI",
+        },
+        currentStatus: "PENDING",
+        detectedAt: "2026-09-03T20:31:00",
+        inspectionPolicyId: 7,
+        resolvedLocations: [{
+          bbox: null,
+          bboxCoordinateSpace: null,
+          contentMediaId: 98,
+          endIndex: null,
+          endMs: 12800,
+          excerpt: "당도 100%의 이것만 먹어도 살이 쪽쪽 빠져요.",
+          mediaType: "VIDEO",
+          segmentId: "stt-004",
+          startIndex: null,
+          startMs: 8300,
+          targetKind: "STT_SEGMENT",
+        }],
+        violationEvidenceHistoryId: 48,
+        violationItemId: 38,
+        violationType: "FALSE_EXAGGERATED_CLAIM",
+        violationTypeDescription: "허위·과장 표현",
+      }, {
+        evidence: {
+          confidence: 0.8,
+          locations: [{
+            bbox: { height: 0.05, width: 0.6, x: 0.2, y: 0.18 },
+            bboxCoordinateSpace: "NORMALIZED",
+            contentMediaId: 98,
+            endIndex: null,
+            endMs: 12800,
+            excerpt: "이것만 먹어도 살이 쪽쪽 빠져요",
+            mediaType: "VIDEO",
+            segmentId: "ocr-006",
+            startIndex: null,
+            startMs: 11000,
+            targetKind: "OCR_SEGMENT",
+          }],
+          reason: "화면 자막의 과장 표현",
+          source: "AI",
+        },
+        currentStatus: "PENDING",
+        detectedAt: "2026-09-03T20:31:00",
+        inspectionPolicyId: 7,
+        violationEvidenceHistoryId: 49,
+        violationItemId: 39,
+        violationType: "FALSE_EXAGGERATED_CLAIM",
+        violationTypeDescription: "허위·과장 표현",
+      }],
+      versionNo: 1,
+    },
+    selectorsId: 84,
+    snsCode: "YOUTUBE",
+    snsContentId: "rTVC0ZAylbI",
+    storedAt: "2026-09-03T20:25:22",
+    versions: [],
+  });
+
+  expect(inspection.currentSnapshot.annotations).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      location: "STT · 00:08–00:12",
+      target: expect.objectContaining({
+        kind: "media",
+        mediaIndex: 0,
+        timeRange: {
+          end: "00:12",
+          endMs: 12800,
+          start: "00:08",
+          startMs: 8300,
+        },
+      }),
+    }),
+    expect.objectContaining({
+      location: "OCR",
+      target: expect.objectContaining({
+        box: { height: 5, width: 60, x: 20, y: 18 },
+        boxUnit: "percent",
+        kind: "media",
+        timeRange: expect.objectContaining({
+          startMs: 11000,
+          endMs: 12800,
+        }),
+      }),
+    }),
+  ]));
+  expect(inspection.report.signals[0]).toMatchObject({
+    locationAvailable: true,
+    source: "STT · 00:08–00:12",
+  });
+});
+
 test("maps approved and rejected decisions to separate inspection statuses", () => {
   const adaptContentInspection = (
     contentEntity as unknown as { adaptContentInspection?: AdaptContentInspection }
