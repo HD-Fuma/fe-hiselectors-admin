@@ -30,12 +30,18 @@ interface KeywordDraft {
   keyword: string;
 }
 
+const LIVING_LIFE_DEFAULT_KEYWORDS = ["고급 선물 브이로그", "고감도 선물"] as const;
+
 function reasonMessage(reason: unknown, fallback: string) {
   return reason instanceof Error ? reason.message : fallback;
 }
 
-function emptyKeywordDraft(): KeywordDraft {
-  return { keyword: "" };
+function newKeywordDraft(category: DiscoveryCategory): KeywordDraft {
+  if (category.code !== "LIVING_LIFE") return { keyword: "" };
+  const existingKeywords = new Set(category.keywords.map(({ keyword }) => keyword.trim()));
+  return {
+    keyword: LIVING_LIFE_DEFAULT_KEYWORDS.find((keyword) => !existingKeywords.has(keyword)) ?? "",
+  };
 }
 
 const RELOAD_ERROR = "변경사항은 저장됐지만 목록을 새로고침하지 못했습니다. 패널을 닫았다 다시 열어 주세요.";
@@ -68,13 +74,9 @@ export function DiscoverySettingsPanel({
   const selectedCategory = categories.find((category) => category.id === selectedId) ?? null;
   const selectedCoverage = coverage.find((item) => item.categoryId === selectedId) ?? null;
 
-  async function reload(preferredId?: number) {
-    const [nextCategories, nextCoverage] = await Promise.all([
-      getDiscoveryCategories(),
-      getDiscoveryCoverage(),
-    ]);
+  async function reload(preferredId?: number, waitForCoverage = true) {
+    const nextCategories = await getDiscoveryCategories();
     setCategories(nextCategories);
-    setCoverage(nextCoverage);
     setKeywordEdits({});
     setSelectedId((current) => {
       const nextId = preferredId ?? current;
@@ -82,6 +84,10 @@ export function DiscoverySettingsPanel({
         ? nextId
         : nextCategories[0]?.id ?? null;
     });
+
+    const coverageRequest = getDiscoveryCoverage().then(setCoverage);
+    if (waitForCoverage) await coverageRequest;
+    else void coverageRequest.catch(() => undefined);
   }
 
   useEffect(() => {
@@ -111,7 +117,7 @@ export function DiscoverySettingsPanel({
   async function finishMutation(preferredId: number | undefined, success: string) {
     setNotice(success);
     try {
-      await reload(preferredId);
+      await reload(preferredId, false);
     } catch {
       setError(RELOAD_ERROR);
     }
@@ -172,10 +178,13 @@ export function DiscoverySettingsPanel({
     try {
       const result = await createDiscoveryKeyword(categoryId, { keyword, priority });
       setKeywordDraft(null);
-      await finishMutation(
-        categoryId,
-        result.warnings.length > 0 ? result.warnings.join(" ") : "키워드를 추가했습니다.",
-      );
+      setCategories((current) => current.map((category) => (
+        category.id === categoryId
+          ? { ...category, keywords: [result.keyword, ...category.keywords] }
+          : category
+      )));
+      setNotice(result.warnings.length > 0 ? result.warnings.join(" ") : "키워드를 추가했습니다.");
+      void getDiscoveryCoverage().then(setCoverage).catch(() => undefined);
     } catch (reason) {
       setError(reasonMessage(reason, "키워드 생성에 실패했습니다."));
     } finally {
@@ -407,7 +416,7 @@ export function DiscoverySettingsPanel({
                   <button
                     aria-label="키워드 추가"
                     disabled={saving || keywordDraft !== null}
-                    onClick={() => setKeywordDraft(emptyKeywordDraft())}
+                    onClick={() => setKeywordDraft(newKeywordDraft(selectedCategory))}
                     type="button"
                   >
                     <Plus aria-hidden="true" size={17} />
@@ -428,6 +437,13 @@ export function DiscoverySettingsPanel({
                           placeholder="새 키워드를 입력하고 Enter"
                           value={keywordDraft.keyword}
                         />
+                        <Button
+                          disabled={saving || !keywordDraft.keyword.trim()}
+                          type="submit"
+                          variant="primary"
+                        >
+                          확인
+                        </Button>
                       </form>
                     </li>
                   ) : null}

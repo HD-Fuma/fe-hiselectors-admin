@@ -22,6 +22,7 @@ export {
   getAdminProposals,
   getCreator,
   getCreators,
+  prepareCreatorPoolDemo,
   postAdminProposal,
   resetCreatorPool,
   runCreatorDiscovery,
@@ -29,6 +30,7 @@ export {
 } from "./api";
 export type {
   CreatorDetail,
+  CreatorPoolDemoResult,
   CreatorPage,
   CreatorPoolResetResult,
   CreatorSearchRequest,

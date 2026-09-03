@@ -41,6 +41,10 @@ export interface CreatorPoolResetResult {
   softDeletedCount: number;
 }
 
+export interface CreatorPoolDemoResult {
+  restoredCount: number;
+}
+
 export interface CreatorDetail {
   id: number;
   snsCode: "INSTAGRAM" | "YOUTUBE";
@@ -174,6 +178,15 @@ export function resetCreatorPool() {
     "크리에이터 풀 초기화에 실패했습니다.",
     undefined,
     { method: "DELETE" },
+  );
+}
+
+export function prepareCreatorPoolDemo() {
+  return request<CreatorPoolDemoResult>(
+    "/api/admin/creators/demo",
+    "크리에이터 풀 데모 준비에 실패했습니다.",
+    undefined,
+    { method: "POST" },
   );
 }
 
