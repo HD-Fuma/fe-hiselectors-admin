@@ -172,7 +172,7 @@ test("restores stored creators instead of discovering in FAST mode", async () =>
     .mockResolvedValueOnce(ok([fashion]))
     .mockResolvedValueOnce(ok([fashion]))
     .mockResolvedValueOnce(ok([fashionCoverage]))
-    .mockResolvedValueOnce(ok({ restoredCount: 2, restoredCreatorIds: [11, 12] }))
+    .mockResolvedValueOnce(ok({ visibleCount: 3, discoveredCreatorIds: [11, 12] }))
     .mockResolvedValue(ok(creatorPage)));
 
   render(
@@ -186,7 +186,7 @@ test("restores stored creators instead of discovering in FAST mode", async () =>
   await user.click(within(panel).getByRole("button", { name: "패션만 발굴" }));
 
   expect(await within(panel).findByRole("status", {}, { timeout: 5000 })).toHaveTextContent(
-    "패션 크리에이터 2명을 발굴했습니다.",
+    "패션 크리에이터 3명을 발굴했습니다.",
   );
   const demoCall = vi.mocked(fetch).mock.calls.find(([input]) => (
     new URL(String(input)).pathname === "/api/admin/creators/demo/categories/1"

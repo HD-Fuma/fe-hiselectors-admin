@@ -290,9 +290,9 @@ export function DiscoverySettingsPanel({
           FAST_DEMO_MIN_ELAPSED_MS,
           () => prepareCreatorPoolCategoryDemo(category.id),
         );
-        markFastDemoGlow(result.restoredCreatorIds);
+        markFastDemoGlow(result.discoveredCreatorIds);
         window.dispatchEvent(new Event(CREATOR_POOL_RESET_EVENT));
-        setNotice(`${category.name} 크리에이터 ${result.restoredCount}명을 발굴했습니다.`);
+        setNotice(`${category.name} 크리에이터 ${result.visibleCount}명을 발굴했습니다.`);
         return;
       }
       await runCreatorDiscoveryByCategory(category.id, getCreatorDiscoveryCurrentMonthOnly());

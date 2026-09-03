@@ -46,8 +46,8 @@ export interface CreatorPoolDemoResult {
 }
 
 export interface CreatorPoolCategoryDemoResult {
-  restoredCount: number;
-  restoredCreatorIds: number[];
+  visibleCount: number;
+  discoveredCreatorIds: number[];
 }
 
 export interface CreatorDetail {
