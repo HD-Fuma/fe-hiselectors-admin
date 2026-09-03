@@ -185,7 +185,6 @@ function signalTone(status: ContentViolationItemStatus): InspectionSignalTone {
   return "critical";
 }
 
-<<<<<<< HEAD
 function annotationState(
   status: ContentViolationItemStatus,
   showHistoricalEvidence: boolean,
@@ -203,14 +202,6 @@ function isAbsenceViolation(violation: ContentViolation) {
 function needsDisclosureTextStartPin(violation: ContentViolation) {
   return violation.violationType === "AD_DISCLOSURE_INVALID"
     && !violationLocations(violation).some((location) => location.mediaType === "TEXT");
-<<<<<<< HEAD
-=======
-function isAbsenceViolation(violation: ContentViolation) {
-  return ABSENCE_VIOLATION_TYPES.has(violation.violationType)
-    && (violation.evidence?.locations.length ?? 0) === 0;
->>>>>>> 232c7c06dd1c7cd0670a298ff0c7cdfc22d9e5d6
-=======
->>>>>>> e962488fb5c4156deaf1c5e02e3f103640db5ee2
 }
 
 function signalsFromViolations(
@@ -249,15 +240,7 @@ function annotationsFromViolations(
   const mediaById = new Map(media.map((item) => [item.contentMediaId, item]));
   const visualMedia = media.filter((item) => item.mediaType !== "TEXT");
   return violations.flatMap((violation) => {
-<<<<<<< HEAD
-<<<<<<< HEAD
     const locations = violationLocations(violation);
-=======
-    const locations = violation.evidence?.locations ?? [];
->>>>>>> 232c7c06dd1c7cd0670a298ff0c7cdfc22d9e5d6
-=======
-    const locations = violationLocations(violation);
->>>>>>> e962488fb5c4156deaf1c5e02e3f103640db5ee2
     if (locations.length === 0 && isAbsenceViolation(violation)) {
       const textMedia = media.find((item) => item.mediaType === "TEXT");
       const visualIndex = textMedia
@@ -273,14 +256,7 @@ function annotationsFromViolations(
         reason: violation.evidence?.reason?.trim() || violation.violationTypeDescription,
         severity: signalTone(violation.currentStatus) === "warning" ? "warning" : "critical",
         source: "자동 감지" as const,
-<<<<<<< HEAD
-          state: annotationState(violation.currentStatus, showHistoricalEvidence),
-=======
-          state: !showHistoricalEvidence && violation.currentStatus != null
-            && violation.currentStatus !== "PENDING"
-            ? "resolved" as const
-            : "active" as const,
->>>>>>> 232c7c06dd1c7cd0670a298ff0c7cdfc22d9e5d6
+        state: annotationState(violation.currentStatus, showHistoricalEvidence),
         target: textMedia
           ? { kind: "text-start" as const, quote }
           : {
@@ -291,13 +267,8 @@ function annotationsFromViolations(
         title: violation.violationTypeDescription,
       }];
     }
-<<<<<<< HEAD
     const locationAnnotations: ContentAnnotation[] = locations
       .flatMap((location, locationIndex): ContentAnnotation[] => {
-=======
-    return locations
-      .flatMap((location, locationIndex) => {
->>>>>>> 232c7c06dd1c7cd0670a298ff0c7cdfc22d9e5d6
         const sourceMedia = location.contentMediaId == null
           ? undefined
           : mediaById.get(location.contentMediaId);
@@ -329,14 +300,7 @@ function annotationsFromViolations(
           reason: violation.evidence?.reason?.trim() || violation.violationTypeDescription,
           severity: signalTone(violation.currentStatus) === "warning" ? "warning" : "critical",
           source: "자동 감지" as const,
-<<<<<<< HEAD
           state: annotationState(violation.currentStatus, showHistoricalEvidence),
-=======
-          state: !showHistoricalEvidence && violation.currentStatus != null
-            && violation.currentStatus !== "PENDING"
-            ? "resolved" as const
-            : "active" as const,
->>>>>>> 232c7c06dd1c7cd0670a298ff0c7cdfc22d9e5d6
           target: useTextTarget
             ? {
                 endIndex: offset + (location.endIndex ?? 0),
@@ -360,7 +324,6 @@ function annotationsFromViolations(
           title: violation.violationTypeDescription,
         }];
       });
-<<<<<<< HEAD
 
     if (needsDisclosureTextStartPin(violation)) {
       const textMedia = media.find((item) => item.mediaType === "TEXT");
@@ -383,8 +346,6 @@ function annotationsFromViolations(
     }
 
     return locationAnnotations;
-=======
->>>>>>> 232c7c06dd1c7cd0670a298ff0c7cdfc22d9e5d6
   });
 }
 
