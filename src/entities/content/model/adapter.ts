@@ -256,7 +256,7 @@ function annotationsFromViolations(
         reason: violation.evidence?.reason?.trim() || violation.violationTypeDescription,
         severity: signalTone(violation.currentStatus) === "warning" ? "warning" : "critical",
         source: "자동 감지" as const,
-          state: annotationState(violation.currentStatus, showHistoricalEvidence),
+        state: annotationState(violation.currentStatus, showHistoricalEvidence),
         target: textMedia
           ? { kind: "text-start" as const, quote }
           : {
