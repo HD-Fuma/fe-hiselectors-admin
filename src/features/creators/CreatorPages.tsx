@@ -783,6 +783,7 @@ export function CreatorListPage() {
             />
           )}
           ariaLabel="크리에이터 카테고리"
+          className="fuma-list-action-toolbar"
           emptyOption={{ label: "전체", onSelect: () => selectCategory("") }}
           onChange={selectCategory}
           options={categoryOptions.filter((option) => option.value)}
@@ -837,7 +838,7 @@ export function CreatorListPage() {
                 </Button>
                 <Tooltip
                   id={discoverySettingsTooltipId}
-                  placement="top"
+                  placement="bottom"
                   visible={discoverySettingsTooltipInitial}
                 >
                   크리에이터 발굴 키워드를 설정할 수 있습니다.

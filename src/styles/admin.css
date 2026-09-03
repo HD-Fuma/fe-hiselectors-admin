@@ -3686,9 +3686,17 @@
 
   position: absolute;
   right: 0;
+  color: #fff;
+}
+
+.fuma-creator-pool-build-action > .hsas-tooltip--top {
   top: auto;
   bottom: calc(100% + var(--hsas-space-8));
-  color: #fff;
+}
+
+.fuma-creator-pool-build-action > .hsas-tooltip--bottom {
+  top: calc(100% + var(--hsas-space-8));
+  bottom: auto;
 }
 
 @keyframes fuma-content-inspection-refresh-spin {
