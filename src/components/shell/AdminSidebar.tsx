@@ -32,7 +32,7 @@ import {
 } from "../../lib/autoRejection";
 import { applyTheme, getTheme, saveTheme } from "../../lib/theme";
 import { resetContentInspections } from "../../entities/content";
-import { resetCreatorPool } from "../../entities/creator";
+import { prepareCreatorPoolDemo, resetCreatorPool } from "../../entities/creator";
 import { resetSelectorTestAccount } from "../../entities/selectors";
 import type { SelectorSnsCode } from "../../entities/selectors";
 import {
@@ -117,6 +117,7 @@ export function AdminSidebar({
   const [resetFeedback, setResetFeedback] = useState<string | null>(null);
   const [isCreatorResetDialogOpen, setCreatorResetDialogOpen] = useState(false);
   const [isCreatorResetting, setCreatorResetting] = useState(false);
+  const [isCreatorDemoPreparing, setCreatorDemoPreparing] = useState(false);
   const [creatorResetConfirmation, setCreatorResetConfirmation] = useState("");
   const [creatorResetError, setCreatorResetError] = useState("");
   const [isTestResetDialogOpen, setTestResetDialogOpen] = useState(false);
@@ -280,6 +281,22 @@ export function AdminSidebar({
       );
     } finally {
       setCreatorResetting(false);
+    }
+  };
+
+  const prepareDemoPool = async () => {
+    setCreatorDemoPreparing(true);
+    setResetFeedback(null);
+    try {
+      const result = await prepareCreatorPoolDemo();
+      setResetFeedback(`데모용 크리에이터 풀 ${result.restoredCount}명을 준비했습니다.`);
+      window.dispatchEvent(new Event(CREATOR_POOL_RESET_EVENT));
+    } catch (error) {
+      setResetFeedback(
+        error instanceof Error ? error.message : "크리에이터 풀 데모 준비에 실패했습니다.",
+      );
+    } finally {
+      setCreatorDemoPreparing(false);
     }
   };
 
@@ -527,6 +544,15 @@ export function AdminSidebar({
                     }}
                     title="키워드별 인기 영상을 이번 달 업로드로 제한합니다."
                   />
+                  <button
+                    className="hsas-theme-settings__item"
+                    disabled={isCreatorDemoPreparing}
+                    onClick={() => void prepareDemoPool()}
+                    type="button"
+                  >
+                    <UsersRound aria-hidden="true" />
+                    <span>{isCreatorDemoPreparing ? "데모 준비 중..." : "크리에이터 풀 데모 준비"}</span>
+                  </button>
                   <button
                     className="hsas-theme-settings__item hsas-theme-settings__item--danger"
                     onClick={() => {

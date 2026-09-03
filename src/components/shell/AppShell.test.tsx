@@ -253,6 +253,7 @@ test("opens and closes environment settings only when the icon is clicked", () =
   expect(within(settings).queryByRole("button", { name: "라이트 모드" })).not.toBeInTheDocument();
   expect(within(settings).getByRole("button", { name: "검수 상태 초기화" })).toBeEnabled();
   expect(within(settings).getByRole("button", { name: "크리에이터 풀 초기화" })).toBeEnabled();
+  expect(within(settings).getByRole("button", { name: "크리에이터 풀 데모 준비" })).toBeEnabled();
 
   fireEvent.click(themeMenuTrigger);
 
@@ -405,6 +406,41 @@ test("resets the creator pool from environment settings after typed confirmation
   await waitFor(() => expect(fetchMock.mock.calls.filter(([input, requestInit]) => (
     String(input).includes("/api/admin/creators?") && requestInit?.method !== "DELETE"
   ))).toHaveLength(2));
+});
+
+test("prepares a small creator pool for demos from environment settings", async () => {
+  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith("/api/admin/creators/demo") && init?.method === "POST") {
+      return Promise.resolve(new Response(JSON.stringify({
+        success: true,
+        data: { restoredCount: 72 },
+      })));
+    }
+    if (url.endsWith("/api/admin/categories")) {
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: [] })));
+    }
+    if (url.includes("/api/admin/creators?")) {
+      return Promise.resolve(new Response(JSON.stringify({
+        success: true,
+        data: { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 },
+      })));
+    }
+    return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} })));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  renderRoute("/creators");
+
+  fireEvent.click(screen.getByRole("button", { name: "환경설정" }));
+  const settings = screen.getByRole("group", { name: "환경설정" });
+  fireEvent.click(within(settings).getByRole("button", { name: "크리에이터 풀 데모 준비" }));
+
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+    expect.stringContaining("/api/admin/creators/demo"),
+    expect.objectContaining({ method: "POST" }),
+  ));
+  expect(await within(settings).findByRole("status"))
+    .toHaveTextContent("데모용 크리에이터 풀 72명을 준비했습니다.");
 });
 
 test("resets YouTube and Instagram test data from editable default identifiers in settings", async () => {
