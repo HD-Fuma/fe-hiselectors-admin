@@ -4,6 +4,7 @@ import {
   type BubblePoolItem,
 } from "../../components/ui/BubblePoolCanvas";
 import type { CreatorSummary } from "../../entities/creator";
+import { readFastDemoGlow } from "../../lib/fastDemoGlow";
 import { recentDiscoveryGlowUntil } from "./recentDiscoveryGlow";
 
 interface CreatorBubblePoolProps {
@@ -27,6 +28,7 @@ export function CreatorBubblePool({
   );
   const items = useMemo<BubblePoolItem[]>(() => {
     const categoryLabels = new Map(categoryOptions.map(({ label, value }) => [value, label]));
+    const fastDemoGlow = readFastDemoGlow();
     return creators.map((creator) => {
       const name = creator.creatorName || creator.accountId;
       return {
@@ -40,7 +42,9 @@ export function CreatorBubblePool({
         displayName: name,
         dockSubtitle: creator.accountId,
         dockTitle: name,
-        glowUntil: recentDiscoveryGlowUntil(creator.firstDiscoveredAt),
+        glowUntil: fastDemoGlow?.ids.has(creator.id)
+          ? fastDemoGlow.until
+          : recentDiscoveryGlowUntil(creator.firstDiscoveredAt),
         platform: creator.snsCode,
         profileImageUrl: creator.profileImageUrl,
       };

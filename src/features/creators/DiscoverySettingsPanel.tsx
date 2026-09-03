@@ -16,8 +16,15 @@ import {
   type DiscoveryCoverageStatus,
   type DiscoveryKeyword,
 } from "../../entities/discovery-category";
-import { runCreatorDiscoveryByCategory } from "../../entities/creator";
+import {
+  prepareCreatorPoolCategoryDemo,
+  runCreatorDiscoveryByCategory,
+} from "../../entities/creator";
 import { getCreatorDiscoveryCurrentMonthOnly } from "../../lib/creatorDiscoveryPeriod";
+import { CREATOR_POOL_RESET_EVENT } from "../../lib/creatorPoolEvents";
+import { getFastMode } from "../../lib/fastMode";
+import { markFastDemoGlow } from "../../lib/fastDemoGlow";
+import { withMinimumDelay } from "../../lib/minimumDelay";
 
 interface CategoryDraft {
   id: number;
@@ -43,6 +50,9 @@ function newKeywordDraft(category: DiscoveryCategory): KeywordDraft {
     keyword: LIVING_LIFE_DEFAULT_KEYWORDS.find((keyword) => !existingKeywords.has(keyword)) ?? "",
   };
 }
+
+/** FAST 모드 데모 발굴이 즉시 끝나 보이지 않도록 두는 최소 진행 시간. */
+const FAST_DEMO_MIN_ELAPSED_MS = 2_000;
 
 const RELOAD_ERROR = "변경사항은 저장됐지만 목록을 새로고침하지 못했습니다. 패널을 닫았다 다시 열어 주세요.";
 
@@ -275,6 +285,16 @@ export function DiscoverySettingsPanel({
     setError("");
     setNotice("");
     try {
+      if (getFastMode()) {
+        const result = await withMinimumDelay(
+          FAST_DEMO_MIN_ELAPSED_MS,
+          () => prepareCreatorPoolCategoryDemo(category.id),
+        );
+        markFastDemoGlow(result.restoredCreatorIds);
+        window.dispatchEvent(new Event(CREATOR_POOL_RESET_EVENT));
+        setNotice(`${category.name} 크리에이터 ${result.restoredCount}명을 발굴했습니다.`);
+        return;
+      }
       await runCreatorDiscoveryByCategory(category.id, getCreatorDiscoveryCurrentMonthOnly());
       setNotice(`${category.name} 발굴 작업을 시작했습니다. 완료 여부는 알림센터에서 확인하세요.`);
     } catch (reason) {

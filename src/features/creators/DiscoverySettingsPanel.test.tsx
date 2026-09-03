@@ -164,6 +164,40 @@ test("starts discovery for only the selected category", async () => {
   expect(new Headers(discoveryCall?.[1]?.headers).get("Idempotency-Key")).toBe(idempotencyKey);
 });
 
+test("restores stored creators instead of discovering in FAST mode", async () => {
+  const user = userEvent.setup();
+  localStorage.setItem("selectors-content-fast-mode", "true");
+  vi.stubGlobal("fetch", vi.fn()
+    .mockResolvedValueOnce(ok(creatorPage))
+    .mockResolvedValueOnce(ok([fashion]))
+    .mockResolvedValueOnce(ok([fashion]))
+    .mockResolvedValueOnce(ok([fashionCoverage]))
+    .mockResolvedValueOnce(ok({ restoredCount: 2, restoredCreatorIds: [11, 12] }))
+    .mockResolvedValue(ok(creatorPage)));
+
+  render(
+    <MemoryRouter initialEntries={["/creators"]}>
+      <CreatorListPage />
+    </MemoryRouter>,
+  );
+
+  await user.click(screen.getByRole("button", { name: "발굴 설정" }));
+  const panel = await screen.findByRole("dialog", { name: "크리에이터 발굴 키워드 설정" });
+  await user.click(within(panel).getByRole("button", { name: "패션만 발굴" }));
+
+  expect(await within(panel).findByRole("status", {}, { timeout: 5000 })).toHaveTextContent(
+    "패션 크리에이터 2명을 발굴했습니다.",
+  );
+  const demoCall = vi.mocked(fetch).mock.calls.find(([input]) => (
+    new URL(String(input)).pathname === "/api/admin/creators/demo/categories/1"
+  ));
+  expect(demoCall?.[1]).toMatchObject({ method: "POST" });
+  expect(vi.mocked(fetch).mock.calls.some(([input]) => (
+    new URL(String(input)).pathname === "/api/admin/discovery/categories/1/run"
+  ))).toBe(false);
+  expect(JSON.parse(localStorage.getItem("selectors-fast-demo-glow") ?? "{}").ids).toEqual([11, 12]);
+});
+
 test("deletes a discovery keyword", async () => {
   const user = userEvent.setup();
   vi.spyOn(window, "confirm").mockReturnValue(true);
