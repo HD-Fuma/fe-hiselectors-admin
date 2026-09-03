@@ -12,6 +12,7 @@ const ORBIT_GAP = 8;
 const DAMPING = 0.86;
 const GOLDEN_ANGLE = 2.39996;
 const INK = "17 24 39";
+const RECENT_GREEN = "34 197 94";
 const TEAL = "30 157 139";
 const WHITE = "255 255 255";
 const CANVAS_FONT = ECHARTS_FONT_FAMILY;
@@ -26,6 +27,7 @@ export interface BubblePoolItem {
   displayName: string;
   dockSubtitle: string;
   dockTitle: string;
+  glowUntil?: number;
   id: number;
   platform: "INSTAGRAM" | "YOUTUBE" | null;
   profileImageUrl: string | null;
@@ -326,6 +328,23 @@ function drawSelection(
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillText("✓", badgeX, badgeY + 0.5);
+  context.restore();
+}
+
+function drawRecentGlow(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+) {
+  context.save();
+  context.shadowColor = `rgb(${RECENT_GREEN} / 92%)`;
+  context.shadowBlur = 24;
+  context.strokeStyle = `rgb(${RECENT_GREEN} / 82%)`;
+  context.lineWidth = 4;
+  context.beginPath();
+  context.arc(x, y, bubbleShellRadius(radius) + 3, 0, Math.PI * 2);
+  context.stroke();
   context.restore();
 }
 
@@ -721,6 +740,7 @@ export function BubblePoolCanvas({
         context.restore();
       });
 
+      const now = Date.now();
       nodes.forEach((node) => {
         const position = floatOf(node, time);
         const active = lit === node;
@@ -755,6 +775,9 @@ export function BubblePoolCanvas({
           context.restore();
         }
 
+        if ((node.item.glowUntil ?? 0) >= now) {
+          drawRecentGlow(context, position.x, position.y, radius);
+        }
         drawBubble(context, position.x, position.y, radius, images.get(node.item.id));
         if (selectedIdsRef.current?.has(node.item.id)) {
           drawSelection(context, position.x, position.y, radius);

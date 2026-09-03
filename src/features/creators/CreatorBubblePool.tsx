@@ -4,6 +4,7 @@ import {
   type BubblePoolItem,
 } from "../../components/ui/BubblePoolCanvas";
 import type { CreatorSummary } from "../../entities/creator";
+import { recentDiscoveryGlowUntil } from "./recentDiscoveryGlow";
 
 interface CreatorBubblePoolProps {
   creators: readonly CreatorSummary[];
@@ -39,6 +40,7 @@ export function CreatorBubblePool({
         displayName: name,
         dockSubtitle: creator.accountId,
         dockTitle: name,
+        glowUntil: recentDiscoveryGlowUntil(creator.firstDiscoveredAt),
         platform: creator.snsCode,
         profileImageUrl: creator.profileImageUrl,
       };
