@@ -721,9 +721,9 @@ export function SettlementManagementPage() {
   };
 
   const changeStatus = (status: SettlementStatusFilter | null) => {
+    closeSettlementDetail();
     setSelectedStatus(status);
     setPage(1);
-    prepareTableRequest();
   };
 
   const changePage = (nextPage: number) => {
@@ -822,19 +822,21 @@ export function SettlementManagementPage() {
         />
         <ChoiceTabs
           actions={(
-            <Button
-              aria-label={isRecalculating ? "전체 정산 내역 새로고침 중" : "전체 정산 내역 새로고침"}
-              className="fuma-content-inspection-refresh-button"
-              disabled={isRecalculating}
-              onClick={() => void recalculateAllSettlements()}
-              title={isRecalculating ? "전체 정산 내역 새로고침 중" : "전체 정산 내역 새로고침"}
-            >
-              <RefreshCw
-                aria-hidden="true"
-                className={isRecalculating ? "is-spinning" : undefined}
-                size={15}
-              />
-            </Button>
+            <span className="fuma-content-collection-run-actions">
+              <Button
+                aria-label={isRecalculating ? "전체 정산 내역 새로고침 중" : "전체 정산 내역 새로고침"}
+                className="fuma-content-inspection-refresh-button"
+                disabled={isRecalculating}
+                onClick={() => void recalculateAllSettlements()}
+                title={isRecalculating ? "전체 정산 내역 새로고침 중" : "전체 정산 내역 새로고침"}
+              >
+                <RefreshCw
+                  aria-hidden="true"
+                  className={isRecalculating ? "is-spinning" : undefined}
+                  size={15}
+                />
+              </Button>
+            </span>
           )}
           ariaLabel="지급 상태"
           className="fuma-settlement-status-filter fuma-list-action-toolbar"

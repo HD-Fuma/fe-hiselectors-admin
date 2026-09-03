@@ -93,12 +93,17 @@ export function snsAccountHref(
   accountId: string | null | undefined,
 ) {
   if (!platform || !accountId) return null;
-  if (accountId.startsWith("http")) return accountId;
-  const normalizedAccountId = accountId.replace(/^@/, "").trim();
+  const trimmed = accountId.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("http")) return trimmed;
+  const normalizedAccountId = trimmed.replace(/^@/, "");
   if (!normalizedAccountId) return null;
-  return platform === "YouTube"
-    ? `https://www.youtube.com/channel/${normalizedAccountId}`
-    : `https://www.instagram.com/${normalizedAccountId}`;
+  if (platform !== "YouTube") {
+    return `https://www.instagram.com/${encodeURIComponent(normalizedAccountId)}`;
+  }
+  return normalizedAccountId.startsWith("UC")
+    ? `https://www.youtube.com/channel/${encodeURIComponent(normalizedAccountId)}`
+    : `https://www.youtube.com/@${encodeURIComponent(normalizedAccountId)}`;
 }
 
 function audienceCountLabel(

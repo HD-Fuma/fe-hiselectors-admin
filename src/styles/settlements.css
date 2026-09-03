@@ -27,6 +27,14 @@
   font-size: var(--hsas-font-12);
 }
 
+.fuma-settlement-status-filter .fuma-content-collection-run-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--hsas-space-8);
+  margin-block: var(--hsas-space-4);
+}
+
 .fuma-settlement-dashboard {
   overflow: hidden;
   border: 1px solid var(--hsas-color-line-300);

@@ -831,14 +831,41 @@ export function ContentInspectionListPage() {
   );
 }
 
-function youtubeEmbedUrl(videoId?: string) {
-  return videoId && /^[A-Za-z0-9_-]{11}$/.test(videoId)
-    ? `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1`
-    : null;
+function youtubeEmbedUrl(videoId?: string, startSeconds?: number) {
+  if (!videoId || !/^[A-Za-z0-9_-]{11}$/.test(videoId)) return null;
+  const params = new URLSearchParams({
+    modestbranding: "1",
+    rel: "0",
+  });
+  if (startSeconds != null && startSeconds >= 0) {
+    params.set("start", String(Math.floor(startSeconds)));
+    params.set("autoplay", "1");
+  }
+  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
+}
+
+function secondsFromClock(value: string) {
+  const parts = value.split(":").map(Number);
+  if (parts.length !== 2 || parts.some((part) => Number.isNaN(part))) return 0;
+  return parts[0] * 60 + parts[1];
+}
+
+function mediaTargetStartSeconds(target: ContentAnnotationTarget) {
+  if (target.kind !== "media" || !target.timeRange) return null;
+  if (target.timeRange.startMs != null) {
+    return Math.floor(Math.max(0, target.timeRange.startMs) / 1000);
+  }
+  return secondsFromClock(target.timeRange.start);
 }
 
 interface IndexedContentAnnotation extends ContentAnnotation {
   ordinal: number;
+}
+
+function isTimestampOnlyMediaAnnotation(annotation: IndexedContentAnnotation) {
+  return annotation.target.kind === "media"
+    && annotation.target.timeRange != null
+    && annotation.target.box == null;
 }
 
 function annotationQuote(target: ContentAnnotationTarget) {
@@ -1321,6 +1348,8 @@ function MinimalVersionCard({
   const [mediaNaturalSizes, setMediaNaturalSizes] = useState<
     Record<number, { height: number; width: number }>
   >({});
+  const [playbackStartSeconds, setPlaybackStartSeconds] = useState<number | null>(null);
+  const [playbackSeekNonce, setPlaybackSeekNonce] = useState(0);
   const mediaItems = Array.from({ length: snapshot.mediaCount }, (_, index) => ({
     kind: snapshot.mediaKinds[index] ?? "이미지",
     url: snapshot.mediaUrls[index] ?? snapshot.mediaUrls[0],
@@ -1338,13 +1367,18 @@ function MinimalVersionCard({
       ? "YouTube Shorts 콘텐츠 카드"
       : "YouTube 콘텐츠 카드";
   const useCarouselTrack = isInstagram && mediaItems.length > 1;
-  const embedUrl = isInstagram || (isYouTubeShorts && activeMedia?.url)
+  const embedUrl = isInstagram
     ? null
-    : youtubeEmbedUrl(snapshot.youtubeVideoId);
+    : isYouTubeShorts && activeMedia?.url && playbackStartSeconds == null
+      ? null
+      : youtubeEmbedUrl(snapshot.youtubeVideoId, playbackStartSeconds ?? undefined);
   const isVerticalVideo = isInstagramReels || isYouTubeShorts;
   const activeMediaAnnotations = annotations.filter((annotation) => (
     annotation.target.kind === "media" && annotation.target.mediaIndex === visibleIndex
   ));
+  const overlayMediaAnnotations = activeMediaAnnotations.filter(
+    (annotation) => !isTimestampOnlyMediaAnnotation(annotation),
+  );
   const headerAnnotations = annotations.filter((annotation) => (
     annotation.target.kind === "media" && annotation.target.mediaIndex === undefined
   ));
@@ -1433,6 +1467,11 @@ function MinimalVersionCard({
         && visibleIndex !== focusedAnnotation.target.mediaIndex) {
         setActiveMediaIndex(focusedAnnotation.target.mediaIndex);
         return;
+      }
+      const startSeconds = mediaTargetStartSeconds(focusedAnnotation.target);
+      if (startSeconds != null) {
+        setPlaybackStartSeconds(startSeconds);
+        setPlaybackSeekNonce((current) => current + 1);
       }
       const target = cardRef.current?.querySelector<HTMLElement>(
         `[data-description-transcript] [data-violation-anchor="${focusedViolation.ordinal}"]`,
@@ -1570,6 +1609,7 @@ function MinimalVersionCard({
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
                 className="fuma-platform-inspection-frame__youtube-embed"
+                key={`${snapshot.youtubeVideoId}-${playbackSeekNonce}`}
                 loading="lazy"
                 referrerPolicy="strict-origin-when-cross-origin"
                 src={embedUrl}
@@ -1598,9 +1638,9 @@ function MinimalVersionCard({
             ) : (
               <Images aria-hidden="true" size={26} />
             )}
-            {activeMediaAnnotations.length > 0 ? (
+            {overlayMediaAnnotations.length > 0 ? (
               <div aria-label="미디어 위반 위치" className="fuma-platform-inspection-frame__violation-layer">
-                {activeMediaAnnotations.map((annotation) => {
+                {overlayMediaAnnotations.map((annotation) => {
                   if (annotation.target.kind !== "media") return null;
                   const { box, timeRange } = annotation.target;
                   const naturalSize = mediaNaturalSizes[visibleIndex];
@@ -2976,9 +3016,7 @@ export function ContentInspectionDetailPage() {
     const resetFrame = window.requestAnimationFrame(() => {
       setSelectedStudioVersionId(null);
       setStudioViolationJudgments(Array(studioViolationSignals.length).fill(null));
-      setFocusedStudioViolationIndex(
-        !studioReviewReadOnly && studioViolationSignals.length > 0 ? 0 : -1,
-      );
+      setFocusedStudioViolationIndex(-1);
       setStudioViolationLocation(null);
       setStudioDecision(null);
     });
@@ -2988,7 +3026,6 @@ export function ContentInspectionDetailPage() {
     content?.contentVersionId,
     contentId,
     routeState?.inspectionSession,
-    studioReviewReadOnly,
     studioViolationSignals.length,
   ]);
 

@@ -162,12 +162,14 @@ test("shows the cohort dashboard without a ranked sales list", async () => {
   expect(searches).toHaveLength(1);
   expect(searches[0].parentElement).toHaveAttribute("data-visual-contract", "list-search-panel");
   expect(searches[0].closest(".fuma-performance-top-filter")).not.toBeNull();
-  expect(within(searches[0]).getByRole("combobox", { name: "기수" })).toBeInTheDocument();
-  expect(await within(searches[0]).findByLabelText("집계 시작일")).toHaveValue("2026-08-01");
+  await waitFor(() => {
+    expect(within(searches[0]).getByRole("combobox", { name: "기수" })).toHaveValue("5");
+  });
+  expect(within(searches[0]).getByLabelText("집계 시작일")).toHaveValue("2026-08-01");
   expect(within(searches[0]).getByLabelText("집계 종료일")).toHaveValue(localDateKey());
   expect(within(searches[0]).queryByLabelText("셀렉터스명")).not.toBeInTheDocument();
 
-  const performanceUrls = await waitFor(() => {
+  await waitFor(() => {
     const urls = vi.mocked(fetch).mock.calls
       .map(([input]) => new URL(String(input), "http://localhost"))
       .filter((url) => (
@@ -175,10 +177,10 @@ test("shows the cohort dashboard without a ranked sales list", async () => {
         || url.pathname === "/api/admin/selector-performance/trend"
       ));
     expect(urls).toHaveLength(2);
-    return urls;
+    expect(urls.every((url) => url.searchParams.get("generationId") === "5")).toBe(true);
+    expect(urls.every((url) => url.searchParams.get("startDate") === "2026-08-01")).toBe(true);
+    expect(urls.every((url) => url.searchParams.get("endDate") === localDateKey())).toBe(true);
   });
-  expect(performanceUrls.every((url) => url.searchParams.get("startDate") === "2026-08-01")).toBe(true);
-  expect(performanceUrls.every((url) => url.searchParams.get("endDate") === localDateKey())).toBe(true);
 });
 
 test("opens selector detail from the top 5 table without navigating away", async () => {

@@ -569,7 +569,7 @@ test("renders the finalized dark panel from the base surface classes", () => {
   expect(panel.className).not.toMatch(/--(?:dark|light)/);
 });
 
-test("groups the panel title and collapse control in a native header", () => {
+test("groups the panel title and header controls in a native header", () => {
   render(<TaskRunFloatingPanel runs={[runningCreatorSync]} />);
 
   const panel = screen.getByRole("region", { name: "작업 진행상황" });
@@ -582,6 +582,44 @@ test("groups the panel title and collapse control in a native header", () => {
   expect(header).toContainElement(
     within(panel).getByRole("button", { name: "작업 패널 접기" }),
   );
+  expect(header).toContainElement(
+    within(panel).getByRole("button", { name: "작업 진행상황 닫기" }),
+  );
+});
+
+test("closes the whole panel from the header close control", () => {
+  render(<TaskRunFloatingPanel runs={[
+    runningCreatorSync,
+    { ...runningContentSync, runId: "task-run-content-sync" },
+  ]} />);
+
+  const panel = screen.getByRole("region", { name: "작업 진행상황" });
+  const collapse = within(panel).getByRole("button", { name: "작업 패널 접기" });
+  const close = within(panel).getByRole("button", { name: "작업 진행상황 닫기" });
+  expect(collapse.compareDocumentPosition(close) & Node.DOCUMENT_POSITION_FOLLOWING)
+    .toBeTruthy();
+
+  fireEvent.click(close);
+
+  expect(screen.queryByRole("region", { name: "작업 진행상황" })).not.toBeInTheDocument();
+  expect(screen.getByTestId("task-run-announcement")).toHaveTextContent(
+    "작업 진행상황을 닫았습니다",
+  );
+});
+
+test("shows the panel again when a new task run arrives after closing", () => {
+  const { rerender } = render(<TaskRunFloatingPanel runs={[runningCreatorSync]} />);
+
+  fireEvent.click(screen.getByRole("button", { name: "작업 진행상황 닫기" }));
+  expect(screen.queryByRole("region", { name: "작업 진행상황" })).not.toBeInTheDocument();
+
+  rerender(<TaskRunFloatingPanel runs={[
+    runningCreatorSync,
+    { ...runningContentSync, runId: "task-run-content-sync" },
+  ]} />);
+  const panel = screen.getByRole("region", { name: "작업 진행상황" });
+  expect(within(panel).queryByText("프로필 정보를 동기화하는 중")).not.toBeInTheDocument();
+  expect(within(panel).getByText("콘텐츠 동기화")).toBeInTheDocument();
 });
 
 test("uses the contracted dark track, surface, and article boundaries", () => {
@@ -820,7 +858,7 @@ describe("terminal dismissal interactions", () => {
     }
   });
 
-  test("renders accessible terminal close controls but no dismissal affordance for active runs", () => {
+  test("renders accessible terminal close controls while swipe dismissal stays available on active runs", () => {
     render(
       <TaskRunFloatingPanel
         runs={[runningCreatorSync, queuedRun, firstRun, secondRun]}
@@ -840,8 +878,8 @@ describe("terminal dismissal interactions", () => {
       screen.getByRole("button", { name: "콘텐츠 동기화 기록 닫기" }),
     ).toBeInTheDocument();
     expect(trackFor(firstRun.runId)).toHaveAttribute("data-dismissible", "true");
-    expect(trackFor(runningCreatorSync.runId)).not.toHaveAttribute("data-dismissible");
-    expect(trackFor(queuedRun.runId)).not.toHaveAttribute("data-dismissible");
+    expect(trackFor(runningCreatorSync.runId)).toHaveAttribute("data-dismissible", "true");
+    expect(trackFor(queuedRun.runId)).toHaveAttribute("data-dismissible", "true");
   });
 
   test.each([110, -110])(
@@ -1100,22 +1138,22 @@ describe("terminal dismissal interactions", () => {
     expect(secondTrack).toHaveAttribute("data-dismiss-phase", "exiting");
   });
 
-  test("does not expose close behavior or move queued and running tracks", () => {
+  test("exposes swipe dismissal on queued and running tracks", () => {
     render(<TaskRunFloatingPanel runs={[queuedRun, runningCreatorSync]} />);
     const queuedTrack = trackFor(queuedRun.runId);
     const runningTrack = trackFor(runningCreatorSync.runId);
 
+    expect(queuedTrack).toHaveAttribute("data-dismissible", "true");
+    expect(runningTrack).toHaveAttribute("data-dismissible", "true");
+
     dispatchPointer(queuedTrack, "pointerdown", { pointerId: 1 });
     dispatchPointer(queuedTrack, "pointermove", { clientX: 120, pointerId: 1 });
     dispatchPointer(queuedTrack, "pointerup", { clientX: 120, pointerId: 1 });
-    dispatchWheel(runningTrack, { deltaX: 120 });
-    advance(600);
+    advance(420);
 
-    expect(queuedTrack).not.toHaveAttribute("data-dismissible");
-    expect(runningTrack).not.toHaveAttribute("data-dismissible");
-    expect(queuedTrack.style.getPropertyValue("--fuma-task-dismiss-x")).toBe("0px");
-    expect(runningTrack.style.getPropertyValue("--fuma-task-dismiss-x")).toBe("0px");
-    expect(setPointerCapture).not.toHaveBeenCalled();
+    expect(document.body).not.toContainElement(queuedTrack);
+    expect(document.body).toContainElement(runningTrack);
+    expect(setPointerCapture).toHaveBeenCalled();
   });
 
   test("does not start a pointer drag from the hidden keyboard fallback", () => {
@@ -1311,7 +1349,7 @@ describe("terminal dismissal interactions", () => {
     expect(outsideButton).toHaveFocus();
   });
 
-  test("keeps dismissed terminal IDs hidden on rerender and remounts the same active ID cleanly", async () => {
+  test("keeps dismissed run IDs hidden on rerender even if the same ID becomes active", async () => {
     const { rerender } = render(<TaskRunFloatingPanel runs={[firstRun]} />);
 
     await user().click(
@@ -1329,13 +1367,10 @@ describe("terminal dismissal interactions", () => {
       />,
     );
 
-    const activeTrack = trackFor(firstRun.runId);
-    expect(screen.getByText("다시 실행 중")).toBeInTheDocument();
-    expect(activeTrack).not.toHaveAttribute("aria-hidden");
-    expect(activeTrack).not.toHaveAttribute("inert");
-    expect(activeTrack).not.toHaveAttribute("data-dismissible");
+    expect(screen.queryByRole("region", { name: "작업 진행상황" })).not.toBeInTheDocument();
+    expect(screen.queryByText("다시 실행 중")).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "카카오 메시지 발송 기록 닫기" }),
+      document.querySelector(`[data-run-id="${firstRun.runId}"]`),
     ).not.toBeInTheDocument();
   });
 

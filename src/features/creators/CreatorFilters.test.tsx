@@ -292,6 +292,36 @@ describe("creator filters", () => {
     expect(String(creatorRequests(fetchMock)[1][0])).toContain("page=1");
   });
 
+  test("opens YouTube handle accounts with @ profile URLs", async () => {
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      if (String(input).includes("/api/admin/creators?")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          success: true,
+          data: {
+            content: [{
+              ...youtubeCreator,
+              accountId: "@14FMBC",
+              creatorName: "뜬뜬",
+            }],
+            totalElements: 1,
+            totalPages: 1,
+            number: 0,
+            size: 20,
+          },
+        })));
+      }
+      if (String(input).endsWith("/api/admin/categories")) {
+        return Promise.resolve(new Response(JSON.stringify({ success: true, data: [] })));
+      }
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: [] })));
+    }));
+    renderCreatorPage();
+
+    const table = await screen.findByRole("region", { name: "크리에이터 목록" });
+    expect(await within(table).findByRole("link", { name: "뜬뜬 SNS 계정 열기 (새 창)" }))
+      .toHaveAttribute("href", "https://www.youtube.com/@14FMBC");
+  });
+
   test("opens a creator profile with public metrics and connected channels", async () => {
     const user = userEvent.setup();
     const fetchMock = mockCreatorApi();

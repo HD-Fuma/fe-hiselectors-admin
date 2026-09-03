@@ -44,6 +44,8 @@ export type ContentAnnotationTarget =
       timeRange?: {
         start: string;
         end: string;
+        startMs?: number;
+        endMs?: number;
       };
     };
 

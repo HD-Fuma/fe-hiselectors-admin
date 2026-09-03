@@ -961,7 +961,7 @@ export function CampaignDetailPage({
 
             <section aria-labelledby="campaign-participants-title" className="fuma-campaign-detail-list-section">
               <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar">
-                <strong id="campaign-participants-title">참여 셀렉터스</strong>
+                <strong id="campaign-participants-title">참여중인 셀렉터스</strong>
                 <div className="fuma-settlement-result-meta">
                   <span>총 {participants?.totalElements ?? 0}건</span>
                 </div>

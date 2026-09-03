@@ -32,11 +32,12 @@ const DEFAULT_BODY = `안녕하세요, \${recipientName}님.
 function matchColumns(
   selected: ReadonlySet<number>,
   toggle: (selectorId: number) => void,
+  selectAllHeader: DenseTableColumn<SelectorMatch>["header"],
 ): DenseTableColumn<SelectorMatch>[] {
   return [
     {
       id: "select",
-      header: "선택",
+      header: selectAllHeader,
       width: 56,
       align: "center",
       render: (match) => (
@@ -182,10 +183,23 @@ export function SelectorMatchingSection({
   const visibleMatches = error ? [] : matches;
   const totalPages = Math.max(1, Math.ceil(visibleMatches.length / MATCHING_PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const allSelected = visibleMatches.length > 0 && selected.size === visibleMatches.length;
+  const pageRows = visibleMatches.slice(
+    (currentPage - 1) * MATCHING_PAGE_SIZE,
+    currentPage * MATCHING_PAGE_SIZE,
+  );
+  const selectedOnPage = pageRows.filter((match) => selected.has(match.selectorId)).length;
+  const allPageSelected = pageRows.length > 0 && selectedOnPage === pageRows.length;
 
   const toggleAll = () => {
-    setSelected(allSelected ? new Set() : new Set(visibleMatches.map((match) => match.selectorId)));
+    setSelected((current) => {
+      const next = new Set(current);
+      const shouldClearPage = pageRows.every((match) => next.has(match.selectorId));
+      pageRows.forEach((match) => {
+        if (shouldClearPage) next.delete(match.selectorId);
+        else next.add(match.selectorId);
+      });
+      return next;
+    });
   };
 
   const send = async () => {
@@ -215,7 +229,7 @@ export function SelectorMatchingSection({
   return (
     <section aria-labelledby="campaign-matching-title" className="fuma-campaign-detail-list-section">
       <div className="fuma-result-toolbar fuma-simple-result-toolbar fuma-campaign-detail-list-toolbar">
-        <strong id="campaign-matching-title">연관 셀렉터스</strong>
+        <strong id="campaign-matching-title">추천 셀렉터스</strong>
         <div className="fuma-settlement-result-meta">
           <span>총 {visibleMatches.length}명</span>
         </div>
@@ -227,9 +241,6 @@ export function SelectorMatchingSection({
           options={targetOptions}
           value={activeTarget}
         />
-        <Button disabled={visibleMatches.length === 0} onClick={toggleAll}>
-          {allSelected ? "선택 해제" : "전체 선택"}
-        </Button>
         <Button
           className="fuma-selector-matching__send"
           disabled={selected.size === 0}
@@ -245,10 +256,25 @@ export function SelectorMatchingSection({
       {error ? <p role="alert">{error}</p> : null}
       <div className="fuma-settlement-table fuma-selector-matching-table">
         <DenseTable
-          columns={matchColumns(selected, toggle)}
+          columns={matchColumns(
+            selected,
+            toggle,
+            (
+              <input
+                aria-label="현재 페이지 전체 선택"
+                checked={allPageSelected}
+                disabled={pageRows.length === 0}
+                onChange={toggleAll}
+                ref={(input) => {
+                  if (input) input.indeterminate = selectedOnPage > 0 && !allPageSelected;
+                }}
+                type="checkbox"
+              />
+            ),
+          )}
           emptyMessage={loading ? "추천 셀렉터스를 불러오는 중입니다." : "추천할 셀렉터스가 없습니다."}
           rowKey={(match) => match.selectorId}
-          rows={visibleMatches.slice((currentPage - 1) * MATCHING_PAGE_SIZE, currentPage * MATCHING_PAGE_SIZE)}
+          rows={pageRows}
         />
       </div>
       {totalPages > 1 ? (

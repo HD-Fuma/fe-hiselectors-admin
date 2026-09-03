@@ -121,6 +121,7 @@ describe("TaskRun floating panel surfaces", () => {
     const titleRule = ruleFor(".fuma-task-run-panel__title");
     const countRule = ruleFor(".fuma-task-run-panel__count");
     const collapseRule = ruleFor(".fuma-task-run-panel__collapse");
+    const closeRule = ruleFor(".fuma-task-run-panel__close");
 
     expect(panelRule).toMatch(
       /--fuma-task-glass-surface:\s*rgb\(255 255 255 \/ 58%\);/,
@@ -149,6 +150,9 @@ describe("TaskRun floating panel surfaces", () => {
       /background:\s*var\(--fuma-task-glass-control-surface\);/,
     );
     expect(collapseRule).toMatch(/color:\s*var\(--fuma-task-glass-ink\);/);
+    expect(closeRule).toMatch(
+      /border:\s*1px solid var\(--fuma-task-glass-control-border\);/,
+    );
   });
 
   test("uses the same translucent material on task cards", () => {
