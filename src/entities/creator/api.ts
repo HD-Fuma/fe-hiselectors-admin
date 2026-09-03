@@ -45,6 +45,11 @@ export interface CreatorPoolDemoResult {
   restoredCount: number;
 }
 
+export interface CreatorPoolCategoryDemoResult {
+  visibleCount: number;
+  discoveredCreatorIds: number[];
+}
+
 export interface CreatorDetail {
   id: number;
   snsCode: "INSTAGRAM" | "YOUTUBE";
@@ -185,6 +190,15 @@ export function prepareCreatorPoolDemo() {
   return request<CreatorPoolDemoResult>(
     "/api/admin/creators/demo",
     "크리에이터 풀 데모 준비에 실패했습니다.",
+    undefined,
+    { method: "POST" },
+  );
+}
+
+export function prepareCreatorPoolCategoryDemo(categoryId: number) {
+  return request<CreatorPoolCategoryDemoResult>(
+    `/api/admin/creators/demo/categories/${categoryId}`,
+    "카테고리 데모 발굴에 실패했습니다.",
     undefined,
     { method: "POST" },
   );
