@@ -203,11 +203,14 @@ function isAbsenceViolation(violation: ContentViolation) {
 function needsDisclosureTextStartPin(violation: ContentViolation) {
   return violation.violationType === "AD_DISCLOSURE_INVALID"
     && !violationLocations(violation).some((location) => location.mediaType === "TEXT");
+<<<<<<< HEAD
 =======
 function isAbsenceViolation(violation: ContentViolation) {
   return ABSENCE_VIOLATION_TYPES.has(violation.violationType)
     && (violation.evidence?.locations.length ?? 0) === 0;
 >>>>>>> 232c7c06dd1c7cd0670a298ff0c7cdfc22d9e5d6
+=======
+>>>>>>> e962488fb5c4156deaf1c5e02e3f103640db5ee2
 }
 
 function signalsFromViolations(
@@ -247,10 +250,14 @@ function annotationsFromViolations(
   const visualMedia = media.filter((item) => item.mediaType !== "TEXT");
   return violations.flatMap((violation) => {
 <<<<<<< HEAD
+<<<<<<< HEAD
     const locations = violationLocations(violation);
 =======
     const locations = violation.evidence?.locations ?? [];
 >>>>>>> 232c7c06dd1c7cd0670a298ff0c7cdfc22d9e5d6
+=======
+    const locations = violationLocations(violation);
+>>>>>>> e962488fb5c4156deaf1c5e02e3f103640db5ee2
     if (locations.length === 0 && isAbsenceViolation(violation)) {
       const textMedia = media.find((item) => item.mediaType === "TEXT");
       const visualIndex = textMedia

@@ -13,6 +13,7 @@ export interface CreatorSummary {
   lastContentAt: string | null;
   category: string | null;
   recent90DayContentCount: number | null;
+  firstDiscoveredAt: string | null;
 }
 
 export interface CreatorSearchRequest {

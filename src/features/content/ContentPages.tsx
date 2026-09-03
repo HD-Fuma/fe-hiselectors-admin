@@ -1299,6 +1299,7 @@ function scrollWithinSurface(
 }
 
 function MinimalVersionCard({
+  channelName,
   content,
   focusedViolation,
   inert = false,
@@ -1308,6 +1309,7 @@ function MinimalVersionCard({
   showTextBubbles = true,
   snapshot,
 }: {
+  channelName?: string | null;
   content: ContentInspectionFixture;
   focusedViolation?: { ordinal: number; requestId: number } | null;
   inert?: boolean;
@@ -1487,9 +1489,10 @@ function MinimalVersionCard({
     return () => window.cancelAnimationFrame(animationFrame);
   }, [focusedAnnotation, focusedViolation, focusedViolationRequestKey, textDataExpanded, visibleIndex]);
 
-  const canToggleDescription = descriptionOverflowing || textDataExpanded;
+  const canOpenTextData = descriptionOverflowing || sttExtracts.length > 0;
+  const canToggleDescription = canOpenTextData || textDataExpanded;
   const openDescriptionPanel = (event: MouseEvent<HTMLParagraphElement>) => {
-    if (textDataExpanded || !descriptionOverflowing) return;
+    if (textDataExpanded || !canOpenTextData) return;
     if (
       event.target instanceof Element
       && event.target.closest("mark, button, a, .fuma-platform-inspection-frame__description-toggle")
@@ -1501,7 +1504,7 @@ function MinimalVersionCard({
   };
   const descriptionTextProps = {
     className: "fuma-platform-inspection-frame__description-text",
-    "data-expandable": descriptionOverflowing && !textDataExpanded,
+    "data-expandable": canOpenTextData && !textDataExpanded,
     "data-studio-tour": inert ? undefined : "description",
     onClick: openDescriptionPanel,
     ref: descriptionRef,
@@ -1813,9 +1816,9 @@ function MinimalVersionCard({
           </>
         ) : isYouTubeShorts ? (
           <YouTubeShortsCard
+            accountName={channelName ?? handle}
             avatarUrl={avatarUrl}
             creatorName={content.author}
-            handle={handle}
           >
             <p {...descriptionTextProps}>
               <ViolationHighlightedText
@@ -3404,29 +3407,27 @@ export function ContentInspectionDetailPage() {
             <strong>콘텐츠 검수</strong>
           </div>
           <div className="fuma-content-inspection-studio__header-tools">
-            {!studioSingleInspection ? (
-              <div className="fuma-content-inspection-studio__session-help-control">
-                <button
-                  aria-label="검수 도움말 보기"
-                  className="fuma-content-inspection-studio__session-help-trigger"
-                  onClick={() => {
-                    setStudioHelpTooltipVisible(false);
-                    setStudioTourOpen(true);
-                  }}
-                  type="button"
-                >
-                  <CircleHelp aria-hidden="true" size={20} />
-                </button>
-                <Tooltip
-                  className="fuma-content-inspection-studio__session-help-tooltip"
-                  placement="bottom"
-                  role="status"
-                  visible={studioHelpTooltipVisible}
-                >
-                  도움말을 확인할 수 있습니다.
-                </Tooltip>
-              </div>
-            ) : null}
+            <div className="fuma-content-inspection-studio__session-help-control">
+              <button
+                aria-label="검수 도움말 보기"
+                className="fuma-content-inspection-studio__session-help-trigger"
+                onClick={() => {
+                  setStudioHelpTooltipVisible(false);
+                  setStudioTourOpen(true);
+                }}
+                type="button"
+              >
+                <CircleHelp aria-hidden="true" size={20} />
+              </button>
+              <Tooltip
+                className="fuma-content-inspection-studio__session-help-tooltip"
+                placement="bottom"
+                role="status"
+                visible={studioHelpTooltipVisible}
+              >
+                도움말을 확인할 수 있습니다.
+              </Tooltip>
+            </div>
             {!studioSingleInspection ? (
               <nav
                 aria-label="검수 콘텐츠 이동"
@@ -3808,6 +3809,7 @@ export function ContentInspectionDetailPage() {
                           />
                         )}
                         <MinimalVersionCard
+                          channelName={snsAccount?.displayName}
                           content={displayedStudioHistoricalContent}
                           focusedViolation={displayedStudioHistoricalSelected
                             ? studioSelectedCardFocusedViolation
@@ -3851,6 +3853,7 @@ export function ContentInspectionDetailPage() {
                   />
                 )}
                 <MinimalVersionCard
+                  channelName={snsAccount?.displayName}
                   content={content}
                   focusedViolation={studioSelectedIsLatest
                     ? studioSelectedCardFocusedViolation

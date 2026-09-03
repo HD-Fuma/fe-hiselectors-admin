@@ -662,8 +662,11 @@ test("maps resolved STT playback range and normalized OCR bbox from detail locat
   });
 });
 
+<<<<<<< HEAD
 =======
 >>>>>>> 232c7c06dd1c7cd0670a298ff0c7cdfc22d9e5d6
+=======
+>>>>>>> e962488fb5c4156deaf1c5e02e3f103640db5ee2
 test("maps approved and rejected decisions to separate inspection statuses", () => {
   const adaptContentInspection = (
     contentEntity as unknown as { adaptContentInspection?: AdaptContentInspection }

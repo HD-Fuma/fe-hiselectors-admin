@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { CreatorListPage, ProposalHistoryPage } from "./CreatorPages";
 
-function renderCreatorPage(path = "/creators") {
+function renderCreatorPage(path = "/creators?view=table") {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <CreatorListPage />
@@ -166,6 +166,66 @@ describe("creator filters", () => {
       String(input).endsWith("/api/admin/proposals") && init?.method === "POST"
     ));
   }
+
+  test("switches between bubble and list views while keeping selections", async () => {
+    const user = userEvent.setup();
+    const fetchMock = mockCreatorApi();
+    vi.stubGlobal("fetch", fetchMock);
+    renderCreatorPage("/creators");
+
+    expect(await screen.findByRole("img", { name: "크리에이터 발견 풀" })).toBeInTheDocument();
+    const dock = screen.getByRole("complementary", { name: "현재 보이는 크리에이터" });
+    const viewToggle = screen.getByRole("switch", { name: "보기 방식" });
+    const seoDockItem = await within(dock).findByRole("button", { name: /김서연/ });
+    expect(viewToggle).toHaveAttribute("aria-checked", "false");
+    expect(new URL(String(creatorRequests(fetchMock)[0][0])).searchParams.get("size")).toBe("200");
+    expect(seoDockItem).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(seoDockItem);
+    expect(seoDockItem).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "선택 1명 제안 발송" })).toBeEnabled();
+
+    await user.click(viewToggle);
+    const table = await screen.findByRole("region", { name: "크리에이터 목록" });
+    const seoCheckbox = await within(table).findByRole("checkbox", { name: "김서연 선택" });
+    await waitFor(() => expect(creatorRequests(fetchMock)).toHaveLength(2));
+    expect(viewToggle).toHaveAttribute("aria-checked", "true");
+    expect(new URL(String(creatorRequests(fetchMock)[1][0])).searchParams.get("size")).toBe("20");
+    expect(seoCheckbox).toBeChecked();
+
+    await user.click(viewToggle);
+    expect(await screen.findByRole("img", { name: "크리에이터 발견 풀" })).toBeInTheDocument();
+    expect(await within(screen.getByRole("complementary", { name: "현재 보이는 크리에이터" }))
+      .findByRole("button", { name: /김서연/ })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("clears stale bubbles while filtered results are loading", async () => {
+    const user = userEvent.setup();
+    const baseFetch = mockCreatorApi();
+    let resolveFiltered!: (response: Response) => void;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/admin/creators?") && new URL(url).searchParams.get("keyword") === "new") {
+        return new Promise<Response>((resolve) => { resolveFiltered = resolve; });
+      }
+      return baseFetch(input, init);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderCreatorPage("/creators");
+
+    expect(await screen.findByRole("img", { name: "크리에이터 발견 풀" })).toBeInTheDocument();
+    const dock = screen.getByRole("complementary", { name: "현재 보이는 크리에이터" });
+    expect(await within(dock).findByRole("button", { name: /김서연/ })).toBeInTheDocument();
+    await user.type(screen.getByRole("textbox", { name: "키워드" }), "new");
+    await user.click(screen.getByRole("button", { name: "조회" }));
+
+    expect(within(dock).queryByRole("button", { name: /김서연/ })).not.toBeInTheDocument();
+    resolveFiltered(new Response(JSON.stringify({
+      success: true,
+      data: { content: [], totalElements: 0, totalPages: 0, number: 0, size: 200 },
+    })));
+    expect(await screen.findByText("검색 결과가 없습니다.")).toBeInTheDocument();
+  });
 
   test("renders the API result as a read-only table and requests server pagination", async () => {
     const user = userEvent.setup();

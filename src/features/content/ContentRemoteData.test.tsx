@@ -152,6 +152,25 @@ function mockContentApis(
       const contentId = Number(pathname.split("/").at(-1));
       return Promise.resolve(typeof detail === "function" ? detail(contentId) : detail);
     }
+    if (/\/api\/admin\/selectors\/\d+$/.test(pathname)) {
+      return Promise.resolve(new Response(JSON.stringify({
+        code: "OK",
+        data: {
+          nickname: "API 셀렉터",
+          snsAccount: {
+            accountId: "@api-account",
+            displayName: "API 유튜브 채널",
+            followerCount: 1_000,
+            id: 90,
+            lastCollectedAt: "2026-08-18T02:00:00.847815Z",
+            profileImageUrl: "https://cdn.example.com/api-profile.jpg",
+            snsCode: "YOUTUBE",
+          },
+        },
+        message: null,
+        success: true,
+      }), { headers: { "Content-Type": "application/json" }, status: 200 }));
+    }
     return Promise.resolve(pageResponse(contents));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -241,6 +260,69 @@ test("shows an Instagram video from its direct media URL", async () => {
   );
   expect(video.tagName).toBe("VIDEO");
   expect(video).toHaveAttribute("src", "https://cdn.example.com/reel-901.mp4");
+});
+
+test("opens YouTube Shorts text data with the original text and STT", async () => {
+  const selectedVersion = {
+    contentReport: null,
+    contentVersionId: 9010,
+    creationReason: "SOURCE_CHANGE",
+    createdAt: "2026-08-18T02:05:00.847815Z",
+    inspectedAt: null,
+    inspectionStatus: "PENDING",
+    media: [
+      {
+        contentMediaId: 90100,
+        mediaType: "TEXT",
+        mediaUrl: null,
+        sequenceNo: 0,
+        snsMediaId: null,
+        text: "짧은 쇼츠 원문",
+      },
+      {
+        contentMediaId: 90999,
+        mediaType: "VIDEO",
+        mediaUrl: null,
+        sequenceNo: 1,
+        snsMediaId: "youtube-901",
+        text: "쇼츠 영상 STT",
+      },
+    ],
+    violations: [],
+    versionNo: 2,
+  };
+  mockContentApis(
+    [contentItem({ contentType: "SHORTS", snsCode: "YOUTUBE" })],
+    detailResponse({ contentType: "SHORTS", selectedVersion, snsCode: "YOUTUBE" }),
+  );
+
+  renderRoute("/content/inspections/901");
+
+  const card = await screen.findByRole("article", {
+    name: "콘텐츠 원문 YouTube Shorts 콘텐츠 카드",
+  });
+  fireEvent.click(within(card).getByRole("button", { name: "더보기" }));
+
+  const dialog = within(card).getByRole("dialog", { name: "텍스트 데이터" });
+  expect(within(dialog).getByText("짧은 쇼츠 원문")).toBeInTheDocument();
+  expect(within(dialog).getByText("STT 추출물")).toBeInTheDocument();
+  expect(within(dialog).getByText("쇼츠 영상 STT")).toBeInTheDocument();
+});
+
+test("shows the YouTube channel name in single inspection", async () => {
+  mockContentApis(
+    [contentItem({ contentType: "SHORTS", snsCode: "YOUTUBE" })],
+    detailResponse({ contentType: "SHORTS", snsCode: "YOUTUBE" }),
+  );
+  renderRoute("/content/inspections");
+
+  fireEvent.click(await screen.findByRole("button", { name: /API 수정 콘텐츠 검수 시작/ }));
+
+  const card = await screen.findByRole("article", {
+    name: "최신 콘텐츠 YouTube Shorts 콘텐츠 카드",
+  });
+  expect(await within(card).findByText("API 유튜브 채널")).toBeInTheDocument();
+  expect(within(card).queryByText("@api-account")).not.toBeInTheDocument();
 });
 
 test("loads a direct detail route and keeps pending analysis and decisions honest", async () => {
@@ -333,7 +415,12 @@ test("shows completion dialog after confirming the final content", async () => {
     singleInspection: true,
   }));
   expect(screen.queryByRole("navigation", { name: "검수 콘텐츠 이동" })).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "검수 도움말 보기" })).not.toBeInTheDocument();
+  fireEvent.click(await screen.findByRole("button", { name: "검수 도움말 보기" }));
+  const help = screen.getByRole("dialog", { name: "검수 도움말 가이드" });
+  expect(help).toHaveTextContent("1 / 4");
+  expect(help).toHaveTextContent("텍스트 영역을 누르면 원문과 STT 추출물을 확인할 수 있습니다.");
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(screen.queryByRole("dialog", { name: "검수 도움말 가이드" })).not.toBeInTheDocument();
   fireEvent.wheel(window, { deltaY: 20 });
   expect(router.state.location.pathname).toBe("/content/inspections/901");
   const approve = await screen.findByRole("button", { name: /최종 승인/ }, { timeout: 3_000 });
