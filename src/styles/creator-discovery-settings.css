@@ -359,7 +359,7 @@
   display: grid;
   min-width: 0;
   grid-column: 1 / -1;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--hsas-space-7);
 }
