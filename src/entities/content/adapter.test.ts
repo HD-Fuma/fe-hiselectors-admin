@@ -457,6 +457,7 @@ test("synthesizes a text-start pin when absence violations have no locations", (
   ]);
 });
 
+<<<<<<< HEAD
 test("keeps a confirmed ad-disclosure pin at the body start when evidence only points to video", () => {
   const adaptContentInspectionDetail = (
     contentEntity as unknown as { adaptContentInspectionDetail?: AdaptContentInspectionDetail }
@@ -661,6 +662,8 @@ test("maps resolved STT playback range and normalized OCR bbox from detail locat
   });
 });
 
+=======
+>>>>>>> 232c7c06dd1c7cd0670a298ff0c7cdfc22d9e5d6
 test("maps approved and rejected decisions to separate inspection statuses", () => {
   const adaptContentInspection = (
     contentEntity as unknown as { adaptContentInspection?: AdaptContentInspection }
