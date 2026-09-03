@@ -316,15 +316,6 @@ button.fuma-content-inspection-studio__violation-bubble {
   cursor: pointer;
 }
 
-.fuma-content-inspection-studio__violation-bubble[data-violation-source="stt"] {
-  display: none;
-}
-
-.fuma-content-inspection-studio__version:has(> .fuma-minimal-version-card[data-stt-expanded="true"])
-  .fuma-content-inspection-studio__violation-bubble[data-violation-source="stt"] {
-  display: grid;
-}
-
 .fuma-content-inspection-studio__violation-bubble-number {
   display: inline-grid;
   width: 24px;

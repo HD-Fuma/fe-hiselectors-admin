@@ -191,6 +191,18 @@ type InspectionIssueSignal = ContentInspectionFixture["report"]["signals"][numbe
   ordinal: number;
 };
 
+const CONTENT_VIOLATION_TYPE_ORDER = new Map(
+  CONTENT_VIOLATION_TYPE_OPTIONS.map(({ value }, index) => [value, index]),
+);
+
+function violationTypeOrder(
+  violationType: ContentInspectionFixture["report"]["signals"][number]["violationType"],
+) {
+  return violationType == null
+    ? Number.MAX_SAFE_INTEGER
+    : CONTENT_VIOLATION_TYPE_ORDER.get(violationType) ?? Number.MAX_SAFE_INTEGER;
+}
+
 type InspectionJudgment = "위반" | "정상";
 type StudioContentDirection = "previous" | "next";
 type StudioContentTransition =
@@ -201,6 +213,9 @@ type StudioContentTransition =
 function inspectionIssueSignals(content: ContentInspectionFixture): InspectionIssueSignal[] {
   return content.report.signals
     .filter((signal) => signal.tone !== "pass")
+    .sort((left, right) => (
+      violationTypeOrder(left.violationType) - violationTypeOrder(right.violationType)
+    ))
     .map((signal, index) => ({ ...signal, ordinal: index + 1 }));
 }
 
@@ -850,12 +865,6 @@ interface IndexedContentAnnotation extends ContentAnnotation {
   ordinal: number;
 }
 
-function isTimestampOnlyMediaAnnotation(annotation: IndexedContentAnnotation) {
-  return annotation.target.kind === "media"
-    && annotation.target.timeRange != null
-    && annotation.target.box == null;
-}
-
 function annotationQuote(target: ContentAnnotationTarget) {
   return target.kind === "text" || target.kind === "text-start" || target.kind === "media"
     ? target.quote
@@ -1112,8 +1121,8 @@ function StudioViolationBubbleCloud({
   placement: "left" | "right";
 }) {
   const cloudRef = useRef<HTMLElement>(null);
-  const bubbleAnnotations = annotations.filter(({ location, target }) => (
-    target.kind === "text" || target.kind === "text-start" || location.startsWith("STT")
+  const bubbleAnnotations = annotations.filter(({ target }) => (
+    target.kind === "text" || target.kind === "text-start" || target.kind === "media"
   ));
   const annotationKey = bubbleAnnotations
     .map(({ id, ordinal }) => `${id}:${ordinal}`)
@@ -1333,9 +1342,6 @@ function MinimalVersionCard({
     firstAnnotatedMediaIndex?.kind === "media" ? firstAnnotatedMediaIndex.mediaIndex ?? 0 : 0,
   );
   const [mediaAspectRatios, setMediaAspectRatios] = useState<Record<number, number>>({});
-  const [mediaNaturalSizes, setMediaNaturalSizes] = useState<
-    Record<number, { height: number; width: number }>
-  >({});
   const [playbackStartSeconds, setPlaybackStartSeconds] = useState<number | null>(null);
   const [playbackSeekNonce, setPlaybackSeekNonce] = useState(0);
   const mediaItems = Array.from({ length: snapshot.mediaCount }, (_, index) => ({
@@ -1361,12 +1367,6 @@ function MinimalVersionCard({
       ? null
       : youtubeEmbedUrl(snapshot.youtubeVideoId, playbackStartSeconds ?? undefined);
   const isVerticalVideo = isInstagramReels || isYouTubeShorts;
-  const activeMediaAnnotations = annotations.filter((annotation) => (
-    annotation.target.kind === "media" && annotation.target.mediaIndex === visibleIndex
-  ));
-  const overlayMediaAnnotations = activeMediaAnnotations.filter(
-    (annotation) => !isTimestampOnlyMediaAnnotation(annotation),
-  );
   const headerAnnotations = annotations.filter((annotation) => (
     annotation.target.kind === "media" && annotation.target.mediaIndex === undefined
   ));
@@ -1400,10 +1400,6 @@ function MinimalVersionCard({
     setMediaAspectRatios((current) => ({
       ...current,
       [index]: naturalWidth / naturalHeight,
-    }));
-    setMediaNaturalSizes((current) => ({
-      ...current,
-      [index]: { height: naturalHeight, width: naturalWidth },
     }));
   };
 
@@ -1626,66 +1622,6 @@ function MinimalVersionCard({
             ) : (
               <Images aria-hidden="true" size={26} />
             )}
-            {overlayMediaAnnotations.length > 0 ? (
-              <div aria-label="미디어 위반 위치" className="fuma-platform-inspection-frame__violation-layer">
-                {overlayMediaAnnotations.map((annotation) => {
-                  if (annotation.target.kind !== "media") return null;
-                  const { box, timeRange } = annotation.target;
-                  const naturalSize = mediaNaturalSizes[visibleIndex];
-                  const displayedBox = box && annotation.target.boxUnit === "pixel"
-                    ? naturalSize
-                      ? {
-                          height: box.height / naturalSize.height * 100,
-                          left: box.x / naturalSize.width * 100,
-                          top: box.y / naturalSize.height * 100,
-                          width: box.width / naturalSize.width * 100,
-                        }
-                      : null
-                    : box
-                      ? { height: box.height, left: box.x, top: box.y, width: box.width }
-                      : null;
-                  const boxProperties = {
-                    "aria-label": `위반 ${annotation.ordinal}: ${annotation.title}`,
-                    className: `fuma-platform-inspection-frame__violation-box${displayedBox ? "" : " is-marker-only"}`,
-                    "data-focused": focusedViolation?.ordinal === annotation.ordinal,
-                    "data-severity": annotation.severity,
-                    "data-violation-anchor": annotation.ordinal,
-                    id: focusedViolation != null ? `${content.id}-violation-${annotation.ordinal}` : undefined,
-                    style: displayedBox ? {
-                      height: `${displayedBox.height}%`,
-                      left: `${displayedBox.left}%`,
-                      top: `${displayedBox.top}%`,
-                      width: `${displayedBox.width}%`,
-                    } : undefined,
-                  };
-                  const boxLabel = (
-                    <>
-                      <span className="fuma-inspection-annotation-pin">{annotation.ordinal}</span>
-                      <small>
-                        {timeRange
-                          ? `${annotation.title} · ${timeRange.start}–${timeRange.end}`
-                          : annotation.title}
-                      </small>
-                    </>
-                  );
-                  return onSelectViolation ? (
-                    <button
-                      aria-current={focusedViolation?.ordinal === annotation.ordinal}
-                      {...boxProperties}
-                      key={annotation.id}
-                      onClick={() => onSelectViolation(annotation.ordinal)}
-                      type="button"
-                    >
-                      {boxLabel}
-                    </button>
-                  ) : (
-                    <span {...boxProperties} key={annotation.id}>
-                      {boxLabel}
-                    </span>
-                  );
-                })}
-              </div>
-            ) : null}
           </div>
           {activeMedia?.kind === "동영상" ? (
             <span aria-label="동영상" className="fuma-platform-inspection-frame__play">
