@@ -46,6 +46,7 @@ export interface SelectorSnsAccount {
   id: number;
   snsCode: SelectorSnsCode | null;
   accountId: string | null;
+  displayName: string | null;
   followerCount: number | null;
   profileImageUrl: string | null;
   lastCollectedAt: string | null;

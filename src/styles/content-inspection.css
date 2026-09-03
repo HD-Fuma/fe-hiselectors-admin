@@ -2708,6 +2708,20 @@ button.fuma-content-inspection-studio__violation-bubble {
   background: linear-gradient(transparent, rgb(0 0 0 / 74%));
 }
 
+.fuma-minimal-version-card[data-content-format="youtube-shorts"]
+  .fuma-platform-inspection-frame:has(.fuma-platform-inspection-frame__youtube-embed)
+  .fuma-platform-inspection-frame__shorts-overlay {
+  bottom: 96px;
+  background: none;
+  pointer-events: none;
+}
+
+.fuma-minimal-version-card[data-content-format="youtube-shorts"]
+  .fuma-platform-inspection-frame:has(.fuma-platform-inspection-frame__youtube-embed)
+  .fuma-platform-inspection-frame__shorts-overlay > * {
+  pointer-events: auto;
+}
+
 .fuma-platform-inspection-frame__reels-overlay {
   padding-right: var(--hsas-space-60);
   padding-bottom: var(--hsas-space-18);

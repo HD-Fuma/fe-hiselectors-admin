@@ -4,17 +4,17 @@ import { PlatformIcon } from "../../components/social/PlatformIcon";
 import { CreatorProfilePhoto } from "../../components/ui/CreatorProfilePhoto";
 
 interface YouTubeShortsCardProps {
+  accountName: string;
   avatarUrl: string;
   children: ReactNode;
   creatorName: string;
-  handle: string;
 }
 
 export function YouTubeShortsCard({
+  accountName,
   avatarUrl,
   children,
   creatorName,
-  handle,
 }: YouTubeShortsCardProps) {
   return (
     <>
@@ -57,7 +57,7 @@ export function YouTubeShortsCard({
               />
             )}
           </span>
-          <strong>{handle}</strong>
+          <strong>{accountName}</strong>
           <button type="button">구독</button>
         </div>
         {children}
