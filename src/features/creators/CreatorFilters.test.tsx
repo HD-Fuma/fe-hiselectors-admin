@@ -173,14 +173,16 @@ describe("creator filters", () => {
     vi.stubGlobal("fetch", fetchMock);
     renderCreatorPage("/creators");
 
-    const pool = await screen.findByRole("region", { name: "크리에이터 버블" });
+    expect(await screen.findByRole("img", { name: "크리에이터 발견 풀" })).toBeInTheDocument();
+    const dock = screen.getByRole("complementary", { name: "현재 보이는 크리에이터" });
     const viewToggle = screen.getByRole("switch", { name: "보기 방식" });
-    const seoBubble = await within(pool).findByRole("button", { name: "김서연 선택" });
+    const seoDockItem = await within(dock).findByRole("button", { name: /김서연/ });
     expect(viewToggle).toHaveAttribute("aria-checked", "false");
     expect(new URL(String(creatorRequests(fetchMock)[0][0])).searchParams.get("size")).toBe("200");
+    expect(seoDockItem).toHaveAttribute("aria-pressed", "false");
 
-    await user.click(seoBubble);
-    expect(seoBubble).toHaveAttribute("aria-pressed", "true");
+    await user.click(seoDockItem);
+    expect(seoDockItem).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "선택 1명 제안 발송" })).toBeEnabled();
 
     await user.click(viewToggle);
@@ -192,8 +194,9 @@ describe("creator filters", () => {
     expect(seoCheckbox).toBeChecked();
 
     await user.click(viewToggle);
-    expect(await within(screen.getByRole("region", { name: "크리에이터 버블" }))
-      .findByRole("button", { name: "김서연 선택 해제" })).toHaveAttribute("aria-pressed", "true");
+    expect(await screen.findByRole("img", { name: "크리에이터 발견 풀" })).toBeInTheDocument();
+    expect(await within(screen.getByRole("complementary", { name: "현재 보이는 크리에이터" }))
+      .findByRole("button", { name: /김서연/ })).toHaveAttribute("aria-pressed", "true");
   });
 
   test("clears stale bubbles while filtered results are loading", async () => {
@@ -210,17 +213,18 @@ describe("creator filters", () => {
     vi.stubGlobal("fetch", fetchMock);
     renderCreatorPage("/creators");
 
-    const pool = await screen.findByRole("region", { name: "크리에이터 버블" });
-    expect(await within(pool).findByRole("button", { name: "김서연 선택" })).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "크리에이터 발견 풀" })).toBeInTheDocument();
+    const dock = screen.getByRole("complementary", { name: "현재 보이는 크리에이터" });
+    expect(await within(dock).findByRole("button", { name: /김서연/ })).toBeInTheDocument();
     await user.type(screen.getByRole("textbox", { name: "키워드" }), "new");
     await user.click(screen.getByRole("button", { name: "조회" }));
 
-    expect(within(pool).queryByRole("button", { name: "김서연 선택" })).not.toBeInTheDocument();
+    expect(within(dock).queryByRole("button", { name: /김서연/ })).not.toBeInTheDocument();
     resolveFiltered(new Response(JSON.stringify({
       success: true,
       data: { content: [], totalElements: 0, totalPages: 0, number: 0, size: 200 },
     })));
-    expect(await within(pool).findByText("검색 결과가 없습니다.")).toBeInTheDocument();
+    expect(await screen.findByText("검색 결과가 없습니다.")).toBeInTheDocument();
   });
 
   test("renders the API result as a read-only table and requests server pagination", async () => {
