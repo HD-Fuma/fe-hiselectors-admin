@@ -781,6 +781,7 @@ export function CreatorListPage() {
             />
           )}
           ariaLabel="크리에이터 카테고리"
+          className="fuma-list-action-toolbar"
           emptyOption={{ label: "전체", onSelect: () => selectCategory("") }}
           onChange={selectCategory}
           options={categoryOptions.filter((option) => option.value)}
